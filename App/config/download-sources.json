@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "note": "Publisher endpoints for identical pinned assets. Alternate domains can share provider infrastructure; these are not independent backup copies.",
+  "release_assets": {
+    "https://github.com/ip7z/7zip/releases/download/25.01/7zr.exe": "https://api.github.com/repos/ip7z/7zip/releases/assets/278934761",
+    "https://github.com/Comfy-Org/ComfyUI/releases/download/v0.42.1/ComfyUI_windows_portable_nvidia.7z": "https://api.github.com/repos/Comfy-Org/ComfyUI/releases/assets/654722399",
+    "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth": "https://api.github.com/repos/xinntao/Real-ESRGAN/releases/assets/42011922",
+    "https://github.com/woct0rdho/SageAttention/releases/download/v2.2.0-windows.post6/sageattention-2.2.0%2Bcu130torch2.10.0andhigher.post6-cp310-abi3-win_amd64.whl": "https://api.github.com/repos/woct0rdho/SageAttention/releases/assets/480657540",
+    "https://github.com/astral-sh/python-build-standalone/releases/download/20240415/cpython-3.12.3%2B20240415-x86_64-pc-windows-msvc-shared-install_only.tar.gz": "https://api.github.com/repos/astral-sh/python-build-standalone/releases/assets/162718654",
+    "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip": "https://api.github.com/repos/GyanD/codexffmpeg/releases/assets/574302090",
+    "https://github.com/ollama/ollama/releases/download/v0.33.3/ollama-windows-amd64.zip": "https://api.github.com/repos/ollama/ollama/releases/assets/543087793"
+  }
+}

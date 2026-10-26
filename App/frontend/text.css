@@ -1,0 +1,39 @@
+#textWorkspace{display:grid;gap:20px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.text-layout{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:20px;align-items:start}
+.text-side{display:grid;gap:10px;position:sticky;top:calc(var(--topbar-h) + 20px)}
+#textSearch{width:100%;padding:9px 12px}
+#textChats{display:grid;gap:4px;max-height:66vh;overflow:auto}
+.text-chat-item{display:grid;gap:2px;text-align:left;padding:9px 12px;border:1px solid transparent;border-radius:var(--r);background:transparent;color:var(--text);font-weight:500;cursor:pointer}
+.text-chat-item:hover:not(:disabled){background:var(--surface-3)}
+.text-chat-item strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}.text-chat-item span{font-size:12px;color:var(--muted)}
+.text-chat-item[aria-current="true"],.text-chat-item[aria-current="true"]:hover{background:var(--accent-soft);border-color:var(--accent-line)}
+.text-main{display:grid;gap:12px;min-width:0}
+.text-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-end}.text-head h2{margin:0;overflow-wrap:anywhere}
+.text-messages{display:grid;gap:12px;align-content:start;min-height:360px;max-height:calc(100vh - 380px);overflow:auto;padding:14px;border:1px solid var(--border);border-radius:var(--r-l);background:var(--surface-2)}
+.text-empty{margin:auto;max-width:46ch;text-align:center;line-height:1.6;color:var(--muted)}
+.text-msg{display:grid;gap:8px;padding:12px 14px;border-radius:var(--r-l);max-width:min(100%,880px);min-width:0;animation:vf-in var(--mid) var(--ease) both}
+.text-user{justify-self:end;background:var(--accent-soft);border:1px solid var(--accent-line)}.text-assistant{justify-self:start;background:var(--surface);border:1px solid var(--border)}
+.text-msg-head{display:flex;gap:12px;align-items:baseline;font-size:13px}
+.text-body{line-height:1.6;overflow-wrap:anywhere}.text-body p{margin:0 0 .7em;white-space:pre-wrap}.text-body p:last-child{margin-bottom:0}
+.text-body code{background:var(--code-bg);padding:1px 5px;border-radius:5px}
+.text-code{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin:.6em 0;background:var(--code-bg)}
+.text-code-head{display:flex;justify-content:space-between;align-items:center;padding:4px 10px;background:var(--surface-3);font-size:12px;color:var(--muted)}
+.text-code-head button{padding:3px 10px;font-size:12px}
+.text-code pre{margin:0;padding:12px;overflow:auto;font-size:13px;line-height:1.5;white-space:pre}.text-code pre code{background:none;padding:0}
+.text-think{border:1px dashed var(--border-strong);border-radius:var(--r);padding:8px 12px;color:var(--muted)}
+.text-think-body{white-space:pre-wrap;margin-top:8px;font-size:13px;line-height:1.55;max-height:260px;overflow:auto}
+.text-foot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12px;color:var(--muted)}.text-foot button{padding:4px 10px;font-size:12px}.text-warn{color:var(--warn-ink)}
+#textForm{display:grid;gap:10px}
+.text-attachments{display:flex;flex-wrap:wrap;gap:10px}
+.text-attachments figure{position:relative;margin:0}.text-attachments img{display:block;height:84px;max-width:160px;object-fit:cover;border-radius:var(--r-s);border:1px solid var(--border)}
+.text-attachments button{position:absolute;top:-8px;right:-8px;width:26px;height:26px;padding:0;border-radius:50%;line-height:1}
+.text-pictures{display:flex;flex-wrap:wrap;gap:8px}.text-pictures img{display:block;max-height:180px;max-width:240px;object-fit:contain;border-radius:var(--r-s);border:1px solid var(--border);background:var(--code-bg)}
+#textInput,#textSystem{width:100%;padding:11px 12px;resize:vertical}
+#textInput{min-height:84px}
+#textWorkspace details{line-height:1.6}#textWorkspace details > summary{font-weight:600}
+#textWorkspace label{display:grid;gap:6px;font-weight:600;font-size:13px;color:var(--text-2);margin-top:10px}
+#textWorkspace select,#textWorkspace .text-params input{width:100%;padding:9px 12px}
+#textWorkspace .text-check{display:flex;align-items:center;gap:10px;font-weight:500}#textWorkspace .text-check input{width:18px;height:18px}
+.text-params{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+@media (max-width:820px){.text-layout{grid-template-columns:1fr}.text-side{position:static}#textChats{max-height:200px}}

@@ -1,0 +1,174 @@
+/* VisualForge design tokens and application shell.
+   Every color in the studio comes from these variables, so the light/dark switch and a future accent change touch only this block.
+   Motion uses transform/opacity only (compositor work, no layout), and everything stops under prefers-reduced-motion. */
+:root,:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0d1015;--shell:#10141a;--surface:#151a22;--surface-2:#0f131a;--surface-3:#1c232d;--raised:#1b212b;
+  --border:#232b36;--border-strong:#34404f;
+  --text:#e9edf2;--text-2:#c9d3df;--muted:#9aa5b4;--faint:#808b9a;
+  /* Indigo accent (scheme 3 chosen by the owner): one soft blue-violet for actions, selection and the section rail. */
+  --accent:#8b8cf8;--accent-hover:#a0a1fa;--accent-ink:#0d0b24;--accent-soft:rgba(139,140,248,.15);--accent-line:#6d6ee0;
+  --nav:#2c2a5c;--nav-ink:#cfcfff;
+  --ok:#5fd3a0;--ok-ink:#8ee6bd;--ok-bg:rgba(95,211,160,.11);
+  --warn:#e8b04b;--warn-ink:#ffd690;--warn-bg:rgba(232,176,75,.12);
+  --danger:#e5534b;--danger-ink:#ffb4ae;--danger-bg:rgba(229,83,75,.13);
+  --link:#abacff;--focus:#9d9efa;--code-bg:#0a0d12;
+  --shadow:0 14px 44px rgba(0,0,0,.45);--shadow-s:0 4px 14px rgba(0,0,0,.3);--overlay:rgba(4,7,12,.72);
+  --select-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239aa5b4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f3f5f8;--shell:#ffffff;--surface:#ffffff;--surface-2:#f5f7fa;--surface-3:#eaeef3;--raised:#ffffff;
+  --border:#dde2e9;--border-strong:#c4ccd7;
+  --text:#18202c;--text-2:#2f3a4a;--muted:#556173;--faint:#687384;
+  --accent:#5b5bd6;--accent-hover:#4b4bc4;--accent-ink:#ffffff;--accent-soft:rgba(91,91,214,.10);--accent-line:#9a9be8;
+  --nav:#e6e6fb;--nav-ink:#4545bd;
+  --ok:#1f9d6a;--ok-ink:#15704b;--ok-bg:#e2f4eb;
+  --warn:#c98a12;--warn-ink:#865700;--warn-bg:#fcf0d6;
+  --danger:#d63a31;--danger-ink:#a52820;--danger-bg:#fde7e5;
+  --link:#4545bd;--focus:#5b5bd6;--code-bg:#f1f3f6;
+  --shadow:0 14px 44px rgba(20,32,56,.14);--shadow-s:0 4px 14px rgba(20,32,56,.08);--overlay:rgba(18,24,34,.42);
+  --select-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23556173' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+:root{
+  --r-s:7px;--r:10px;--r-l:14px;
+  --ease:cubic-bezier(.2,.8,.2,1);--fast:.16s;--mid:.26s;
+  --topbar-h:56px;--rail-w:76px;--gutter:20px;
+  /* Segoe UI Variable ships with Windows 11 and needs no download, which keeps the studio fully offline. */
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;font-size:15px;
+  background:var(--bg);color:var(--text);
+}
+
+/* ---- base elements ------------------------------------------------------------------------------------------------- */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
+a{color:var(--link)}
+h1,h2,h3{color:var(--text)}
+::selection{background:var(--accent-soft)}
+input,select,textarea{font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--r-s);transition:border-color var(--fast) ease,box-shadow var(--fast) ease}
+input:hover,select:hover,textarea:hover{border-color:var(--faint)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+select{appearance:none;background-image:var(--select-chevron);background-repeat:no-repeat;background-position:right 10px center;padding-right:34px!important}
+input[type="checkbox"],input[type="radio"]{accent-color:var(--accent)}
+input[type="file"]{border:0;background:transparent;padding:0;color:var(--muted);font-size:13px}
+input[type="file"]::file-selector-button{font:inherit;font-size:13px;font-weight:600;margin-right:10px;padding:7px 12px;border-radius:var(--r-s);border:1px solid var(--border-strong);background:var(--raised);color:var(--text);cursor:pointer}
+progress{accent-color:var(--accent)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+details>summary{cursor:pointer;color:var(--text-2)}
+details>summary::marker{color:var(--faint)}
+pre,code{font-family:"Cascadia Mono",Consolas,monospace}
+
+/* Buttons: one primary per stage (accent), secondary are quiet surfaces, destructive ones are outlined in red. */
+button,a.button{font:inherit;font-weight:600;font-size:14px;border-radius:var(--r);cursor:pointer;border:1px solid transparent;background:var(--accent);color:var(--accent-ink);padding:11px 20px;transition:background-color var(--fast) ease,border-color var(--fast) ease,color var(--fast) ease,transform .1s ease}
+button:hover:not(:disabled){background:var(--accent-hover)}
+button:active:not(:disabled){transform:scale(.985)}
+button:disabled{cursor:not-allowed;opacity:.5}
+button.secondary{background:var(--raised);color:var(--text);border-color:var(--border-strong);font-weight:500}
+button.secondary:hover:not(:disabled){background:var(--surface-3);border-color:var(--faint)}
+button.cancel{background:var(--danger-bg);color:var(--danger-ink);border-color:var(--danger)}
+button.cancel:hover:not(:disabled){background:var(--danger-bg);border-color:var(--danger-ink)}
+button.slim{padding:9px 14px;font-size:13px}
+
+/* ---- application shell: slim top bar, section rail on the left, content to the right -------------------------------- */
+main{max-width:none;margin:0;padding:0 0 24px}
+main > :not(header):not(nav):not(dialog){margin-left:calc(var(--rail-w) + var(--gutter));margin-right:var(--gutter);max-width:1880px}
+main > header{position:sticky;top:0;z-index:900;height:var(--topbar-h);min-height:0;display:flex;align-items:center;gap:12px;padding:0 12px 0 16px;background:var(--shell);border-bottom:1px solid var(--border)}
+main > header .brand-symbol{float:none;flex:none;width:32px;height:32px;margin:0;border-radius:0;background:none}
+main > header .brand-symbol::before{inset:2px}
+main > header h1{flex:none;margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em;background:none;color:var(--text);-webkit-text-fill-color:currentColor;white-space:nowrap}
+.topbar-context{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;gap:10px;padding-left:12px;margin-left:2px;border-left:1px solid var(--border);white-space:nowrap;overflow:hidden}
+main > header .eyebrow{margin:0;flex:none;letter-spacing:0;text-transform:none;font-size:13px;font-weight:600;color:var(--text)}
+main > header .description{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px;color:var(--muted)}
+main > header #preflight{flex:0 1 auto;min-width:0;max-width:34vw;margin:0;padding:4px 10px 4px 22px;position:relative;border-radius:999px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--surface-3);color:var(--muted)}
+main > header #preflight::before{content:"";position:absolute;left:10px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:currentColor}
+main > header #preflight.good{background:var(--ok-bg);color:var(--ok-ink)}
+main > header #preflight.bad{background:var(--danger-bg);color:var(--danger-ink)}
+.topbar-tools{flex:none;display:flex;align-items:center;gap:6px;margin-left:auto}
+.topbar-tools > *{flex:none}
+.icon-button{display:inline-grid;place-items:center;width:36px;height:36px;padding:0;border-radius:var(--r);background:transparent;color:var(--muted);border:1px solid transparent}
+.icon-button:hover:not(:disabled){background:var(--surface-3);color:var(--text)}
+
+/* Hardware: a compact chip; the full card opens as a popover under it. */
+.hw-wrap{position:relative}
+#hardwareChip{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:var(--r);background:var(--raised);border:1px solid var(--border);color:var(--text-2);font-size:13px;font-weight:500}
+#hardwareChip:hover{background:var(--surface-3)}
+#hardwareChip .hw-dot{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+#hardwareChip[data-status="green"] .hw-dot{background:var(--ok)}
+#hardwareChip[data-status="yellow"] .hw-dot{background:var(--warn)}
+#hardwareChip[data-status="red"] .hw-dot{background:var(--danger)}
+main > header .hardware-panel{display:none;position:absolute;top:44px;right:0;width:310px;z-index:950;background:var(--raised);border:1px solid var(--border-strong);box-shadow:var(--shadow)}
+.hw-wrap.open .hardware-panel{display:block;animation:vf-pop var(--mid) var(--ease) both}
+
+/* Light/dark switch: the sun is shown in the dark theme, the moon in the light one; the icons swap with a turn. */
+#themeToggle{position:relative;overflow:hidden}
+#themeToggle svg{position:absolute;inset:0;margin:auto;transition:transform .45s var(--ease),opacity .3s ease}
+#themeToggle .icon-moon{opacity:0;transform:rotate(-90deg) scale(.5)}
+:root[data-theme="light"] #themeToggle .icon-sun{opacity:0;transform:rotate(90deg) scale(.5)}
+:root[data-theme="light"] #themeToggle .icon-moon{opacity:1;transform:none}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-new(root){z-index:2}
+
+/* Settings menu now lives in the top bar flow instead of floating over the old tall banner. */
+.studio-settings{position:relative!important;top:auto!important;right:auto!important}
+.studio-settings-toggle{width:36px!important;height:36px!important;border-radius:var(--r)!important;background:transparent!important;border-color:transparent!important;color:var(--muted)!important}
+.studio-settings-toggle:hover,.studio-settings-toggle[aria-expanded="true"],.studio-settings:has(#componentsTab[aria-selected="true"]) .studio-settings-toggle{background:var(--surface-3)!important;color:var(--text)!important}
+.studio-settings-menu{top:44px!important;background:var(--raised)!important;border:1px solid var(--border-strong)!important;box-shadow:var(--shadow)!important;animation:vf-pop var(--mid) var(--ease) both}
+.studio-settings-menu button{color:var(--text)!important;font-weight:500!important}
+.studio-settings-menu button:hover,.studio-settings-menu button:focus-visible{background:var(--surface-3)!important}
+.studio-settings-menu button[aria-selected="true"]{background:var(--nav)!important;color:var(--nav-ink)!important}
+
+/* Section rail with a sliding indicator (positioned by shell.js). */
+nav.module-tabs{position:fixed;left:0;top:var(--topbar-h);bottom:0;z-index:800;width:var(--rail-w);margin:0;padding:12px 0;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--shell);border-right:1px solid var(--border)}
+nav.module-tabs button{position:relative;z-index:1;width:60px;height:60px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-size:11px;font-weight:600}
+nav.module-tabs button:hover:not(:disabled){background:var(--surface-3);color:var(--text)}
+nav.module-tabs button[aria-selected="true"],nav.module-tabs button[aria-selected="true"]:hover{background:transparent;color:var(--nav-ink)}
+nav.module-tabs svg{width:22px;height:22px;flex:none}
+.rail-ind{position:absolute;left:8px;top:0;width:60px;height:60px;border-radius:12px;background:var(--nav);opacity:0;transition:transform var(--mid) var(--ease),opacity var(--fast) ease;pointer-events:none}
+.rail-ind.on{opacity:1}
+/* Without JS positioning yet, the selected button paints its own background so the first frame is never empty. */
+nav.module-tabs:not(.ready) button[aria-selected="true"]{background:var(--nav)}
+
+/* ---- shared surfaces ------------------------------------------------------------------------------------------------ */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-l);padding:22px;margin:20px 0;box-shadow:none}
+.panel h2{font-size:16px;font-weight:650;margin:0 0 14px}
+.eyebrow{color:var(--accent);letter-spacing:.08em;font-size:11px;font-weight:700;text-transform:uppercase;margin:0 0 6px}
+.description{color:var(--muted)}
+.muted,.small{color:var(--muted)}
+.small{font-size:12px}
+.status{font-size:13px}
+.good{color:var(--ok-ink)}
+.bad{color:var(--danger-ink)}
+footer{color:var(--faint);font-size:12px;line-height:1.6;margin-top:16px}
+
+/* "What does this mean?" disclosures that shell.js wraps around long static explanations. */
+details.hint-more{margin:6px 0 0}
+details.hint-more>summary{display:inline-flex;align-items:center;gap:6px;list-style:none;font-size:12px;color:var(--link)}
+details.hint-more>summary::-webkit-details-marker{display:none}
+details.hint-more>summary::before{content:"?";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1px solid currentColor;font-size:10px;font-weight:700}
+details.hint-more[open]>summary{margin-bottom:6px}
+details.hint-more>:not(summary){margin-top:0!important}
+
+/* Busy state: a floating bar with Stop, always reachable and never covering the top bar. */
+#studioBusy{position:fixed!important;left:50%;bottom:20px;top:auto!important;transform:translateX(-50%);z-index:10040;max-width:min(900px,calc(100vw - 40px));display:flex;flex-wrap:nowrap;align-items:center;gap:14px;padding:10px 10px 10px 18px!important;border-radius:var(--r-l);background:var(--raised)!important;color:var(--text)!important;border:1px solid var(--warn)!important;box-shadow:var(--shadow);font-weight:500!important;font-size:13px;animation:vf-rise var(--mid) var(--ease) both}
+#studioBusy::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--warn);animation:vf-pulse 1.4s ease-in-out infinite}
+#studioBusyStop{flex:none;background:var(--danger-bg)!important;color:var(--danger-ink)!important;border:1px solid var(--danger)!important;border-radius:var(--r)!important;padding:8px 14px!important;font-weight:600!important}
+
+@keyframes vf-pop{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes vf-rise{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes vf-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes vf-pulse{50%{opacity:.35}}
+/* Switching sections fades the incoming workspace in; hidden ones cost nothing. */
+#imageWorkspace:not([hidden]),#videoWorkspace:not([hidden]),#musicWorkspace:not([hidden]),#textWorkspace:not([hidden]),#componentsWorkspace:not([hidden]){animation:vf-in var(--mid) var(--ease) both}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+@media (max-width:900px){
+  :root{--rail-w:0px;--gutter:12px}
+  nav.module-tabs{position:sticky;top:var(--topbar-h);bottom:auto;width:auto;height:auto;flex-direction:row;justify-content:center;padding:6px;border-right:0;border-bottom:1px solid var(--border)}
+  .rail-ind{display:none}
+  nav.module-tabs button[aria-selected="true"]{background:var(--nav)}
+  .topbar-context .description,main > header #preflight,#hardwareChip .hw-name{display:none}
+}

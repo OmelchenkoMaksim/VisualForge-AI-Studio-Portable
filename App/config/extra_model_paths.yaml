@@ -1,0 +1,15 @@
+visualforge:
+    base_path: ../../Models
+    is_default: true
+    diffusion_models: |
+        diffusion_models
+        unet
+    loras: |
+        loras
+    text_encoders: |
+        text_encoders
+        clip
+    upscale_models: |
+        upscale_models
+    vae: |
+        vae
