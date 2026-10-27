@@ -9,9 +9,11 @@ def alternatives(url):
     host, path = parts.netloc.lower(), parts.path
     hosts = {'huggingface.co': 'hf.co', 'files.pythonhosted.org': 'pypi.org',
              'download.pytorch.org': 'download-r2.pytorch.org', 'download-r2.pytorch.org': 'download.pytorch.org',
-             'www.python.org': 'python.org'}
+             'www.python.org': 'python.org', 'registry.npmjs.org': 'registry.yarnpkg.com'}
     if host in hosts:
         return [urlunsplit(('https', hosts[host], path, parts.query, ''))]
+    if host == 'nodejs.org' and path.startswith('/dist/'):
+        return ['https://nodejs.org/download/release/' + path[len('/dist/'):]]
     segments = path.strip('/').split('/')
     if host == 'codeload.github.com' and len(segments) >= 4 and segments[2] == 'zip':
         return ['https://github.com/%s/%s/archive/%s.zip' % (segments[0], segments[1], '/'.join(segments[3:]))]

@@ -99,6 +99,7 @@ try:
 except (ImportError, OSError, ValueError) as _text_error:
     TEXT = TEXT_STORE = None
     print('Text недоступен: ' + str(_text_error), flush=True)
+AGENTS = None  # constructed below, after the GPU coordinator it needs
 STATIC = {'/engine-state.js': ('static/engine-state.js', 'application/javascript; charset=utf-8'), '/': ('static/index.html','text/html; charset=utf-8'), '/app.js': ('static/app.js','application/javascript; charset=utf-8'), '/style.css': ('static/style.css','text/css; charset=utf-8'), '/progress-save.css': ('static/progress-save.css','text/css; charset=utf-8')}
 STATIC['/prompt-guides.js'] = ('static/prompt-guides.js', 'application/javascript; charset=utf-8')
 STATIC['/video.js'] = ('static/video.js', 'application/javascript; charset=utf-8')
@@ -107,6 +108,8 @@ STATIC['/music.js'] = ('static/music.js', 'application/javascript; charset=utf-8
 STATIC['/music.css'] = ('static/music.css', 'text/css; charset=utf-8')
 STATIC['/text.js'] = ('static/text.js', 'application/javascript; charset=utf-8')
 STATIC['/text.css'] = ('static/text.css', 'text/css; charset=utf-8')
+STATIC['/agent.js'] = ('static/agent.js', 'application/javascript; charset=utf-8')
+STATIC['/agent.css'] = ('static/agent.css', 'text/css; charset=utf-8')
 STATIC['/voice.js'] = ('static/voice.js', 'application/javascript; charset=utf-8')
 STATIC['/voice-gate.js'] = ('static/voice-gate.js', 'application/javascript; charset=utf-8')
 STATIC['/voice-worklet.js'] = ('static/voice-worklet.js', 'application/javascript; charset=utf-8')
@@ -190,6 +193,12 @@ if MUSIC is not None:
 if SPEECH is not None and TEXT is not None:
     from speech.polish import Polisher
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
+if TEXT is not None:
+    try:
+        from agents.manager import AgentManager
+        AGENTS = AgentManager(PATHS, TEXT, TEXT_STORE, GPU, GPU_SUBMISSION_LOCK)
+    except (ImportError, OSError, ValueError) as _agents_error:
+        print('Режим «Агент» недоступен: ' + str(_agents_error), flush=True)
 try:
     from provision.manager import ComponentsManager
     COMPONENTS = ComponentsManager(PATHS.root, PATHS.root / 'App/config/components.json', GPU)
@@ -219,6 +228,8 @@ def busy_state():
 def stop_generation():
     """Stop whatever generates right now, whichever module started it (the banner's Stop button)."""
     stopped = []
+    if AGENTS is not None and AGENTS.stop()['stopped']:
+        stopped.append('agent')
     if TEXT is not None:
         for chat_id in list(TEXT.active):
             TEXT.stop_chat(chat_id)
@@ -381,7 +392,7 @@ def save_settings(raw):
     return target
 
 
-def choose_save_dir(initial_dir=None):
+def choose_save_dir(initial_dir=None, description='Выберите папку автосохранения результатов Qwen', normalize=True):
     if os.name != 'nt':
         raise ValueError('Нативный выбор папки поддерживается только на Windows')
     shell = shutil.which('pwsh.exe') or shutil.which('powershell.exe') or 'powershell.exe'
@@ -389,7 +400,7 @@ def choose_save_dir(initial_dir=None):
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-$dialog.Description = 'Выберите папку автосохранения результатов Qwen'
+$dialog.Description = $env:QWEN_DIALOG_TITLE
 $dialog.ShowNewFolderButton = $true
 if ($env:QWEN_INITIAL_DIR -and (Test-Path -LiteralPath $env:QWEN_INITIAL_DIR)) {
     $dialog.SelectedPath = $env:QWEN_INITIAL_DIR
@@ -421,6 +432,7 @@ finally {
 '''.strip()
     env = os.environ.copy()
     env['QWEN_INITIAL_DIR'] = str(initial_dir or '')
+    env['QWEN_DIALOG_TITLE'] = description  # passed by environment: the script text stays a constant, nothing is spliced into it
     proc = subprocess.run([shell, '-NoProfile', '-STA', '-Command', script], text=True, capture_output=True, env=env, timeout=180)
     if proc.returncode != 0:
         details = (proc.stderr or proc.stdout or '').strip()
@@ -428,7 +440,17 @@ finally {
     chosen = (proc.stdout or '').strip()
     if not chosen:
         return None
-    return normalize_save_dir(chosen)
+    return normalize_save_dir(chosen) if normalize else chosen
+
+
+def choose_agent_workspace(initial_dir=None):
+    """The native folder dialog for the agent's project folder; one dialog at a time, like the save-folder chooser."""
+    if not DIALOG_LOCK.acquire(blocking=False):
+        raise ValueError('Окно выбора папки уже открыто: найдите его на панели задач.')
+    try:
+        return choose_save_dir(initial_dir, 'Выберите папку проекта, в которой будет работать агент', normalize=False) or ''
+    finally:
+        DIALOG_LOCK.release()
 
 
 def open_existing_directory(path_text):
@@ -1006,6 +1028,9 @@ class Handler(BaseHTTPRequestHandler):
             if u.path.startswith('/api/text/'):
                 from text.routes import handle as text_handle
                 return text_handle(self, TEXT, TEXT_STORE, u.path.removeprefix('/api/text/'), None, u.query)
+            if u.path.startswith('/api/agents/'):
+                from agents.routes import handle as agents_handle
+                return agents_handle(self, AGENTS, u.path.removeprefix('/api/agents/'), None, choose_agent_workspace)
             if u.path.startswith('/api/video/'):
                 return self.video_request(u.path.removeprefix('/api/video/'), query=('?' + u.query) if u.query else '')
             if u.path == '/api/hardware':
@@ -1064,6 +1089,8 @@ class Handler(BaseHTTPRequestHandler):
         route = urlparse(self.path).path
         if route == '/api/text/send':
             return self._text_send()  # streams for minutes: only the admission below holds the GPU lock
+        if route == '/api/agents/send':
+            return self._agent_send()  # runs for minutes; each model request of the agent is admitted by its gateway
         if route == '/api/speech/transcribe':
             return self._speech_transcribe()  # raw audio, not JSON; takes seconds and must not hold the GPU lock
         if route not in GPU_START_ROUTES:
@@ -1103,6 +1130,23 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, KeyError, TypeError) as error:
             return self.response_json(400, {'error': str(error)[:800]})
 
+    def _agent_send(self):
+        if not self.safe_origin():
+            return
+        try:
+            size = int(self.headers.get('Content-Length', '0') or '0')
+            if not 0 < size <= 512 * 1024:  # a task of up to 100 000 characters as JSON-escaped UTF-8
+                return self.response_json(413, {'error': 'Слишком большой запрос'})
+            body = self.rfile.read(size)
+            if not self.headers.get('Content-Type', '').startswith('application/json'):
+                return self.response_json(415, {'error': 'Expected JSON'})
+            from agents.routes import send as agent_send
+            agent_send(self, AGENTS, json.loads(body))
+        except Busy as error:
+            return self.response_json(409, {'error': str(error)})
+        except (ValueError, KeyError, TypeError) as error:
+            return self.response_json(400, {'error': str(error)[:800]})
+
     def _do_POST(self):
         if not self.safe_origin():
             return
@@ -1115,7 +1159,9 @@ class Handler(BaseHTTPRequestHandler):
                                 '/api/text/stop', '/api/text/unload')
             is_components = route in ('/api/components/install', '/api/components/cancel', '/api/components/model-toggle', '/api/components/model-remove-plan', '/api/components/model-remove', '/api/components/repair', '/api/components/recovery-answer', '/api/components/recovery-file')
             is_speech = route in ('/api/speech/settings', '/api/speech/unload', '/api/speech/prepare')
-            if not is_video and not is_music and not is_text and not is_components and not is_speech and route not in ('/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
+            is_agents = route in ('/api/agents/chats', '/api/agents/chat-update', '/api/agents/permission', '/api/agents/stop', '/api/agents/settings',
+                                  '/api/agents/choose-workspace')
+            if not is_video and not is_music and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
                 return self.response_json(404, {'error': 'Not found'})
             size = int(self.headers.get('Content-Length', '0') or '0')
             max_size = 4096 if route in ('/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
@@ -1130,6 +1176,8 @@ class Handler(BaseHTTPRequestHandler):
                 max_size = 8192
             if is_speech:
                 max_size = 4096
+            if is_agents:
+                max_size = 16384  # a chat's system instruction (up to 8000 characters) plus a folder path
             if size < 0 or size > max_size:
                 return self.response_json(413, {'error': 'Слишком большой запрос'})
             body = self.rfile.read(size) if size > 0 else b'{}'
@@ -1144,6 +1192,9 @@ class Handler(BaseHTTPRequestHandler):
             if is_speech:
                 from speech.routes import handle as speech_handle
                 return speech_handle(self, SPEECH, route.removeprefix('/api/speech/'), data)
+            if is_agents:
+                from agents.routes import handle as agents_handle
+                return agents_handle(self, AGENTS, route.removeprefix('/api/agents/'), data, choose_agent_workspace)
             if is_components:
                 from provision.routes import handle as components_handle
                 return components_handle(self, COMPONENTS, route.removeprefix('/api/components/'), data)

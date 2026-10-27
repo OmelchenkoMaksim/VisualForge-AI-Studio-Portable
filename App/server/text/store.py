@@ -94,7 +94,7 @@ class ChatStore:
     def _summary(self, chat):
         last = next((m for m in reversed(chat['messages']) if m['role'] == 'assistant'), None)
         return dict(id=chat['id'], title=chat['title'], created=chat['created'], updated=chat['updated'], messages=len(chat['messages']),
-                    model=chat.get('model', ''), preview=_title_from((last or {}).get('content', ''))[:60])
+                    model=chat.get('model', ''), preview=_title_from((last or {}).get('content', ''))[:60], kind=chat.get('kind', 'chat'))
 
     def _read_index(self):
         try:
@@ -154,13 +154,25 @@ class ChatStore:
         with self.lock:
             return self._read_index()
 
-    def create(self, system='', model='', think=True):
+    def create(self, system='', model='', think=True, agent=None):
+        """A chat; with `agent` (id, workspace, permission, session) it is an agent chat of the Text tab's «Агент» mode."""
         with self.lock:
             if len(self._read_index()) >= MAX_CHATS:
                 raise ValueError('Слишком много чатов: удалите ненужные')
             now = time.time()
             chat = dict(schema_version=SCHEMA_VERSION, id=uuid.uuid4().hex, title='Новый чат', title_auto=True, created=now, updated=now,
                         system=self._system(system), model=str(model)[:200], think=bool(think), messages=[])
+            if agent is not None:
+                chat.update(kind='agent', agent=dict(agent))
+            self._save(chat)
+            return chat
+
+    def set_agent(self, ident, **changes):
+        with self.lock:
+            chat = self.get(ident)
+            if chat.get('kind') != 'agent':
+                raise ValueError('Это обычный чат, а не чат агента')
+            chat['agent'].update(changes)
             self._save(chat)
             return chat
 
@@ -276,12 +288,14 @@ class ChatStore:
                 raise ValueError('В чате нет вопроса, на который можно ответить')
             return chat
 
-    def add_assistant(self, ident, content, thinking='', model='', stats=None, stopped=False, error=''):
+    def add_assistant(self, ident, content, thinking='', model='', stats=None, stopped=False, error='', steps=None):
         with self.lock:
             chat = self.get(ident)
             message = dict(id=uuid.uuid4().hex, role='assistant', content=content[:MAX_CONTENT * 4], created=time.time(), model=model)
             if thinking:
                 message['thinking'] = thinking[:MAX_CONTENT * 4]
+            if steps:
+                message['steps'] = steps  # an agent's commands and edits, already bounded by the agent manager
             if stats:
                 message['stats'] = stats
             if stopped:

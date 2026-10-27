@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
-CATALOG_VERSION = '2026.10.25'
+CATALOG_VERSION = '2026.10.27'
 UA = {'User-Agent': 'visualforge-catalog/1'}
 HF_URL = 'https://huggingface.co/%s/resolve/%s/%s'
 
@@ -438,6 +438,13 @@ def build_text(installed):
         license='MIT (Ollama) and bundled libraries', present=['Runtime/Text/ollama/ollama.exe'], disk_bytes=tree_size(installed / 'Runtime/Text'),
         downloads=[download('ollama', ollama['url'], ollama['filename'], ollama['bytes'], ollama['sha256'])],
         steps=[dict(op='extract', download='ollama', to='Runtime/Text/ollama', skip=['lib/ollama/rocm/*'])])
+    opencode = github_asset('anomalyco/opencode', 'v1.19.4', 'opencode-windows-x64.zip')
+    agent = component(
+        id='text.agent.opencode', module='text', kind='software', title='OpenCode 1.19.4 (agent mode of the Text section)',
+        description='Coding and git agent that works in a chosen folder through the private Ollama model. Runs offline; edits and commands follow the permission level of the chat, git push is always refused.',
+        license='MIT (OpenCode)', requires=['text.runtime'], present=['Runtime/Agents/opencode/opencode.exe'], disk_bytes=tree_size(installed / 'Runtime/Agents/opencode'),
+        downloads=[download('opencode', opencode['url'], opencode['filename'], opencode['bytes'], opencode['sha256'])],
+        steps=[dict(op='extract', download='opencode', to='Runtime/Agents/opencode')])
     models = []
     for tag, title, size, note in (
             ('gemma4:e2b', 'Gemma 4 E2B (small, vision)', 4.59e9, 'Fits comfortably on 8 GB cards.'),
@@ -448,7 +455,55 @@ def build_text(installed):
             id='text.model.' + tag.replace(':', '-'), module='text', kind='model', group='Text', title=title, description=note,
             license='Gemma terms of use / Apache-2.0 (see the model license shown by Ollama)', requires=['text.runtime'], download_bytes=int(size), disk_bytes=int(size),
             present=['Models/Text/ollama/manifests/registry.ollama.ai/library/%s/%s' % (model, variant)], after=[dict(op='ollama_pull', model=tag)]))
-    return [runtime] + models
+    return [runtime, agent, build_aider(installed), build_dsh(installed)] + models
+
+
+def build_dsh(installed):
+    """DeepSeek Harness: portable Node.js plus the npm tarballs of the resolved win32-x64 tree, pinned in App/config/dsh-assets.json.
+
+    Each tarball is unpacked to its own node_modules path of the lockfile (npm's `package/` root stripped); install scripts are
+    not run: on Windows they only rebuild native modules that ship prebuilt (node-pty, koffi) or do nothing."""
+    assets = read_json(REPO / 'App/config/dsh-assets.json')
+    base = 'Runtime/Agents/dsh'
+    node = assets['node']
+    downloads = [download('node', node['urls'], node['filename'], node['bytes'], node['sha256'])]
+    steps = [dict(op='extract', download='node', to=base + '/node', strip=1, keep=['node.exe', 'LICENSE']),
+             dict(op='write_text', path=base + '/app/package.json',
+                  content='{"name": "visualforge-dsh", "private": true, "dependencies": {"%s": "%s"}}\r\n' % (assets['package'], assets['version']))]
+    for item in assets['packages']:
+        ident = 'npm:' + item['path']
+        downloads.append(download(ident, item['url'], item['path'].replace('/', '+') + '-' + item['version'] + '.tgz', item['bytes'], item['sha256']))
+        steps.append(dict(op='extract', download=ident, to='%s/app/%s' % (base, item['path']), strip=1))
+    return component(
+        id='text.agent.dsh', module='text', kind='software', title='DeepSeek Harness %s (agent mode of the Text section)' % assets['version'],
+        description='DeepSeek\'s plugin-based coding agent (developer preview) with its own Node.js %s, talking to the private Ollama model. '
+                    'Runs offline: DeepSeek cloud models, web search and telemetry are switched off; edits and commands follow the permission '
+                    'level of the chat, git push is always refused.' % node['version'],
+        license='MIT (DeepSeek Harness, Node.js); each npm package its own license', requires=['text.runtime'],
+        present=[base + '/node/node.exe', base + '/app/package.json', base + '/app/node_modules/@deepseek-ai/dsh/lib/bin.js'],
+        disk_bytes=tree_size(installed / base), downloads=downloads, steps=steps)
+
+
+def build_aider(installed):
+    """Aider in its own embeddable Python; the wheel set was resolved once for cp312/win_amd64 and is pinned in App/config/aider-assets.json."""
+    assets = read_json(REPO / 'App/config/aider-assets.json')
+    base, python = 'Runtime/Agents/aider', 'Runtime/Agents/aider/python/python.exe'
+    downloads = [download('python', assets['python']['urls'], assets['python']['filename'], assets['python']['bytes'], assets['python']['sha256']),
+                 download('pip', assets['pip']['urls'], assets['pip']['filename'], assets['pip']['bytes'], assets['pip']['sha256'])]
+    downloads += [download('wheel:' + w['filename'], w['url'], w['filename'], w['bytes'], w['sha256']) for w in assets['wheels']]
+    lock = ''.join('%s==%s\r\n' % (w['name'], w['version']) for w in assets['wheels'])
+    return component(
+        id='text.agent.aider', module='text', kind='software', title='Aider %s (agent mode of the Text section)' % assets['version'],
+        description='Coding agent that edits files of a chosen git folder through the private Ollama model, with its own Python 3.12. Runs offline; '
+                    'edits and commands follow the permission level of the chat, git push is always refused.',
+        license='Apache-2.0 (Aider); Python PSF; each package its own license', requires=['text.runtime'],
+        present=[python, base + '/python/Lib/site-packages/aider/__init__.py', base + '/requirements-lock.txt'],
+        disk_bytes=tree_size(installed / base), downloads=downloads, steps=[
+            dict(op='extract', download='python', to=base + '/python'),
+            dict(op='write_text', path=base + '/python/python312._pth', content='python312.zip\r\n.\r\nLib/site-packages\r\nimport site\r\n'),
+            dict(op='pip_bootstrap', python=python, download='pip'),
+            dict(op='pip_install', python=python, downloads=['wheel:' + w['filename'] for w in assets['wheels']]),
+            dict(op='write_text', path=base + '/requirements-lock.txt', content=lock)])
 
 
 # ---- Speech (voice input) ------------------------------------------------------------------------------------------
@@ -483,7 +538,7 @@ MODULES = [
     dict(id='image', title='Image', summary='Image generation and editing with Qwen, Z-Image and FLUX.3 (ComfyUI).'),
     dict(id='video', title='Video', summary='FreeVideo H3, Wan 2.2 and character speech; also provides export and the sound mixer.'),
     dict(id='music', title='Music', summary='ACE-Step 1.5, MiniMax Music3 and Stable Audio 3.'),
-    dict(id='text', title='Text', summary='Private chat model through a separate Ollama.'),
+    dict(id='text', title='Text', summary='Private chat model through a separate Ollama, plus the OpenCode, Aider and DeepSeek Harness agent modes.'),
     dict(id='speech', title='Voice input', summary='Speech recognition for the microphone buttons in every text field.'),
 ]
 

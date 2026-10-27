@@ -2,7 +2,9 @@
 (() => {
   const el = id => document.getElementById(id);
   const LAST_KEY = 'visualforge.text.last-chat.v1';
-  let available = false, current = null, chats = [], settings = null, models = [], streaming = null, statusTimer = null, pending = [];
+  let available = false, current = null, chats = [], settings = null, models = [], streaming = null, statusTimer = null, pending = [], mode = 'chat', agentError = '';
+  // The open chat decides the mode; without one the «Чат | Агент» switch decides what the next chat will be.
+  const agentMode = () => current ? current.kind === 'agent' : mode === 'agent';
   const MAX_PICTURES = 4, MAX_SIDE = 1536, MAX_BYTES = 5 * 1024 * 1024;
   const fmt = (n, digits = 1) => Number(n).toLocaleString('ru-RU', {maximumFractionDigits: digits});
   const gb = bytes => fmt(bytes / 1024 ** 3);
@@ -59,7 +61,7 @@
   }
   function bubble(message) {
     const row = document.createElement('article'), head = document.createElement('div'), who = document.createElement('strong'), body = document.createElement('div');
-    row.className = 'text-msg text-' + message.role;head.className = 'text-msg-head';who.textContent = message.role === 'user' ? 'Вы' : 'Модель';
+    row.className = 'text-msg text-' + message.role;head.className = 'text-msg-head';who.textContent = message.role === 'user' ? 'Вы' : agentMode() ? 'Агент' : 'Модель';
     head.append(who);
     if (message.created) {const time = document.createElement('span');time.className = 'muted';time.textContent = new Date(message.created * 1000).toLocaleString('ru-RU');head.append(time);}
     body.className = 'text-body';row.append(head);
@@ -76,6 +78,9 @@
       const think = document.createElement('details'), summary = document.createElement('summary'), thoughts = document.createElement('div');
       think.className = 'text-think';think.hidden = true;summary.textContent = 'Размышления модели';thoughts.className = 'text-think-body';think.append(summary, thoughts);row.append(think);
       row.think = think;row.thoughts = thoughts;
+      // Agent answers: the commands and edits it made, then any permission request waiting for the user.
+      const steps = document.createElement('div'), asks = document.createElement('div');
+      steps.className = 'agent-steps';steps.hidden = true;asks.className = 'agent-steps';row.append(steps, asks);row.steps = steps;row.asks = asks;
     }
     row.append(body);row.body = body;row.head = head;
     const foot = document.createElement('div');foot.className = 'text-foot';row.append(foot);row.foot = foot;
@@ -89,10 +94,13 @@
       row.thoughts.textContent = message.thinking || '';
       row.think.querySelector('summary').textContent = `Размышления модели · ${fmt((message.thinking || '').length, 0)} симв.`;
     }
+    if (row.steps) window.StudioAgent?.renderSteps(row.steps, message.steps);
     row.foot.replaceChildren();
     if (message.role === 'assistant' && message.stats) {
       const s = message.stats, note = document.createElement('span');note.className = 'muted';
-      note.textContent = `${fmt(s.tokens_per_sec)} ток/с · ${s.completion_tokens} ток. · контекст ${s.prompt_tokens + s.completion_tokens} из ${s.context}`;
+      note.textContent = s.model_calls === undefined ? `${fmt(s.tokens_per_sec)} ток/с · ${s.completion_tokens} ток. · контекст ${s.prompt_tokens + s.completion_tokens} из ${s.context}`
+        : [`${s.model_calls} обращ. к модели`, s.completion_tokens === undefined ? '' : `${fmt(s.completion_tokens, 0)} ток. ответа`,  // agent task totals; dsh reports no output tokens
+          `контекст ${fmt(s.context_tokens, 0)} из ${fmt(s.context, 0)}`].filter(Boolean).join(' · ');
       row.foot.append(note);
     }
     if (message.stopped || message.error) {
@@ -111,7 +119,9 @@
     el('textTitle').textContent = current ? current.title : 'Новый чат';
     if (!current || !current.messages.length) {
       const hint = document.createElement('p');hint.className = 'muted text-empty';
-      hint.textContent = 'Напишите первое сообщение. Модель работает прямо на вашем компьютере, без интернета; история чатов хранится в папке программы.';box.append(hint);
+      hint.textContent = agentMode() ? 'Выберите папку проекта и опишите задачу. Агент читает файлы, предлагает правки и команды; перед каждым действием он спросит разрешения (если права это требуют). Всё работает на вашем компьютере, без интернета.'
+        : 'Напишите первое сообщение. Модель работает прямо на вашем компьютере, без интернета; история чатов хранится в папке программы.';
+      box.append(hint);
     }
     for (const message of current ? current.messages : []) box.append(bubble(message));
     controls();toBottom();
@@ -125,19 +135,29 @@
       if (current && current.id === chat.id) item.setAttribute('aria-current', 'true');
       const title = document.createElement('strong'), meta = document.createElement('span');
       title.textContent = chat.title;meta.className = 'muted';meta.textContent = `${chat.messages} сообщ. · ${new Date(chat.updated * 1000).toLocaleDateString('ru-RU')}`;
+      if (chat.kind === 'agent') {const badge = document.createElement('span');badge.className = 'agent-badge';badge.textContent = 'Агент';item.append(badge);}
       item.append(title, meta);item.onclick = () => openChat(chat.id);list.append(item);
     }
   }
   function controls() {
-    const busy = !!streaming, ready = available && models.some(model => model.name === el('textModel').value) && !busy;
+    const busy = !!streaming, agent = agentMode();
+    const agentReady = !agent || (!!window.StudioAgent?.ready() && (!!current || !!StudioAgent.values().workspace));
+    const ready = available && models.some(model => model.name === el('textModel').value) && !busy && agentReady;
     el('textSend').disabled = !ready;el('textStop').disabled = !busy;el('textInput').disabled = !available;
+    el('textSend').textContent = agent ? 'Дать задание' : 'Отправить';
+    el('textInput').placeholder = agent ? 'Опишите задачу для агента. Enter — отправить, Shift+Enter — новая строка' : 'Напишите сообщение. Enter — отправить, Shift+Enter — новая строка';
     const vision = visionAvailable();
-    el('textAttach').disabled = !ready || !vision || pending.length >= MAX_PICTURES;
-    el('textAttach').title = vision ? 'PNG или JPEG; картинку можно также вставить из буфера (Ctrl+V) или перетащить в поле ввода' : 'Выбранная модель не умеет работать с изображениями';
+    el('textAttach').disabled = !ready || !vision || agent || pending.length >= MAX_PICTURES;
+    el('textAttach').title = agent ? 'Агенту изображения пока не передаются' : vision ? 'PNG или JPEG; картинку можно также вставить из буфера (Ctrl+V) или перетащить в поле ввода' : 'Выбранная модель не умеет работать с изображениями';
     const last = current && current.messages[current.messages.length - 1];
-    el('textRegenerate').disabled = !ready || !last;
+    el('textRegenerate').disabled = !ready || !last || agent;
     el('textRename').disabled = !current || busy;el('textDelete').disabled = !current || busy;el('textNewChat').disabled = busy;
-    el('textSystem').disabled = el('textThink').disabled = !current || busy;
+    el('textSystem').disabled = !current || busy;el('textThink').disabled = !current || busy || agent;
+    el('agentPanel').hidden = !agent;
+    for (const radio of document.querySelectorAll('input[name="textMode"]')) {radio.checked = radio.value === (agent ? 'agent' : 'chat');radio.disabled = busy;}
+    for (const id of ['agentKind', 'agentWorkspace', 'agentChoose', 'agentPermission']) el(id).disabled = busy || !window.StudioAgent?.info;
+    el('agentKind').disabled ||= !!current;  // a chat keeps the agent it was started with
+    if (agent && agentError) el('agentInfo').textContent = agentError;
   }
 
   // ---- attachments: pictures are shrunk in the browser (long side 1536) and sent as PNG/JPEG ---------------------
@@ -194,7 +214,7 @@
   function header() {
     const model = models.find(row => row.name === el('textModel').value);
     StudioUI.setHeader('text', {model:model ? modelLabel(model).split(' · ')[0] : 'Text',
-      description:model?.vision ? 'Локальный диалог с моделью — текст и изображения' : 'Локальный диалог с текстовой моделью',
+      description:agentMode() ? 'Локальный агент: файлы проекта, команды и git' : model?.vision ? 'Локальный диалог с моделью — текст и изображения' : 'Локальный диалог с текстовой моделью',
       tone:available && model ? 'good' : 'bad',
       status:available && model ? 'Ollama: программа и файлы модели доступны. Модель загружается при отправке сообщения.' : available ? 'Модель этого чата отключена или недоступна. Включите её в «Компонентах» либо выберите другую модель.' : el('textAvailability').textContent});
   }
@@ -229,12 +249,14 @@
         }
         el('textModel').value = current.model;
       }
+      window.StudioAgent?.show(current);
       modelSettings();renderChat();renderChats();
     } catch (error) {status(error.message);remember('');current = null;renderChat();}
   }
   async function newChat() {
     if (streaming) return;
-    current = await api('chats', {system: el('textSystem').value, model: el('textModel').value, think: el('textThink').checked});
+    if (mode === 'agent') current = await StudioAgent.api('chats', {...StudioAgent.values(), system: el('textSystem').value, model: el('textModel').value});
+    else current = await api('chats', {system: el('textSystem').value, model: el('textModel').value, think: el('textThink').checked});
     remember(current.id);await loadChats();renderChat();el('textInput').focus();
   }
   async function refresh() {
@@ -246,6 +268,7 @@
       el('textNative').checked = settings.native_parameters !== false;
       el('textP-keep_alive').value = settings.keep_alive;
       el('textAvailability').textContent = available ? `Модель: ${info.default_model} · работает локально через Ollama, внутри программы` : info.reason;
+      try {await StudioAgent.load();agentError = '';StudioAgent.show(current);} catch (error) {agentError = error.message;}
       modelSettings();
       await loadChats();
       const wanted = current ? current.id : recall();
@@ -266,10 +289,12 @@
   // ---- sending ------------------------------------------------------------------------------------------------
   async function send(regenerate) {
     if (streaming || !available) return;
-    const text = el('textInput').value, sentPictures = regenerate ? [] : pending;
+    const text = el('textInput').value, sentPictures = regenerate || agentMode() ? [] : pending;
     if (!regenerate && !text.trim() && !sentPictures.length) return;
+    if (agentMode() && (regenerate || !text.trim())) return;
     try {
       if (!current) await newChat();
+      const agent = current.kind === 'agent';
       const wasRegenerating = regenerate && current.messages.length && current.messages[current.messages.length - 1].role === 'assistant';
       if (wasRegenerating) {current.messages.pop();renderChat();}
       if (!regenerate) {
@@ -277,12 +302,13 @@
         current.messages.push({role: 'user', content: text, created: Date.now() / 1000, images: sentPictures.map(p => ({local: p.data, name: p.name}))});renderChat();el('textInput').value = '';
         pending = [];renderPending();
       }
-      const assistant = {role: 'assistant', content: '', thinking: ''}, row = bubble(assistant);
+      const assistant = {role: 'assistant', content: '', thinking: '', steps: []}, row = bubble(assistant);
       el('textMessages').append(row);toBottom();
-      const controller = new AbortController();streaming = {controller, chat: current.id};controls();
-      status('Отправка…');
-      const response = await fetch('/api/text/send', {method: 'POST', headers: {'Content-Type': 'application/json'}, signal: controller.signal,
-        body: JSON.stringify(regenerate ? {chat_id: current.id, regenerate: true} : {chat_id: current.id, content: text, images: sentPictures.map(p => ({name: p.name, data: p.data}))})})
+      const controller = new AbortController();streaming = {controller, chat: current.id, agent};controls();
+      status(agent ? 'Агент получает задание…' : 'Отправка…');
+      const body = agent ? {chat_id: current.id, content: text} : regenerate ? {chat_id: current.id, regenerate: true} : {chat_id: current.id, content: text, images: sentPictures.map(p => ({name: p.name, data: p.data}))};
+      const response = await fetch(agent ? '/api/agents/send' : '/api/text/send', {method: 'POST', headers: {'Content-Type': 'application/json'}, signal: controller.signal,
+        body: JSON.stringify(body)})
         .catch(error => {
           // Preserve AbortError so Stop stays silent; other fetch failures use the connection message.
           if (error.name === 'AbortError') throw error;
@@ -307,15 +333,30 @@
     const reader = response.body.getReader(), decoder = new TextDecoder();
     let buffer = '', scheduled = false;
     const paint = () => {scheduled = false;const stick = atBottom();fill(row, assistant);row.think.open = !assistant.content && !!assistant.thinking;if (stick) toBottom();};
+    const later = () => {if (!scheduled) {scheduled = true;requestAnimationFrame(paint);}};
     const handle = event => {
       if (event.type === 'status') status(event.phase);
       else if (event.type === 'delta') {
-        assistant.content += event.content || '';assistant.thinking += event.thinking || '';status('Модель отвечает…');
-        if (!scheduled) {scheduled = true;requestAnimationFrame(paint);}
+        assistant.content += event.content || '';assistant.thinking += event.thinking || '';status(streaming?.agent ? 'Агент работает…' : 'Модель отвечает…');
+        later();
+      } else if (event.type === 'step') {
+        const index = assistant.steps.findIndex(item => item.id === event.step.id);
+        if (index < 0) assistant.steps.push(event.step); else assistant.steps[index] = event.step;
+        // A step update arrives right after its permission request: keep the request's status line until it is answered.
+        if (!row.asks.querySelector('.agent-ask:not([data-answered])')) status(`Агент: ${event.step.title || event.step.tool}`);
+        later();
+      } else if (event.type === 'permission') {
+        const stick = atBottom();
+        row.asks.append(StudioAgent.permissionCard(event.request, streaming.chat, message => status(message)));
+        status('Агент ждёт вашего решения: разрешите или отклоните действие.');
+        if (stick) toBottom();
+      } else if (event.type === 'permission_done') {
+        StudioAgent.resolve(row.asks.querySelector(`[data-request="${CSS.escape(event.id)}"]`), event.reply);
       } else if (event.type === 'done') {
         Object.assign(assistant, event.message);paint();
         const s = event.message.stats;
-        status(event.error ? 'Ответ прерван: ' + event.error : s ? `Готово: ${fmt(s.tokens_per_sec)} ток/с, ${s.completion_tokens} токенов, загрузка модели ${fmt(s.load_sec)} с.` : 'Остановлено.');
+        status(event.error ? 'Ответ прерван: ' + event.error : streaming?.agent ? (event.message.stopped ? 'Агент остановлен.' : `Агент закончил: шагов — ${(event.message.steps || []).length}.`)
+          : s ? `Готово: ${fmt(s.tokens_per_sec)} ток/с, ${s.completion_tokens} токенов, загрузка модели ${fmt(s.load_sec)} с.` : 'Остановлено.');
         if (event.error) StudioUI.notify({module: 'Text', error: true, message: event.error});
       } else if (event.type === 'error') {
         row.remove();status(event.error);StudioUI.notify({module: 'Text', error: true, message: event.error});
@@ -347,8 +388,8 @@
   }
   async function stop() {
     if (!streaming) return;
-    const {controller, chat} = streaming;el('textStop').disabled = true;
-    try {await api('stop', {chat_id: chat});} catch {}
+    const {controller, chat, agent} = streaming;el('textStop').disabled = true;
+    try {if (agent) await StudioAgent.api('stop', {chat_id: chat}); else await api('stop', {chat_id: chat});} catch {}
     controller.abort();status('Остановлено: уже полученный текст сохраняется в чате.');
   }
 
@@ -395,6 +436,32 @@
   el('textThink').onchange = () => saveChat({think: el('textThink').checked});
   el('textModel').onchange = () => {if (current)saveChat({model: el('textModel').value});modelSettings();controls();};
   el('textNative').onchange = modelSettings;
+  for (const radio of document.querySelectorAll('input[name="textMode"]')) radio.onchange = () => {
+    if (!radio.checked || streaming) return;
+    mode = radio.value;
+    // Switching the mode starts a new chat of that kind; the open chat stays in the list unchanged.
+    if (current && (current.kind === 'agent') !== (mode === 'agent')) {current = null;remember('');}
+    StudioAgent.show(current);renderChat();renderChats();header();
+  };
+  StudioAgent.bind(async (field, value) => {
+    if (field === 'error') {status(value);return;}
+    try {
+      if (field === 'agent') {
+        // A chat belongs to one agent: choosing another one starts a new chat with it on the next task.
+        if (current && current.kind === 'agent' && current.agent.id !== value) {current = null;remember('');renderChat();status('Следующее задание начнёт новый чат с выбранным агентом.');}
+        await StudioAgent.api('settings', {agent: value});
+        if (StudioAgent.info) StudioAgent.info.settings.agent = value;
+      } else if (current && current.kind === 'agent') {
+        current = await StudioAgent.api('chat-update', {id: current.id, [field]: value});StudioAgent.show(current);
+        status(field === 'workspace' ? 'Папка проекта изменена: агент начнёт с ней новую сессию.' : 'Права агента для этого чата изменены.');
+      } else if (value) {
+        await StudioAgent.api('settings', {[field]: value});
+        if (StudioAgent.info) StudioAgent.info.settings[field] = value;
+      }
+    } catch (error) {status(error.message);if (current) StudioAgent.show(current);}
+    controls();
+  });
+  el('agentWorkspace').addEventListener('input', controls);
   el('textSaveSettings').onclick = async () => {
     try {
       const number = key => Number(el('textP-' + key).value);

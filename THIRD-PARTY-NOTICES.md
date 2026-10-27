@@ -18,6 +18,10 @@ before using it: the descriptions below are a summary for orientation, not legal
 | ACE-Step 1.5 sources | MIT | github.com/ace-step/ACE-Step-1.5 |
 | ffmpeg 9.0.2 essentials build | GPL-3.0 build (gyan.dev) | github.com/GyanD/codexffmpeg |
 | Ollama 0.33.3 (private copy, ROCm libraries omitted) | MIT, plus bundled libraries | github.com/ollama/ollama |
+| OpenCode 1.19.4 (agent mode of the Text tab) | MIT | github.com/anomalyco/opencode |
+| Aider 0.86.2 (agent mode of the Text tab) and its Python packages (108, exact versions and hashes in `App/config/aider-assets.json`) | Apache-2.0 (Aider); each package its own license | github.com/Aider-AI/aider, PyPI |
+| DeepSeek Harness 0.2.1-rc.2 (agent mode of the Text tab) and its npm packages (609, exact versions and hashes in `App/config/dsh-assets.json`) | MIT (DeepSeek Harness); each package its own license | github.com/deepseek-ai/deepseek-harness, npmjs.com |
+| Node.js 24.21.0 (`node.exe`, runtime of DeepSeek Harness) | MIT, plus bundled third-party licences (`LICENSE`) | nodejs.org |
 | 7-Zip console unpacker `7zr.exe` | LGPL | github.com/ip7z/7zip |
 | Microsoft C++ runtime DLLs (Music runtime) | Microsoft redistributable terms (`MSVC-LICENSE.rtf`) | taken from the signed `vc_redist.x64.exe` without running it |
 | Python packages (about 140 in the Video and Music runtimes) | each package's own license | PyPI (exact versions and hashes in the catalog) |

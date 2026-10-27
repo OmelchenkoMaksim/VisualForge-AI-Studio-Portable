@@ -45,6 +45,13 @@ class SourceTests(unittest.TestCase):
         enrich(catalog, {})
         self.assertEqual(catalog, once)
 
+    def test_node_and_npm_alternatives_point_at_the_same_file(self):
+        from provision.sources import alternatives
+        self.assertEqual(alternatives('https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip'),
+                         ['https://nodejs.org/download/release/v24.21.0/node-v24.21.0-win-x64.zip'])
+        self.assertEqual(alternatives('https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.2.tgz'),
+                         ['https://registry.yarnpkg.com/@deepseek-ai/dsh/-/dsh-0.2.1-rc.2.tgz'])
+
 
 if __name__ == '__main__':
     unittest.main()

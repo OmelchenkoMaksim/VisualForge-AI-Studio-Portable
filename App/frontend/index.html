@@ -283,7 +283,20 @@
     <div class="text-main">
       <header class="text-head"><div><p class="eyebrow">Локальный текстовый ассистент</p><h2 id="textTitle">Новый чат</h2></div>
         <div class="actions"><button id="textRename" type="button" class="secondary" disabled>Переименовать</button><button id="textDelete" type="button" class="secondary" disabled>Удалить чат</button></div></header>
+      <div class="text-mode preset-options" role="radiogroup" aria-label="Режим работы">
+        <label class="preset-option" title="Обычный разговор с моделью"><input type="radio" name="textMode" value="chat" checked><span>Чат</span></label>
+        <label class="preset-option" title="Модель работает с файлами проекта, командами и git — с вашего разрешения"><input type="radio" name="textMode" value="agent"><span>Агент</span></label>
+      </div>
       <label for="textModel">Модель</label><select id="textModel" title="Полное имя модели показывается при наведении"></select>
+      <div id="agentPanel" class="agent-panel" hidden>
+        <div class="agent-grid">
+          <label for="agentKind">Агент<select id="agentKind"></select></label>
+          <label for="agentPermission">Права агента<select id="agentPermission"></select></label>
+        </div>
+        <label for="agentWorkspace">Папка проекта — агент работает только внутри неё</label>
+        <div class="agent-folder"><input id="agentWorkspace" type="text" placeholder="Например, D:\Projects\my-app" autocomplete="off" spellcheck="false"><button id="agentChoose" type="button" class="secondary">Выбрать папку…</button></div>
+        <p id="agentInfo" class="muted"></p>
+      </div>
       <p id="textAvailability" class="muted">Проверка Text при открытии раздела…</p>
       <div id="textMessages" class="text-messages" role="log" aria-live="off" aria-label="Переписка"></div>
       <form id="textForm">
@@ -434,8 +447,9 @@
 </section>
 <link rel="stylesheet" href="/hardware.css"><script src="/hardware.js" defer></script><script src="/model-requirements.js" defer></script>
 <link rel="stylesheet" href="/studio-ui.css">
+<link rel="stylesheet" href="/agent.css">
 <script src="/sounds.js" defer></script>
 <script src="/studio-ui.js" defer></script>
 <script src="/shell.js" defer></script>
 <script src="/engine-state.js" defer></script>
-<script src="/prompt-guides.js"></script><script src="/app.js" defer></script><script src="/video.js" defer></script><script src="/music.js" defer></script><script src="/text.js" defer></script><script src="/components.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice.js" defer></script></body></html>
+<script src="/prompt-guides.js"></script><script src="/app.js" defer></script><script src="/video.js" defer></script><script src="/music.js" defer></script><script src="/agent.js" defer></script><script src="/text.js" defer></script><script src="/components.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice.js" defer></script></body></html>

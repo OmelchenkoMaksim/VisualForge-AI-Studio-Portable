@@ -90,6 +90,8 @@ def send(handler, manager, store, data, admit):
         raise ValueError('Запрос содержит неподдерживаемые параметры')
     chat_id, regenerate = data.get('chat_id'), data.get('regenerate') is True
     chat = store.get(chat_id)
+    if chat.get('kind') == 'agent':
+        raise ValueError('Это чат агента: задания ему отправляются в режиме «Агент»')
     pictures = data.get('images') or []
     if regenerate and (pictures or data.get('content')):
         raise ValueError('Перегенерация не принимает новый текст или изображения')
