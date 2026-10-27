@@ -306,7 +306,8 @@
       el('textMessages').append(row);toBottom();
       const controller = new AbortController();streaming = {controller, chat: current.id, agent};controls();
       status(agent ? 'Агент получает задание…' : 'Отправка…');
-      const body = agent ? {chat_id: current.id, content: text} : regenerate ? {chat_id: current.id, regenerate: true} : {chat_id: current.id, content: text, images: sentPictures.map(p => ({name: p.name, data: p.data}))};
+      const loop = agent ? StudioAgent.loop() : null;
+      const body = agent ? {chat_id: current.id, content: text, ...(loop ? {loop} : {})} : regenerate ? {chat_id: current.id, regenerate: true} : {chat_id: current.id, content: text, images: sentPictures.map(p => ({name: p.name, data: p.data}))};
       const response = await fetch(agent ? '/api/agents/send' : '/api/text/send', {method: 'POST', headers: {'Content-Type': 'application/json'}, signal: controller.signal,
         body: JSON.stringify(body)})
         .catch(error => {
@@ -331,12 +332,23 @@
   }
   async function readStream(response, assistant, row) {
     const reader = response.body.getReader(), decoder = new TextDecoder();
-    let buffer = '', scheduled = false;
+    let buffer = '', scheduled = false, finished = false;
     const paint = () => {scheduled = false;const stick = atBottom();fill(row, assistant);row.think.open = !assistant.content && !!assistant.thinking;if (stick) toBottom();};
     const later = () => {if (!scheduled) {scheduled = true;requestAnimationFrame(paint);}};
+    // A loop answers with one stored message per iteration: the next bubble opens when the next iteration shows something.
+    const open = () => {
+      if (!finished) return;
+      finished = false;assistant = {role: 'assistant', content: '', thinking: '', steps: []};row = bubble(assistant);
+      el('textMessages').append(row);toBottom();
+    };
     const handle = event => {
+      if (['delta', 'step', 'permission', 'done'].includes(event.type)) open();
       if (event.type === 'status') status(event.phase);
-      else if (event.type === 'delta') {
+      else if (event.type === 'context') StudioAgent.context(event);
+      else if (event.type === 'iteration') {
+        Object.assign(assistant, event.message);paint();finished = true;
+        status(`Итерация ${event.number} из ${event.total} закончена, итог записан в ${event.path}. Следующая начинается со свежим контекстом…`);
+      } else if (event.type === 'delta') {
         assistant.content += event.content || '';assistant.thinking += event.thinking || '';status(streaming?.agent ? 'Агент работает…' : 'Модель отвечает…');
         later();
       } else if (event.type === 'step') {
@@ -446,7 +458,12 @@
   StudioAgent.bind(async (field, value) => {
     if (field === 'error') {status(value);return;}
     try {
-      if (field === 'agent') {
+      if (field.startsWith('loop')) {
+        // Loop settings are the user's defaults for every agent task, not a property of one chat.
+        await StudioAgent.api('settings', {[field]: value});
+        if (StudioAgent.info) StudioAgent.info.settings[field] = value;
+        status(field === 'loop' ? (value ? 'Цикл включён: следующее задание пойдёт итерациями.' : 'Цикл выключен.') : 'Настройки цикла сохранены.');
+      } else if (field === 'agent') {
         // A chat belongs to one agent: choosing another one starts a new chat with it on the next task.
         if (current && current.kind === 'agent' && current.agent.id !== value) {current = null;remember('');renderChat();status('Следующее задание начнёт новый чат с выбранным агентом.');}
         await StudioAgent.api('settings', {agent: value});

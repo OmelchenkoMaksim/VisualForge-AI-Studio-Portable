@@ -106,6 +106,7 @@ class DshRunner:
         self.lock = threading.Lock()
         self.pending = {}
         self.always = set()
+        self.wrapping = threading.Event()
 
     def installed(self):
         return self.command is not None or (self.node.is_file() and self.bin.is_file())
@@ -180,6 +181,7 @@ class DshRunner:
         threading.Thread(target=read, name='dsh-acp', daemon=True).start()
         with self.lock:
             self.process, self.job, self.pending, self.always = process, job, {}, set()
+            self.wrapping.clear()
         task = _Task(self, messages, on_event, cancel, disconnected)
         try:
             return task.run(start)
@@ -221,6 +223,10 @@ class DshRunner:
         self.send(dict(jsonrpc='2.0', id=rpc_id, result=dict(outcome=dict(outcome='selected', optionId='reject-once' if answer == 'reject' else 'allow-once'))))
         emit(dict(type='permission_done', id=request_id, reply=answer))
 
+    def wrap(self):
+        """End the current loop iteration: the running turn is cancelled and the task goes on to the handoff note."""
+        self.wrapping.set()
+
     def alive(self):
         with self.lock:
             return bool(self.process and self.process.poll() is None)
@@ -241,6 +247,7 @@ class _Task:
         self.content, self.thinking = [], []
         self.message_ids = []
         self.model_calls = self.used = self.size = 0
+        self.handoff = self.wrap_sent = False
 
     def run(self, start):
         self.request('initialize', dict(protocolVersion=1, clientCapabilities=dict(fs=dict(readTextFile=False, writeTextFile=False), terminal=False)))
@@ -259,8 +266,17 @@ class _Task:
         reason = result.get('stopReason')
         error = {'max_tokens': 'Модель упёрлась в лимит длины ответа', 'refusal': 'Модель отказалась отвечать'}.get(reason, '')
         stats = dict(model_calls=self.model_calls, context_tokens=self.used, context=self.size or int(start['context'])) if self.model_calls else None
-        return dict(content='\n\n'.join(part for part in (''.join(self.content_by(i)) for i in self.message_ids) if part.strip()).strip(),
-                    thinking=''.join(self.thinking).strip(), stats=stats, error=error, session=session)
+        done = dict(content=self.answer(), thinking=''.join(self.thinking).strip(), stats=stats, error=error, session=session, handoff='')
+        if start.get('handoff') and not self.cancel.is_set():
+            # A loop iteration ends with a handoff note in the same session; its text is kept apart from the iteration's answer.
+            self.on_event(dict(type='phase', phase='handoff'))
+            self.handoff, self.content, self.message_ids, self.thinking = True, [], [], []
+            if self.request('session/prompt', dict(sessionId=session, prompt=[dict(type='text', text=start['handoff'])]), session=session) is not None:
+                done['handoff'] = self.answer()
+        return done
+
+    def answer(self):
+        return '\n\n'.join(part for part in (''.join(self.content_by(i)) for i in self.message_ids) if part.strip()).strip()
 
     def content_by(self, message_id):
         return [text for ident, text in self.content if ident == message_id]
@@ -272,6 +288,13 @@ class _Task:
         self.runner.send(dict(jsonrpc='2.0', id=ident, method=method, params=params))
         stopping = None
         while True:
+            if session and not self.handoff and not self.wrap_sent and self.runner.wrapping.is_set():
+                # The loop's context threshold: cancel this turn (dsh answers the prompt with stopReason "cancelled"), keep waiting.
+                self.wrap_sent = True
+                try:
+                    self.runner.send(dict(jsonrpc='2.0', method='session/cancel', params=dict(sessionId=session)))
+                except DshError:
+                    pass
             if stopping is None and (self.cancel.is_set() or self.disconnected()):
                 self.cancel.set()
                 if not session:
@@ -341,6 +364,9 @@ class _Task:
         raw = raw if isinstance(raw, dict) else {}
         tool = 'edit' if call in ('edit', 'write', 'str_replace_editor') else TOOLS.get(call, call)
         key = (tool, str(raw.get('command') or '') if tool == 'bash' else '')
+        if self.handoff:  # the handoff note is a plain answer: nothing is edited or run while it is written
+            self.runner.send(dict(jsonrpc='2.0', id=message['id'], result=dict(outcome=dict(outcome='selected', optionId='reject-once'))))
+            return
         if key in self.runner.always:
             self.runner.send(dict(jsonrpc='2.0', id=message['id'], result=dict(outcome=dict(outcome='selected', optionId='allow-once'))))
             return

@@ -125,6 +125,13 @@ class AiderRunner:
             raise ValueError('Ответ на запрос: разрешить один раз, разрешать всегда или отклонить')
         self._write(dict(type='reply', id=request_id, reply=answer))
 
+    def wrap(self):
+        """End the current loop iteration: the bridge makes no further model call for the task and goes on to the handoff."""
+        try:
+            self._write(dict(type='wrap'))
+        except AiderError:
+            pass  # already finished
+
     def alive(self):
         with self.lock:
             return bool(self.process and self.process.poll() is None)

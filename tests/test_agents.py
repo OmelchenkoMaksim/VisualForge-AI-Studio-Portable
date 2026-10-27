@@ -30,6 +30,11 @@ OPENCODE = ROOT / 'Runtime/Agents/opencode/opencode.exe'
 AIDER_PYTHON = ROOT / 'Runtime/Agents/aider/python/python.exe'
 DSH_NODE = ROOT / 'Runtime/Agents/dsh/node/node.exe'
 MODEL = 'demo-model:latest'
+# The agents work in a user's folder with Cyrillic, spaces and '!' in its name: '!' is special to cmd.exe (delayed expansion),
+# which Aider's shell commands go through.
+PROJECT = 'Мой Супер Проект!'
+# A file name mixing Cyrillic, Latin, '№', 'ё' and characters special to cmd.exe, PowerShell or URLs.
+NAME = 'Отчёт & план №2 (v1.0) 100% ok!.txt'
 
 
 def remove_tree(path):
@@ -127,8 +132,9 @@ class GatewayTest(unittest.TestCase):
         self.cancel = threading.Event()
         self.finished = []
         self.refuse = None
+        self.observed = []
         self.gateway = ModelGateway(free_port(), upstream=lambda: self.upstream, admit=self.admit, finish=lambda: self.finished.append(1),
-                                    models=lambda: {'m-demo': MODEL})
+                                    models=lambda: {'m-demo': MODEL}, observe=lambda tokens, measured: self.observed.append((tokens, measured)))
         self.gateway.start()
         self.addCleanup(self.gateway.close)
 
@@ -153,6 +159,9 @@ class GatewayTest(unittest.TestCase):
         sent = json.loads((self.root / 'model.log').read_text(encoding='utf-8').splitlines()[-1])
         self.assertEqual(sent['body']['model'], MODEL)  # the agent never learns or sends the Ollama name
         self.assertEqual(self.finished, [1])
+        # The gateway asks for the usage record and reports the filled context (prompt + answer) from it.
+        self.assertTrue(sent['body']['stream_options']['include_usage'])
+        self.assertEqual(self.observed, [(12 + 2, True)])
 
     def test_refuses_wrong_token_host_and_model(self):
         self.assertEqual(self.post(dict(model='m-demo', messages=[]), token='wrong')[0], 401)
@@ -174,6 +183,40 @@ class GatewayTest(unittest.TestCase):
         self.assertLess(time.monotonic() - started, 4)
         self.assertNotIn('слово59', text)
         self.assertNotIn('[DONE]', text)
+
+
+class LoopUnitTest(unittest.TestCase):
+    def test_options_are_validated(self):
+        from agents import loop
+        self.assertEqual(loop.options({}), dict(threshold=75, iterations=10, check=''))
+        self.assertEqual(loop.options(dict(threshold='60', iterations=3, check=' make test ')), dict(threshold=60, iterations=3, check='make test'))
+        for bad in (dict(threshold=20), dict(threshold=99), dict(iterations=0), dict(iterations=101), dict(check='a\nb'), dict(other=1)):
+            with self.assertRaises(ValueError):
+                loop.options(bad)
+
+    def test_note_status_and_next_step(self):
+        from agents import loop
+        note = '## Done\n- x\n\n## Next step\n- Write   the parser\n\n## Status\n**DONE**\n'
+        self.assertEqual(loop.status_of(note), 'DONE')
+        self.assertEqual(loop.next_step_of(note), '- write the parser')
+        self.assertEqual(loop.status_of('no sections at all'), 'CONTINUE')
+
+    def test_usage_is_read_from_the_end_of_a_stream_or_a_body(self):
+        from agents.gateway import usage_from
+        stream = (b'HTTP/1.1 200 OK\r\n\r\n1a\r\ndata: {"choices":[]}\n\n\r\n'
+                  b'data: {"choices":[],"usage":{"prompt_tokens":900,"completion_tokens":40}}\n\ndata: [DONE]\n\n')
+        self.assertEqual(usage_from(stream), (900, 40))
+        self.assertEqual(usage_from(b'{"choices":[],"usage":{"prompt_tokens":5,"completion_tokens":1}}'), (5, 1))
+        self.assertIsNone(usage_from(b'data: {"choices":[]}\n'))
+
+    def test_verdicts(self):
+        verdict = AgentManager._verdict
+        self.assertTrue(verdict('finished', 'DONE', None, False, 1, 5)[1])
+        self.assertFalse(verdict('finished', 'DONE', dict(code=1), False, 1, 5)[1])  # the check decides, not the model
+        self.assertTrue(verdict('context', 'BLOCKED', None, False, 1, 5)[1])
+        self.assertTrue(verdict('context', 'CONTINUE', None, True, 1, 5)[1])  # no change and the same next step: a stall
+        self.assertEqual(verdict('context', 'CONTINUE', None, False, 2, 5), ('заполнен контекст — продолжаю', False))
+        self.assertTrue(verdict('context', 'CONTINUE', None, False, 5, 5)[1])
 
 
 class StoreAndRulesTest(unittest.TestCase):
@@ -249,13 +292,89 @@ class StoreAndRulesTest(unittest.TestCase):
         self.assertEqual(extracts['npm:node_modules/@deepseek-ai/dsh'], 'Runtime/Agents/dsh/app/node_modules/@deepseek-ai/dsh')
 
 
+class LoopChecks:
+    """A loop of iterations with handoff notes, for every agent (the fake model plays the agent's side, see fake_openai.py)."""
+    def run_loop(self, goal, **loop):
+        chat = self.manager.create_chat(dict(agent=self.AGENT, workspace=str(self.workspace), permission='auto', model=MODEL))
+        events, done = [], []
+        worker = threading.Thread(target=lambda: done.append(self.manager.send(chat['id'], goal, events.append, lambda: False, loop)))
+        worker.start()
+        worker.join(240)
+        self.assertFalse(worker.is_alive(), 'the loop did not finish')
+        self.assertTrue(done, 'the loop failed: %s' % events[-3:])
+        return self.store.get(chat['id']), events, done[0]
+
+    def notes(self):
+        return sorted((self.workspace / '.visualforge/loop').glob('*/*-handoff.md'))
+
+    def test_loop_hands_off_and_stops_when_done(self):
+        chat, events, (_, message, error) = self.run_loop('LOOP_ сделай большую задачу', threshold=75, iterations=5)
+        self.assertEqual(error, '')
+        self.assertEqual([m['role'] for m in chat['messages']], ['user', 'assistant', 'assistant'])
+        notes = self.notes()
+        self.assertEqual([n.name for n in notes], ['01-handoff.md', '02-handoff.md'])
+        first = notes[0].read_text(encoding='utf-8')
+        for part in ('## Task', 'LOOP_ сделай большую задачу', '## Next step', 'finish the remaining part', '## Changed files (recorded by the studio)'):
+            self.assertIn(part, first)
+        self.assertEqual([e['number'] for e in events if e['type'] == 'iteration'], [1])
+        self.assertIn('задача выполнена (DONE)', message['content'])
+        self.assertIn('.visualforge/loop/', message['content'])
+        sent = [json.loads(line)['body'] for line in self.log.read_text(encoding='utf-8').splitlines()]
+        second = [b for b in sent if 'iteration 2 of at most 5' in json.dumps(b, ensure_ascii=False)]
+        self.assertTrue(second and 'finish the remaining part' in json.dumps(second[0], ensure_ascii=False), 'the note reached iteration 2')
+        self.assertIn('01-handoff.md', json.dumps(second[0], ensure_ascii=False))
+        self.assertTrue(any(e['type'] == 'context' for e in events))
+        exclude = subprocess.run(['git', '-C', str(self.workspace), 'rev-parse', '--git-path', 'info/exclude'], capture_output=True, text=True).stdout.strip()
+        self.assertIn('/.visualforge/', (self.workspace / exclude).read_text(encoding='utf-8'))
+        self.assertNotIn('.visualforge', subprocess.run(['git', '-C', str(self.workspace), 'status', '--short'], capture_output=True, text=True).stdout)
+
+    def test_threshold_ends_an_endless_iteration(self):
+        chat, events, (_, message, _) = self.run_loop('LOOP_BIG LOOP_TOOLS работай без конца', threshold=50, iterations=1)
+        note = self.notes()[0].read_text(encoding='utf-8')
+        self.assertIn('context threshold reached', note)
+        self.assertIn('## Next step', note)
+        self.assertIn('достигнут лимит итераций', message['content'])
+        sent = [json.loads(line)['body'] for line in self.log.read_text(encoding='utf-8').splitlines()]
+        work = [b for b in sent if 'Stop working on the task now' not in json.dumps(b, ensure_ascii=False)]
+        self.assertLessEqual(len(work), 3, 'the agent kept calling the model after the threshold')
+        self.assertTrue(any(e['type'] == 'status' and 'Контекст заполнен' in e['phase'] for e in events))
+
+    def test_check_command_decides_done(self):
+        _, _, (_, message, _) = self.run_loop('LOOP_ задача с проверкой', threshold=75, iterations=2, check='python -c "import sys; sys.exit(3)"')
+        notes = [n.read_text(encoding='utf-8') for n in self.notes()]
+        self.assertEqual(len(notes), 2)
+        self.assertIn('exit code 3', notes[1])
+        self.assertIn('проверка не прошла', message['content'])
+        self.assertIn('достигнут лимит итераций', message['content'])
+
+
+class ProjectPathChecks:
+    """Commands that name the project folder by its full path, and output that contains it, for every agent."""
+    def test_commands_with_the_project_path(self):
+        _, events, (_, message, _) = self.run_task('ask', 'RUN_CMD: git -C "%s" status ## проверь' % self.workspace)
+        self.assertEqual([e['request']['command'] for e in events if e['type'] == 'permission'], ['git -C "%s" status' % self.workspace])
+        bash = [s for s in message['steps'] if s['tool'] == 'bash' and s['status'] == 'completed']
+        self.assertTrue(bash and 'On branch' in bash[-1]['output'], message['steps'])
+        _, _, (_, message, _) = self.run_task('ask', 'RUN_CMD: python -c "import os; print(os.getcwd())" ## где мы')
+        bash = [s for s in message['steps'] if s['tool'] == 'bash' and s['status'] == 'completed']
+        self.assertTrue(bash and PROJECT in bash[-1]['output'], message['steps'])
+        (self.workspace / NAME).write_text('привет\n', encoding='utf-8')
+        listing = {'OpenCodeRunTest': 'ls', 'AiderRunTest': 'dir /b', 'DshRunTest': 'Get-ChildItem -Name'}[type(self).__name__]
+        for command in ('git status --short', listing):
+            _, _, (_, message, _) = self.run_task('ask', 'RUN_CMD: %s ## покажи' % command)
+            bash = [s for s in message['steps'] if s['tool'] == 'bash' and s['status'] == 'completed']
+            self.assertTrue(bash and NAME in bash[-1]['output'], (command, message['steps']))
+
+
 @unittest.skipUnless(OPENCODE.is_file(), 'OpenCode is not installed in Runtime/Agents/opencode')
-class OpenCodeRunTest(unittest.TestCase):
+class OpenCodeRunTest(LoopChecks, ProjectPathChecks, unittest.TestCase):
     """A real `opencode serve` with the studio's gateway in front of a fake model: tool call, permission, saved answer."""
+    AGENT = 'opencode'
+
     def setUp(self):
         self.root = Path(tempfile.mkdtemp(prefix='vf-agent-oc-'))
         self.addCleanup(remove_tree, self.root)
-        self.workspace = self.root / 'project'
+        self.workspace = self.root / PROJECT
         self.workspace.mkdir()
         subprocess.run(['git', 'init', '-q', str(self.workspace)], check=True)
         (self.workspace / 'readme.txt').write_text('hello\n', encoding='utf-8')
@@ -335,12 +454,14 @@ class OpenCodeRunTest(unittest.TestCase):
 
 
 @unittest.skipUnless(AIDER_PYTHON.is_file(), 'Aider is not installed in Runtime/Agents/aider')
-class AiderRunTest(unittest.TestCase):
+class AiderRunTest(LoopChecks, ProjectPathChecks, unittest.TestCase):
     """The real Aider in its own Python, driven by the bridge, with the studio's gateway in front of a fake model."""
+    AGENT = 'aider'
+
     def setUp(self):
         self.root = Path(tempfile.mkdtemp(prefix='vf-agent-ai-'))
         self.addCleanup(remove_tree, self.root)
-        self.workspace = self.root / 'project'
+        self.workspace = self.root / PROJECT
         self.workspace.mkdir()
         git = lambda *a: subprocess.run(['git', '-C', str(self.workspace), *a], check=True, capture_output=True)
         git('init', '-q')
@@ -467,8 +588,10 @@ class AiderRunTest(unittest.TestCase):
 
 
 @unittest.skipUnless(DSH_NODE.is_file(), 'DeepSeek Harness is not installed in Runtime/Agents/dsh')
-class DshRunTest(unittest.TestCase):
+class DshRunTest(LoopChecks, ProjectPathChecks, unittest.TestCase):
     """The real dsh (ACP profile) in the portable Node.js, the studio's policy plugin and gateway in front of a fake model."""
+    AGENT = 'dsh'
+
     def setUp(self):
         # Not mkdtemp: on Windows it gives the folder an owner-only, explicit DACL (Python 3.12.4+); a real project folder inherits
         # its ACL, which is what explicit_aces() checks dsh leaves alone. (With dsh's sandbox on, its restricted token could not even
@@ -476,7 +599,7 @@ class DshRunTest(unittest.TestCase):
         self.root = Path(tempfile.gettempdir()) / ('vf-agent-ds-%s' % os.urandom(4).hex())
         self.root.mkdir()
         self.addCleanup(remove_tree, self.root)
-        self.workspace = self.root / 'project'
+        self.workspace = self.root / PROJECT
         self.workspace.mkdir()
         git = lambda *a: subprocess.run(['git', '-C', str(self.workspace), *a], check=True, capture_output=True)
         git('init', '-q')

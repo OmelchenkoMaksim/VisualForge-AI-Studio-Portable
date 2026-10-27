@@ -7,8 +7,13 @@ Aider reads edits and shell commands from the text itself: AIDER_EDIT answers wi
 one for a file outside the project, AIDER_ASK asks for calc.py to be added, AIDER_RUN / AIDER_PUSH with a ```bash block (`git status` / `git push origin main`); Aider's
 request for a commit message gets a fixed one-line message.
 
+RUN_CMD: <command> ## makes any agent run that shell command (a tool call, or a ```bash block for Aider).
+
 dsh calls tools step by step: DSH_EDIT reads calc.py, then edits it; DSH_OUT writes a file outside the project; DSH_RUN / DSH_PUSH
-call its shell tool (`pwsh` on Windows) with `git status` / `git push origin main`."""
+call its shell tool (`pwsh` on Windows) with `git status` / `git push origin main`.
+
+Loops: a request containing "Stop working on the task now" gets a handoff note (Status DONE from the second iteration on);
+LOOP_BIG reports a 30000-token prompt (past a loop's threshold); LOOP_TOOLS keeps calling the shell tool (Aider: names calc.py)."""
 import json
 import os
 import sys
@@ -75,11 +80,29 @@ class Handler(BaseHTTPRequestHandler):
             plan = [('read', {'file_path': 'calc.py'}), ('edit', {'file_path': 'calc.py', 'old_string': 'return a - b', 'new_string': 'return a + b'})]
         elif 'DSH_OUT' in task:
             plan = [('write', {'file_path': '../outside.txt', 'content': 'outside\n'})]
+        elif 'RUN_CMD:' in task and shell:
+            plan = [(shell, {'description': 'Команда из задания', 'command': task.split('RUN_CMD:', 1)[1].split('##', 1)[0].strip()})]
         elif 'DSH_CMD:' in task:
             plan = [(shell, {'description': 'Команда из задания', 'command': task.split('DSH_CMD:', 1)[1].split('##', 1)[0].strip()})]
         elif 'DSH_RUN' in task or 'DSH_PUSH' in task:
             plan = [(shell, {'description': 'Показать состояние репозитория', 'command': 'git push origin main' if 'DSH_PUSH' in task else 'git status'})]
-        if 'commit message' in system.lower():
+        everything = ' '.join(_text(m.get('content')) for m in messages)
+        prompt_tokens = 30000 if 'LOOP_BIG' in everything and 'Stop working on the task now' not in task else 12
+        if 'Stop working on the task now' in task:
+            # The studio's request for a loop iteration's handoff note: the second iteration reports the task done.
+            done = 'iteration 2 of' in everything
+            note = '## Done\n- iteration work\n\n## Next step\n- %s\n\n## Blocker\n- none\n\n## Status\n%s\n' % (
+                'nothing' if done else 'finish the remaining part', 'DONE' if done else 'CONTINUE')
+            chunks = [{'content': note}]
+        elif 'LOOP_TOOLS' in task and shell and done_tools < 50:
+            # An agent that would keep calling tools forever: only the studio's context threshold ends its iteration.
+            arguments = json.dumps({'command': 'git status', 'description': 'Показать состояние репозитория'})
+            chunks = [{'tool_calls': [{'index': 0, 'id': 'call_loop_%d' % done_tools, 'type': 'function', 'function': {'name': shell, 'arguments': arguments}}]}]
+        elif 'LOOP_TOOLS' in question and not tool_names:
+            chunks = [{'content': 'Посмотрю calc.py, затем продолжу.'}]
+        elif 'LOOP_' in task:
+            chunks = [{'content': 'Итерация: часть работы сделана.'}]
+        elif 'commit message' in system.lower():
             chunks = [{'content': 'fix: make add return the sum'}]
         elif 'AIDER_EDIT' in question or 'AIDER_OUT' in question:
             name = 'calc.py' if 'AIDER_EDIT' in question else '../outside.txt'
@@ -87,6 +110,9 @@ class Handler(BaseHTTPRequestHandler):
             chunks = [{'content': 'Исправляю сложение.\n\n'}, {'content': block}]
         elif 'AIDER_ASK' in question:
             chunks = [{'content': 'Добавьте, пожалуйста, calc.py в чат.'}]
+        elif 'RUN_CMD:' in question and not tool_names:
+            command = question.split('RUN_CMD:', 1)[1].split('##', 1)[0].strip()
+            chunks = [{'content': 'Выполните:\n\n'}, {'content': '%sbash\n%s\n%s\n' % (fence, command, fence)}]
         elif 'AIDER_RUN' in question or 'AIDER_PUSH' in question:
             command = 'git push origin main' if 'AIDER_PUSH' in question else 'git status'
             chunks = [{'content': 'Выполните:\n\n'}, {'content': '%sbash\n%s\n%s\n' % (fence, command, fence)}]
@@ -111,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
                 message['tool_calls'] = chunks[0]['tool_calls']
             return self.reply(200, {'id': 'fake', 'object': 'chat.completion', 'created': int(time.time()), 'model': data.get('model'),
                                     'choices': [{'index': 0, 'message': message, 'finish_reason': 'tool_calls' if 'tool_calls' in message else 'stop'}],
-                                    'usage': {'prompt_tokens': 12, 'completion_tokens': len(chunks), 'total_tokens': 12 + len(chunks)}})
+                                    'usage': {'prompt_tokens': prompt_tokens, 'completion_tokens': len(chunks), 'total_tokens': prompt_tokens + len(chunks)}})
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream')
         self.send_header('Cache-Control', 'no-cache')
@@ -124,7 +150,7 @@ class Handler(BaseHTTPRequestHandler):
                 if 'SLOW' in question or 'SLOW' in task:
                     time.sleep(0.1)
             self.chunk(data, {}, 'tool_calls' if 'tool_calls' in chunks[0] else 'stop',
-                       usage={'prompt_tokens': 12, 'completion_tokens': len(chunks), 'total_tokens': 12 + len(chunks)})
+                       usage={'prompt_tokens': prompt_tokens, 'completion_tokens': len(chunks), 'total_tokens': prompt_tokens + len(chunks)})
             self.wfile.write(b'data: [DONE]\n\n')
             self.wfile.flush()
         except (BrokenPipeError, ConnectionResetError, OSError):

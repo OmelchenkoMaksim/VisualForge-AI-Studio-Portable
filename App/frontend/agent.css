@@ -7,6 +7,10 @@
 .agent-folder{display:flex;gap:8px;align-items:center}
 .agent-folder input{flex:1;min-width:0;padding:9px 12px}
 .agent-panel .muted{margin:6px 0 0;font-size:12px;line-height:1.5}
+.agent-loop{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px 12px;margin-top:4px}
+#textWorkspace .agent-loop label{margin-top:0}
+.agent-loop input{width:100%;min-width:0;padding:7px 10px}
+.agent-loop .agent-loop-wide{grid-column:1/-1}
 .agent-steps{display:grid;gap:6px}
 .agent-step{border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);font-size:13px}
 .agent-step > summary{display:flex;gap:10px;align-items:baseline;padding:7px 10px;cursor:pointer;min-width:0}

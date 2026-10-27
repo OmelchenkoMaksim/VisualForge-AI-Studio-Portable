@@ -102,6 +102,44 @@ agent --OpenAI chat API--> ModelGateway (port 8293) --GPU.claim('text') + Text b
   level. OpenCode gets them as a session ruleset, Aider through the bridge, dsh through its policy plugin (read from every task's
   patch, so a changed level applies to the resumed dsh session).
 
+## Loops for large tasks
+
+The agent panel's «Цикл для большой задачи» runs one task as iterations (`App/server/agents/loop.py`, `AgentManager._loop`):
+
+- Local models have small contexts and do not know how full theirs is, so the studio measures it: the gateway adds
+  `stream_options.include_usage` to streamed requests and reads the usage record at the end of every answer (prompt +
+  completion tokens; without one it estimates from the request size and marks it). The page shows «Контекст модели: N из M».
+- Every iteration is a fresh agent session (OpenCode: new session; Aider: no history; dsh: new session) with the task, the
+  previous note and its path. At the threshold (30-95% of the model's context, default 75%) the manager interrupts the agent
+  — OpenCode: session abort; Aider: the bridge raises KeyboardInterrupt before the next model call, Aider's own interrupt
+  path; dsh: `session/cancel` — then asks in the same context for a handoff note in English (Done / Next step / Blocker /
+  Status CONTINUE|DONE|BLOCKED) as a plain answer: OpenCode under the read-only rules, Aider at the read level with no files
+  added, dsh with every permission request refused. An iteration whose agent finishes its turn earlier gets the same request.
+- The studio writes `<project>/.visualforge/loop/<run>/NN-handoff.md`: the agent's note plus facts it records itself — changed
+  files and commits since the loop started (git), and the user's optional check command (run in the project with cmd.exe,
+  15-minute limit, exit code and output tail). `/.visualforge/` goes into the repository's local `info/exclude`, not
+  `.gitignore`. The next iteration's prompt carries the note without repeating the task.
+- Stops: Status DONE and the check passed (DONE with a failing check continues), BLOCKED, a stall (no change of HEAD, the
+  working tree's status and diff since the last iteration, and the same next step), the iteration limit (1-100, default 10),
+  the user's Stop (a facts-only note is still written) or an agent error. Each iteration is stored as its own answer in the
+  chat with a footer: iteration number, why it ended, the note's path; the page opens a new answer bubble per iteration.
+- Settings `loop`, `loop_threshold`, `loop_iterations`, `loop_check` live in `agents.settings.json`.
+- Live check (2026-10-27, OpenCode, Gemma 4 A4B 32K, threshold 30%, 4 iterations, check `python -m unittest`; task: fix `add`
+  and `multiply`, add `subtract` with a test, commit): iteration 1 fixed both functions and ended its turn at 23% of the
+  context (note: CONTINUE, next step "implement subtract"); iteration 2 started from that note, added the function and its
+  test, committed, reported DONE at 27%, and the studio's check passed (3 tests) — 293 s in all. Each handoff request took
+  60-100 s of the model's reasoning. The threshold interruption itself did not trigger in this run (OpenCode's own prompt
+  fills about 22% of 32K); it is covered by the fake-model tests for all three agents.
+
+Environment of every agent and of the commands it runs (`clean_environment()` in `opencode.py`): an allow-list of the user's
+variables (no tokens or keys), plus `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8` (Python started without a console printed in cp1251
+and the agents, reading UTF-8, garbled Cyrillic) and `GIT_CONFIG_PARAMETERS='core.quotepath=false'` (git printed Cyrillic file
+names as octal escapes; not the `GIT_CONFIG_KEY_0` form, which dsh drops as secret-looking, leaving git unable to start).
+OpenCode gets `SHELL` = Git Bash: it otherwise picks pwsh, whose pipe output is in the OEM code page (cp866); Git Bash is found
+in `bin/` above `git.exe` whether PATH lists `cmd/` or `mingw64/bin/`. Checked for all three agents in a project folder named
+`Мой Супер Проект!`: a command quoting that path, Python printing it, `git status` and a directory listing (`ls`, `dir /b`,
+`Get-ChildItem`) showing `Отчёт & план №2 (v1.0) 100% ok!.txt`.
+
 Settings: `UserData/Settings/agents.settings.json` (last agent, folder, level). Ports: `AgentGatewayPort`, `OpenCodePort` in
 `runtime.settings.json` or `VISUALFORGE_AGENT_GATEWAY_PORT`, `VISUALFORGE_OPENCODE_PORT`. Logs: `UserData/Logs/agent-opencode.log`,
 `UserData/Logs/agent-aider.log`, `UserData/Logs/agent-dsh.log`.
@@ -122,7 +160,8 @@ Settings: `UserData/Settings/agents.settings.json` (last agent, folder, level). 
 OpenCode against `tests/fake_openai.py`: permission → command → saved answer, `read` level and `git push` denial, rejection,
 waiting for the GPU; with the real Aider: edit asked, applied and left uncommitted, `auto` commit with the user's identity,
 rejected edit and `read` level, command approval, push and outside-file refusal, stop with a partial answer, history of the
-chat in the next task, a file the model asks for is added and sent; with the real dsh: edit asked and applied, `auto` running git status
+chat in the next task, a file the model asks for is added and sent; for every agent, a loop that hands off and stops on DONE, a context threshold ending an
+agent that would call tools forever, and a failing check overriding the agent's DONE; with the real dsh: edit asked and applied, `auto` running git status
 without asking and leaving the folder's ACL inherited only, read level / push / outside file refused, rejection, session resumed by the next task, stop; the catalog
 entries install the agents exactly where the registry looks for them.
 

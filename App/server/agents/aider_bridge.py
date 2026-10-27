@@ -72,6 +72,8 @@ class Bridge:
         self.streaming = False
         self.in_thinking = False
         self.reasoning_tag = ''
+        self.wrapping = False  # the studio's loop asked to end the iteration: no further model call of the task
+        self.handoff = False
 
     # ---- protocol -----------------------------------------------------------------------------------------------
     def emit(self, event):
@@ -93,7 +95,9 @@ class Bridge:
                 message = json.loads(line)
             except ValueError:
                 continue
-            if message.get('type') == 'reply' and message.get('id') in self.pending:
+            if message.get('type') == 'wrap':
+                self.wrapping = True
+            elif message.get('type') == 'reply' and message.get('id') in self.pending:
                 self.pending[message['id']][1] = message.get('reply')
                 self.pending[message['id']][0].set()
         # The studio closed the pipe: nobody can answer any more, so every open question is a refusal.
@@ -226,6 +230,9 @@ class Bridge:
             return result
 
         def guarded_send(*args, **keywords):
+            if bridge.wrapping and not bridge.handoff:
+                # Aider's own Ctrl+C path: send_message catches it, marks the reply interrupted and ends the message cleanly.
+                raise KeyboardInterrupt
             bridge.streaming = True
             try:
                 yield from send(*args, **keywords)
@@ -343,6 +350,8 @@ def main():
 
         def confirm_ask(self, question, default='y', subject=None, explicit_yes_required=False, group=None, allow_never=False):
             question = str(question).strip()
+            if bridge.handoff:
+                return False  # the handoff note is a plain answer: no files added, nothing created or run
             if question in ('Run shell command?', 'Run shell commands?'):
                 return bridge.allow_command(subject)
             if question == 'Add file to the chat?':
@@ -417,10 +426,18 @@ def main():
     bridge.guard(coder)
     task = start['task'] if not system else '%s\n\n%s' % (system, start['task'])
     coder.run(with_message=task)
-    content = ''.join(bridge.content).strip()
-    bridge.emit(dict(type='done', content=content, thinking=''.join(bridge.thinking).strip(),
-                     stats=dict(model_calls=bridge.calls, completion_tokens=bridge.output_tokens, context_tokens=bridge.context_tokens,
-                                context=int(start['context'])) if bridge.calls else None,
+    content, thinking = ''.join(bridge.content).strip(), ''.join(bridge.thinking).strip()
+    stats = dict(model_calls=bridge.calls, completion_tokens=bridge.output_tokens, context_tokens=bridge.context_tokens,
+                 context=int(start['context'])) if bridge.calls else None
+    handoff = ''
+    if start.get('handoff'):
+        # A loop iteration ends with a handoff note in the same context: a plain answer, so the read-only level for this one
+        # message (no edits, commands or added files); its text is returned apart from the iteration's answer.
+        bridge.emit(dict(type='phase', phase='handoff'))
+        bridge.handoff, bridge.mode, bridge.content, bridge.thinking = True, 'read', [], []
+        coder.run(with_message=start['handoff'])
+        handoff = ''.join(bridge.content).strip()
+    bridge.emit(dict(type='done', content=content, thinking=thinking, stats=stats, handoff=handoff,
                      error='' if content or not bridge.errors else clip(bridge.errors[-1], 500),
                      commits=sorted(getattr(coder, 'aider_commit_hashes', None) or [])))
 

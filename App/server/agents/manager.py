@@ -17,6 +17,7 @@ from gpu import Busy
 from .aider import AiderRunner
 from .dsh import DshRunner
 from .gateway import ModelGateway
+from . import loop as loop_module
 from .opencode import OpenCodeError, OpenCodeServer, DEFAULT_PORT as OPENCODE_PORT
 from .registry import AGENTS, DEFAULT_AGENT, DEFAULT_PERMISSION, PERMISSION_HINTS, PERMISSION_MODES, get_agent
 
@@ -105,7 +106,8 @@ class AgentManager:
         self.paths, self.text, self.store, self.gpu, self.gpu_lock = paths, text, store, gpu, gpu_lock
         self.settings_path = paths.settings / 'agents.settings.json'
         self.gateway = ModelGateway(_port(paths, 'AgentGatewayPort', 'VISUALFORGE_AGENT_GATEWAY_PORT', GATEWAY_PORT),
-                                    upstream=self._upstream, admit=self._admit, finish=self._finish, models=self._aliases)
+                                    upstream=self._upstream, admit=self._admit, finish=self._finish, models=self._aliases,
+                                    observe=self._observe)
         self.opencode = opencode or OpenCodeServer(paths, paths.root / AGENTS['opencode']['executable'],
                                                    _port(paths, 'OpenCodePort', 'VISUALFORGE_OPENCODE_PORT', OPENCODE_PORT))
         self.aider = aider or AiderRunner(paths, paths.root / AGENTS['aider']['executable'])
@@ -133,7 +135,8 @@ class AgentManager:
         raise ValueError('Модель этого чата не установлена или отключена')
 
     def settings(self, data=None):
-        current = dict(agent=DEFAULT_AGENT, workspace='', permission=DEFAULT_PERMISSION)
+        current = dict(agent=DEFAULT_AGENT, workspace='', permission=DEFAULT_PERMISSION, loop=False, loop_threshold=loop_module.DEFAULTS['threshold'],
+                       loop_iterations=loop_module.DEFAULTS['iterations'], loop_check='')
         if self.settings_path.is_file() and self.settings_path.stat().st_size <= 8192:
             try:
                 stored = json.loads(self.settings_path.read_text(encoding='utf-8'))
@@ -150,6 +153,12 @@ class AgentManager:
             raise ValueError('Неизвестный уровень прав агента')
         if data.get('workspace'):
             data = dict(data, workspace=workspace_path(data['workspace']))
+        if 'loop' in data and not isinstance(data['loop'], bool):
+            raise ValueError('Настройка цикла: да или нет')
+        loop = {key[5:]: data[key] for key in ('loop_threshold', 'loop_iterations', 'loop_check') if key in data}
+        if loop:
+            checked = loop_module.options(loop)
+            data = dict(data, **{'loop_' + key: checked[key] for key in loop})
         current.update(data)
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.settings_path.with_name(self.settings_path.name + '.tmp')
@@ -257,10 +266,11 @@ class AgentManager:
         with self.lock:
             return self.run is not None
 
-    def send(self, chat_id, content, emit, disconnected):
-        """Run one agent task and stream its events through `emit`; returns when the agent is idle, stopped or failed."""
+    def send(self, chat_id, content, emit, disconnected, loop=None):
+        """Run one agent task (or, with `loop` settings, a loop of iterations) and stream its events through `emit`."""
         if not isinstance(content, str) or not content.strip() or len(content) > 100_000:
             raise ValueError('Задание агенту: текст до 100 000 символов')
+        options = loop_module.options(loop) if loop is not None else None
         chat = self.store.get(chat_id)
         if chat.get('kind') != 'agent':
             raise ValueError('Это обычный чат: включите режим «Агент» и создайте чат агента')
@@ -271,8 +281,8 @@ class AgentManager:
         raw_emit = emit
 
         def emit(event):
-            # The gateway thread reports GPU waiting while this thread relays events: one writer at a time, and a closed
-            # page only marks the task as abandoned instead of raising inside the gateway.
+            # The gateway thread reports GPU waiting and context use while this thread relays events: one writer at a time, and a
+            # closed page only marks the task as abandoned instead of raising inside the gateway.
             with writing:
                 if gone.is_set():
                     return
@@ -283,35 +293,23 @@ class AgentManager:
 
         abandoned = disconnected
         disconnected = lambda: gone.is_set() or abandoned()
+        info = self._models()[alias]
         with self.lock:
             if self.run is not None:
                 raise Busy('Агент уже выполняет задачу. Дождитесь окончания или остановите её.')
             self.run = dict(chat=chat_id, cancel=cancel, emit=emit, waiting='', session='', directory=directory, pending={},
-                            model=self._models()[alias]['name'], agent=agent['id'])
-        session = ''
+                            model=info['name'], agent=agent['id'], size=info['context'], used=0, measured=True, limit=0,
+                            wrap=threading.Event(), phase='work')
         try:
+            if options:
+                return self._loop(chat, content, alias, emit, cancel, disconnected, options)
             history = [m for m in chat['messages'] if m.get('content') and not m.get('error')][-AIDER_HISTORY:]
             self.store.add_user(chat_id, content)
-            if agent['id'] in ('aider', 'dsh'):
-                return self._send_process(agent['id'], chat, content, alias, history, emit, cancel, disconnected)
-            emit(dict(type='status', phase='Запуск OpenCode…' if not self.opencode.alive() else 'Агент получил задание'))
-            self.gateway.start()
-            self.opencode.start(self.gateway.base_url, self.gateway.token, self._models())
-            session = agent.get('session', '')
-            if not session or not self.opencode.session_exists(session, directory):
-                session = self.opencode.create_session(directory, chat['title'] if not chat.get('title_auto') else content, agent['permission'])['id']
-                self.store.set_agent(chat_id, session=session)
-            self.run['session'] = session
-            events = self.opencode.subscribe(session)
-            try:
-                self.opencode.prompt(session, directory, content, alias, chat.get('system', '').strip() or DEFAULT_SYSTEM)
-                error = self._follow(events, emit, cancel, disconnected)
-            finally:
-                self.opencode.unsubscribe(session)
-            return self._save(chat_id, session, directory, chat.get('model', ''), error, cancel.is_set())
+            turn = self._turn(chat, content, alias, history, emit, cancel, disconnected)
+            chat, message = self.store.add_assistant(chat_id, turn['content'], turn['thinking'], chat.get('model', ''), turn['stats'],
+                                                     turn['stopped'], turn['error'], steps=turn['steps'])
+            return chat, message, turn['error']
         except (OSError, OpenCodeError, ValueError) as failure:
-            if session:
-                self.opencode.abort(session, directory)
             message = str(failure)[:500] or 'Агент не смог выполнить задание'
             self.store.add_assistant(chat_id, '', '', chat.get('model', ''), None, False, message)
             raise ValueError(message) from None
@@ -319,13 +317,79 @@ class AgentManager:
             with self.lock:
                 self.run = None
 
-    def _send_process(self, kind, chat, content, alias, history, emit, cancel, disconnected):
-        """One task of an agent started per task (Aider, dsh): its runner speaks the page's events; keep the steps and text."""
+    # ---- one turn of an agent -----------------------------------------------------------------------------------
+    def _turn(self, chat, content, alias, history, emit, cancel, disconnected, handoff='', fresh=False):
+        """One request to the chat's agent, nothing stored. `fresh`: a new agent session (a loop iteration); `handoff`: a second
+        request in the same context whose answer is returned as `handoff` (the iteration's note).
+        Returns dict(content, thinking, steps, stats, error, stopped, handoff)."""
+        if chat['agent']['id'] in ('aider', 'dsh'):
+            return self._turn_process(chat['agent']['id'], chat, content, alias, history, emit, cancel, disconnected, handoff, fresh)
+        agent, directory, model = chat['agent'], chat['agent']['workspace'], chat.get('model', '')
+        emit(dict(type='status', phase='Запуск OpenCode…' if not self.opencode.alive() else 'Агент получил задание'))
+        self.gateway.start()
+        self.opencode.start(self.gateway.base_url, self.gateway.token, self._models())
+        system = chat.get('system', '').strip() or DEFAULT_SYSTEM
+        session = '' if fresh else agent.get('session', '')
+        if not session or not self.opencode.session_exists(session, directory):
+            session = self.opencode.create_session(directory, chat['title'] if not chat.get('title_auto') else content[:200], agent['permission'])['id']
+            self.store.set_agent(chat['id'], session=session)
+        self.run['session'] = session
+        try:
+            events = self.opencode.subscribe(session)
+            try:
+                self.opencode.prompt(session, directory, content, alias, system)
+                error = self._follow(events, emit, cancel, disconnected)
+            finally:
+                self.opencode.unsubscribe(session)
+            turn = dict(self._collect(session, directory, model, error), stopped=cancel.is_set(), handoff='')
+            if handoff and not cancel.is_set():
+                turn['handoff'] = self._opencode_handoff(session, directory, alias, system, agent['permission'], emit, cancel, disconnected, handoff)
+            return turn
+        except (OSError, OpenCodeError, ValueError):
+            self.opencode.abort(session, directory)
+            raise
+
+    def _opencode_handoff(self, session, directory, alias, system, permission, emit, cancel, disconnected, handoff):
+        """The handoff request in the iteration's session, with the read-only rules so the note is a plain answer."""
+        self.run['phase'] = 'handoff'
+        emit(dict(type='status', phase='Агент пишет итог итерации…'))
+        self.opencode.set_mode(session, directory, 'read')
+        try:
+            events = self.opencode.subscribe(session)
+            try:
+                self.opencode.prompt(session, directory, handoff, alias, system)
+                self._follow(events, self._quiet(emit, lambda ident: self.opencode.reply(ident, 'reject', directory)), cancel, disconnected)
+            finally:
+                self.opencode.unsubscribe(session)
+            return self._collect(session, directory, '', '')['content'].strip()
+        finally:
+            try:
+                self.opencode.set_mode(session, directory, permission)
+            except (OSError, OpenCodeError):
+                pass
+
+    def _quiet(self, emit, reject):
+        """Events of a handoff request: status only; a permission request (none is expected under read-only rules) is refused."""
+        def relay(event):
+            if event.get('type') == 'permission' and isinstance(event.get('request'), dict):
+                threading.Thread(target=reject, args=(event['request'].get('id'),), daemon=True).start()
+            elif event.get('type') == 'status':
+                emit(event)
+        return relay
+
+    def _turn_process(self, kind, chat, content, alias, history, emit, cancel, disconnected, handoff, fresh):
+        """One turn of an agent started per task (Aider, dsh): its runner speaks the page's events; keep the steps and text."""
         runner = self.aider if kind == 'aider' else self.dsh
         steps, text, thinking = {}, [], []
 
         def relay(event):
             kind = event.get('type')
+            if kind == 'phase' and event.get('phase') == 'handoff':
+                self.run['phase'] = 'handoff'
+                emit(dict(type='status', phase='Агент пишет итог итерации…'))
+                return
+            if self.run['phase'] == 'handoff' and kind in ('delta', 'step'):
+                return  # the note is returned with the result, not streamed into the iteration's answer
             if kind == 'step' and isinstance(event.get('step'), dict):
                 if len(steps) < MAX_STEPS or event['step'].get('id') in steps:
                     steps[event['step'].get('id')] = event['step']
@@ -349,20 +413,112 @@ class AgentManager:
         info = self._models()[alias]
         start = dict(workspace=chat['agent']['workspace'], task=content, mode=chat['agent']['permission'], alias=alias, label=info['label'],
                      context=info['context'], output=min(8192, info['context'] // 4), base_url=self.gateway.base_url, token=self.gateway.token)
+        if handoff:
+            start['handoff'] = handoff
         if kind == 'aider':
             start.update(system=chat.get('system', ''), history=[dict(role=m['role'], content=m['content']) for m in history], state=str(self.aider.state))
         else:
-            start.update(system=chat.get('system', '').strip() or DEFAULT_SYSTEM, session=chat['agent'].get('session', ''))
+            start.update(system=chat.get('system', '').strip() or DEFAULT_SYSTEM, session='' if fresh else chat['agent'].get('session', ''))
         done = runner.run(start, relay, cancel, disconnected)
         model = chat.get('model', '')
         if done is None:  # stopped: keep what the page already showed
-            body, reasoning, stats, error = ''.join(text).strip(), ''.join(thinking).strip(), None, ''
+            return dict(content=''.join(text).strip(), thinking=''.join(thinking).strip(), steps=list(steps.values()), stats=None, error='',
+                        stopped=True, handoff='')
+        stats = done.get('stats')
+        if stats:
+            stats = dict(stats, context=self.text.context_length(model) if model else stats.get('context', 0))
+        return dict(content=done.get('content', ''), thinking=done.get('thinking', ''), steps=list(steps.values()), stats=stats,
+                    error=done.get('error', ''), stopped=False, handoff=done.get('handoff', ''))
+
+    # ---- context measurement and loops --------------------------------------------------------------------------
+    def _observe(self, tokens, measured):
+        """The gateway's measure after each model answer: show it, and end a loop iteration that reached its threshold."""
+        with self.lock:
+            run = self.run
+        if run is None:
+            return
+        run['used'], run['measured'] = tokens, measured
+        run['emit'](dict(type='context', used=tokens, size=run['size'], measured=measured))
+        if run['limit'] and run['phase'] == 'work' and tokens >= run['limit'] and not run['wrap'].is_set():
+            run['wrap'].set()
+            run['emit'](dict(type='status', phase='Контекст заполнен на %d%%: агент заканчивает итерацию…' % round(100 * tokens / max(run['size'], 1))))
+            threading.Thread(target=self._wrap, args=(run,), name='agent-wrap', daemon=True).start()
+
+    def _wrap(self, run):
+        if run['agent'] == 'opencode':
+            if run['session']:
+                self.opencode.abort(run['session'], run['directory'])
+        elif run['agent'] == 'aider':
+            self.aider.wrap()
         else:
-            body, reasoning, stats, error = done.get('content', ''), done.get('thinking', ''), done.get('stats'), done.get('error', '')
-            if stats:
-                stats = dict(stats, context=self.text.context_length(model) if model else stats.get('context', 0))
-        chat, message = self.store.add_assistant(chat['id'], body, reasoning, model, stats, done is None, error, steps=list(steps.values()))
+            self.dsh.wrap()
+
+    def _loop(self, chat, goal, alias, emit: Callable[[dict], None], cancel, disconnected: Callable[[], bool], options):
+        """Iterations of one large task, each a fresh agent session, until the agent reports DONE (and the check passes), BLOCKED,
+        stalls, reaches the iteration limit or is stopped. Every iteration is stored as its own answer with a link to its note."""
+        run, workspace, model = self.run, chat['agent']['workspace'], chat.get('model', '')
+        run['limit'] = run['size'] * options['threshold'] // 100
+        total, run_id = options['iterations'], time.strftime('%Y%m%d-%H%M%S')
+        folder = loop_module.prepare(workspace, run_id)
+        start = loop_module.head(workspace)
+        fingerprint = loop_module.facts(workspace, start)['fingerprint']
+        self.store.add_user(chat['id'], goal)
+        previous, message, error, last_step = None, None, '', None
+        for number in range(1, total + 1):
+            run['wrap'].clear()
+            run['phase'], run['used'] = 'work', 0
+            emit(dict(type='status', phase='Итерация %d из %d…' % (number, total)))
+            prompt = loop_module.iteration_prompt(goal, number, total, previous)
+            try:
+                turn = self._turn(chat, prompt, alias, [], emit, cancel, disconnected, handoff=loop_module.HANDOFF, fresh=True)
+            except (OSError, OpenCodeError, ValueError) as failure:
+                turn = dict(content='', thinking='', steps=[], stats=None, error=str(failure)[:500] or 'Агент не смог выполнить задание',
+                            stopped=False, handoff='')
+            chat = self.store.get(chat['id'])
+            ended = 'user' if turn['stopped'] or cancel.is_set() else 'context' if run['wrap'].is_set() else 'error' if turn['error'] and not turn['handoff'] else 'finished'
+            fact = loop_module.facts(workspace, start)
+            verification = None
+            if options['check'] and ended != 'user':
+                emit(dict(type='status', phase='Проверка: %s' % options['check']))
+                verification = dict(loop_module.check(options['check'], workspace, cancel), command=options['check'])
+            rel, note = loop_module.write(folder, workspace, number, total, run, goal, turn['handoff'], ended, fact, verification)
+            status = loop_module.status_of(turn['handoff']) if turn['handoff'] else 'CONTINUE'
+            step = loop_module.next_step_of(turn['handoff'])
+            verdict, stop = self._verdict(ended, status, verification, fact['fingerprint'] == fingerprint and fact['git'] and step == last_step,
+                                          number, total)
+            footer = '**Итерация %d из %d** · %s · итог: `%s`' % (number, total, verdict, rel)
+            content = (turn['content'].rstrip() + '\n\n---\n' if turn['content'].strip() else '') + footer
+            chat, message = self.store.add_assistant(chat['id'], content, turn['thinking'], model, turn['stats'], ended == 'user',
+                                                     turn['error'] if ended == 'error' else '', steps=turn['steps'])
+            error = turn['error'] if ended == 'error' else ''
+            if stop:
+                return chat, message, error
+            emit(dict(type='iteration', number=number, total=total, path=rel, message=message))
+            previous, fingerprint, last_step = dict(rel=rel, text=note), fact['fingerprint'], step
         return chat, message, error
+
+    @staticmethod
+    def _verdict(ended, status, verification, stalled, number, total):
+        """(the iteration's line for the page, whether the loop stops)."""
+        failed = verification is not None and verification['code'] != 0
+        if ended == 'user':
+            return 'цикл остановлен вами', True
+        if ended == 'error':
+            return 'агент завершился с ошибкой — цикл остановлен', True
+        if status == 'BLOCKED':
+            return 'агент упёрся в препятствие (BLOCKED) — цикл остановлен', True
+        if status == 'DONE' and not failed:
+            return 'задача выполнена (DONE)' + (', проверка прошла' if verification else ''), True
+        if stalled:
+            return 'без изменений и с тем же следующим шагом — цикл остановлен, чтобы не ходить по кругу', True
+        reason = 'заполнен контекст' if ended == 'context' else 'агент закончил ход'
+        if status == 'DONE':
+            reason += ', агент считает задачу выполненной, но проверка не прошла'
+        elif failed:
+            reason += ', проверка не прошла'
+        if number >= total:
+            return reason + ' — достигнут лимит итераций', True
+        return reason + ' — продолжаю', False
 
     def _follow(self, events, emit: Callable[[dict], None], cancel, disconnected: Callable[[], bool]):
         """Translate OpenCode events until the session is idle; returns an error text ('' when it finished or was stopped)."""
@@ -423,8 +579,8 @@ class AgentManager:
             elif kind == 'session.idle':
                 return error
 
-    def _save(self, chat_id, session, directory, model, error, stopped):
-        """Store the answer of this task as the user saw it: OpenCode's own messages after the last request are the source."""
+    def _collect(self, session, directory, model, error):
+        """The answer of the last request as the user saw it: OpenCode's own messages after the last user message are the source."""
         content, thinking, steps, stats = [], [], [], None
         calls = output = context = 0
         try:
@@ -454,8 +610,7 @@ class AgentManager:
                 error = error_text(info['error'])
         if calls:
             stats = dict(model_calls=calls, completion_tokens=output, context_tokens=context, context=self.text.context_length(model) if model else 0)
-        chat, message = self.store.add_assistant(chat_id, '\n\n'.join(content), '\n\n'.join(thinking), model, stats, stopped, error, steps=steps)
-        return chat, message, error
+        return dict(content='\n\n'.join(content), thinking='\n\n'.join(thinking), steps=steps, stats=stats, error=error)
 
     def reply(self, data):
         if not isinstance(data, dict) or set(data) - {'chat_id', 'request_id', 'reply'}:

@@ -42,10 +42,11 @@ def handle(handler, manager, route, data, choose_folder):
 
 
 def send(handler, manager, data):
-    """Stream one agent task as NDJSON events: status, delta, step, permission, permission_done, done, error."""
+    """Stream one agent task (or loop) as NDJSON events: status, context, delta, step, permission, permission_done, iteration,
+    done, error."""
     if manager is None:
         raise ValueError('Режим «Агент» недоступен')
-    if not isinstance(data, dict) or set(data) - {'chat_id', 'content'}:
+    if not isinstance(data, dict) or set(data) - {'chat_id', 'content', 'loop'}:
         raise ValueError('Запрос содержит неподдерживаемые параметры')
     if manager.busy():
         raise Busy('Агент уже выполняет задачу. Дождитесь окончания или остановите её.')
@@ -73,7 +74,7 @@ def send(handler, manager, data):
             raise Disconnected from None
 
     try:
-        chat, message, error = manager.send(data.get('chat_id'), data.get('content'), emit, lambda: state['gone'])
+        chat, message, error = manager.send(data.get('chat_id'), data.get('content'), emit, lambda: state['gone'], data.get('loop'))
         result = dict(type='done', message=message, chat=dict(id=chat['id'], title=chat['title'], updated=chat['updated']))
         if error:
             result['error'] = error

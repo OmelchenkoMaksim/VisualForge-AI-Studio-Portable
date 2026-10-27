@@ -296,6 +296,13 @@
         <label for="agentWorkspace">Папка проекта — агент работает только внутри неё</label>
         <div class="agent-folder"><input id="agentWorkspace" type="text" placeholder="Например, D:\Projects\my-app" autocomplete="off" spellcheck="false"><button id="agentChoose" type="button" class="secondary">Выбрать папку…</button></div>
         <p id="agentInfo" class="muted"></p>
+        <label class="text-check" for="agentLoop" title="Для задач, которые не помещаются в контекст модели: каждая итерация начинается со свежим контекстом, а перед её концом агент пишет итог в файл .visualforge/loop/… в папке проекта; следующая итерация продолжает с него."><input id="agentLoop" type="checkbox">Цикл для большой задачи — итерациями со свежим контекстом</label>
+        <div id="agentLoopOptions" class="agent-loop" hidden>
+          <label for="agentLoopThreshold" title="Когда контекст модели заполнится на столько процентов, студия прервёт агента и попросит записать итог итерации">Порог контекста, %<input id="agentLoopThreshold" type="number" min="30" max="95" step="5" inputmode="numeric"></label>
+          <label for="agentLoopIterations" title="Цикл остановится после стольких итераций, даже если задача не закончена">Итераций, не больше<input id="agentLoopIterations" type="number" min="1" max="100" step="1" inputmode="numeric"></label>
+          <label for="agentLoopCheck" class="agent-loop-wide" title="Студия сама запускает её в папке проекта после каждой итерации; агент считается закончившим только если она проходит">Команда проверки после итерации — необязательно<input id="agentLoopCheck" type="text" maxlength="500" placeholder="Например, python -m unittest или gradlew test" autocomplete="off" spellcheck="false"></label>
+        </div>
+        <p id="agentContext" class="muted" hidden></p>
       </div>
       <p id="textAvailability" class="muted">Проверка Text при открытии раздела…</p>
       <div id="textMessages" class="text-messages" role="log" aria-live="off" aria-label="Переписка"></div>

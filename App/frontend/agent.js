@@ -37,7 +37,20 @@ window.StudioAgent = (() => {
     if (source.agent) el('agentKind').value = source.agent;
     if (source.permission) el('agentPermission').value = source.permission;
     el('agentWorkspace').value = source.workspace || '';
+    const settings = info?.settings || {};
+    el('agentLoop').checked = !!settings.loop;el('agentLoopOptions').hidden = !settings.loop;
+    el('agentLoopThreshold').value = settings.loop_threshold ?? 75;el('agentLoopIterations').value = settings.loop_iterations ?? 10;
+    el('agentLoopCheck').value = settings.loop_check || '';
+    el('agentContext').hidden = true;  // the measure belongs to the task that produced it
     describe();
+  }
+  // The loop settings of the next task, or null without a loop.
+  const loop = () => el('agentLoop').checked ? {threshold: Number(el('agentLoopThreshold').value), iterations: Number(el('agentLoopIterations').value),
+    check: el('agentLoopCheck').value.trim()} : null;
+  function context(event) {
+    const box = el('agentContext'), percent = Math.round(100 * event.used / Math.max(event.size, 1));
+    box.hidden = false;
+    box.textContent = `Контекст модели: ${event.measured ? '' : '≈'}${event.used.toLocaleString('ru-RU')} из ${event.size.toLocaleString('ru-RU')} токенов (${percent}%)`;
   }
   function describe() {
     const agent = info?.agents.find(a => a.id === el('agentKind').value), hint = info?.hints?.[el('agentPermission').value] || '';
@@ -57,6 +70,10 @@ window.StudioAgent = (() => {
     el('agentWorkspace').onchange = () => onChange('workspace', el('agentWorkspace').value.trim());
     el('agentKind').onchange = () => {describe();onChange('agent', el('agentKind').value);};
     el('agentChoose').onclick = () => choose().catch(error => onChange('error', error.message));
+    el('agentLoop').onchange = () => {el('agentLoopOptions').hidden = !el('agentLoop').checked;onChange('loop', el('agentLoop').checked);};
+    el('agentLoopThreshold').onchange = () => onChange('loop_threshold', Number(el('agentLoopThreshold').value));
+    el('agentLoopIterations').onchange = () => onChange('loop_iterations', Number(el('agentLoopIterations').value));
+    el('agentLoopCheck').onchange = () => onChange('loop_check', el('agentLoopCheck').value.trim());
   }
 
   // ---- rendering: everything from the agent goes in with textContent ----------------------------------------------
@@ -115,5 +132,5 @@ window.StudioAgent = (() => {
     note.textContent = reply === 'reject' ? 'Вы отклонили запрос.' : reply === 'always' ? 'Разрешено до конца этого чата.' : 'Разрешено один раз.';
     card.append(note);
   }
-  return {api, load, show, values, ready, bind, renderSteps, permissionCard, resolve, get info() {return info;}};
+  return {api, load, show, values, loop, context, ready, bind, renderSteps, permissionCard, resolve, get info() {return info;}};
 })();

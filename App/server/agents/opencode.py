@@ -41,7 +41,15 @@ ALWAYS_DENIED = [('bash', 'git push', 'deny'), ('bash', 'git push *', 'deny')]
 def clean_environment():
     # os.environ on Windows reports names upper-cased (SYSTEMROOT); without SystemRoot `opencode serve` dies with "ServeError".
     keep = {name.upper() for name in KEEP_ENV}
-    return {key: value for key, value in os.environ.items() if key.upper() in keep}
+    env = {key: value for key, value in os.environ.items() if key.upper() in keep}
+    # Python started by an agent's command prints to a pipe in the ANSI code page (cp1251 on Russian Windows), while the agents
+    # read command output as UTF-8: a Cyrillic project path or test message reached the model and the page garbled.
+    env.update(PYTHONUTF8='1', PYTHONIOENCODING='utf-8')
+    # git prints non-ASCII file names as octal escapes ("\320\227...") unless core.quotePath is off; the model could not read a
+    # Cyrillic file name in `git status`. Set for the agents' processes only, the user's git config is not touched. Not the
+    # GIT_CONFIG_COUNT/KEY_0 pair: dsh drops variables named like secrets (*KEY*) from its shell, and git then refused to start.
+    env['GIT_CONFIG_PARAMETERS'] = "'core.quotepath=false'"
+    return env
 
 
 def permission_rules(mode):
@@ -101,9 +109,13 @@ class OpenCodeServer:
                    GIT_TERMINAL_PROMPT='0', NO_COLOR='1')
         git = shutil.which('git')
         if git:
-            bash = Path(git).resolve().parent.parent / 'bin/bash.exe'  # Git for Windows: cmd/git.exe -> bin/bash.exe
-            if bash.is_file():
-                env['OPENCODE_GIT_BASH_PATH'] = str(bash)
+            # Git for Windows puts git.exe in cmd/ or mingw64/bin/ (whichever PATH lists) and bash.exe in bin/ of its root.
+            bash = next((folder / 'bin/bash.exe' for folder in Path(git).resolve().parents[:3] if (folder / 'bin/bash.exe').is_file()), None)
+            if bash:
+                # OpenCode takes its shell from SHELL, else the first of pwsh, powershell, Git Bash, cmd. PowerShell writes a
+                # command's output to the pipe in the OEM code page (cp866), which OpenCode read as UTF-8: Cyrillic file names
+                # and messages reached the model garbled. Git Bash works in UTF-8.
+                env['OPENCODE_GIT_BASH_PATH'] = env['SHELL'] = str(bash)
         return env
 
     def start(self, gateway_url, gateway_token, models):
