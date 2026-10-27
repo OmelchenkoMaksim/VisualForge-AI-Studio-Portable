@@ -1,0 +1,14 @@
+/* Form left, result and history right, matching Image and Video. */
+#musicWorkspace{display:grid;grid-template-columns:minmax(420px,600px) minmax(0,1fr);gap:20px;align-items:start;margin-top:20px}
+#musicWorkspace > .panel{margin:0;min-width:0}
+@media(max-width:1100px){#musicWorkspace{grid-template-columns:1fr}}
+#musicWorkspace label{display:grid;gap:6px;font-weight:600;font-size:13px;color:var(--text-2);margin-top:12px}
+#musicWorkspace textarea,#musicWorkspace input:not([type="checkbox"]),#musicWorkspace select{width:100%;padding:10px 12px}
+#musicWorkspace textarea{resize:vertical;min-height:110px}#musicWorkspace details{margin-top:16px;line-height:1.6}#musicWorkspace details > summary{font-weight:600}
+/* Model names with release dates are long; the model/mode pair gets full-width rows in the form column. */
+#musicForm > .music-grid:first-child{grid-template-columns:1fr}
+.music-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.music-actions{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0}
+#musicGenerate{flex:1 1 220px;padding:13px 20px;font-size:15px}
+#musicWorkspace .music-check{display:flex;align-items:center;gap:10px;font-weight:500}.music-check input{width:18px;height:18px;flex-shrink:0}
+#musicPlayer{width:100%;margin:12px 0}.music-path{overflow-wrap:anywhere}#musicDownload{display:inline-block;color:var(--link);padding:10px 0}
+#musicLogs{white-space:pre-wrap;overflow:auto;max-height:280px;font-size:12px;color:var(--muted);background:var(--code-bg);border-radius:var(--r);padding:10px}.music-history-card{padding:14px;margin:10px 0;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2)}.music-history-card p{overflow-wrap:anywhere}.music-history-card button{margin:4px 8px 4px 0;padding:7px 12px;font-size:13px}

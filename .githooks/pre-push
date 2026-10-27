@@ -1,0 +1,15 @@
+#!/bin/sh
+# Inspect the exact refs and their complete reachable histories, including removed payloads.
+root="$(git rev-parse --show-toplevel)"
+for py in python python3 py; do
+    if command -v "$py" >/dev/null 2>&1; then
+        exec "$py" -I "$root/tools/check_repo.py" --push
+    fi
+done
+for py in "$root/Runtime/SetupPython/python.exe" "$root/Runtime/ComfyUI_windows_portable/python_embeded/python.exe"; do
+    if [ -f "$py" ]; then
+        exec "$py" -I "$root/tools/check_repo.py" --push
+    fi
+done
+echo "pre-push: Python was not found; the repository guard could not run." >&2
+exit 1

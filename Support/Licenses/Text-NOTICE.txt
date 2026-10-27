@@ -1,0 +1,12 @@
+Text section third-party components
+
+Runtime/Text/ollama is a copy of Ollama 0.33.3 for Windows (https://github.com/ollama/ollama, MIT License) together with the
+llama.cpp, GGML and other libraries it bundles; their license texts are in Runtime/Text/ollama/lib/ollama/*LICENSE* and *COPYING*.
+The AMD ROCm libraries are not installed. The setup program downloads this copy from the official GitHub release and checks its SHA-256.
+
+Models/Text/ollama is the private model store of the studio. It holds the models you chose in the setup or in the Components tab
+(from the public Ollama registry, or copied from your own Ollama). Each model comes with its own license, shown by Ollama
+("ollama show <model> --license") and stored in the model's manifest; the Gemma family is covered by the Gemma terms of use.
+
+The studio runs its own Ollama process on 127.0.0.1 (own port, own model folder, no cloud features) and does not use, start, stop or
+change an Ollama installation of the user.

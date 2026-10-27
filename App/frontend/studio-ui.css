@@ -1,0 +1,26 @@
+#studioNotifications {position:fixed;right:20px;bottom:20px;z-index:10050;display:flex;flex-direction:column;gap:10px;width:min(420px,calc(100vw - 40px));max-height:70vh;overflow:auto;pointer-events:none;}
+.studio-notice {pointer-events:auto;background:var(--raised);color:var(--text);border:1px solid var(--border-strong);border-left:4px solid var(--ok);border-radius:var(--r-l);padding:16px;box-shadow:var(--shadow);overflow-wrap:anywhere;animation:vf-in var(--mid) var(--ease) both;}
+.studio-notice-error {border-left-color:var(--danger);}
+.studio-notice p {margin:8px 0;white-space:pre-wrap;color:var(--text-2);}
+.studio-notice button {font-size:13px;padding:8px 12px;margin:5px 7px 0 0;}
+/* While a job runs, everything that would start or disturb it is dimmed; Stop and allowed controls stay normal. */
+body.studio-busy :is(#generate, #variant, #videoGenerate, #musicGenerate, #textSend, #textRegenerate, #textNewChat, #textRename, #textDelete, #textUnload, #textSaveSettings, #textChats button, #videoMixStart, #videoExportStart, #saveSaveDir, #chooseSaveDir, #useInternalResults, #videoChooseSaveDir, #videoSaveSettings, #musicChooseSaveDir, #musicSaveSettings, #componentsStart, #componentsModules .components-model-actions button, #componentRemoveConfirm):not([data-allow-busy]):not(#studioNotifications *):not(#studioBusy *) {opacity:.42;cursor:not-allowed;filter:grayscale(.6);}
+body.studio-busy [data-allow-busy]:not(:disabled):not(.voice-bar):not(.voice-bar *) {outline:2px solid var(--warn);outline-offset:2px;}
+.sounds-dialog {width:min(560px,calc(100vw - 32px));padding:22px 24px;background:var(--raised);color:var(--text);border:1px solid var(--border-strong);border-radius:var(--r-l);box-shadow:var(--shadow);}
+.sounds-dialog[open] {animation:vf-pop var(--mid) var(--ease) both;}
+.sounds-dialog::backdrop {background:var(--overlay);}
+.sounds-head {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.sounds-head h2 {margin:0;font-size:17px;}
+.sounds-dialog > p {font-size:13px;line-height:1.5;margin:8px 0 16px;}
+.sounds-row {display:grid;grid-template-columns:130px minmax(0,1fr) auto;align-items:center;gap:10px;margin:10px 0;}
+.sounds-row label {font-size:13px;font-weight:600;color:var(--text-2);}
+.sounds-row select {padding:9px 12px;}
+.sounds-row input[type="range"] {padding:0;border:0;background:none;box-shadow:none;accent-color:var(--accent);}
+.sounds-row output {min-width:52px;text-align:right;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.sounds-play {padding:8px 12px;font-size:13px;white-space:nowrap;}
+.sounds-dialog .sounds-note {font-size:12px;margin:14px 0 0;}
+.sounds-dialog .actions {justify-content:flex-end;margin-top:14px;}
+@media(max-width:520px){.sounds-row{grid-template-columns:1fr}}
+.studio-settings-toggle {display:grid;place-items:center;padding:0;}
+.studio-settings-menu {position:absolute;right:0;width:200px;padding:6px;border-radius:var(--r-l);}
+.studio-settings-menu button {display:block;width:100%;padding:10px 12px;border-radius:var(--r-s);background:transparent;text-align:left;font-size:14px;}

@@ -1,0 +1,148 @@
+/* Image workspace and controls shared with older blocks. Colors come from theme.css. */
+h2{font-size:16px;margin:0 0 14px}
+
+/* Form on the left, result on the right; the result column stays in view while the form scrolls. */
+#imageWorkspace{display:grid;grid-template-columns:minmax(420px,600px) minmax(0,1fr);gap:20px;align-items:start;margin-top:20px}
+#imageWorkspace > .panel{margin:0;min-width:0}
+#imageWorkspace > .output{position:sticky;top:calc(var(--topbar-h) + 20px);min-height:calc(100vh - var(--topbar-h) - 40px);max-height:calc(100vh - var(--topbar-h) - 40px);overflow:auto;display:flex;flex-direction:column}
+@media(max-width:1100px){#imageWorkspace{grid-template-columns:1fr}#imageWorkspace > .output{position:static;min-height:0;max-height:none}}
+
+/* Field labels read as quiet section captions. */
+.engine-panel > label strong,.seed-controls > label strong,.preset-group legend,.prompt-label > span,.save-heading{font-size:12px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.prompt-label{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+textarea{width:100%;resize:vertical;min-height:110px;padding:12px 14px;line-height:1.55}
+
+/* Source images. Clipboard paste is an explicitly selected target; it never changes model settings. */
+.photos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0 8px}
+.photos .image-tile{display:flex;flex-direction:column;gap:10px;min-height:150px;padding:16px;border:1.5px dashed var(--border-strong);border-radius:var(--r-l);background:var(--surface-2);overflow:hidden;transition:border-color var(--fast) ease,background-color var(--fast) ease}
+.photos .image-tile:hover{border-color:var(--faint)}
+.photos .image-tile>label{font-weight:600;font-size:14px;color:var(--text)}
+.photos .image-tile>span{font-size:12px;color:var(--muted);line-height:1.45}
+.photos .image-tile>input{width:100%;max-width:100%}
+.photos .image-tile>img{max-width:100%;max-height:220px;object-fit:contain;border-radius:var(--r-s);align-self:center}
+.photos .image-tile.paste-selected{border-color:var(--accent);border-style:solid;background:var(--accent-soft)}
+button.paste-target{align-self:flex-start;padding:7px 12px;font-size:12px;font-weight:600;background:var(--raised);color:var(--text);border:1px solid var(--border-strong)}
+button.paste-target:hover:not(:disabled){background:var(--surface-3)}
+button.paste-target[aria-pressed="true"],button.paste-target[aria-pressed="true"]:hover{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.paste-hint{color:var(--muted);font-size:12px;margin:0 0 16px;line-height:1.5}
+
+/* Mutually exclusive quality and AI-upscale controls as segmented switches. */
+.render-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:18px 0 8px}
+.preset-group{border:0;padding:0;margin:0;min-width:0}
+.preset-group legend{padding:0;margin-bottom:8px}
+.secondary-caption{color:var(--faint);font-size:11px;font-weight:500;margin-left:4px;text-transform:none;letter-spacing:0}
+.preset-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:3px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2)}
+.preset-option{position:relative;cursor:pointer;min-width:0}
+.preset-option input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.preset-option span{display:flex;align-items:center;justify-content:center;height:34px;padding:0 6px;border-radius:var(--r-s);text-align:center;font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap;transition:background-color var(--fast) ease,color var(--fast) ease}
+.preset-option:hover span{color:var(--text)}
+.preset-option input:checked+span{background:var(--raised);color:var(--text);font-weight:650;box-shadow:var(--shadow-s),inset 0 0 0 1px var(--border-strong)}
+.preset-option input:focus-visible+span{outline:2px solid var(--focus);outline-offset:1px}
+.preset-option input:disabled+span{opacity:.45;cursor:not-allowed}
+.preset-hint{margin:8px 0 0;font-size:12px;color:var(--muted);line-height:1.5}
+.preset-hint:empty{display:none}
+.quality-explainer{font-size:12px;color:var(--muted);line-height:1.55;margin:4px 0 0}
+
+.result-meta{font-size:12px;color:var(--muted);margin:9px 0 6px;overflow-wrap:anywhere}
+.actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+/* The start button stays reachable at the bottom of the form while the user scrolls through settings. */
+#form > .actions{position:sticky;bottom:0;z-index:5;margin:18px -22px -22px;padding:14px 22px 16px;background:var(--surface);border-top:1px solid var(--border);border-radius:0 0 var(--r-l) var(--r-l)}
+#generate{flex:1 1 220px;padding:13px 20px;font-size:15px}
+#settingsSummary{flex-basis:100%;text-align:center}
+
+/* Result column. */
+.output > h2{margin-bottom:8px}
+.output #status{color:var(--text-2);white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:0 0 12px}
+.output #images{display:flex;flex-wrap:wrap;gap:14px;flex:1;align-content:flex-start}
+.output #images:empty{min-height:280px;border:1.5px dashed var(--border);border-radius:var(--r-l);background:var(--surface-2)}
+.output img{display:block;max-width:100%;max-height:calc(100vh - 320px);border:1px solid var(--border);border-radius:var(--r)}
+.output a{display:inline-block;color:var(--link);margin-top:9px}
+.output #images>div{margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+
+/* In-window directory picker: no secondary PowerShell/window Z-order dependency. */
+.folder-picker{position:fixed;inset:0;z-index:10000;background:var(--overlay);display:flex;align-items:center;justify-content:center;padding:16px}
+.folder-picker-window{width:min(690px,100%);max-height:min(90vh,850px);overflow:auto;background:var(--raised);border:1px solid var(--border-strong);border-radius:var(--r-l);padding:20px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px;animation:vf-pop var(--mid) var(--ease) both}
+.folder-picker-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.folder-picker-heading h2{margin:0;font-size:17px}
+.folder-picker-path-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px}
+.folder-picker-path-row input{width:100%;min-width:0;padding:9px 10px}
+.folder-picker-drives{display:flex;flex-wrap:wrap;gap:6px}
+.folder-picker-drives button{font-size:13px;padding:7px 11px}
+.folder-picker-items{min-height:110px;max-height:45vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);padding:5px;display:flex;flex-direction:column;gap:2px}
+.folder-picker-items button{width:100%;border:0;background:transparent;color:var(--text);text-align:left;padding:9px 11px;border-radius:var(--r-s);font-weight:500}
+.folder-picker-items button:hover,.folder-picker-items button:focus-visible{background:var(--accent-soft);color:var(--text)}
+.folder-picker-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px}
+.folder-picker-actions button{padding:10px 16px}
+@media(max-width:600px){.folder-picker-path-row{grid-template-columns:1fr}.folder-picker-actions button{flex:1}}
+
+/* In-app diagnostics. */
+.logs-panel{position:fixed;inset:0;z-index:20000;display:flex;align-items:center;justify-content:center;padding:12px;background:var(--overlay)}
+.logs-window{width:min(1020px,100%);max-height:92vh;display:flex;flex-direction:column;gap:12px;overflow:hidden;border:1px solid var(--border-strong);background:var(--raised);border-radius:var(--r-l);padding:18px;box-shadow:var(--shadow);animation:vf-pop var(--mid) var(--ease) both}
+.logs-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.logs-heading h2{margin:0}
+.logs-heading button{padding:7px 13px}
+.logs-help{font-size:12px;line-height:1.45;color:var(--muted);margin:0}
+.logs-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.logs-controls label{font-size:13px;color:var(--text-2)}
+.logs-controls select{min-width:155px;max-width:100%;padding:8px 10px}
+.logs-controls button{padding:8px 12px;font-size:13px}
+.logs-copy-buffer{position:fixed;left:-9999px;top:0}
+.logs-status{margin:0;min-height:18px;font-size:12px;color:var(--muted)}
+.logs-output{white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;flex:1;min-height:170px;max-height:55vh;border:1px solid var(--border);border-radius:var(--r);background:var(--code-bg);padding:13px;margin:0;font:12px/1.5 "Cascadia Mono",Consolas,monospace;color:var(--text-2);user-select:text}
+@media(max-width:560px){.logs-window{padding:12px}.logs-controls select{width:100%}.logs-controls button{flex:1}}
+
+/* Prompt guide, favorites and truthful progress. */
+.qwen-prompt-guide{margin:10px 0 6px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r)}
+.qwen-prompt-guide summary{font-size:13px;font-weight:600;color:var(--link)}
+.qwen-guide-body p{font-size:12px;line-height:1.55;margin:9px 0;color:var(--text-2)}
+.qwen-guide-example{font-size:12px;line-height:1.5;padding:9px 11px;border-radius:var(--r-s);background:var(--accent-soft);color:var(--text)}
+.qwen-muted{color:var(--muted);font-size:12px;line-height:1.5}
+.qwen-prompt-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 12px}
+.qwen-prompt-actions button{font-size:13px;padding:8px 12px}
+.qwen-archive-panel{position:fixed;inset:0;z-index:21000;background:var(--overlay);display:flex;align-items:center;justify-content:center;padding:12px}
+.qwen-archive-window{background:var(--raised);border:1px solid var(--border-strong);border-radius:var(--r-l);width:min(850px,100%);max-height:92vh;display:flex;flex-direction:column;padding:18px;gap:11px;box-shadow:var(--shadow);animation:vf-pop var(--mid) var(--ease) both}
+.qwen-archive-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qwen-archive-heading h2{margin:0}
+.qwen-archive-heading button{padding:8px 12px}
+#qwenArchiveSearch{padding:10px}
+.qwen-archive-entries{overflow:auto;min-height:160px;max-height:55vh;display:flex;flex-direction:column;gap:9px}
+.qwen-archive-item{border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);padding:11px}
+/* A font size cannot be combined with the CSS-wide inherit keyword in the font shorthand. */
+.qwen-archive-item pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;font-size:13px;line-height:1.5;color:var(--text);margin:5px 0 11px;max-height:125px;overflow:auto}
+.qwen-archive-meta{color:var(--muted);font-size:11px}
+.qwen-archive-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.qwen-archive-buttons button{font-size:12px;padding:7px 11px}
+.qwen-archive-buttons .qwen-danger{background:var(--danger-bg);color:var(--danger-ink);border:1px solid var(--danger)}
+.qwen-stage-panel{margin:4px 0 14px;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r);padding:12px 14px;animation:vf-in var(--mid) var(--ease) both}
+.qwen-stage-head{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+#qwenSamplerProgress{display:block;width:100%;height:8px;margin:10px 0}
+.qwen-stage-events{font:12px/1.6 "Cascadia Mono",Consolas,monospace;white-space:pre-wrap;color:var(--muted);max-height:125px;overflow:auto;margin:9px 0}
+@media(max-width:560px){.qwen-prompt-actions button{flex:1}.qwen-archive-window{padding:12px}}
+
+/* Model and mode selectors. */
+.engine-panel{margin:0 0 4px;padding:0!important;border:0!important;background:none!important}
+.engine-panel > label{display:block;margin-top:14px}
+.engine-panel > label:first-child{margin-top:0}
+#engineSelect,#modeSelect{display:block;width:100%;margin-top:8px;padding:11px 12px;border-radius:var(--r)}
+#engineStatus{margin:12px 0 4px;font-size:13px;color:var(--text-2)}
+#engineDependencyDetails{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;font-size:12px;color:var(--muted)}
+#engineDependencies{margin-top:8px;font-size:13px}
+
+/* The icon file is optional; this CSS hexagon (the «Кристалл» outline) stands in when the image cannot load. */
+.brand-symbol{display:block;position:relative;width:66px;height:66px}
+.brand-symbol::before{content:"";position:absolute;inset:4px;background:var(--accent);clip-path:polygon(50% 0,93.75% 25%,93.75% 75%,50% 100%,6.25% 75%,6.25% 25%)}
+.brand-symbol img{position:relative;display:block;width:100%;height:100%;object-fit:contain}
+
+.seed-controls{margin:16px 0}.seed-controls label{display:block;margin-bottom:8px}
+/* In the narrow form column a path or seed field gets its own row and the buttons share the next one. */
+#imageWorkspace .save-row{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+#imageWorkspace .save-row input{grid-column:1/-1}
+#seed{min-width:160px;flex:1}
+#transparencyHint{padding:10px 12px;border-radius:var(--r);background:var(--accent-soft);color:var(--text-2)}
+#resultHistory{margin-top:20px;border-top:1px solid var(--border);padding-top:14px}
+#resultHistory summary{font-weight:600;color:var(--text)}
+.history-card{padding:14px;margin-top:10px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);overflow-wrap:anywhere}
+.history-prompt{white-space:pre-wrap;font-size:13px;max-height:90px;overflow:auto;color:var(--muted)}
+.history-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.history-actions a{color:var(--link)}
+#promptGuide summary{color:var(--link)}
+#guideQuality,#guideLanguage{color:var(--muted);font-size:.88rem}

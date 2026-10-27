@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "paths": {
+    "supervisor": "App/Start-VisualForge.ps1",
+    "server": "App/server",
+    "frontend": "App/frontend",
+    "workflows": "App/workflows",
+    "runtime": "Runtime/ComfyUI_windows_portable",
+    "comfy": "Runtime/ComfyUI_windows_portable/ComfyUI",
+    "python": "Runtime/ComfyUI_windows_portable/python_embeded/python.exe",
+    "models": "Models",
+    "settings": "UserData/Settings",
+    "prompts": "UserData/Prompts",
+    "logs": "UserData/Logs",
+    "profiles": "UserData/BrowserProfiles",
+    "results": "UserData/Results",
+    "cache": "UserData/Cache",
+    "backups": "UserData/Backups",
+    "state": "UserData/Cache/ProcessState",
+    "comfy_input": "UserData/Cache/ComfyInput",
+    "comfy_output": "UserData/Results/ComfyOutputs",
+    "comfy_temp": "UserData/Cache/ComfyTemp",
+    "comfy_user": "UserData/Settings/ComfyUI",
+    "model_config": "App/config/extra_model_paths.yaml",
+    "ports": "UserData/Settings/runtime.settings.json",
+    "support": "Support"
+  }
+}

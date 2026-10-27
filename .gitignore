@@ -1,0 +1,164 @@
+# VisualForge AI Studio: this repository holds ONLY source, scripts, tests and
+# documentation. Everything the studio downloads or produces stays out of Git:
+#   Runtime/   (ComfyUI, Python runtimes, Ollama: ~16 GB)   -> fetched by Setup
+#   Models/    (all neural-network weights: ~160 GB)        -> fetched by Setup
+#   UserData/  (settings, chats, prompts, results, logs)    -> private, never published
+# Anything not listed in the allow-list below is ignored, so a new folder or
+# file is never pushed by accident. Add new source folders explicitly.
+
+# --- 1. Ignore everything at the repository root ...
+/*
+
+# --- 2. ... except the allow-listed source items
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/README.ru.md
+!/LICENSE
+!/LICENSE.md
+!/THIRD-PARTY-NOTICES.md
+!/Setup-VisualForge.cmd
+!/Start-VisualForge.cmd
+!/App/
+!/docs/
+!/tests/
+!/tools/
+!/Support/
+!/.githooks/
+!/.github/
+
+# Support/ holds installer-time diagnostics and recovery material; only the
+# license texts are source.
+/Support/*
+!/Support/Licenses/
+
+# --- 3. Never inside allow-listed folders, whatever their name
+__pycache__/
+*.py[cod]
+*.log
+*.tmp
+*.part
+*.partial
+*.bak
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.env
+.env.*
+*.pem
+*.key
+
+# Heavy binary payloads (models, runtimes, archives, media). The installer
+# downloads these from their original sources.
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.gguf
+*.bin
+*.onnx
+*.npz
+*.7z
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.whl
+*.dll
+*.pyd
+*.so
+*.exe
+*.msi
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.wav
+*.flac
+*.mp3
+
+# Generated/private material is forbidden even inside an allowed source folder.
+**/Models/
+**/Runtime/
+**/UserData/
+**/BrowserProfiles/
+**/Cache/
+**/cache/
+**/caches/
+**/Results/
+**/results/
+**/outputs/
+**/logs/
+**/temp/
+**/tmp/
+**/backups/
+**/downloads/
+**/node_modules/
+**/.cache/
+**/.venv/
+**/dist/
+**/build/
+**/prompts/
+**/chats/
+**/history/
+**/sessions/
+**/generated/
+**/reports/
+*.sqlite*
+*.db
+*.jsonl
+*.ndjson
+*.crdownload
+*.dmp
+*.safetensors.*
+*.gguf.*
+*.sft
+*.h5
+*.hdf5
+*.tflite
+*.ot
+*.pkl
+*.pickle
+*.ggml
+*.pb
+*.tensor
+*.npy
+*.rar
+*.xz
+*.bz2
+*.zst
+*.safetensors.index.json
+*.gif
+*.webp
+*.jpeg
+*.jpg
+*.ogg
+*.m4a
+*.aac
+*.avi
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.psd
+*.blend
+*.png
+*.ico
+!/App/frontend/visualforge-icon.png
+!/App/frontend/visualforge-icon.ico
+prompts.json
+favorites.json
+chats.json
+*prompt*archive*.json
+*prompt*history*.json
+*job*history*.json
+*.settings.json
+*token*.txt
+*credentials*.json
+
+# Only explicitly reviewed publication workflows belong here.
+/.github/*
+!/.github/workflows/
+/.github/workflows/*
+!/.github/workflows/source-guard.yml

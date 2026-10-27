@@ -1,0 +1,5 @@
+# Windows batch files must keep CRLF line endings.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+# Shell hooks must keep LF endings.
+.githooks/* text eol=lf

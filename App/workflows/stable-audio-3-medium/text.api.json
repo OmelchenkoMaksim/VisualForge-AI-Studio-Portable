@@ -1,0 +1,92 @@
+{
+  "20": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "stable_audio_3_medium.safetensors"
+    }
+  },
+  "21": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "t5gemma_b_b_ul2.safetensors",
+      "type": "stable_audio",
+      "device": "default"
+    }
+  },
+  "40": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "21",
+        0
+      ],
+      "text": "__PROMPT__"
+    }
+  },
+  "41": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "21",
+        0
+      ],
+      "text": ""
+    }
+  },
+  "50": {
+    "class_type": "EmptyLatentAudio",
+    "inputs": {
+      "seconds": 30,
+      "batch_size": 1
+    }
+  },
+  "60": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "20",
+        0
+      ],
+      "positive": [
+        "40",
+        0
+      ],
+      "negative": [
+        "41",
+        0
+      ],
+      "latent_image": [
+        "50",
+        0
+      ],
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "lcm",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "70": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": [
+        "60",
+        0
+      ],
+      "vae": [
+        "20",
+        2
+      ]
+    }
+  },
+  "90": {
+    "class_type": "PreviewAudio",
+    "inputs": {
+      "audio": [
+        "70",
+        0
+      ]
+    }
+  }
+}

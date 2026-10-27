@@ -1,0 +1,38 @@
+/* The hardware card is a popover under the top-bar chip (layout in theme.css); here are its contents and the compatibility card. */
+.hardware-panel {border-radius:var(--r-l);padding:16px;}
+.hardware-heading {display:flex;justify-content:space-between;align-items:center;gap:12px;}
+.hardware-heading h2 {font-size:14px;margin:0;}
+.hardware-heading button {font-size:12px;padding:5px 10px;}
+.hardware-specs {margin:12px 0;display:grid;grid-template-columns:90px minmax(0,1fr);gap:8px 10px;font-size:12px;line-height:1.4;}
+.hardware-specs dt {color:var(--muted);}
+.hardware-specs dd {margin:0;overflow-wrap:anywhere;color:var(--text);}
+.hardware-footnote {color:var(--faint);font-size:11px;margin:9px 0 0;line-height:1.45;}
+#hardwareCompatibility {width:100%;min-height:48px;padding:9px 10px;text-align:left;font-size:12px;font-weight:600;line-height:1.4;border:1px solid var(--compat-accent);background:var(--compat-bg);color:var(--compat-ink);}
+#hardwareCompatibility:hover {background:var(--compat-bg);filter:brightness(1.08);}
+[data-status="green"] {--compat-accent:var(--ok);--compat-bg:var(--ok-bg);--compat-ink:var(--ok-ink);}
+[data-status="yellow"] {--compat-accent:var(--warn);--compat-bg:var(--warn-bg);--compat-ink:var(--warn-ink);}
+[data-status="red"] {--compat-accent:var(--danger);--compat-bg:var(--danger-bg);--compat-ink:var(--danger-ink);}
+.compatibility-card {position:fixed;right:24px;bottom:24px;z-index:10020;width:min(465px,calc(100vw - 32px));max-height:78vh;overflow:auto;padding:20px;background:var(--raised);color:var(--text);border:1px solid var(--border-strong);border-top:4px solid var(--compat-accent);border-radius:var(--r-l);box-shadow:var(--shadow);animation:vf-in var(--mid) var(--ease) both;}
+.compatibility-top {display:flex;gap:15px;align-items:flex-start;justify-content:space-between;}
+.compatibility-top h2 {font-size:17px;line-height:1.35;margin:0;color:var(--compat-ink);}
+.compatibility-top button {padding:2px 9px;background:transparent;border:1px solid var(--border-strong);color:var(--muted);font-size:18px;font-weight:400;}
+.compatibility-top button:hover {background:var(--surface-3);color:var(--text);}
+.compatibility-model {font-size:13px;color:var(--text-2);margin:9px 0 14px;}
+.compatibility-card ul {padding-left:18px;margin:10px 0 16px;font-size:13px;line-height:1.5;}
+.compatibility-card li+li {margin-top:7px;}
+.compatibility-card table {border-collapse:collapse;width:100%;font-size:12px;margin:12px 0;}
+.compatibility-card th,.compatibility-card td {text-align:left;padding:9px 5px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;}
+.compatibility-card thead {color:var(--muted);}
+.compatibility-card p:last-child,.compatibility-card .compatibility-note {font-size:11px;line-height:1.5;color:var(--muted);margin:10px 0 0;}
+@media(max-width:850px){.compatibility-card{right:16px;bottom:16px}}
+.model-requirements {margin:10px 0 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);overflow:hidden;}
+.model-requirements > summary {padding:10px 14px;color:var(--text-2);font-size:13px;line-height:1.5;}
+.requirements-preview {display:block;margin:2px 0 0 17px;color:var(--muted);font-size:12px;font-weight:400;}
+.requirements-name {margin:0;padding:0 15px 10px;color:var(--text);font-size:13px;font-weight:600;}
+.requirements-body {padding:0 15px 14px;}
+.requirements-body h4 {font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px;}
+.requirements-facts {display:grid;grid-template-columns:minmax(105px,.85fr) minmax(0,1.7fr);gap:8px 14px;font-size:12px;line-height:1.55;margin:0;}
+.requirements-facts dt {color:var(--muted);}
+.requirements-facts dd {color:var(--text);margin:0;overflow-wrap:anywhere;}
+.requirements-note {font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0 0;}
+@media(max-width:450px){.requirements-facts{grid-template-columns:1fr;gap:4px}.requirements-facts dd{margin-bottom:8px}}
