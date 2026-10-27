@@ -36,3 +36,20 @@
 .requirements-facts dd {color:var(--text);margin:0;overflow-wrap:anywhere;}
 .requirements-note {font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0 0;}
 @media(max-width:450px){.requirements-facts{grid-template-columns:1fr;gap:4px}.requirements-facts dd{margin-bottom:8px}}
+
+.compatibility-settings-dialog {width:min(520px,calc(100vw - 32px));padding:22px 24px;background:var(--raised);color:var(--text);border:1px solid var(--border-strong);border-radius:var(--r-l);box-shadow:var(--shadow);}
+.compatibility-settings-dialog[open] {animation:vf-pop var(--mid) var(--ease) both;}
+.compatibility-settings-dialog::backdrop {background:var(--overlay);}
+.compatibility-settings-head {display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.compatibility-settings-head h2 {margin:0;font-size:17px;}
+.compatibility-settings-dialog > p {font-size:13px;line-height:1.55;color:var(--muted);margin:12px 0 18px;}
+.compatibility-settings-toggle {display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:14px;font-weight:600;cursor:pointer;}
+.compatibility-settings-switch {appearance:none;flex:none;width:42px;height:24px;min-height:0;margin:0;padding:2px;border:1px solid var(--border-strong);border-radius:24px;background:var(--surface-3);cursor:pointer;}
+.compatibility-settings-switch::before {content:"";display:block;width:18px;height:18px;border-radius:50%;background:var(--text-2);transition:transform var(--fast) var(--ease);}
+.compatibility-settings-switch:checked {background:var(--accent);border-color:var(--accent);}
+.compatibility-settings-switch:checked::before {background:var(--accent-ink);transform:translateX(18px);}
+.compatibility-settings-duration {display:grid;grid-template-columns:auto minmax(70px,1fr) 44px;align-items:center;gap:14px;margin-top:22px;font-size:13px;}
+.compatibility-settings-duration input {padding:0;border:0;background:none;accent-color:var(--accent);}
+.compatibility-settings-duration output {text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;}
+.compatibility-settings-dialog .compatibility-settings-note {font-size:12px;margin:18px 0 0;}
+.compatibility-settings-dialog .actions {justify-content:flex-end;margin-top:18px;}

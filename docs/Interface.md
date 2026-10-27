@@ -6,13 +6,17 @@ All colors are variables in `App/frontend/theme.css`, defined for `data-theme="d
 
 The gear menu's «Звуки» chooses the completion melody for success and for errors (or none) and the volume, with previews. `sounds.js` synthesizes every melody with Web Audio (no audio files); each lasts at most 7 s including the reverb tail. Choices are kept in localStorage (`vf-sounds`). Notifications sound only after the page has had a click or key press, as browsers require. `StudioSounds.render(kind, id)` renders a preset silently and reports its audible length and peak.
 
+## Model compatibility popups
+
+The gear menu's «Подсказки моделей» controls automatic compatibility cards across Image, Video, Music and Text. They close after 3 seconds by default; one switch disables automatic cards everywhere, and the duration slider allows 1–30 seconds. Preferences persist in the browser profile's localStorage (`vf-compatibility-popup`). A new model choice restarts the timer; closing the card or changing sections invalidates pending opens, including delayed hardware responses. The hardware summary remains available. Opening a card manually through «Ваш компьютер» keeps it visible until it is closed so long explanations can be read.
+
 ## Model-aware module headers
 
 Image, Video, Music and Text share the same banner: the selected model above the studio name, the current mode below it, and a readiness line. Each module owns a cached header state; changing tabs restores that state immediately. Late responses from an inactive module update only its cache. Readiness reflects the existing model/runtime checks, not a completed GPU test or guaranteed generation. Text distinguishes text-only and vision builds, and does not load Ollama weights to render its header.
 
 ## Settings menu
 
-The gear button at the top right opens Components and Logs. Components opens the existing installer workspace; Logs opens the existing log dialog. The four creative modules remain in the main navigation. The menu closes after choosing an action, clicking outside, moving keyboard focus outside, or pressing Escape. Arrow keys, Home and End navigate its actions; Escape returns focus to the gear. The menu stays available during generation, while the existing installation admission rules still apply.
+The gear button at the top right opens Components, Logs, model popup preferences and completion sounds. Components opens the existing installer workspace; Logs opens the existing log dialog. The four creative modules remain in the main navigation. The menu closes after choosing an action, clicking outside, moving keyboard focus outside, or pressing Escape. Arrow keys, Home and End navigate its actions; Escape returns focus to the gear. The menu stays available during generation, while the existing installation admission rules still apply.
 
 # Folder selection and completion feedback
 

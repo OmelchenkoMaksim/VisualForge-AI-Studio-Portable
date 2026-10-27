@@ -26,6 +26,7 @@
   <div id="studioSettingsMenu" class="studio-settings-menu" role="group" aria-label="Разделы настроек" hidden>
     <button type="button" id="componentsTab" aria-selected="false">Компоненты</button>
     <button type="button" id="openLogs" title="Посмотреть локальные журналы запуска и ошибок">Логи</button>
+    <button type="button" id="openCompatibilitySettings" title="Показ карточек совместимости при выборе модели">Подсказки моделей</button>
     <button type="button" id="openSounds" title="Выбрать мелодии, которые звучат по окончании генерации">Звуки</button>
   </div>
 </div>
@@ -321,6 +322,14 @@
   <input id="componentRemoveInput" type="text" autocomplete="off" spellcheck="false" disabled>
   <p id="componentRemoveError" role="alert"></p>
   <div class="actions"><button id="componentRemoveCancel" type="button" class="secondary">Отмена</button><button id="componentRemoveConfirm" type="button" class="cancel" disabled>Удалить безвозвратно</button></div>
+</dialog>
+<dialog id="compatibilitySettingsDialog" class="compatibility-settings-dialog" aria-labelledby="compatibilitySettingsTitle">
+  <div class="compatibility-settings-head"><h2 id="compatibilitySettingsTitle">Подсказки моделей</h2><button type="button" id="compatibilitySettingsClose" class="icon-button" aria-label="Закрыть">✕</button></div>
+  <p>Оценка совместимости с вашим компьютером при выборе модели в Image, Video, Music и Text.</p>
+  <label class="compatibility-settings-toggle" for="compatibilityPopupEnabled"><span>Показывать автоматически</span><input id="compatibilityPopupEnabled" class="compatibility-settings-switch" type="checkbox" role="switch" checked></label>
+  <div class="compatibility-settings-duration"><label for="compatibilityPopupSeconds">Время показа</label><input id="compatibilityPopupSeconds" type="range" min="1" max="30" step="1" value="3"><output id="compatibilityPopupSecondsValue" for="compatibilityPopupSeconds">3 с</output></div>
+  <p class="compatibility-settings-note">Настройка общая для всех разделов. Карточка, открытая вручную через оценку совместимости в «Ваш компьютер», остаётся до закрытия.</p>
+  <div class="actions"><button type="button" id="compatibilitySettingsDone">Готово</button></div>
 </dialog>
 <dialog id="soundsDialog" class="sounds-dialog" aria-labelledby="soundsTitle">
   <div class="sounds-head"><h2 id="soundsTitle">Звуки окончания</h2><button type="button" id="soundsClose" class="icon-button" aria-label="Закрыть">✕</button></div>

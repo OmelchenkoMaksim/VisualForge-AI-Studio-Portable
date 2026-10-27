@@ -9,6 +9,52 @@
   const el = id => document.getElementById(id);
   const node = (tag, text, className) => {const item = document.createElement(tag);item.textContent = text;if (className) item.className = className;return item;};
   const gb = value => Number.isFinite(value) ? `${(Math.abs(value - Math.round(value)) < .15 ? Math.round(value) : value).toLocaleString('ru-RU', {maximumFractionDigits:1})} ГБ` : 'Нет данных';
+  const popupKey = 'vf-compatibility-popup';
+  let preferences = readPreferences(), hideTimer = null, openRequest = 0, automatic = false;
+  function readPreferences() {
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(popupKey) || 'null'); } catch {}
+    return {
+      enabled: typeof saved?.enabled === 'boolean' ? saved.enabled : true,
+      seconds: Number.isFinite(saved?.seconds) ? Math.max(1, Math.min(30, Math.round(saved.seconds))) : 3
+    };
+  }
+  function closePopup() {
+    clearTimeout(hideTimer);hideTimer = null;
+    popup.hidden = true;automatic = false;openRequest++;
+  }
+  function scheduleHide() {
+    clearTimeout(hideTimer);hideTimer = null;
+    if (automatic && !popup.hidden) hideTimer = setTimeout(closePopup, preferences.seconds * 1000);
+  }
+  function requestPopup(manual = false) {
+    if (!manual && !preferences.enabled) {closePopup();show();return;}
+    const version = ++openRequest;
+    if (!data || failed) {
+      // A late hardware response must not reopen a card dismissed or disabled while loading.
+      load().then(() => {if (version === openRequest) show(true, manual);}).catch(() => {});
+    } else show(true, manual);
+  }
+  function syncPopupSettings() {
+    el('compatibilityPopupEnabled').checked = preferences.enabled;
+    el('compatibilityPopupSeconds').value = String(preferences.seconds);
+    el('compatibilityPopupSeconds').disabled = !preferences.enabled;
+    el('compatibilityPopupSecondsValue').textContent = `${preferences.seconds} с`;
+  }
+  function savePopupSettings() {
+    try { localStorage.setItem(popupKey, JSON.stringify(preferences)); } catch {}
+    syncPopupSettings();
+    if (!preferences.enabled) closePopup();else scheduleHide();
+  }
+  const popupSettings = el('compatibilitySettingsDialog');
+  el('openCompatibilitySettings').addEventListener('click', () => {closePopup();syncPopupSettings();popupSettings.showModal();});
+  for (const id of ['compatibilitySettingsClose', 'compatibilitySettingsDone']) el(id).addEventListener('click', () => popupSettings.close());
+  popupSettings.addEventListener('click', event => {if (event.target === popupSettings) popupSettings.close();});
+  el('compatibilityPopupEnabled').addEventListener('change', event => {preferences.enabled = event.target.checked;savePopupSettings();});
+  el('compatibilityPopupSeconds').addEventListener('input', event => {
+    preferences.seconds = Math.max(1, Math.min(30, Math.round(Number(event.target.value) || 3)));
+    savePopupSettings();
+  });
   function current() {
     for (const [id, module] of Object.entries(selectors)) {
       const select = el(id);
@@ -27,9 +73,9 @@
     el('hardwareFootnote').textContent = hw.gpus.length > 1 ? 'Память разных видеокарт не суммируется.' : 'Данные этого ПК · только локально';
     aside.setAttribute('aria-busy', 'false');
   }
-  function show(open = false) {
+  function show(open = false, manual = false) {
     const chosen = current();
-    if (!chosen) {el('hardwareCompatibility').hidden = true;popup.hidden = true;return;}
+    if (!chosen) {el('hardwareCompatibility').hidden = true;closePopup();return;}
     el('hardwareCompatibility').hidden = false;
     const result = data?.models[chosen.key] || (data ? {
       status:'yellow', title:'Недостаточно данных о модели', reasons:['Для этой сборки ещё нет профиля требований.'],
@@ -40,7 +86,7 @@
     selection = chosen.key;
     summary.dataset.status = result?.status || 'yellow';
     summary.textContent = result ? `${{green:'✓',yellow:'!',red:'×'}[result.status]} ${result.title}` : failed ? 'Не удалось проверить · обновить данные' : 'Проверяем совместимость…';
-    if (!result) {if (open && !failed) load().then(() => show(true)).catch(() => {});return;}
+    if (!result) return;
     if (!open && popup.hidden) return;
     popup.dataset.status = result.status;
     el('compatibilityTitle').textContent = result.title;
@@ -55,6 +101,7 @@
     el('compatibilityCaveat').textContent = result.caveat;
     el('compatibilityGpu').textContent = result.gpu_name ? `Оценка для ${result.gpu_name}` : 'Ускоритель CUDA не подтверждён';
     popup.hidden = false;
+    if (open) {automatic = !manual;scheduleHide();}
   }
   async function load(refresh = false) {
     if (pending) return pending;
@@ -68,7 +115,7 @@
         data = result;failed = false;machine();show();document.dispatchEvent(new Event('studio:hardware'));
       })
       .catch(error => {
-        failed = true;data = null;popup.hidden = true;aside.setAttribute('aria-busy','false');
+        failed = true;data = null;closePopup();aside.setAttribute('aria-busy','false');
         el('hardwareFootnote').textContent = 'Не удалось получить данные. Нажмите «Обновить».';
         show();document.dispatchEvent(new Event('studio:hardware'));throw error;
       })
@@ -76,11 +123,12 @@
     return pending;
   }
   el('hardwareRefresh').onclick = () => load(true).catch(() => {});
-  el('hardwareCompatibility').onclick = () => {if (failed) load().then(() => show(true)).catch(() => {});else show(true);};
-  el('compatibilityClose').onclick = () => {popup.hidden = true;};
-  document.addEventListener('keydown', event => {if (event.key === 'Escape') popup.hidden = true;});
-  document.addEventListener('change', event => {if (selectors[event.target.id]) show(true);});
-  document.querySelector('.module-tabs').addEventListener('click', () => setTimeout(() => {popup.hidden = true;show();}, 0));
+  el('hardwareCompatibility').onclick = () => requestPopup(true);
+  el('compatibilityClose').onclick = closePopup;
+  document.addEventListener('keydown', event => {if (event.key === 'Escape') closePopup();});
+  document.addEventListener('change', event => {if (selectors[event.target.id]) requestPopup();});
+  document.querySelector('.module-tabs').addEventListener('click', () => setTimeout(() => {closePopup();show();}, 0));
+  new MutationObserver(() => {closePopup();show();}).observe(document.body, {attributes:true, attributeFilter:['data-studio-module']});
   // Modules fill their selectors asynchronously; refresh the current summary, never open a card by itself.
   for (const id of Object.keys(selectors)) new MutationObserver(() => {if (current()?.key !== selection) show();}).observe(el(id), {childList:true});
   window.StudioHardware = {snapshot: () => data};

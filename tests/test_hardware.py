@@ -1,6 +1,8 @@
 """Compatibility boundaries: lower-memory offload is not a blanket impossibility verdict."""
 from pathlib import Path
 import sys
+import shutil
+import subprocess
 import unittest
 from unittest.mock import patch
 
@@ -87,3 +89,11 @@ class HardwareTests(unittest.TestCase):
             with patch.object(hardware.time, 'monotonic', return_value=167):
                 hardware.inventory(refresh=True)
                 self.assertEqual(scan.call_count, 3)
+
+
+class HardwarePopupTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'Node.js is not installed')
+    def test_popup_preferences_and_timers(self):
+        result = subprocess.run([shutil.which('node'), str(Path(__file__).with_name('hardware_popup_test.js'))],
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
