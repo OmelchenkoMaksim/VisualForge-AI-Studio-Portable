@@ -1,5 +1,8 @@
 """HTTP endpoints of the Text tab's agent mode, served through the loopback bridge after its same-origin checks."""
 import json
+import select
+import socket
+import threading
 
 from gpu import Busy
 
@@ -51,6 +54,18 @@ def send(handler, manager, data):
     if manager.busy():
         raise Busy('Агент уже выполняет задачу. Дождитесь окончания или остановите её.')
     state = dict(gone=False, started=False)
+    finished = threading.Event()
+
+    def watch_disconnect():
+        # Permission waits emit nothing. Detect TCP EOF without consuming requests.
+        while not finished.wait(0.25):
+            try:
+                if select.select([handler.connection], [], [], 0)[0] and not handler.connection.recv(1, socket.MSG_PEEK):
+                    state['gone'] = True
+                    return
+            except OSError:
+                state['gone'] = True
+                return
 
     def start():
         handler.send_response(200)
@@ -73,6 +88,8 @@ def send(handler, manager, data):
             state['gone'] = True
             raise Disconnected from None
 
+    watcher = threading.Thread(target=watch_disconnect, name='agent-client', daemon=True)
+    watcher.start()
     try:
         chat, message, error = manager.send(data.get('chat_id'), data.get('content'), emit, lambda: state['gone'], data.get('loop'))
         result = dict(type='done', message=message, chat=dict(id=chat['id'], title=chat['title'], updated=chat['updated']))
@@ -86,6 +103,9 @@ def send(handler, manager, data):
         if not state['started']:
             raise
         result = dict(type='error', error=str(failure))
+    finally:
+        finished.set()
+        watcher.join(1)
     try:
         emit(result)
     except Disconnected:

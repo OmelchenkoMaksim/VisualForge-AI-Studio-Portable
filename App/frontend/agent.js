@@ -94,8 +94,17 @@ window.StudioAgent = (() => {
     return box;
   }
   function renderSteps(container, steps) {
-    const opened = new Set([...container.querySelectorAll('details[open]')].map(node => node.dataset.step));
-    container.replaceChildren(...(steps || []).map(item => {const node = step(item);if (opened.has(item.id)) node.open = true;return node;}));
+    // Preserve unchanged DOM (and expanded details) while text tokens keep arriving.
+    const existing = new Map([...container.children].map(node => [node.dataset.step, node]));
+    const wanted = new Set();
+    for (const item of steps || []) {
+      wanted.add(String(item.id));
+      const old = existing.get(String(item.id)), signature = JSON.stringify(item);
+      if (old && old.stepSignature === signature) continue;
+      const node = step(item);node.stepSignature = signature;
+      if (old) {node.open = old.open;old.replaceWith(node);} else container.append(node);
+    }
+    for (const [id, node] of existing) if (!wanted.has(id)) node.remove();
     container.hidden = !(steps && steps.length);
   }
   function permissionCard(request, chatId, onDone) {
@@ -108,7 +117,7 @@ window.StudioAgent = (() => {
     if (request.file) card.append(pre('agent-command', request.file));
     if (request.diff) card.append(pre('agent-output agent-diff', request.diff));
     actions.className = 'actions';
-    const answers = [['once', 'Разрешить один раз', ''], ['always', 'Разрешать такое в этом чате', 'secondary'], ['reject', 'Отклонить', 'secondary']];
+    const answers = [['once', 'Разрешить один раз', ''], ['always', 'Разрешать такое', 'secondary'], ['reject', 'Отклонить', 'secondary']];
     for (const [reply, label, style] of answers) {
       if (reply === 'always' && !request.always.length) continue;
       const button = document.createElement('button');button.type = 'button';button.textContent = label;if (style) button.className = style;
@@ -129,7 +138,7 @@ window.StudioAgent = (() => {
     card.dataset.answered = '1';
     for (const button of card.querySelectorAll('button')) button.disabled = true;
     const note = document.createElement('p');note.className = 'muted';
-    note.textContent = reply === 'reject' ? 'Вы отклонили запрос.' : reply === 'always' ? 'Разрешено до конца этого чата.' : 'Разрешено один раз.';
+    note.textContent = reply === 'reject' ? 'Вы отклонили запрос.' : reply === 'always' ? 'Разрешение запомнено агентом для текущей сессии выполнения.' : 'Разрешено один раз.';
     card.append(note);
   }
   return {api, load, show, values, loop, context, ready, bind, renderSteps, permissionCard, resolve, get info() {return info;}};

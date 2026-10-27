@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from gpu import Busy, GpuUnavailable
 
 MAX_BODY = 32 * 1024 * 1024  # a long conversation with tool outputs; Ollama's own limit is far above
-TAIL = 64 * 1024  # the end of a response kept for its usage record
+TAIL = 64 * 1024  # maximum HTTP header/chunk header storage
 BYTES_PER_TOKEN = 3  # estimate when a response carries no usage (JSON-escaped Cyrillic is longer per token than English)
 
 
@@ -36,8 +36,113 @@ def usage_from(tail):
         except ValueError:
             continue
         if isinstance(usage, dict) and usage.get('prompt_tokens') is not None:
-            found = (int(usage.get('prompt_tokens') or 0), int(usage.get('completion_tokens') or 0))
+            try:
+                counts = (int(usage.get('prompt_tokens') or 0), int(usage.get('completion_tokens') or 0))
+                if min(counts) >= 0:
+                    found = counts
+            except (ValueError, TypeError, OverflowError):
+                pass
     return found
+
+
+class ResponseUsage:
+    """Decode HTTP framing for accounting only; the wire response is relayed unchanged."""
+    def __init__(self):
+        self.buffer = bytearray()
+        self.headers = False
+        self.chunked = self.sse = False
+        self.remaining = None
+        self.separator = False
+        self.ended = False
+        self.body = bytearray()
+        self.body_bytes = 0
+        self.usage = None
+        self.overflow = False
+
+    def content(self, piece):
+        self.body_bytes += len(piece)
+        if self.sse:
+            # Bound individual event storage, including an unfinished giant tool delta.
+            for part in piece.splitlines(keepends=True):
+                if len(self.body) + len(part) <= MAX_BODY and not self.overflow:
+                    self.body.extend(part)
+                else:
+                    self.overflow = True
+                if part.endswith(b'\n'):
+                    if not self.overflow:
+                        self.usage = usage_from(bytes(self.body)) or self.usage
+                    self.body.clear()
+                    self.overflow = False
+        elif len(self.body) + len(piece) <= MAX_BODY and not self.overflow:
+            self.body.extend(piece)
+        else:
+            self.body.clear()
+            self.overflow = True
+
+    def feed(self, piece):
+        if self.ended:
+            return
+        self.buffer.extend(piece)
+        if not self.headers:
+            end = self.buffer.find(b'\r\n\r\n')
+            if end < 0:
+                if len(self.buffer) > TAIL:
+                    self.buffer.clear()
+                    self.ended = True
+                return
+            header = bytes(self.buffer[:end]).lower()
+            del self.buffer[:end + 4]
+            self.headers = True
+            self.chunked = b'transfer-encoding: chunked' in header
+            self.sse = b'text/event-stream' in header
+        if not self.chunked:
+            self.content(bytes(self.buffer))
+            self.buffer.clear()
+            return
+        while self.buffer and not self.ended:
+            if self.separator:
+                if len(self.buffer) < 2:
+                    return
+                if self.buffer[:2] != b'\r\n':
+                    self.ended = True
+                    return
+                del self.buffer[:2]
+                self.separator = False
+            if self.remaining is None:
+                end = self.buffer.find(b'\r\n')
+                if end < 0:
+                    if len(self.buffer) > TAIL:
+                        self.buffer.clear()
+                        self.ended = True
+                    return
+                try:
+                    self.remaining = int(self.buffer[:end].split(b';')[0], 16)
+                except ValueError:
+                    self.ended = True
+                    return
+                del self.buffer[:end + 2]
+                if self.remaining <= 0:
+                    self.ended = True
+                    self.buffer.clear()
+                    return
+            count = min(self.remaining, len(self.buffer))
+            self.content(bytes(self.buffer[:count]))
+            del self.buffer[:count]
+            self.remaining -= count
+            if self.remaining == 0:
+                self.remaining = None
+                self.separator = True
+
+    def result(self):
+        if not self.overflow:
+            body = bytes(self.body)
+            if not self.sse:
+                try:
+                    body = json.dumps(json.loads(body)).encode('utf-8')
+                except (ValueError, UnicodeError):
+                    pass
+            self.usage = usage_from(body) or self.usage
+        return self.usage, self.body_bytes
 
 
 class ModelGateway:
@@ -45,7 +150,7 @@ class ModelGateway:
         """`upstream()` starts Ollama when needed and returns its port; `admit()` blocks until the GPU may be used and returns a
         cancel event (raises Busy/GpuUnavailable/ValueError); `finish()` releases it; `models()` maps aliases to Ollama names;
         `observe(tokens, measured)` gets the context filled by each answered request (prompt + answer), `measured` False for an
-        estimate from the request size."""
+        estimate from the request and response sizes."""
         self.port = port
         self.upstream, self.admit, self.finish, self.models = upstream, admit, finish, models
         self.observe = observe or (lambda tokens, measured: None)
@@ -152,15 +257,15 @@ class GatewayHandler(BaseHTTPRequestHandler):
             tail = self.relay(port, payload, cancel)
         finally:
             self.owner.finish()
-        usage = usage_from(tail) if tail else None
+        usage, output_bytes = tail if tail else (None, 0)
         if usage:
             self.owner.observe(sum(usage), True)
-        elif tail:
-            self.owner.observe(len(payload) // BYTES_PER_TOKEN, False)
+        elif output_bytes:
+            self.owner.observe((len(payload) + output_bytes) // BYTES_PER_TOKEN, False)
 
     def relay(self, port, payload, cancel):
         """Pass Ollama's raw HTTP response through; Stop closes both sides even while Ollama is still loading the model (no byte yet).
-        Returns the end of the response (for its usage record), b'' when nothing complete came back."""
+        Returns (usage, decoded body bytes), or b'' when the response was interrupted."""
         self.close_connection = True
         try:
             upstream = socket.create_connection(('127.0.0.1', port), timeout=10)
@@ -168,7 +273,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             self.fail(503, 'Ollama (Text) не отвечает')
             return b''
         sent = False
-        tail = b''
+        accounting = ResponseUsage()
         try:
             upstream.sendall(b'POST /v1/chat/completions HTTP/1.1\r\nHost: 127.0.0.1:%d\r\nContent-Type: application/json\r\n'
                              b'Accept: */*\r\nConnection: close\r\nContent-Length: %d\r\n\r\n' % (port, len(payload)) + payload)
@@ -181,12 +286,12 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 self.wfile.write(piece)
                 self.wfile.flush()
                 sent = True
-                tail = (tail + piece)[-TAIL:]
+                accounting.feed(piece)
             if cancel.is_set():
                 if not sent:
                     self.fail(499, 'Остановлено пользователем')
                 return b''
-            return tail
+            return accounting.result()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             cancel.set()  # the agent dropped the request (its own abort): stop Ollama's generation too
         except OSError:

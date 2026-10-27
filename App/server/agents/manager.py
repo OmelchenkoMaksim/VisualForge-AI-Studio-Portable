@@ -114,6 +114,8 @@ class AgentManager:
         self.dsh = dsh or DshRunner(paths, paths.root / AGENTS['dsh']['executable'], paths.root / 'Runtime/Agents/dsh/app')
         self.run = None
         self.lock = threading.RLock()
+        self.settings_lock = threading.RLock()
+        self.requests = threading.local()
 
     # ---- models and settings ------------------------------------------------------------------------------------
     def _models(self):
@@ -135,12 +137,17 @@ class AgentManager:
         raise ValueError('Модель этого чата не установлена или отключена')
 
     def settings(self, data=None):
+        with self.settings_lock:
+            return self._settings(data)
+
+    def _settings(self, data=None):
         current = dict(agent=DEFAULT_AGENT, workspace='', permission=DEFAULT_PERMISSION, loop=False, loop_threshold=loop_module.DEFAULTS['threshold'],
                        loop_iterations=loop_module.DEFAULTS['iterations'], loop_check='')
         if self.settings_path.is_file() and self.settings_path.stat().st_size <= 8192:
             try:
                 stored = json.loads(self.settings_path.read_text(encoding='utf-8'))
-                current.update({key: value for key, value in stored.items() if key in current})
+                if isinstance(stored, dict):
+                    current.update({key: value for key, value in stored.items() if key in current})
             except ValueError:
                 pass
         if data is None:
@@ -188,20 +195,31 @@ class AgentManager:
     def _admit(self):
         """Block until this agent request may use the GPU: Image/Video/Music jobs and a chat answer finish first."""
         deadline = time.monotonic() + GPU_WAIT_SEC
+        with self.lock:
+            run = self.run
+            generation = run.get('generation') if run else None
         while True:
-            with self.lock:
-                run = self.run
-            if run is None:
+            if run is None or self.run is not run or run.get('generation') is not generation:
                 raise Busy('Агент сейчас не выполняет задачу')
             if run['cancel'].is_set():
                 raise ValueError('Задача агента остановлена')
             try:
                 with self.gpu_lock:
                     self.gpu.claim('text')
-                    event = self.text.begin(self._key(run))
+                    with self.lock:
+                        if self.run is not run or run.get('generation') is not generation or run['cancel'].is_set():
+                            raise ValueError('Задача агента остановлена')
+                        event = self.text.begin(self._key(run))
+                # HTTP completion may arrive after the task/iteration has changed.
+                self.requests.ticket = (run, generation, event, run['phase'])
                 run['waiting'] = ''
                 # A cold load from a hard disk takes minutes with no output at all: say so instead of a silent start.
-                loaded = run['model'] in [m['name'] for m in self.text.loaded()]
+                try:
+                    loaded = run['model'] in [m['name'] for m in self.text.loaded()]
+                except (OSError, ValueError):
+                    loaded = False
+                if self.run is not run or run['cancel'].is_set():
+                    event.set()
                 run['emit'](dict(type='status', phase='Модель обдумывает следующий шаг…' if loaded else
                                  'Загрузка модели в видеопамять: первая загрузка с диска может занять несколько минут…'))
                 return event
@@ -214,10 +232,11 @@ class AgentManager:
                 run['cancel'].wait(2)
 
     def _finish(self):
-        with self.lock:
-            run = self.run
-        if run is not None:
-            self.text.end(self._key(run))
+        ticket = getattr(self.requests, 'ticket', None)
+        if ticket is not None:
+            run, generation, event, phase = ticket
+            # Only this request owns this busy slot, even when the chat id is reused.
+            self.text.end(self._key(run), expected=event)
 
     # ---- chats --------------------------------------------------------------------------------------------------
     def create_chat(self, data):
@@ -235,6 +254,10 @@ class AgentManager:
         return self.store.create(data.get('system', ''), model, True, agent=dict(id=agent['id'], workspace=workspace, permission=permission, session=''))
 
     def update_chat(self, data):
+        with self.lock:
+            return self._update_chat(data)
+
+    def _update_chat(self, data):
         if not isinstance(data, dict) or set(data) - {'id', 'workspace', 'permission'}:
             raise ValueError('Запрос содержит неподдерживаемые параметры')
         chat = self.store.get(data.get('id'))
@@ -297,7 +320,14 @@ class AgentManager:
         with self.lock:
             if self.run is not None:
                 raise Busy('Агент уже выполняет задачу. Дождитесь окончания или остановите её.')
-            self.run = dict(chat=chat_id, cancel=cancel, emit=emit, waiting='', session='', directory=directory, pending={},
+            with self.store.lock:
+                chat = self.store.get(chat_id)
+                agent, directory = chat['agent'], chat['agent']['workspace']
+                workspace_path(directory)
+                alias = self.alias_of(chat.get('model') or self.text.default_model())
+                info = self._models()[alias]
+                self.store.active.add(chat_id)
+            self.run = dict(generation=object(), chat=chat_id, cancel=cancel, emit=emit, waiting='', session='', directory=directory, pending={},
                             model=info['name'], agent=agent['id'], size=info['context'], used=0, measured=True, limit=0,
                             wrap=threading.Event(), phase='work')
         try:
@@ -316,12 +346,17 @@ class AgentManager:
         finally:
             with self.lock:
                 self.run = None
+                with self.store.lock:
+                    self.store.active.discard(chat_id)
 
     # ---- one turn of an agent -----------------------------------------------------------------------------------
     def _turn(self, chat, content, alias, history, emit, cancel, disconnected, handoff='', fresh=False):
         """One request to the chat's agent, nothing stored. `fresh`: a new agent session (a loop iteration); `handoff`: a second
         request in the same context whose answer is returned as `handoff` (the iteration's note).
         Returns dict(content, thinking, steps, stats, error, stopped, handoff)."""
+        if cancel.is_set() or disconnected():
+            cancel.set()
+            return dict(content='', thinking='', steps=[], stats=None, error='', stopped=True, handoff='')
         if chat['agent']['id'] in ('aider', 'dsh'):
             return self._turn_process(chat['agent']['id'], chat, content, alias, history, emit, cancel, disconnected, handoff, fresh)
         agent, directory, model = chat['agent'], chat['agent']['workspace'], chat.get('model', '')
@@ -351,7 +386,8 @@ class AgentManager:
 
     def _opencode_handoff(self, session, directory, alias, system, permission, emit, cancel, disconnected, handoff):
         """The handoff request in the iteration's session, with the read-only rules so the note is a plain answer."""
-        self.run['phase'] = 'handoff'
+        with self.lock:
+            self.run['phase'] = 'handoff'
         emit(dict(type='status', phase='Агент пишет итог итерации…'))
         self.opencode.set_mode(session, directory, 'read')
         try:
@@ -385,7 +421,8 @@ class AgentManager:
         def relay(event):
             kind = event.get('type')
             if kind == 'phase' and event.get('phase') == 'handoff':
-                self.run['phase'] = 'handoff'
+                with self.lock:
+                    self.run['phase'] = 'handoff'
                 emit(dict(type='status', phase='Агент пишет итог итерации…'))
                 return
             if self.run['phase'] == 'handoff' and kind in ('delta', 'step'):
@@ -433,18 +470,29 @@ class AgentManager:
     # ---- context measurement and loops --------------------------------------------------------------------------
     def _observe(self, tokens, measured):
         """The gateway's measure after each model answer: show it, and end a loop iteration that reached its threshold."""
-        with self.lock:
-            run = self.run
-        if run is None:
+        ticket = getattr(self.requests, 'ticket', None)
+        if ticket is None:
             return
-        run['used'], run['measured'] = tokens, measured
+        run, generation, event, phase = ticket
+        with self.lock:
+            if self.run is not run or run.get('generation') is not generation or run['phase'] != phase:
+                return
+            run['used'], run['measured'] = tokens, measured
+            wrap = run['limit'] and run['phase'] == 'work' and tokens >= run['limit'] and not run['wrap'].is_set()
+            if wrap:
+                run['wrap'].set()
         run['emit'](dict(type='context', used=tokens, size=run['size'], measured=measured))
-        if run['limit'] and run['phase'] == 'work' and tokens >= run['limit'] and not run['wrap'].is_set():
-            run['wrap'].set()
+        if wrap:
             run['emit'](dict(type='status', phase='Контекст заполнен на %d%%: агент заканчивает итерацию…' % round(100 * tokens / max(run['size'], 1))))
-            threading.Thread(target=self._wrap, args=(run,), name='agent-wrap', daemon=True).start()
+            threading.Thread(target=self._wrap, args=(run, generation), name='agent-wrap', daemon=True).start()
 
-    def _wrap(self, run):
+    def _wrap(self, run, generation):
+        with self.lock:
+            if self.run is not run or run.get('generation') is not generation or run['phase'] != 'work':
+                return
+            self._wrap_current(run)
+
+    def _wrap_current(self, run):
         if run['agent'] == 'opencode':
             if run['session']:
                 self.opencode.abort(run['session'], run['directory'])
@@ -465,8 +513,10 @@ class AgentManager:
         self.store.add_user(chat['id'], goal)
         previous, message, error, last_step = None, None, '', None
         for number in range(1, total + 1):
-            run['wrap'].clear()
-            run['phase'], run['used'] = 'work', 0
+            with self.lock:
+                run['generation'] = object()
+                run['wrap'].clear()
+                run['phase'], run['used'] = 'work', 0
             emit(dict(type='status', phase='Итерация %d из %d…' % (number, total)))
             prompt = loop_module.iteration_prompt(goal, number, total, previous)
             try:
@@ -474,13 +524,18 @@ class AgentManager:
             except (OSError, OpenCodeError, ValueError) as failure:
                 turn = dict(content='', thinking='', steps=[], stats=None, error=str(failure)[:500] or 'Агент не смог выполнить задание',
                             stopped=False, handoff='')
+            with self.lock:
+                run['phase'] = 'check'
             chat = self.store.get(chat['id'])
-            ended = 'user' if turn['stopped'] or cancel.is_set() else 'context' if run['wrap'].is_set() else 'error' if turn['error'] and not turn['handoff'] else 'finished'
+            ended = 'user' if turn['stopped'] or cancel.is_set() else 'error' if turn['error'] else 'context' if run['wrap'].is_set() else 'finished'
             fact = loop_module.facts(workspace, start)
             verification = None
             if options['check'] and ended != 'user':
                 emit(dict(type='status', phase='Проверка: %s' % options['check']))
                 verification = dict(loop_module.check(options['check'], workspace, cancel), command=options['check'])
+            if cancel.is_set() or disconnected():
+                cancel.set()
+                ended = 'user'
             rel, note = loop_module.write(folder, workspace, number, total, run, goal, turn['handoff'], ended, fact, verification)
             status = loop_module.status_of(turn['handoff']) if turn['handoff'] else 'CONTINUE'
             step = loop_module.next_step_of(turn['handoff'])
@@ -539,6 +594,8 @@ class AgentManager:
             try:
                 event = events.get(timeout=0.5)
             except queue.Empty:
+                if not self.opencode.alive():
+                    return 'OpenCode неожиданно завершился. Подробности — в журнале agent-opencode.log.'
                 continue
             kind, props = event.get('type'), event.get('properties') or {}
             if kind == 'server.closed':

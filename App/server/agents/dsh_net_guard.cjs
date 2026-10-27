@@ -6,6 +6,10 @@
 // not affected, as with the other agents.
 const net = require('node:net');
 const dns = require('node:dns');
+const dgram = require('node:dgram');
+// No agent transport uses UDP; TCP hooks do not cover datagrams or UDP DNS.
+dgram.Socket.prototype.send = function () { throw refused('UDP'); };
+dgram.Socket.prototype.connect = function () { throw refused('UDP'); };
 
 const allowed = String(process.env.VF_ALLOWED_ENDPOINT || '').toLowerCase();
 const allowedHost = allowed.slice(0, allowed.lastIndexOf(':'));
@@ -70,6 +74,14 @@ dns.lookup = function (hostname, options, callback) {
   }
   return lookup.call(this, hostname, options, callback);
 };
+// c-ares resolvers bypass both net.Socket and dgram.Socket hooks.
+for (const owner of [dns, dns.Resolver.prototype, dns.promises, dns.promises.Resolver.prototype]) {
+  for (const method of Object.getOwnPropertyNames(owner)) {
+    if (!method.startsWith('resolve') && method !== 'reverse') continue;
+    if (typeof owner[method] !== 'function') continue;
+    owner[method] = function () { throw refused('DNS ' + method); };
+  }
+}
 const promisesLookup = dns.promises.lookup;
 dns.promises.lookup = function (hostname, options) {
   const name = String(hostname).toLowerCase();

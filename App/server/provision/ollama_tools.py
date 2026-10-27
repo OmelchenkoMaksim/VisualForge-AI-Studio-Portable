@@ -101,6 +101,7 @@ class PrivateServer:
                 self.process.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 self.process.kill()
+                self.process.wait(timeout=5)
 
 
 def pull(context, step):

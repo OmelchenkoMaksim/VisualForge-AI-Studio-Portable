@@ -88,7 +88,9 @@
     return row;
   }
   function fill(row, message) {
-    rich(row.body, message.content || '');
+    if (row.renderedContent !== (message.content || '')) {
+      rich(row.body, message.content || '');row.renderedContent = message.content || '';
+    }
     if (row.think) {
       row.think.hidden = !message.thinking;
       row.thoughts.textContent = message.thinking || '';
@@ -156,7 +158,6 @@
     el('agentPanel').hidden = !agent;
     for (const radio of document.querySelectorAll('input[name="textMode"]')) {radio.checked = radio.value === (agent ? 'agent' : 'chat');radio.disabled = busy;}
     for (const id of ['agentKind', 'agentWorkspace', 'agentChoose', 'agentPermission']) el(id).disabled = busy || !window.StudioAgent?.info;
-    el('agentKind').disabled ||= !!current;  // a chat keeps the agent it was started with
     if (agent && agentError) el('agentInfo').textContent = agentError;
   }
 
@@ -240,6 +241,8 @@
   async function openChat(id) {
     try {
       current = await api('chat?id=' + encodeURIComponent(id));remember(id);
+      // Restoring a chat must also restore the mode used when it is cleared or replaced.
+      mode = current.kind === 'agent' ? 'agent' : 'chat';
       el('textSystem').value = current.system || '';el('textThink').checked = current.think !== false;
       if (current.model) {
         // Preserve the chat's chosen model; silently selecting another build would misrepresent its next answer.
@@ -464,6 +467,7 @@
         if (StudioAgent.info) StudioAgent.info.settings[field] = value;
         status(field === 'loop' ? (value ? 'Цикл включён: следующее задание пойдёт итерациями.' : 'Цикл выключен.') : 'Настройки цикла сохранены.');
       } else if (field === 'agent') {
+        mode = 'agent';el('agentContext').hidden = true;
         // A chat belongs to one agent: choosing another one starts a new chat with it on the next task.
         if (current && current.kind === 'agent' && current.agent.id !== value) {current = null;remember('');renderChat();status('Следующее задание начнёт новый чат с выбранным агентом.');}
         await StudioAgent.api('settings', {agent: value});

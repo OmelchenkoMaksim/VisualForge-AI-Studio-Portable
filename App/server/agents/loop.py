@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 import threading
+import uuid
 
 from .opencode import clean_environment
 
@@ -44,14 +45,16 @@ def options(data):
     for key, (low, high) in LIMITS.items():
         if key in data:
             try:
+                if isinstance(data[key], bool) or not isinstance(data[key], (int, str)):
+                    raise ValueError
                 value = int(data[key])
             except (TypeError, ValueError):
                 raise ValueError('Настройки цикла: %s — целое число' % key) from None
             if not low <= value <= high:
-                raise ValueError('Порог контекста: от 30 до 95%%' if key == 'threshold' else 'Число итераций: от 1 до 100')
+                raise ValueError('Порог контекста: от 30 до 95%' if key == 'threshold' else 'Число итераций: от 1 до 100')
             result[key] = value
     check = data.get('check', '')
-    if not isinstance(check, str) or len(check) > 500 or '\n' in check:
+    if not isinstance(check, str) or len(check) > 500 or '\n' in check or '\r' in check:
         raise ValueError('Команда проверки: одна строка до 500 символов')
     result['check'] = check.strip()
     return result
@@ -81,10 +84,19 @@ def _git(workspace, *args, timeout=60):
     return done.returncode, done.stdout.decode('utf-8', 'replace')
 
 
+def contained(workspace, path):
+    """Reject existing junction/symlink escapes, including ancestors of new files."""
+    try:
+        Path(path).resolve().relative_to(Path(workspace).resolve())
+    except (ValueError, OSError, RuntimeError):
+        raise ValueError('Папка итогов цикла выходит за пределы проекта') from None
+    return Path(path)
+
+
 def prepare(workspace, run_id):
     """Create the run's folder and keep `.visualforge/` out of git through the local exclude file (.gitignore stays untouched)."""
-    folder = Path(workspace) / FOLDER / 'loop' / run_id
-    folder.mkdir(parents=True, exist_ok=True)
+    folder = contained(workspace, Path(workspace) / FOLDER / 'loop' / (run_id + '-' + uuid.uuid4().hex[:12]))
+    folder.mkdir(parents=True, exist_ok=False)
     code, out = _git(workspace, 'rev-parse', '--git-path', 'info/exclude')
     if code == 0 and out.strip():
         exclude = Path(out.strip())
@@ -117,19 +129,53 @@ def facts(workspace, start):
         _, diffstat = _git(workspace, 'diff', '--stat', start, '--', '.', ':(exclude)%s' % FOLDER)
         _, commits = _git(workspace, 'log', '--oneline', '%s..HEAD' % start)
     # Not `git status` alone: it names changed files, not their contents, so a second edit of the same file would look like none.
-    fingerprint = hashlib.sha1(('%s\n%s\n%s' % (current, status, diff)).encode('utf-8', 'replace')).hexdigest()
+    digest = hashlib.sha256(('%s\n%s\n%s' % (current, status, diff)).encode('utf-8', 'replace'))
+    # Git diff omits untracked contents and only reports a binary file as changed.
+    # Hash changed working files as a stream; do not reread an entire large repository.
+    code, names = _git(workspace, 'ls-files', '-z', '--others', '--exclude-standard', '--', '.', ':(exclude)%s' % FOLDER)
+    complete = code == 0
+    if current:
+        code, changed = _git(workspace, 'diff', '--name-only', '-z', 'HEAD', '--', '.', ':(exclude)%s' % FOLDER)
+    else:
+        code, changed = _git(workspace, 'ls-files', '-z', '--cached', '--', '.', ':(exclude)%s' % FOLDER)
+    names += '\0' + changed
+    complete = complete and code == 0
+    for name in sorted(set(names.split('\0')) - {''}):
+        path = Path(workspace) / name
+        try:
+            contained(workspace, path)
+            digest.update(name.encode('utf-8'))
+            if path.is_file():
+                with path.open('rb') as stream:
+                    for chunk in iter(lambda: stream.read(65536), b''):
+                        digest.update(chunk)
+        except (OSError, ValueError):
+            complete = False
+    # An unreadable tree must not be classified as stalled.
+    fingerprint = digest.hexdigest() if complete else uuid.uuid4().hex
     return dict(git=True, status=status.strip(), diffstat=diffstat.strip(), commits=commits.strip(), fingerprint=fingerprint)
 
 
-def _decode(raw):
+def _decode(raw, truncated=False):
     try:
         return raw.decode('utf-8')
     except UnicodeDecodeError:
+        # A bounded byte tail may start in the middle of a UTF-8 character.
+        if truncated:
+            for skip in range(1, min(4, len(raw))):
+                if any(byte & 0xC0 != 0x80 for byte in raw[:skip]):
+                    break
+                try:
+                    return raw[skip:].decode('utf-8')
+                except UnicodeDecodeError:
+                    continue
         return raw.decode('oem', 'replace')
 
 
 def check(command, workspace, cancel):
     """Run the user's check command (cmd.exe) in the project; returns dict(code, output) with the output's tail."""
+    if cancel.is_set():
+        return dict(code=-1, output='(stopped)')
     try:
         process = subprocess.Popen(command, shell=True, cwd=workspace, env=clean_environment(), stdin=subprocess.DEVNULL,
                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -140,11 +186,17 @@ def check(command, workspace, cancel):
         job = OwnedJob(process)
     except OSError:
         job = None
-    output = []
+    output = bytearray()
+    truncated = False
 
     def read():
+        nonlocal truncated
         for chunk in iter(lambda: process.stdout.read(65536), b''):
-            output.append(chunk)
+            output.extend(chunk)
+            # Keep enough bytes for the displayed Unicode tail, not the entire log.
+            if len(output) > MAX_CHECK_OUTPUT * 4:
+                truncated = True
+                del output[:-MAX_CHECK_OUTPUT * 4]
     reader = threading.Thread(target=read, daemon=True)
     reader.start()
     deadline = CHECK_TIMEOUT
@@ -160,10 +212,11 @@ def check(command, workspace, cancel):
             job.close()
         if process.poll() is None:
             process.kill()
+        process.wait(5)
         reader.join(5)
         process.stdout.close()
     # cmd.exe writes CRLF; the note is written in text mode, which would turn each of them into CR CR LF (doubled blank lines).
-    text = _decode(b''.join(output)).replace('\r\n', '\n').strip()
+    text = _decode(bytes(output), truncated).replace('\r\n', '\n').strip()
     text = text if len(text) <= MAX_CHECK_OUTPUT else '…' + text[-MAX_CHECK_OUTPUT:]
     if timed_out:
         return dict(code=-1, output=(text + '\n' if text else '') + ('(stopped)' if cancel.is_set() else '(timed out after %d s)' % CHECK_TIMEOUT))
@@ -171,11 +224,12 @@ def check(command, workspace, cancel):
 
 
 def status_of(note):
-    match = re.search(r'#+\s*Status\s*\n+[\s*`_-]*(CONTINUE|DONE|BLOCKED)', note or '', re.IGNORECASE)
-    if match:
-        return match.group(1).upper()
-    words = re.findall(r'\b(CONTINUE|DONE|BLOCKED)\b', note or '')
-    return words[-1] if words else 'CONTINUE'
+    # Accept one explicit field, never a status word in prose or a negation.
+    text = re.sub(r'```.*?```', '', note or '', flags=re.DOTALL)
+    fields = re.findall(r'^#{1,6}[ \t]+Status[ \t]*\r?\n[ \t]*[*`_]*(CONTINUE|DONE|BLOCKED)[*`_]*[ \t]*(?=\r?$)', text, re.IGNORECASE | re.MULTILINE)
+    if len(fields) == 1 and len(re.findall(r'^#{1,6}[ \t]+Status[ \t]*$', text, re.IGNORECASE | re.MULTILINE)) == 1:
+        return fields[0].upper()
+    return 'CONTINUE'
 
 
 def next_step_of(note):
@@ -212,7 +266,7 @@ def write(folder, workspace, number, total, run, goal, note, ended, fact, verifi
     if verification is not None:
         lines += ['', '## Verification (run by the studio)', '`%s` exit code %d' % (verification['command'], verification['code']),
                   '```', verification['output'] or '(no output)', '```']
-    path = Path(folder) / ('%02d-handoff.md' % number)
+    path = contained(workspace, Path(folder) / ('%02d-handoff.md' % number))
     path.write_text('\n'.join(header + ['## Task', goal.strip(), ''] + lines).rstrip() + '\n', encoding='utf-8')
     # The next iteration's prompt carries the task itself; it gets the note without repeating it.
     return os.path.relpath(path, workspace).replace(os.sep, '/'), '\n'.join(header + lines).rstrip() + '\n'

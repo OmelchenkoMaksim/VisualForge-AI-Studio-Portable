@@ -36,7 +36,7 @@ if os.name == 'nt':
 
 MAX_OUTPUT = 4000
 COMMAND_TIMEOUT = 600
-PUSH = re.compile(r'\bgit\b[^\n;&|]*\bpush\b')
+PUSH = re.compile(r'\bgit\b[^\n;&|]*\bpush\b', re.IGNORECASE)
 # The same commands the `auto` level lets OpenCode run without asking.
 AUTO_COMMANDS = re.compile(r'^git (status|diff|log|add|commit)(\s|$)')
 REFUSED = 'Запрещено правами агента в этом чате.'
@@ -148,14 +148,15 @@ class Bridge:
         return True
 
     def allow_command(self, commands):
-        lines = [line.strip() for line in str(commands or '').splitlines() if line.strip() and not line.strip().startswith('#')]
+        lines = [line.strip() for line in str(commands or '').splitlines() if line.strip()]
         if not lines:
             return False
         refused = self.mode == 'read' or any(PUSH.search(line) for line in lines)
         if refused:
             self.step(id=self.next_id('step'), tool='bash', status='error', title=lines[0][:300], command='\n'.join(lines)[:2000], error=REFUSED)
             return False
-        if self.mode == 'auto' and all(AUTO_COMMANDS.match(line) for line in lines):
+        # Shell expansion and operators can turn a git prefix into an unrelated command.
+        if self.mode == 'auto' and all(AUTO_COMMANDS.match(line) and not re.search(r'[&|;<>$`%!?^(){}\r\n]', line) for line in lines):
             return True
         if all(line in self.always_commands for line in lines):
             return True
@@ -292,9 +293,14 @@ def guard_network(base_url):
     parts = urlsplit(base_url)
     allowed = (parts.hostname, parts.port)
     own = set()  # sockets this process listens on itself
+    real_sendto = socket.socket.sendto
     real_bind, real_connect, real_connect_ex, real_getaddrinfo = socket.socket.bind, socket.socket.connect, socket.socket.connect_ex, socket.getaddrinfo
 
     def bind(self, address):
+        if self.family == socket.AF_INET:
+            address = ('127.0.0.1', address[1])
+        elif self.family == socket.AF_INET6:
+            address = ('::1', address[1], *address[2:])
         result = real_bind(self, address)
         if self.family in (socket.AF_INET, socket.AF_INET6):
             own.add(tuple(self.getsockname()[:2]))
@@ -322,6 +328,11 @@ def guard_network(base_url):
             raise socket.gaierror('VisualForge: network access is disabled for the agent (%s)' % host)
         return real_getaddrinfo(host, *args, **keywords)
 
+    def sendto(self, data, *args):
+        check(args[-1])
+        return real_sendto(self, data, *args)
+
+    socket.socket.sendto = sendto
     socket.socket.bind, socket.socket.connect, socket.socket.connect_ex, socket.getaddrinfo = bind, connect, connect_ex, getaddrinfo
 
 

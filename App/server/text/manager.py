@@ -278,9 +278,10 @@ class TextManager:
             event = self.active[chat_id] = threading.Event()
             return event
 
-    def end(self, chat_id):
+    def end(self, chat_id, expected=None):
         with self.lock:
-            self.active.pop(chat_id, None)
+            if expected is None or self.active.get(chat_id) is expected:
+                self.active.pop(chat_id, None)
 
     def stop_chat(self, chat_id):
         with self.lock:

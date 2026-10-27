@@ -94,10 +94,11 @@ class FakeText:
             event = self.active[key] = threading.Event()
             return event
 
-    def end(self, key):
+    def end(self, key, expected=None):
         with self.lock:
-            self.active.pop(key, None)
-            self.ended += 1
+            if expected is None or self.active.get(key) is expected:
+                self.active.pop(key, None)
+                self.ended += 1
 
     def stop_chat(self, key):
         with self.lock:
@@ -349,7 +350,15 @@ class LoopChecks:
 
 
 class ProjectPathChecks:
-    """Commands that name the project folder by its full path, and output that contains it, for every agent."""
+    """Path encoding and compound-command policy checks for every real agent."""
+    def test_auto_compound_command_requires_approval(self):
+        command = {'opencode': 'git status && echo audit > policy-marker.txt',
+                   'aider': 'git status & echo audit > policy-marker.txt',
+                   'dsh': 'git status | Set-Content policy-marker.txt'}[self.AGENT]
+        _, events, _ = self.run_task('auto', 'RUN_CMD: %s ## audit' % command, reply='reject')
+        self.assertTrue(any(e['type'] == 'permission' for e in events))
+        self.assertFalse((self.workspace / 'policy-marker.txt').exists())
+
     def test_commands_with_the_project_path(self):
         _, events, (_, message, _) = self.run_task('ask', 'RUN_CMD: git -C "%s" status ## проверь' % self.workspace)
         self.assertEqual([e['request']['command'] for e in events if e['type'] == 'permission'], ['git -C "%s" status' % self.workspace])
@@ -643,8 +652,12 @@ class DshRunTest(LoopChecks, ProjectPathChecks, unittest.TestCase):
     def explicit_aces(self):
         # dsh's own sandbox would leave explicit ACEs on the project folder; with it off, everything stays inherited.
         script = "(Get-Acl -LiteralPath $env:VF_PATH).Access | Where-Object { -not $_.IsInherited } | Measure-Object | ForEach-Object Count"
+        # Windows PowerShell must discover its own Security module, not inherit PS7's module paths.
+        env = {key: value for key, value in os.environ.items() if key.upper() != 'PSMODULEPATH'}
         done = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script], capture_output=True, text=True,
-                              env=dict(os.environ, VF_PATH=str(self.workspace)), timeout=60)
+                              env=dict(env, VF_PATH=str(self.workspace)), timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue(done.stdout.strip().isdigit(), done.stderr)
         return int(done.stdout.strip())
 
     def errors(self, message):

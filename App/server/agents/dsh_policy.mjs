@@ -6,6 +6,7 @@
 // an ACP session/request_permission the studio shows as a permission card. Refusal reasons start with "VisualForge:" so the
 // studio can tell them from other tool failures.
 import path from 'node:path';
+import fs from 'node:fs';
 
 export const name = 'visualforge-policy';
 
@@ -23,12 +24,24 @@ function deny(reason) {
 
 export function apply(ctx, config) {
   const mode = config.mode;
-  const root = path.resolve(config.workspace);
+  const root = fs.realpathSync(config.workspace);
   const inside = (value) => {
     if (typeof value !== 'string' || value === '') return true;
-    const full = path.resolve(root, value);
-    const relative = path.relative(root, full);
-    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+    // Resolve the existing ancestor too: a new file may live below a junction.
+    let full = path.resolve(root, value);
+    const missing = [];
+    try {
+      for (;;) {
+        try { full = fs.realpathSync(full); break; } catch (error) {
+          if (error.code !== 'ENOENT' || path.dirname(full) === full) return false;
+          // A dangling link is not an ordinary missing file.
+          try { if (fs.lstatSync(full).isSymbolicLink()) return false; } catch {}
+          missing.unshift(path.basename(full)); full = path.dirname(full);
+        }
+      }
+      const relative = path.relative(root, path.join(full, ...missing));
+      return relative === '' || (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative));
+    } catch { return false; }
   };
 
   ctx.on('tools/pre-execute', async (exec, next) => {
@@ -48,8 +61,9 @@ export function apply(ctx, config) {
       const command = String(args.command ?? '');
       if (PUSH.test(command)) return deny('git push is not allowed');
       if (mode === 'read') return deny('running commands is not allowed in this chat');
-      const lines = command.split(/\r?\n|;|&&/).map((line) => line.trim()).filter(Boolean);
-      if (mode === 'auto' && lines.length > 0 && lines.every((line) => AUTO.test(line))) return downstream;
+      const lines = command.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      // Prefix matching alone admits pipelines, redirection and shell substitutions.
+      if (mode === 'auto' && lines.length > 0 && lines.every((line) => AUTO.test(line) && !/[&|;<>$`%!?^(){}]/.test(line))) return downstream;
       return { kind: 'ask', reason: 'VisualForge: run ' + command.slice(0, 200) };
     }
     if (exec.name === 'job_kill') return mode === 'read' ? deny('not allowed in this chat') : downstream;

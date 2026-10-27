@@ -85,6 +85,7 @@ class ChatStore:
         self.directory = Path(directory)
         self.lock = threading.RLock()
         self.index_path = self.directory / 'index.json'
+        self.active = set()  # agent tasks include time spent on tools and permission cards
 
     def _path(self, ident):
         if not isinstance(ident, str) or not ID_PATTERN.match(ident):
@@ -144,6 +145,11 @@ class ChatStore:
 
     def _save(self, chat):
         chat['updated'] = time.time()
+        # Never replace a readable history with a document that _load refuses.
+        if len(json.dumps(chat, ensure_ascii=False, indent=1).encode('utf-8')) > MAX_FILE_BYTES or len(chat['messages']) > MAX_MESSAGES:
+            recovery = self.directory / (chat['id'] + '.overflow') / (uuid.uuid4().hex + '.json')
+            _write_json(recovery, chat)
+            raise ValueError('История достигла лимита. Начните новый чат. Полный результат сохранён: ' + str(recovery))
         _write_json(self._path(chat['id']), chat)
         chats = [item for item in self._read_index() if item['id'] != chat['id']]
         chats.insert(0, self._summary(chat))
@@ -200,6 +206,8 @@ class ChatStore:
 
     def update(self, ident, system=None, think=None, model=None):
         with self.lock:
+            if ident in self.active:
+                raise ValueError('Агент работает в этом чате: сначала остановите задачу')
             chat = self.get(ident)
             if system is not None:
                 chat['system'] = self._system(system)
@@ -214,6 +222,9 @@ class ChatStore:
 
     def delete(self, ident):
         with self.lock:
+            if ident in self.active:
+                from gpu import Busy
+                raise Busy('Агент работает в этом чате: сначала остановите задачу')
             path = self._path(ident)
             if not path.is_file():
                 raise ValueError('Чат не найден')

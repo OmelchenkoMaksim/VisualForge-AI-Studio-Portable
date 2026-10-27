@@ -144,6 +144,32 @@ Settings: `UserData/Settings/agents.settings.json` (last agent, folder, level). 
 `runtime.settings.json` or `VISUALFORGE_AGENT_GATEWAY_PORT`, `VISUALFORGE_OPENCODE_PORT`. Logs: `UserData/Logs/agent-opencode.log`,
 `UserData/Logs/agent-aider.log`, `UserData/Logs/agent-dsh.log`.
 
+## Task lifetime and bounded storage
+
+GPU admission is tied to the exact request and iteration. A late finish releases only its own busy event; late usage and
+threshold interrupts cannot affect a replacement iteration. Closing the client connection cancels a task even while it waits
+for a permission card. Active agent chats cannot be deleted or reconfigured through the ordinary Text update endpoint.
+An unexpected OpenCode exit ends the task with an error instead of leaving the studio busy.
+
+Loop directories use a timestamp plus a unique suffix. Existing junctions/symlinks are resolved before creating or writing
+notes; a target outside the project is refused. The progress fingerprint includes the contents of changed tracked and untracked
+files, including binary changes. A cancellation during verification ends the current iteration. A failed turn remains an error
+even if its handoff claims DONE; status is accepted only from a single explicit Status field, never from prose.
+
+Verification retains only a bounded output tail in memory. Gateway accounting decodes HTTP chunk framing independently from
+the unchanged response relay and includes response bytes in fallback estimates. A missing usage value is still an estimate,
+not an exact tokenizer count.
+
+Chat writes check the serialized UTF-8 size and message count before replacing the readable file. If a result would exceed the
+limit, the complete attempted history is saved to `<chat-id>.overflow/<unique-id>.json` next to the chat file. The error shows
+that recovery path and asks the user to start a new chat; the previous history stays readable. Recovery files are not removed
+automatically. Agent settings updates are serialized so concurrent tabs cannot share an unfinished temporary write.
+
+Automatic command approval is deliberately conservative: Aider/dsh ask for shell pipelines, redirects, expansions and compound
+commands, even when the command starts with an allowed git verb. Node guards block UDP and native DNS resolver entry points;
+the Aider guard checks datagram destinations too. These are application-level guards, not an OS security boundary. Existing
+junctions are checked by file policies, but an adversarial concurrent filesystem replacement is not isolated by a sandbox.
+
 ## Limits
 
 - The agent's shell commands run as the user, with the user's profile (git identity). The folder rule confines the agents' own
@@ -155,6 +181,13 @@ Settings: `UserData/Settings/agents.settings.json` (last agent, folder, level). 
 - No images are sent to the agent yet.
 
 ## Tests
+
+`tests/test_agent_audit.py` adds CPU regressions for request ownership, stale usage/wrap, concurrent settings, active-chat
+deletion, overflow recovery, chunked and large non-streaming usage, strict loop status/options, untracked contents, unique
+notes, Stop during verification, turn errors with DONE/threshold, dead OpenCode, silent-client disconnect, shell operators,
+junctions and UDP/native DNS. `tests/test_agents.py` also rejects compound commands through each real agent using a fake model.
+
+Historical GPU runs below predate these hardening changes; they do not verify the current patch.
 
 `tests/test_agents.py` (CPU only): gateway token/host/alias/Busy/Stop; chat storage; environment scrubbing; with the real
 OpenCode against `tests/fake_openai.py`: permission → command → saved answer, `read` level and `git push` denial, rejection,
