@@ -238,7 +238,9 @@
   window.StudioUI = {
     notify, openFolder, showLogs, setHeader, deleteGenerationButton, generationInfo, isBusy: () => locked, refreshBusy: poll,
     parentFolder: path => { const text=String(path || ''); const index=Math.max(text.lastIndexOf('\\'),text.lastIndexOf('/')); return index<0?'':text.slice(0, index<=2?index+1:index); },
-    modelLabel: (id, name) => releases[id] ? `${name} · ${releases[id][1]}: ${releases[id][0]}` : name,
+    // Engine names come from the server in Russian source form (e.g. "Wan 2.2 S2V-14B · речь → видео"); translate
+    // them here, otherwise every selector that uses this label stays Russian after switching to English.
+    modelLabel: (id, name) => { const label = window.StudioI18n ? StudioI18n.remote(name) : name; return releases[id] ? `${label} · ${releases[id][1]}: ${releases[id][0]}` : label; },
     modelSource: id => releases[id]?.[2] || ''
   };
 })();

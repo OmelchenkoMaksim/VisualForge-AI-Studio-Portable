@@ -1,5 +1,4 @@
 """Local-only VisualForge AI Studio UI bridge. Python stdlib; no remote dependencies."""
-from ui_strings import source as ui_text
 import base64
 import binascii
 import zlib
@@ -28,6 +27,9 @@ import sys as _qwen_import_sys
 _qwen_adjacent_dir = str(Path(__file__).resolve().parent)
 if _qwen_adjacent_dir not in _qwen_import_sys.path:
     _qwen_import_sys.path.insert(0, _qwen_adjacent_dir)
+# Must follow the sys.path fix above: the embedded Python does not put the script's folder on sys.path,
+# so importing ui_strings first fails with ModuleNotFoundError and the UI service never starts.
+from ui_strings import source as ui_text
 from smart_filenames import build_filename_base, write_unique_output
 from branding import optional_icon
 from portable_paths import from_server

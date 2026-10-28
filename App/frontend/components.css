@@ -13,6 +13,7 @@ body[data-studio-module="components"] #preflight,body[data-studio-module="compon
 #componentsTextTag{width:100%;padding:9px 11px}
 #componentsSoftware{border:1px solid var(--danger);background:var(--danger-bg);color:var(--danger-ink);border-radius:var(--r);padding:12px 14px}
 #componentsProgress{border:1px solid var(--border);border-radius:var(--r-l);background:var(--surface);padding:16px 18px;display:grid;gap:8px}
+#componentsCurrent{margin:0}
 #componentsBar{width:100%;height:10px}
 #componentsFile,#componentsLog{white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
 #componentsLog{color:var(--muted);font-size:12px}
