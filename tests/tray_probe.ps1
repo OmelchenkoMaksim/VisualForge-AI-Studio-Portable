@@ -32,9 +32,35 @@ try {
     if ($hostTray.Notification.Icon.Size -ne $traySize) {throw 'Animated tray icon does not use the native small size'}
     $hostTray.Update(); $b=$hostTray.Frame
     if ($a -eq $b) {throw 'Animation did not advance'}
+    $steps=2
+    while ($hostTray.Frame -ne 0 -and $steps -lt 1000) { $hostTray.Update(); $steps++ }
+    if ($steps -ne 72) {throw 'Animation did not complete a smooth 72-frame turn'}
+    $wrappedBitmap=$hostTray.Notification.Icon.ToBitmap()
+    $idleIcon=New-Object Drawing.Icon((Join-Path $Root 'App\frontend\visualforge-icon.ico'),$traySize)
+    $idleBitmap=$idleIcon.ToBitmap()
+    try {
+        # The optimized ICO has different scale/alpha from the rotating PNG. Using it at the wrap caused a jump every turn.
+        $different=$false
+        for ($y=0;$y -lt $traySize.Height;$y++) {
+            for ($x=0;$x -lt $traySize.Width;$x++) {
+                if ($wrappedBitmap.GetPixel($x,$y).ToArgb() -ne $idleBitmap.GetPixel($x,$y).ToArgb()) {$different=$true}
+            }
+        }
+        if (-not $different) {throw 'Rotation wrap substituted the static ICO for the PNG frame'}
+    } finally { $wrappedBitmap.Dispose(); $idleBitmap.Dispose(); $idleIcon.Dispose() }
     $state.Busy=$false
     $hostTray.Update()
     if ($hostTray.Frame -ne 0) {throw 'Idle did not restore logo'}
+    $restoredBitmap=$hostTray.Notification.Icon.ToBitmap()
+    $expectedIcon=New-Object Drawing.Icon((Join-Path $Root 'App\frontend\visualforge-icon.ico'),$traySize)
+    $expectedBitmap=$expectedIcon.ToBitmap()
+    try {
+        for ($y=0;$y -lt $traySize.Height;$y++) {
+            for ($x=0;$x -lt $traySize.Width;$x++) {
+                if ($restoredBitmap.GetPixel($x,$y).ToArgb() -ne $expectedBitmap.GetPixel($x,$y).ToArgb()) {throw 'Idle did not restore the shared ICO'}
+            }
+        }
+    } finally { $restoredBitmap.Dispose(); $expectedBitmap.Dispose(); $expectedIcon.Dispose() }
     $state.Close=$true
     $hostTray.Update()
 } finally { $hostTray.Dispose(); $hostTray.Dispose() }

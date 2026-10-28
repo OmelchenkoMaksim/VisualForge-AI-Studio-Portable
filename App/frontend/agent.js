@@ -61,8 +61,14 @@ window.StudioAgent = (() => {
   const values = () => ({agent: el('agentKind').value, workspace: el('agentWorkspace').value.trim(), permission: el('agentPermission').value});
   const ready = () => !!info && info.agents.some(a => a.id === el('agentKind').value && a.ready);
   async function choose() {
-    const answer = await api('choose-workspace', {initial: el('agentWorkspace').value.trim()});
-    if (!answer.cancelled) {el('agentWorkspace').value = answer.workspace;listener?.('workspace', answer.workspace);}
+    // A detached native dialog can open behind the studio; use the same in-window picker as the creative modules.
+    window.chooseStudioFolder(el('agentWorkspace').value.trim(), async workspace => {
+      el('agentWorkspace').value = workspace;
+      await listener?.('workspace', workspace);
+    }, el('agentChoose'), {
+      titleKey: 'agent.workspace_path_select_project_folder_agent',
+      hintKey: 'agent.workspace_folder_picker_existing_folder_hint'
+    });
   }
   function bind(onChange) {
     listener = onChange;

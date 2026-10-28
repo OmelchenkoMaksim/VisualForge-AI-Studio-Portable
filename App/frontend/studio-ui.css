@@ -32,7 +32,7 @@ body.studio-busy [data-allow-busy]:not(:disabled):not(.voice-bar):not(.voice-bar
 .generation-info dd { margin:0 0 6px; }
 
 .studio-language {display:grid;gap:6px;padding:8px 12px 12px;border-bottom:1px solid var(--border);margin-bottom:4px;font-size:13px;}
-.studio-language select {width:100%;min-width:0;}
+.studio-language select {width:100%;min-width:0;padding-left:10px;}
 
 /* Color-scheme dialog: the head and buttons reuse the sounds dialog; each card previews a scheme in a miniature window. */
 .palettes-dialog {width:min(640px,calc(100vw - 32px));padding:22px 24px;background:var(--raised);color:var(--text);border:1px solid var(--border-strong);border-radius:var(--r-l);box-shadow:var(--shadow);}

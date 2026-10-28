@@ -183,6 +183,10 @@
     "ru": "Выберите папку проекта для агента",
     "en": "Select a project folder for the agent"
   },
+  "agent.workspace_folder_picker_existing_folder_hint": {
+    "ru": "Выберите существующую папку проекта. Агент будет работать внутри неё.",
+    "en": "Choose an existing project folder. The agent will work inside it."
+  },
   "agent.workspace_path_project_folder_full_required": {
     "ru": "Папка проекта: нужен полный путь",
     "en": "Project folder: a full path is required"

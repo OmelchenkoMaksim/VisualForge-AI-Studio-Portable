@@ -81,6 +81,8 @@ the environment variable `HF_TOKEN` before running the setup.
 
 ## Starting and using
 
+The Agent project-folder picker opens inside the studio window, above its content.
+
 `Start-VisualForge.cmd` opens the studio in its own window. While any generation runs (Image, Video, Music or a Text answer) the buttons
 that start or disturb a job are dimmed (tabs, engine choices and typing stay free), **Stop** works from every tab, and starting a generation releases the video memory held by the idle modules. Results are saved
 under `UserData/Results`. Features and folders are described in the [user guide](docs/User-Guide.md); installation details in [Setup](docs/Setup.md). More on each part in [docs](docs): [Delivery](docs/Delivery.md) (export for social networks),

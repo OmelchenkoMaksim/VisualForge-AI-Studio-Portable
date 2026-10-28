@@ -6,7 +6,7 @@
   const fields = ['Language', 'Format', 'Seed', 'Dictionary', 'Title'];
   const others = ['imageTab', 'videoTab', 'musicTab', 'textTab', 'componentsTab'];
   const workspaces = ['imageWorkspace', 'videoWorkspace', 'musicWorkspace', 'textWorkspace', 'componentsWorkspace'];
-  let active = null, selected = '', playing = '', available = false, timer = null, polling = false, engine = null, engines = [], savedEngine = '', prepared = null, voices = [];
+  let active = null, selected = '', playing = '', available = false, timer = null, polling = false, engine = null, engines = [], savedEngine = '', prepared = null, voices = [], builtin = [], defaults = {state: 'idle', ready: 0, wanted: 0, can_build: false}, defaultsTimer = null;
 
   async function api(route, data) {
     const response = await fetch('/api/voiceover/' + route, data === undefined ? {} : {
@@ -58,10 +58,21 @@
       tone: engine ? (available ? 'good' : 'bad') : 'muted',
       status: engine ? (available ? StudioI18n.t("voiceover.header_status_ready_label") : StudioI18n.remote(engine.reason) || StudioI18n.t("voiceover.header_status_unavailable_label")) : StudioI18n.t("settings.studio_ui_headers_checking_voiceover_models")});
   }
+  // A voice is chosen from the built-in ones, the user's saved ones, or the last entry, which opens the form for one's own recordings.
+  const OWN = '__own__';
+  const chosenVoice = () => { const id = el('voiceoverVoice').value; return id === OWN ? '' : id; };
+  const savedChosen = () => voices.some(voice => voice.id === chosenVoice());
   function buttons() {
-    el('voiceoverGenerate').disabled = !available || !!active || !prepared || !el('voiceoverVoice').value;
+    el('voiceoverGenerate').disabled = !available || !!active || !prepared || !chosenVoice();
     el('voiceoverCancel').disabled = !active;
-    el('voiceoverVoiceDelete').disabled = !el('voiceoverVoice').value;
+    el('voiceoverVoiceDelete').hidden = !savedChosen();
+    el('voiceoverVoiceDelete').disabled = !savedChosen();
+    el('voiceoverOwn').hidden = el('voiceoverVoice').value !== OWN;
+    // The words of a sample belong to one recording; with several files the field would describe none of them.
+    const many = el('voiceoverVoiceFile').files.length > 1;
+    el('voiceoverVoiceTranscript').disabled = many;
+    if (many) el('voiceoverVoiceTranscript').value = '';
+    el('voiceoverDefaultsBuild').disabled = !!active || defaults.state === 'running' || !defaults.can_build;
   }
   function renderSummary() {
     el('voiceoverSummary').hidden = !prepared;
@@ -81,24 +92,66 @@
       return item;
     }));
   }
+  function group(labelKey, items) {
+    const node = document.createElement('optgroup');
+    StudioI18n.bind(node, '@label', () => StudioI18n.t(labelKey), true);
+    node.append(...items);
+    return node;
+  }
   function renderVoices(wanted) {
     const select = el('voiceoverVoice');
     const keep = wanted || select.value;
-    if (!voices.length) {
-      select.replaceChildren(StudioI18n.option(() => StudioI18n.t("voiceover.voice_none_option_label"), ''));
-    } else {
-      select.replaceChildren(...voices.map(voice => StudioI18n.option(() => StudioI18n.t("voiceover.voice_duration_template_label", [voice.name, voice.duration]), voice.id)));
-      select.value = voices.some(voice => voice.id === keep) ? keep : voices[0].id;
-    }
+    const groups = [];
+    if (builtin.length) groups.push(group("voiceover.voice_group_builtin_label", builtin.map(voice => StudioI18n.option(() => StudioI18n.t(voice.name_key), voice.id))));
+    if (voices.length) groups.push(group("voiceover.voice_group_saved_label", voices.map(voice => StudioI18n.option(() => StudioI18n.t("voiceover.voice_duration_template_label", [voice.name, voice.duration]), voice.id))));
+    select.replaceChildren(...groups, StudioI18n.option(() => StudioI18n.t("voiceover.voice_option_own_label"), OWN));
+    const ids = [...builtin, ...voices].map(voice => voice.id);
+    select.value = ids.includes(keep) || keep === OWN ? keep : (ids[0] || OWN);
     voicePreview();
     buttons();
   }
   function voicePreview() {
-    const id = el('voiceoverVoice').value;
+    const id = chosenVoice();
     const player = el('voiceoverVoicePlayer');
     if (!id) { player.pause(); player.removeAttribute('src'); player.hidden = true; return; }
     player.src = '/api/voiceover/voice-audio?id=' + encodeURIComponent(id);
     player.hidden = false;
+  }
+  // The built-in voices are made on this computer by the engine itself (see docs/Voiceover.md); this block offers that and shows its progress.
+  function renderDefaults() {
+    const missing = defaults.wanted > defaults.ready;
+    const running = defaults.state === 'running';
+    el('voiceoverDefaults').hidden = !missing && !running;
+    el('voiceoverDefaultsProgress').hidden = !running;
+    el('voiceoverDefaultsCancel').hidden = !running;
+    el('voiceoverDefaultsBuild').hidden = running;
+    el('voiceoverDefaultsProgress').value = defaults.total ? Math.min(1, defaults.done / defaults.total) : 0;
+    StudioI18n.bind(el('voiceoverDefaultsStatus'), 'textContent', () => {
+      if (running) return StudioI18n.t("voiceover.defaults_progress_template", [StudioI18n.remote(defaults.phase), defaults.done, defaults.total]);
+      if (defaults.state === 'error') return StudioI18n.remote(defaults.error);
+      if (defaults.failed && defaults.failed.length) return StudioI18n.t("voiceover.defaults_failed_template", [defaults.failed.length]);
+      if (!defaults.can_build) return StudioI18n.remote(defaults.reason);
+      return StudioI18n.t(defaults.ready ? "voiceover.defaults_partial_template" : "voiceover.defaults_missing_template", [defaults.ready, defaults.wanted]);
+    }, true);
+    if (running && !defaultsTimer) defaultsTimer = setInterval(pollDefaults, 2000);
+    buttons();
+  }
+  async function loadVoices(wanted) {
+    const result = await api('voices');
+    voices = result.voices; builtin = result.builtin || []; defaults = result.defaults || defaults;
+    renderVoices(wanted); renderDefaults();
+  }
+  async function pollDefaults() {
+    try {
+      const before = builtin.length;
+      await loadVoices();
+      if (defaults.state !== 'running') {
+        clearInterval(defaultsTimer); defaultsTimer = null;
+        // The first voice that appears becomes the choice when the user has not picked anything but the own-voice entry.
+        if (!before && builtin.length && el('voiceoverVoice').value === OWN) renderVoices(builtin[0].id);
+        say(() => defaults.state === 'error' ? StudioI18n.remote(defaults.error) : StudioI18n.t("voiceover.defaults_done_status_label"));
+      }
+    } catch (error) { clearInterval(defaultsTimer); defaultsTimer = null; say(() => StudioI18n.remote(error.message)); }
   }
   function renderReport(row) {
     const check = row.verification || {}, list = row.flagged || [];
@@ -233,8 +286,7 @@
       if (!checking) el('voiceoverVerify').checked = false;
       StudioI18n.bind(el('voiceoverVerifyHint'), 'textContent', () => checking ? StudioI18n.t("voiceover.verify_hint_paragraph_label") : StudioI18n.t("voiceover.verify_unavailable_hint_label"), true);
       chooseEngine();
-      voices = (await api('voices')).voices;
-      renderVoices();
+      await loadVoices();
       const [settings, current] = await Promise.all([api('settings'), api('active')]);
       el('voiceoverSaveDir').value = settings.save_dir;
       StudioI18n.bind(el('voiceoverOutputLocation'), 'textContent', () => StudioI18n.t("voiceover.save_dir_location_prefix") + settings.save_dir, true);
@@ -285,27 +337,38 @@
     } catch (error) { prepared = null; renderSummary(); say(() => StudioI18n.remote(error.message)); }
     finally { el('voiceoverPrepare').disabled = false; buttons(); }
   };
+  el('voiceoverVoiceFile').addEventListener('change', buttons);
   el('voiceoverVoiceAdd').onclick = async () => {
-    const file = el('voiceoverVoiceFile').files[0];
-    if (!file) { say(() => StudioI18n.t("voiceover.voice_file_missing_error_label")); return; }
+    const files = [...el('voiceoverVoiceFile').files];
+    if (!files.length) { say(() => StudioI18n.t("voiceover.voice_file_missing_error_label")); return; }
     el('voiceoverVoiceAdd').disabled = true;
     try {
+      // One recording goes as `audio`, several as `audios`; the server joins them into one sample.
+      const encoded = await Promise.all(files.map(readFile));
       const added = await api('voice-add', {name: el('voiceoverVoiceName').value, consent: el('voiceoverVoiceConsent').checked,
-        transcript: el('voiceoverVoiceTranscript').value, audio: await readFile(file)});
-      voices = (await api('voices')).voices;
-      renderVoices(added.id);
+        transcript: encoded.length === 1 ? el('voiceoverVoiceTranscript').value : '', ...(encoded.length === 1 ? {audio: encoded[0]} : {audios: encoded})});
+      await loadVoices(added.id);
       el('voiceoverVoiceName').value = ''; el('voiceoverVoiceFile').value = ''; el('voiceoverVoiceTranscript').value = ''; el('voiceoverVoiceConsent').checked = false;
       say(() => StudioI18n.t("voiceover.voice_saved_status_label"));
     } catch (error) { say(() => StudioI18n.remote(error.message)); }
     finally { el('voiceoverVoiceAdd').disabled = false; buttons(); }
   };
   el('voiceoverVoiceDelete').onclick = async () => {
-    const id = el('voiceoverVoice').value;
+    const id = chosenVoice();
     if (!id || !window.confirm(StudioI18n.t("voiceover.voice_delete_confirm_question"))) return;
     try {
       await api('voice-delete', {id});
-      voices = (await api('voices')).voices; renderVoices();
+      await loadVoices();
     } catch (error) { say(() => StudioI18n.remote(error.message)); }
+  };
+  el('voiceoverDefaultsBuild').onclick = async () => {
+    el('voiceoverDefaultsBuild').disabled = true;
+    try { defaults = await api('voices-build', {}); renderDefaults(); }
+    catch (error) { say(() => StudioI18n.remote(error.message)); }
+    finally { buttons(); }
+  };
+  el('voiceoverDefaultsCancel').onclick = async () => {
+    try { defaults = await api('voices-build-cancel', {}); renderDefaults(); } catch (error) { say(() => StudioI18n.remote(error.message)); }
   };
   el('voiceoverForm').onsubmit = async event => {
     event.preventDefault(); if (active || !prepared) return;

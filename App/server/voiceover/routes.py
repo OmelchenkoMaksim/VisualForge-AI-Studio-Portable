@@ -7,8 +7,8 @@ from gpu import Busy, GpuUnavailable
 
 MIME = {'.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.m4b': 'audio/mp4'}
 # Body limits per POST route; the bridge reads them before parsing (an uploaded book or voice arrives as base64 JSON).
-POST_LIMITS = {'prepare': 42 * 1024 * 1024, 'voice-add': 12 * 1024 * 1024, 'voice-delete': 4096, 'generate': 128 * 1024,
-               'cancel': 4096, 'settings': 8192, 'delete': 4096, 'clear-cache': 4096}
+POST_LIMITS = {'prepare': 42 * 1024 * 1024, 'voice-add': 34 * 1024 * 1024, 'voice-delete': 4096, 'generate': 128 * 1024,
+               'cancel': 4096, 'settings': 8192, 'delete': 4096, 'clear-cache': 4096, 'voices-build': 4096, 'voices-build-cancel': 4096}
 
 
 def serve_audio(handler, path, name):
@@ -81,6 +81,23 @@ def handle(handler, manager, gpu, route, data, query):
             answer = manager.add_voice(data)
         elif route == 'voice-delete' and data is not None:
             answer = manager.delete_voice(data)
+        elif route == 'voices-build' and data is not None:
+            from .registry import ENGINES, VOXCPM_ID
+            if manager.busy():
+                return handler.response_json(409, {'error': ui_text('voiceover.routes_gpu_already_busy_error')})
+            state = manager.engine_state(VOXCPM_ID)
+            if not state['available']:
+                return handler.response_json(503, {'error': state['reason']})
+            try:
+                # Making the voices uses VoxCPM2, so the card is claimed exactly like for a VoxCPM2 job.
+                gpu.claim('voiceover', ENGINES[VOXCPM_ID]['claim_vram_mb'])
+            except Busy as error:
+                return handler.response_json(409, {'error': str(error)})
+            except GpuUnavailable as error:
+                return handler.response_json(503, {'error': str(error)})
+            answer = manager.build_defaults()
+        elif route == 'voices-build-cancel' and data is not None:
+            answer = manager.cancel_defaults()
         elif route == 'delete' and data is not None:
             answer = manager.delete(data)
         elif route == 'cancel' and data is not None:

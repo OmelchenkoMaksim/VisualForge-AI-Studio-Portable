@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "notes": "Built-in voices of the Voiceover section. Each one is a NEW voice made by VoxCPM2 Voice Design from the text description (no real person is imitated); the studio generates several takes, listens to them with Whisper and keeps the best one (see docs/Voiceover.md). The first sentence of 'text' is spoken in every take, so the voices are comparable.",
+  "text": "Утро выдалось тихим и ясным. Над рекой стелился лёгкий туман, а в саду пахло свежескошенной травой. Анна поставила чайник, открыла окно и, не торопясь, села к столу, чтобы дописать письмо.",
+  "takes": 4,
+  "voices": [
+    {"slug": "woman-warm", "gender": "female", "name_key": "voiceover.default_voice_warm_woman_name", "seed": 1101,
+     "description": "A woman in her thirties, warm and soft voice, calm unhurried storytelling, natural and expressive"},
+    {"slug": "woman-announcer", "pitch_min": 190, "gender": "female", "name_key": "voiceover.default_voice_announcer_woman_name", "seed": 1201,
+     "description": "An adult woman, clear confident professional narrator voice, steady medium pace, neutral warm tone"},
+    {"slug": "woman-young", "pitch_min": 205, "gender": "female", "name_key": "voiceover.default_voice_young_woman_name", "seed": 1301,
+     "description": "A young woman in her twenties, bright friendly voice, lively but natural pace"},
+    {"slug": "woman-low", "gender": "female", "name_key": "voiceover.default_voice_low_woman_name", "seed": 1401,
+     "description": "A mature woman with a low calm voice, slow gentle pace, thoughtful audiobook narrator"},
+    {"slug": "man-deep", "pitch_max": 135, "gender": "male", "name_key": "voiceover.default_voice_deep_man_name", "seed": 2101,
+     "description": "A middle-aged man, deep warm baritone voice, slow calm audiobook narration"},
+    {"slug": "man-announcer", "gender": "male", "name_key": "voiceover.default_voice_announcer_man_name", "seed": 2201,
+     "description": "An adult man, clear confident professional narrator voice, steady medium pace, neutral tone"},
+    {"slug": "man-young", "pitch_min": 135, "gender": "male", "name_key": "voiceover.default_voice_young_man_name", "seed": 2301,
+     "description": "A young man in his twenties, friendly natural voice, relaxed conversational pace"},
+    {"slug": "man-elder", "gender": "male", "name_key": "voiceover.default_voice_elder_man_name", "seed": 2401,
+     "description": "An older man with a rich slightly husky voice, calm and wise, slow unhurried pace"}
+  ]
+}

@@ -441,9 +441,11 @@ let folderPickerSequence = 0;
 let folderPickerSaving = false;
 let folderPickerCommit = persistSaveDir;
 let folderPickerReturnFocus = chooseSaveDirButton;
-window.chooseStudioFolder = (path, commit, returnFocus) => {
+window.chooseStudioFolder = (path, commit, returnFocus, options = {}) => {
   if (folderPickerSaving) return;
   folderPickerCommit = commit; folderPickerReturnFocus = returnFocus;
+  StudioI18n.bind(byId('folderPickerTitle'), 'textContent', () => StudioI18n.t(options.titleKey || 'settings.folder_picker_choose_autosave'), false);
+  StudioI18n.bind(byId('folderPickerHint'), 'textContent', () => StudioI18n.t(options.hintKey || 'settings.folder_picker_select_drive_create_new_type_path'), false);
   folderPickerCurrent = '';
   folderPicker.hidden = false; folderPickerPath.focus(); browseSaveFolder(path, true);
 };

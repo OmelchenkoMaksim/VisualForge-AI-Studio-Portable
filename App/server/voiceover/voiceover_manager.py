@@ -5,6 +5,7 @@ Layout of a job (all scratch lives under the state root on the system drive, nev
 what resumes a stopped job), `state/<job id>/` request, fragment list, logs of that job. Voices are user data under
 `UserData/Voiceover/Voices`; finished files are published to the chosen output folder.
 """
+import ui_strings
 from ui_strings import source as ui_text
 import atexit
 import base64
@@ -24,7 +25,7 @@ import uuid
 
 from generation import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, remove as remove_event
 from video.owned import OwnedJob
-from . import assemble, pronunciation
+from . import assemble, defaults, pronunciation
 from .normalize import changes as normalization_changes, normalize as spoken_form
 from .registry import DEFAULT_ENGINE, ENGINES, ID, QWEN_ID, VOXCPM_ID, validate
 from .storage import publish, read_json, resolve_path, stored_path, write_json
@@ -39,7 +40,11 @@ WHISPER_FILES = ('config.json', 'model.safetensors', 'preprocessor_config.json',
 
 class VerifyUnavailable(RuntimeError):
     """The recognition step could not run; the job continues without verification."""
-MAX_VOICE_BYTES = 8 * 1024 * 1024
+MAX_VOICE_BYTES = 8 * 1024 * 1024        # one recording
+MAX_VOICE_FILES = 5
+MAX_VOICE_TOTAL_BYTES = 24 * 1024 * 1024  # all recordings of one voice together (the bridge's body limit for `voice-add` fits this as base64)
+MAX_VOICE_SECONDS = 45                    # of the joined sample: more adds nothing to a timbre and only costs memory
+VOICE_GAP_SECONDS = 0.4                   # silence between recordings, so one does not run into the next
 MAX_BOOK_BYTES = 30 * 1024 * 1024
 KEPT_BOOKS = 30
 NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
@@ -56,6 +61,33 @@ def _decode(value, limit, too_large):
         return base64.b64decode(value, validate=True)
     except ValueError:
         raise ValueError(ui_text('voiceover.manager_book_data_invalid_error')) from None
+
+
+def _join_wavs(parts, target, gap_seconds, limit_seconds):
+    """Joins PCM WAV files of one format (what ffmpeg wrote above) into `target` with a silent gap between them; returns the seconds.
+
+    The result is cut at `limit_seconds`, which only ever shortens the last recording."""
+    import wave
+    with wave.open(str(parts[0]), 'rb') as first:
+        params = first.getparams()
+    frame_bytes = params.sampwidth * params.nchannels
+    limit = int(limit_seconds * params.framerate) * frame_bytes
+    silence = bytes(int(gap_seconds * params.framerate) * frame_bytes)
+    joined = bytearray()
+    for index, part in enumerate(parts):
+        with wave.open(str(part), 'rb') as handle:
+            if handle.getparams()[:3] != params[:3]:
+                raise ValueError(ui_text('voiceover.manager_voice_audio_invalid_error'))
+            if index:
+                joined += silence
+            joined += handle.readframes(handle.getnframes())
+        if len(joined) >= limit:
+            break
+    del joined[limit:]
+    with wave.open(str(target), 'wb') as out:
+        out.setparams(params)
+        out.writeframes(bytes(joined))
+    return len(joined) / frame_bytes / params.framerate
 
 
 class VoiceoverManager:
@@ -84,6 +116,10 @@ class VoiceoverManager:
         self.cache = self.state / 'cache'
         self.books = self.state / 'books'
         self.voices_dir = Path(os.environ.get('VISUALFORGE_VOICEOVER_VOICES', paths.settings.parent / 'Voiceover/Voices')).resolve()
+        # Built-in voices are created on this machine (defaults_worker.py) next to the user's own; a subfolder keeps the library listing separate.
+        self.builtin_dir = self.voices_dir / 'builtin'
+        self.building = None
+        self.defaults_worker = Path(os.environ.get('VISUALFORGE_VOICEOVER_DEFAULTS_WORKER', Path(__file__).with_name('defaults_worker.py')))
         self.logs = paths.logs / 'Voiceover'
         self.settings_file = paths.settings / 'voiceover.settings.json'
         self.history_file = paths.settings / 'voiceover-history.json'
@@ -141,7 +177,7 @@ class VoiceoverManager:
 
     def busy(self):
         with self.lock:
-            return bool(self.active and self.active['state'] not in TERMINAL)
+            return bool(self.active and self.active['state'] not in TERMINAL) or bool(self.building and self.building['state'] == 'running')
 
     def settings(self, data=None):
         with self.lock:
@@ -167,21 +203,45 @@ class VoiceoverManager:
     # ---- voices --------------------------------------------------------------------------------------------------
 
     def voices(self):
+        """`voices` are the user's saved samples; `builtin` the ready built-in voices (made by `build_defaults`); `defaults` the state of that work."""
         rows = []
         for meta in self.voices_dir.glob('*.json') if self.voices_dir.is_dir() else []:
             row = read_json(meta, None)
             if isinstance(row, dict) and ID.fullmatch(str(row.get('id'))) and meta.with_suffix('.wav').is_file():
                 rows.append({key: row[key] for key in ('id', 'name', 'created', 'duration', 'transcript') if key in row})
-        return {'voices': sorted(rows, key=lambda row: row.get('created', 0), reverse=True)}
+        return {'voices': sorted(rows, key=lambda row: row.get('created', 0), reverse=True), 'builtin': self._builtin_ready(), 'defaults': self.defaults_state()}
+
+    def _builtin_config(self):
+        """The built-in voice descriptions, or None when the file is damaged (the page then simply offers no built-in voices)."""
+        try:
+            return defaults.load_config()
+        except (OSError, ValueError) as error:
+            print('Voiceover built-in voices unavailable: %s' % error, flush=True)
+            return None
+
+    def _builtin_ready(self):
+        config = self._builtin_config()
+        rows = []
+        for voice in config['voices'] if config else []:
+            ident = defaults.voice_id(voice['slug'])
+            meta = read_json(self.builtin_dir / (ident + '.json'), None)
+            if isinstance(meta, dict) and meta.get('id') == ident and (self.builtin_dir / (ident + '.wav')).is_file():
+                rows.append(dict(id=ident, name_key=voice['name_key'], gender=voice['gender'], duration=meta.get('duration', 0), description=voice['description']))
+        return rows
 
     def _voice(self, ident):
         if not isinstance(ident, str) or not ID.fullmatch(ident):
             raise ValueError(ui_text('voiceover.manager_voice_not_found_error'))
-        meta = read_json(self.voices_dir / (ident + '.json'), None)
-        audio = self.voices_dir / (ident + '.wav')
-        if not isinstance(meta, dict) or not audio.is_file():
-            raise ValueError(ui_text('voiceover.manager_voice_not_found_error'))
-        return meta, audio
+        for folder in (self.voices_dir, self.builtin_dir):
+            meta = read_json(folder / (ident + '.json'), None)
+            audio = folder / (ident + '.wav')
+            if isinstance(meta, dict) and audio.is_file():
+                if meta.get('builtin'):
+                    # Named in the language of the source catalog; the page shows the live translation. The key comes from the description file,
+                    # so it cannot be a literal `ui_text(...)` call (the key check of tests/test_i18n.py reads those); tests/test_voiceover.py checks every name key instead.
+                    meta['name'] = ui_strings.source(meta['name_key'])
+                return meta, audio
+        raise ValueError(ui_text('voiceover.manager_voice_not_found_error'))
 
     def voice_file(self, ident):
         return self._voice(ident)[1]
@@ -192,45 +252,136 @@ class VoiceoverManager:
             raise ValueError(ui_text('voiceover.manager_voice_name_required_error'))
         if data.get('consent') is not True:
             raise ValueError(ui_text('voiceover.manager_voice_consent_required_error'))
-        raw = _decode(data.get('audio'), MAX_VOICE_BYTES, ui_text('voiceover.manager_voice_file_too_large_error'))
+        # One recording (`audio`) or several (`audios`): they are joined into one sample, which gives the model more of the voice to learn from.
+        files = data.get('audios') if data.get('audios') is not None else [data.get('audio')]
+        if not isinstance(files, list) or not 1 <= len(files) <= MAX_VOICE_FILES:
+            raise ValueError(ui_text('voiceover.manager_voice_too_many_files_error') % MAX_VOICE_FILES)
+        raws = [_decode(item, MAX_VOICE_BYTES, ui_text('voiceover.manager_voice_file_too_large_error')) for item in files]
+        if sum(len(raw) for raw in raws) > MAX_VOICE_TOTAL_BYTES:
+            raise ValueError(ui_text('voiceover.manager_voice_file_too_large_error'))
         transcript = data.get('transcript', '')
         if not isinstance(transcript, str) or len(transcript) > 1000:
             raise ValueError(ui_text('voiceover.manager_voice_transcript_invalid_error'))
         transcript = ' '.join(transcript.split())
+        if transcript and len(raws) > 1:
+            raise ValueError(ui_text('voiceover.manager_voice_transcript_single_file_error'))  # the words belong to one recording
         ident = uuid.uuid4().hex
         self.voices_dir.mkdir(parents=True, exist_ok=True)
         scratch = self.state / 'voice-upload'
         scratch.mkdir(parents=True, exist_ok=True)
-        source = scratch / (ident + '.bin')
+        sources = [scratch / ('%s-%d.bin' % (ident, index)) for index in range(len(raws))]
+        parts = [path.with_suffix('.wav') for path in sources]
         target = self.voices_dir / (ident + '.wav')
         try:
-            source.write_bytes(raw)
-            # 24 kHz mono is what the model's speaker encoder uses; thirty seconds are plenty for a timbre.
-            done = subprocess.run([str(self.ffmpeg), '-nostdin', '-v', 'error', '-y', '-i', str(source), '-t', '30', '-vn', '-ac', '1', '-ar', '24000', '-c:a', 'pcm_s16le', str(target)],
-                                  capture_output=True, timeout=120, creationflags=NO_WINDOW)
-            if done.returncode != 0 or not target.is_file():
-                raise ValueError(ui_text('voiceover.manager_voice_audio_invalid_error'))
-            seconds = assemble.wav_info(target)[2]
+            for raw, source, part in zip(raws, sources, parts):
+                source.write_bytes(raw)
+                # 24 kHz mono is what the model's speaker encoder uses; thirty seconds of one recording are plenty for a timbre.
+                done = subprocess.run([str(self.ffmpeg), '-nostdin', '-v', 'error', '-y', '-i', str(source), '-t', '30', '-vn', '-ac', '1', '-ar', '24000', '-c:a', 'pcm_s16le', str(part)],
+                                      capture_output=True, timeout=120, creationflags=NO_WINDOW)
+                if done.returncode != 0 or not part.is_file():
+                    raise ValueError(ui_text('voiceover.manager_voice_audio_invalid_error'))
+            seconds = _join_wavs(parts, target, VOICE_GAP_SECONDS, MAX_VOICE_SECONDS)
             if seconds < 3:
                 raise ValueError(ui_text('voiceover.manager_voice_too_short_error'))
             write_json(self.voices_dir / (ident + '.json'), dict(
                 id=ident, name=name.strip(), created=time.time(), duration=round(seconds, 2), consent_confirmed=True, transcript=transcript,
-                sha256=hashlib.sha256(target.read_bytes()).hexdigest()))
+                parts=len(raws), sha256=hashlib.sha256(target.read_bytes()).hexdigest()))
         except Exception:
             target.unlink(missing_ok=True)
             raise
         finally:
-            source.unlink(missing_ok=True)
+            for path in sources + parts:
+                path.unlink(missing_ok=True)
         return {'id': ident, 'name': name.strip(), 'duration': round(seconds, 2)}
 
     def delete_voice(self, data):
         meta, audio = self._voice(data.get('id'))
+        if meta.get('builtin'):
+            raise ValueError(ui_text('voiceover.manager_voice_builtin_error'))
         with self.lock:
             if self.active and self.active['state'] not in TERMINAL and self.active.get('voice_id') == meta['id']:
                 raise ValueError(ui_text('voiceover.manager_voice_in_use_error'))
             audio.unlink(missing_ok=True)
             (self.voices_dir / (meta['id'] + '.json')).unlink(missing_ok=True)
         return {'deleted': True}
+
+    # ---- built-in voices -----------------------------------------------------------------------------------------
+
+    def defaults_state(self, ready=None):
+        """What the page needs to offer the built-in voices: how many exist, whether they can be made now, and the progress of making them."""
+        config = self._builtin_config()
+        ready = self._builtin_ready() if ready is None else ready
+        with self.lock:
+            row = self.building or {}
+            engine = self.engine_state(VOXCPM_ID)
+            return dict(state=row.get('state', 'idle'), phase=row.get('phase', ''), done=row.get('done', 0), total=row.get('total', 0), error=row.get('error', ''),
+                        failed=row.get('failed', []), ready=len(ready), wanted=len(config['voices']) if config else 0, can_build=bool(config) and engine['available'],
+                        reason='' if engine['available'] else engine['reason'])
+
+    def build_defaults(self):
+        """Starts making the built-in voices that do not exist yet (VoxCPM2 Voice Design, then Whisper picks the best take of each)."""
+        config = self._builtin_config()
+        if not config:
+            raise ValueError(ui_text('voiceover.manager_defaults_config_error'))
+        with self.lock:
+            if self.closing or self.busy():
+                raise ValueError(ui_text('voiceover.manager_busy_or_closing_error'))
+            state = self.engine_state(VOXCPM_ID)
+            if not state['available']:
+                raise ValueError(state['reason'])
+            self.building = row = dict(state='running', phase=ui_text('voiceover.job_phase_loading_model_label'), done=0, total=0, error='', failed=[], cancel_requested=False)
+            threading.Thread(target=self._build_defaults, args=(row, config), daemon=True).start()
+        return self.defaults_state()
+
+    def cancel_defaults(self):
+        with self.lock:
+            row = self.building
+            if row and row['state'] == 'running':
+                row['cancel_requested'] = True
+                row['phase'] = ui_text('voiceover.job_phase_cancelling_label')
+                if self.owned:
+                    self.owned.close()
+                elif self.process and self.process.poll() is None:
+                    self.process.terminate()
+        return self.defaults_state()
+
+    def _build_defaults(self, row, config):
+        directory = self.state / ('defaults-' + uuid.uuid4().hex)
+        log_path = self.logs / 'defaults.log'
+        try:
+            self.logs.mkdir(parents=True, exist_ok=True)
+            ready = {item['id'] for item in self._builtin_ready()}
+            voices = [dict(voice, id=defaults.voice_id(voice['slug'])) for voice in config['voices'] if defaults.voice_id(voice['slug']) not in ready]
+            if not voices:
+                with self.lock:
+                    row.update(state='done', phase=ui_text('voiceover.job_phase_completed_label'))
+                return
+            directory.mkdir(parents=True, exist_ok=False)
+            whisper = self.whisper_model()
+            write_json(directory / 'request.json', dict(
+                packages=[str(self.runtime / package) for package in ENGINES[VOXCPM_ID]['packages']], model=str(self.models[VOXCPM_ID]),
+                whisper=str(whisper) if whisper else '', text=config['text'], takes=config['takes'], voices=voices, out_dir=str(self.builtin_dir), engine=VOXCPM_ID))
+            phases = dict(loading=ui_text('voiceover.job_phase_loading_model_label'), synthesis=ui_text('voiceover.defaults_phase_creating_label'),
+                          listening=ui_text('voiceover.defaults_phase_listening_label'))
+            code = self._execute(row, [str(self.python), '-u', str(self.defaults_worker), str(directory / 'request.json')], self._environment(), directory, log_path,
+                                 self._progress_reader(row, phases))
+            if code is None:
+                with self.lock:
+                    row.update(state='cancelled', phase=ui_text('voiceover.job_phase_cancelled_label'))
+                return
+            if code != 0:
+                error = read_json(directory / 'error.json', {})
+                raise RuntimeError(error.get('error') or ui_text('voiceover.manager_worker_exited_error') % code)
+            outcome = read_json(directory / 'result.json', {}).get('voices', {})
+            failed = [voice['slug'] for voice in voices if outcome.get(voice['slug'], {}).get('chosen') is None]
+            with self.lock:
+                row.update(state='done', phase=ui_text('voiceover.job_phase_completed_label'), failed=failed)
+        except Exception as exc:
+            with self.lock:
+                row.update(state='error', phase=ui_text('voiceover.job_phase_error_label'), error=str(exc)[:1000])
+        finally:
+            self._release()
+            shutil.rmtree(directory, ignore_errors=True)  # the candidate takes are scratch; the chosen ones are already in the voices folder
 
     # ---- texts ---------------------------------------------------------------------------------------------------
 
@@ -712,6 +863,8 @@ class VoiceoverManager:
             self.closing = True
             if self.active and self.active['state'] not in TERMINAL:
                 self.active['cancel_requested'] = True
+            if self.building and self.building['state'] == 'running':
+                self.building['cancel_requested'] = True
             if self.owned:
                 self.owned.close()
             elif self.process and self.process.poll() is None:

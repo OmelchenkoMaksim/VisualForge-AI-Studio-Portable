@@ -11,6 +11,7 @@ namespace VisualForge {
         [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr icon);
         private readonly IDictionary state;
         private readonly Icon[] frames;
+        private readonly Icon idleIcon;
         private readonly Timer timer;
         private readonly ApplicationContext context;
         private int frame;
@@ -22,7 +23,7 @@ namespace VisualForge {
 
         public StudioTray(IDictionary sharedState, string imagePath) {
             state = sharedState;
-            frames = new Icon[24];
+            frames = new Icon[72];
             context = new ApplicationContext();
             try {
                 Size iconSize = SystemInformation.SmallIconSize;
@@ -45,25 +46,26 @@ namespace VisualForge {
                         }
                     }
                 }
-                // The shared ICO contains dedicated small sizes, avoiding another resize of the splash PNG at idle.
+                // Keep the size-optimized idle ICO out of the PNG rotation frames: substituting it at frame zero
+                // changes the logo's scale/alpha once per turn and makes an otherwise continuous loop jump.
                 string iconPath = System.IO.Path.ChangeExtension(imagePath, ".ico");
                 if (System.IO.File.Exists(iconPath)) {
                     using (Icon idle = new Icon(iconPath, iconSize)) {
-                        frames[0].Dispose();
-                        frames[0] = (Icon)idle.Clone();
+                        idleIcon = (Icon)idle.Clone();
                     }
                 }
                 Menu = new ContextMenuStrip();
                 Menu.Items.Add("Открыть приложение на весь экран", null, delegate { state["Open"] = true; });
                 Menu.Items.Add("Закрыть приложение полностью", null, delegate { state["Quit"] = true; });
                 Notification = new NotifyIcon();
-                Notification.Icon = frames[0];
+                Notification.Icon = idleIcon ?? frames[0];
                 Notification.Text = "VisualForge AI Studio";
                 Notification.ContextMenuStrip = Menu;
                 Notification.DoubleClick += delegate { state["Open"] = true; };
                 Notification.Visible = true;
                 timer = new Timer();
-                timer.Interval = 90;
+                // Smaller angular steps keep the same 2.16-second turn without the old 15-degree stepping.
+                timer.Interval = 30;
                 timer.Tick += delegate { Update(); };
                 timer.Start();
                 state["Shown"] = true;
@@ -74,10 +76,11 @@ namespace VisualForge {
             if ((bool)state["Close"]) { context.ExitThread(); return; }
             bool busy = (bool)state["Busy"];
             if (!busy && lastBusy == false) return;
+            if (lastBusy != busy)
+                Notification.Text = busy ? "VisualForge AI Studio · генерация" : "VisualForge AI Studio";
             lastBusy = busy;
             frame = busy ? (frame + 1) % frames.Length : 0;
-            Notification.Icon = frames[frame];
-            Notification.Text = busy ? "VisualForge AI Studio · генерация" : "VisualForge AI Studio";
+            Notification.Icon = busy ? frames[frame] : (idleIcon ?? frames[0]);
         }
         public void Run() { Application.Run(context); }
         public void Dispose() {
@@ -88,6 +91,7 @@ namespace VisualForge {
             if (Notification != null) { Notification.Visible = false; Notification.Dispose(); }
             if (Menu != null) Menu.Dispose();
             foreach (Icon icon in frames) if (icon != null) icon.Dispose();
+            if (idleIcon != null) idleIcon.Dispose();
             if (context != null) context.Dispose();
         }
     }

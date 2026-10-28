@@ -69,7 +69,7 @@ HISTORY = JobHistory(PATHS.settings / 'image-job-history.json', portable_root=PA
 GPU_SUBMISSION_LOCK = RLock()
 # Keep admission and start atomic so competing modules cannot both claim the GPU.
 # Locking every POST previously let a modal folder dialog block Stop.
-GPU_START_ROUTES = frozenset(('/api/generate', '/api/video/generate', '/api/music/generate', '/api/voiceover/generate', '/api/components/install', '/api/text/unload',
+GPU_START_ROUTES = frozenset(('/api/generate', '/api/video/generate', '/api/music/generate', '/api/voiceover/generate', '/api/voiceover/voices-build', '/api/components/install', '/api/text/unload',
                               '/api/components/model-toggle', '/api/components/model-remove-plan', '/api/components/model-remove', '/api/components/repair'))
 DIALOG_LOCK = Lock()
 # The launcher's splash waits for the page it opened (`?launch=<nonce>`) to report that its ComfyUI check finished.

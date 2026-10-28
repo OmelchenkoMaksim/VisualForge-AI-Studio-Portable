@@ -9,9 +9,12 @@ driven only against a fake worker, and no long job has been run.
 
 1. **Text.** `POST /api/voiceover/prepare` parses the text or the uploaded file (`text_prep.py`), keeps it under a draft id in
    `state/books/` and returns chapters, character and fragment counts and a duration *estimate* (14 characters per second).
-2. **Voice.** A voice is a 3–30 s sample the user adds with a name and a confirmation that they may use it. `voice-add` converts it
-   with ffmpeg to 24 kHz mono WAV and stores it, with a JSON card (name, length, SHA-256), in `UserData/Voiceover/Voices`.
-   The sample never leaves the machine. The card records the confirmation, the studio does not verify it.
+2. **Voice.** The voice list has three kinds of entry: the **built-in voices** (see "Built-in voices"), the user's saved voices and the last
+   entry «Свой голос…», which opens the form for one's own recordings. A saved voice is made of one recording or of up to five (`audios`, 8 MB
+   each, 24 MB together) that `voice-add` converts with ffmpeg to 24 kHz mono WAV and joins with 0.4 s of silence into one sample of at most 45 s (a
+   single recording is cut at 30 s); it is stored with a JSON card (name, length, parts, SHA-256) in `UserData/Voiceover/Voices`. The user's name and a
+   confirmation that they may use the voice are required. A transcript can only be given with a single recording. The sample never leaves the machine.
+   The card records the confirmation, the studio does not verify it.
 3. **Job.** `POST /api/voiceover/generate` validates the request, claims the GPU (`GPU.claim('voiceover', 4000)`), and starts one
    owned worker process (`worker.py`, in `Runtime/Video/python` with `voice-packages`, as the Video voice cloning does).
 4. **Assembly.** The manager joins the fragments with pauses (0.25 s between sentences, 0.6 s between paragraphs, 1.5 s between
@@ -38,6 +41,38 @@ and without text normalization (ours runs before). `torch.compile` costs about 1
 (`TORCHINDUCTOR_CACHE_DIR`); it is lazy, so a missing compiler would fail at the first fragment, and the worker then reloads the model without it
 (`compile_failed` event). `VISUALFORGE_VOICEOVER_VOXCPM_OPTIMIZE=0` switches it off. The voice card has an optional **transcript**; with it VoxCPM2 continues the
 sample, without it uses the sample as a reference (see "Measured: VoxCPM2"). The GPU claim is 9,000 MB for VoxCPM2 and 4,000 MB for Qwen3-TTS.
+
+## Built-in voices
+
+Eight voices (four female, four male; names «Женский · тёплый», «Женский · дикторский», «Женский · молодой», «Женский · низкий, спокойный», «Мужской · глубокий»,
+«Мужской · дикторский», «Мужской · молодой», «Мужской · старший, неторопливый») are in the voice list under «Встроенные голоса». The repository keeps no audio
+(`tools/check_repo.py` forbids it), so the studio **makes them on the user's machine**, once: the voice step shows «Создать встроенные голоса» while some are missing.
+The button needs VoxCPM2 (`POST /api/voiceover/voices-build`, GPU claim 9,000 MB; Stop is `voices-build-cancel`); the state is part of the `voices` answer
+(`defaults`: state, progress, ready, wanted, `can_build`).
+
+How a voice is made (`defaults_worker.py`, descriptions in `App/config/default-voices.json`): VoxCPM2 **Voice Design** turns an English description («A woman in
+her thirties, warm and soft voice…») into a new voice speaking a fixed 13-second Russian passage; four takes per voice (the seed is fixed, the result still differs
+a little between machines). The model is freed, Whisper listens to every take and a take is **offered only if** it is heard back word for word, its median pitch fits the
+gender (female ≥ 150 Hz, male ≤ 165 Hz, plus optional `pitch_min` / `pitch_max` of the voice, which keep two voices of one gender apart), it is 9–24 s long and not clipped; among those
+the pace closest to calm narration (14 characters per second) wins (`defaults.choose`). The chosen take is trimmed, normalized to about -3 dBFS and stored as a 24 kHz mono sample
+in `UserData/Voiceover/Voices/builtin/<id>.wav` with a JSON card (`builtin: true`, the description, the measurements). The ids are fixed (`defaults.voice_id`), so a rebuilt voice keeps its cached
+fragments only if the sample is byte-identical. Only missing voices are made; a voice without an acceptable take is reported in `defaults.failed`. Built-in voices cannot be deleted.
+Because the samples come from a description, **no real person's voice is copied**.
+
+Measured (2026-10-29, this machine, one run of the maker, then each voice used as a clone sample for four sentences with each engine):
+
+| | VoxCPM2 | Qwen3-TTS |
+|---|---|---|
+| Words heard wrongly by Whisper, 8 voices × 45 words | 0 | 4 (one sentence, «растаял» heard as «расстоял», in four voices) |
+| Similarity to the voice sample (speaker encoder cosine) | 0.989–0.993 | 0.986–0.990 |
+
+All 32 takes of the maker were heard back correctly; the takes of one description differ a lot in pitch (for «man-announcer» 126–190 Hz), which is why the
+description alone does not decide the voice and a take is chosen. The speaker encoder compresses all voices into a narrow band (different voices still score 0.89–0.98 against each other,
+male against female about 0.93–0.95), so these numbers show that cloning keeps the sample's identity, not how different the voices sound. **Not verified:** how natural the voices sound to a
+listener; only the owner can judge that by ear (every voice has a player in the voice step). A voice one does not like can be deleted by removing its files from `builtin/` and
+changing its `seed` or description in `default-voices.json`, then pressing the button again.
+
+A real job (5 paragraphs) with «Женский · тёплый» on Qwen3-TTS and «Мужской · глубокий» on VoxCPM2 finished with every fragment verified and nothing flagged.
 
 ## Fragments, resume and cache
 
@@ -143,8 +178,8 @@ The comparison with what recognition heard applies the same normalization to the
 `voiceover_manager.py` (voices, drafts, one job at a time, history `UserData/Settings/voiceover-history.json`, bounded log in
 `UserData/Logs/Voiceover/`), `verify_worker.py`, `compare.py`, `normalize.py`, `routes.py`, `storage.py`. Frontend: `voiceover.js`, `voiceover.css`, markup in `index.html`.
 Strings: `App/strings/voiceover.json`. Routes under `/api/voiceover/`: `availability`, `voices`, `voice-audio`, `voice-add`,
-`voice-delete`, `prepare`, `generate`, `active`, `status`, `history`, `result` and `fragment` (Range supported), `logs`, `cancel`, `delete`,
-`settings`, `clear-cache`.
+`voice-delete`, `voices-build`, `voices-build-cancel`, `prepare`, `generate`, `active`, `status`, `history`, `result` and `fragment` (Range supported), `logs`,
+`cancel`, `delete`, `settings`, `clear-cache`. The built-in voices add `defaults.py`, `defaults_worker.py` and `App/config/default-voices.json`.
 
 GPU: Voiceover is the fifth module of the coordinator (`gpu.py`). The worker exits with the job, so nothing stays in video memory.
 The banner's Stop button cancels it; Stop keeps the finished fragments. Event history: a `Voiceover` main event per job with a

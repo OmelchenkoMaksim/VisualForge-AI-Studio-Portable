@@ -276,20 +276,26 @@
       <h3><!--i18n:voiceover.step_voice_heading_label-->2. Голос</h3>
       <label for="voiceoverVoice"><!--i18n:voiceover.voice_select_field_label-->Голос</label>
       <select id="voiceoverVoice"></select>
+      <div id="voiceoverDefaults" class="voiceover-defaults" hidden>
+        <p id="voiceoverDefaultsStatus" class="muted"></p>
+        <progress id="voiceoverDefaultsProgress" max="1" value="0" hidden></progress>
+        <div class="voiceover-actions"><button id="voiceoverDefaultsBuild" type="button" class="secondary" disabled><!--i18n:voiceover.defaults_build_button_label-->Создать встроенные голоса</button><button id="voiceoverDefaultsCancel" type="button" class="cancel" hidden><!--i18n:voiceover.defaults_cancel_button_label-->Отмена</button></div>
+        <p class="muted"><!--i18n:voiceover.defaults_hint_paragraph_label-->Встроенные голоса студия создаёт сама: VoxCPM2 придумывает новые голоса по описанию (это не чьи-то реальные голоса), затем распознавание речи выбирает лучший дубль каждого. Это делается один раз, занимает несколько минут и требует VoxCPM2 (Настройки → Компоненты).</p>
+      </div>
       <audio id="voiceoverVoicePlayer" controls preload="none" hidden></audio>
-      <div class="voiceover-actions"><button id="voiceoverVoiceDelete" type="button" class="secondary" disabled><!--i18n:voiceover.voice_delete_button_label-->Удалить голос</button></div>
-      <details><summary><!--i18n:voiceover.voice_add_summary_label-->Добавить голос</summary>
+      <div class="voiceover-actions"><button id="voiceoverVoiceDelete" type="button" class="secondary" disabled hidden><!--i18n:voiceover.voice_delete_button_label-->Удалить голос</button></div>
+      <div id="voiceoverOwn" class="voiceover-own" hidden>
         <label for="voiceoverVoiceName"><!--i18n:voiceover.voice_name_field_label-->Название голоса</label>
         <input id="voiceoverVoiceName" type="text" maxlength="60">
-        <label for="voiceoverVoiceFile"><!--i18n:voiceover.voice_file_field_label-->Образец: чистая запись 10–30 секунд, без музыки</label>
-        <input id="voiceoverVoiceFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.ogg">
+        <label for="voiceoverVoiceFile"><!--i18n:voiceover.voice_file_field_label-->Образцы: одна или несколько чистых записей (до 5 файлов, вместе 10–45 секунд), без музыки</label>
+        <input id="voiceoverVoiceFile" type="file" multiple accept="audio/*,.wav,.mp3,.m4a,.flac,.ogg">
         <label for="voiceoverVoiceTranscript"><!--i18n:voiceover.voice_transcript_field_label-->Что сказано в образце (необязательно)</label>
         <textarea id="voiceoverVoiceTranscript" rows="2" maxlength="1000"></textarea>
         <p class="muted"><!--i18n:voiceover.voice_transcript_hint_paragraph_label-->Нужна только VoxCPM2: с точной расшифровкой он продолжает образец и ближе повторяет манеру речи, но в пробе читал слова немного хуже и медленнее, чем без неё. Обычно поле лучше оставить пустым. Qwen3-TTS расшифровку не использует.</p>
         <label class="voiceover-check" for="voiceoverVoiceConsent"><input id="voiceoverVoiceConsent" type="checkbox"><!--i18n:voiceover.voice_consent_checkbox_label-->У меня есть право использовать этот голос</label>
         <div class="voiceover-actions"><button id="voiceoverVoiceAdd" type="button" class="secondary"><!--i18n:voiceover.voice_add_button_label-->Сохранить голос</button></div>
         <p class="muted"><!--i18n:voiceover.voice_add_hint_paragraph_label-->Образец сохраняется в папке UserData/Voiceover/Voices этой установки и никуда не отправляется. Чужой голос без согласия использовать нельзя.</p>
-      </details>
+      </div>
       <h3><!--i18n:voiceover.step_options_heading_label-->3. Параметры</h3>
       <label for="voiceoverEngine"><!--i18n:voiceover.engine_field_label-->Движок озвучки</label>
       <select id="voiceoverEngine"></select>
@@ -475,7 +481,7 @@
 </main><div id="folderPicker" class="folder-picker" role="dialog" aria-modal="true" aria-labelledby="folderPickerTitle" hidden>
   <div class="folder-picker-window" tabindex="-1">
     <div class="folder-picker-heading"><h2 id="folderPickerTitle"><!--i18n:settings.folder_picker_choose_autosave-->Выбор папки автосохранения</h2><button type="button" id="folderPickerClose" class="secondary slim" aria-label="Закрыть" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.dialog_close_button_label&quot;}">✕</button></div>
-    <p class="save-subtitle"><!--i18n:settings.folder_picker_select_drive_create_new_type_path-->Выбери диск и папку. Чтобы создать новую, введи путь вручную в поле автосохранения.</p>
+    <p id="folderPickerHint" class="save-subtitle"><!--i18n:settings.folder_picker_select_drive_create_new_type_path-->Выбери диск и папку. Чтобы создать новую, введи путь вручную в поле автосохранения.</p>
     <div class="folder-picker-path-row">
       <label for="folderPickerPath"><!--i18n:settings.folder_picker_path_field_label-->Путь</label>
       <input id="folderPickerPath" type="text" spellcheck="false" autocomplete="off">

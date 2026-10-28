@@ -365,6 +365,52 @@ class Pronunciation(unittest.TestCase):
         self.assertEqual(suspect_words('я и он идут', 'идут'), [], 'words of one or two letters are not offered')
 
 
+class BuiltinVoiceDescriptions(unittest.TestCase):
+    def test_the_shipped_description_is_valid_and_every_voice_is_named_in_both_languages(self):
+        from voiceover import defaults
+        config = defaults.load_config()
+        catalog = json.loads((ROOT / 'App/strings/voiceover.json').read_text(encoding='utf-8'))
+        self.assertEqual(len(config['voices']), 8)
+        self.assertEqual({voice['gender'] for voice in config['voices']}, {'female', 'male'})
+        for voice in config['voices']:
+            self.assertTrue(catalog[voice['name_key']]['ru'] and catalog[voice['name_key']]['en'], voice['slug'])
+            self.assertRegex(defaults.voice_id(voice['slug']), r'^[0-9a-f]{32}$')
+        self.assertEqual(len({defaults.voice_id(voice['slug']) for voice in config['voices']}), 8)
+
+    def test_an_invalid_description_is_refused(self):
+        from voiceover import defaults
+        folder = Path(tempfile.mkdtemp(prefix='vf-defaults-'))
+        self.addCleanup(shutil.rmtree, folder, True)
+        good = dict(slug='a', gender='female', name_key='k', description='d', seed=1)
+        for bad in ({'version': 2, 'text': 't', 'voices': [good]}, {'version': 1, 'text': 't', 'voices': []}, {'version': 1, 'text': 't', 'takes': 99, 'voices': [good]},
+                    {'version': 1, 'text': 't', 'voices': [dict(good, gender='other')]}, {'version': 1, 'text': 't', 'voices': [good, good]}):
+            (folder / 'v.json').write_text(json.dumps(bad), encoding='utf-8')
+            with self.assertRaises(ValueError):
+                defaults.load_config(folder / 'v.json')
+
+    def test_the_best_take_is_the_acceptable_one_with_the_calmest_pace(self):
+        from voiceover.defaults import choose
+        take = dict(wrong=0, pitch=210.0, seconds=13.0, peak=0.7, rate=14.0)
+        self.assertEqual(choose([dict(take, rate=19.0), dict(take, rate=14.5), dict(take, rate=11.0)], 'female'), 1)
+        self.assertEqual(choose([dict(take, wrong=1, rate=14.0), dict(take, rate=17.0)], 'female'), 1, 'a take heard back wrongly is never chosen')
+        self.assertIsNone(choose([dict(take, pitch=120.0)], 'female'), 'a low voice is not an acceptable woman')
+        self.assertIsNone(choose([dict(take, pitch=210.0)], 'male'), 'a high voice is not an acceptable man')
+        self.assertEqual(choose([dict(take, pitch=110.0)], 'male'), 0)
+        self.assertIsNone(choose([dict(take, seconds=4.0), dict(take, peak=1.0), dict(take, seconds=40.0)], 'female'))
+
+    def test_the_pitch_of_a_tone_is_measured(self):
+        try:
+            import numpy as np
+        except ImportError:
+            raise unittest.SkipTest('numpy is not installed for the test interpreter') from None
+        from voiceover.defaults import median_pitch
+        rate = 16000
+        t = np.arange(rate * 2) / rate
+        voiced = (np.sin(2 * np.pi * 120 * t) + 0.5 * np.sin(2 * np.pi * 240 * t)).astype(np.float32)
+        self.assertAlmostEqual(median_pitch(voiced, rate), 120.0, delta=4.0)
+        self.assertEqual(median_pitch(np.zeros(rate, dtype=np.float32), rate), 0.0)
+
+
 class CatalogParity(unittest.TestCase):
     """The installer must put the files exactly where the engine looks for them, with pinned hashes."""
 
@@ -500,7 +546,8 @@ class Manager(unittest.TestCase):
                'VISUALFORGE_VOICEOVER_FFMPEG': str(FFMPEG), 'VISUALFORGE_VOICEOVER_WORKER': str(ROOT / 'tests/fake_voiceover_worker.py'),
                'VISUALFORGE_VOICEOVER_STATE_ROOT': str(self.temp / 'state'), 'VISUALFORGE_VOICEOVER_VERIFY_PYTHON': sys.executable,
                'VISUALFORGE_VOICEOVER_VERIFY_WORKER': str(ROOT / 'tests/fake_verify_worker.py'),
-               'VISUALFORGE_VOICEOVER_SPEECH_MODELS': str(self.temp / 'Speech'), 'VISUALFORGE_VOICEOVER_VOXCPM_MODEL': str(self.temp / 'voxmodel')}
+               'VISUALFORGE_VOICEOVER_SPEECH_MODELS': str(self.temp / 'Speech'), 'VISUALFORGE_VOICEOVER_VOXCPM_MODEL': str(self.temp / 'voxmodel'),
+               'VISUALFORGE_VOICEOVER_DEFAULTS_WORKER': str(ROOT / 'tests/fake_defaults_worker.py')}
         whisper = self.temp / 'Speech/whisper-turbo'
         whisper.mkdir(parents=True)
         for name in ('config.json', 'preprocessor_config.json', 'tokenizer.json'):
@@ -568,6 +615,122 @@ class Manager(unittest.TestCase):
         second = self.finish(self.manager.submit(self.request(engine='voxcpm2'))['id'])
         self.assertEqual(second['reused'], 0, 'another engine never reuses the first one\'s fragments')
         self.assertEqual((first['state'], second['state']), ('done', 'done'))
+
+    def wav_b64(self, name, seconds):
+        path = self.temp / name
+        tone(path, seconds, 44100)
+        return 'data:audio/wav;base64,' + base64.b64encode(path.read_bytes()).decode()
+
+    def test_several_recordings_are_joined_into_one_sample_with_a_gap(self):
+        voice = self.manager.add_voice(dict(name='Из двух', consent=True, audios=[self.wav_b64('a.wav', 4.0), self.wav_b64('b.wav', 5.0)]))
+        self.assertAlmostEqual(voice['duration'], 4.0 + 0.4 + 5.0, delta=0.15)
+        meta = json.loads((self.manager.voices_dir / (voice['id'] + '.json')).read_text(encoding='utf-8'))
+        self.assertEqual((meta['parts'], meta['transcript']), (2, ''))
+        with wave.open(str(self.manager.voice_file(voice['id'])), 'rb') as handle:
+            self.assertEqual((handle.getframerate(), handle.getnchannels()), (24000, 1))
+        self.assertEqual(self.manager.voices()['voices'][0]['id'], voice['id'])
+
+    def test_a_joined_sample_is_cut_at_the_limit(self):
+        parts = [self.wav_b64('p%d.wav' % index, 25.0) for index in range(3)]
+        voice = self.manager.add_voice(dict(name='Длинный', consent=True, audios=parts))
+        self.assertAlmostEqual(voice['duration'], 45.0, delta=0.1)
+
+    def test_several_recordings_refuse_a_transcript_and_a_crowd_of_files(self):
+        pair = [self.wav_b64('a.wav', 4.0), self.wav_b64('b.wav', 4.0)]
+        with self.assertRaises(ValueError):
+            self.manager.add_voice(dict(name='X', consent=True, transcript='слова', audios=pair))
+        with self.assertRaises(ValueError):
+            self.manager.add_voice(dict(name='X', consent=True, audios=pair * 3))
+        with self.assertRaises(ValueError):
+            self.manager.add_voice(dict(name='X', consent=True, audios=[]))
+        self.assertEqual(len(self.manager.voices()['voices']), 1, 'nothing was saved')
+
+    def test_the_builtin_voices_are_missing_until_they_are_made_and_cannot_be_made_without_voxcpm(self):
+        listing = self.manager.voices()
+        self.assertEqual((listing['builtin'], listing['defaults']['ready'], listing['defaults']['wanted']), ([], 0, 8))
+        self.assertFalse(listing['defaults']['can_build'])
+        with self.assertRaises(ValueError):
+            self.manager.build_defaults()
+        self.install_voxcpm()
+        self.assertTrue(self.manager.voices()['defaults']['can_build'])
+
+    def build(self):
+        self.manager.build_defaults()
+        deadline = time.time() + 60
+        while self.manager.defaults_state()['state'] == 'running' and time.time() < deadline:
+            time.sleep(0.1)
+        return self.manager.defaults_state()
+
+    def test_building_the_builtin_voices_gives_usable_undeletable_voices(self):
+        from voiceover import defaults
+        self.install_voxcpm()
+        state = self.build()
+        self.assertEqual((state['state'], state['ready'], state['failed']), ('done', 8, []), state)
+        listing = self.manager.voices()
+        self.assertEqual([item['id'] for item in listing['builtin']], [defaults.voice_id(voice['slug']) for voice in defaults.load_config()['voices']])
+        self.assertEqual(list(self.manager.state.glob('defaults-*')), [], 'the scratch folder of the candidate takes is removed afterwards')
+        ident = listing['builtin'][0]['id']
+        self.assertTrue(self.manager.voice_file(ident).is_file())
+        with self.assertRaises(ValueError):
+            self.manager.delete_voice(dict(id=ident))
+        self.assertTrue(self.manager.voice_file(ident).is_file(), 'the refusal leaves the voice in place')
+        row = self.finish(self.manager.submit(dict(self.request(), voice_id=ident))['id'])
+        self.assertEqual(row['state'], 'done', row.get('error'))
+        self.assertIn('·', row['voice_name'])
+        self.assertEqual(len(self.manager.voices()['voices']), 1, 'the built-in voices are not listed among the saved ones')
+
+    def test_a_second_build_makes_only_the_voices_that_are_missing(self):
+        from voiceover import defaults
+        self.install_voxcpm()
+        self.build()
+        gone = defaults.voice_id('man-deep')
+        (self.manager.builtin_dir / (gone + '.wav')).unlink()
+        self.assertEqual(self.manager.defaults_state()['ready'], 7)
+        seen = []
+        real = self.manager._execute
+
+        def spy(row, command, env, directory, log_path, on_line=lambda line: None):
+            seen.append(json.loads((directory / 'request.json').read_text(encoding='utf-8')))
+            return real(row, command, env, directory, log_path, on_line)
+        with mock.patch.object(self.manager, '_execute', spy):
+            state = self.build()
+        self.assertEqual((state['ready'], [item['slug'] for item in seen[0]['voices']]), (8, ['man-deep']))
+        self.assertEqual(Path(seen[0]['model']).name, 'voxmodel')
+        self.assertEqual([Path(item).name for item in seen[0]['packages']], ['voxcpm-packages', 'voice-packages'])
+        self.assertEqual(Path(seen[0]['whisper']).name, 'whisper-turbo')
+
+    def test_a_voice_without_an_acceptable_take_is_reported_not_hidden(self):
+        self.install_voxcpm()
+        with mock.patch.dict(os.environ, {'FAKE_DEFAULTS_SKIP': 'woman-low'}):
+            state = self.build()
+        self.assertEqual((state['state'], state['ready'], state['failed']), ('done', 7, ['woman-low']))
+
+    def test_a_failed_build_reports_the_error_and_can_be_repeated(self):
+        self.install_voxcpm()
+        with mock.patch.dict(os.environ, {'FAKE_DEFAULTS_FAIL': '1'}):
+            state = self.build()
+        self.assertEqual(state['state'], 'error')
+        self.assertIn('fake voice creation failure', state['error'])
+        self.assertEqual(self.build()['state'], 'done')
+
+    def test_a_build_blocks_voiceover_jobs_and_can_be_stopped(self):
+        self.install_voxcpm()
+        with mock.patch.dict(os.environ, {'FAKE_DEFAULTS_SLEEP': '30'}):
+            self.manager.build_defaults()
+            self.assertTrue(self.manager.busy())
+            with self.assertRaises(ValueError):
+                self.manager.submit(self.request())
+            with self.assertRaises(ValueError):
+                self.manager.build_defaults()
+            deadline = time.time() + 20
+            while not self.manager.owned and time.time() < deadline:
+                time.sleep(0.05)
+            self.manager.cancel_defaults()
+            while self.manager.defaults_state()['state'] == 'running' and time.time() < deadline:
+                time.sleep(0.1)
+        self.assertEqual(self.manager.defaults_state()['state'], 'cancelled')
+        self.assertFalse(self.manager.busy())
+        self.assertEqual(self.manager.defaults_state()['ready'], 0)
 
     def test_a_voice_transcript_must_be_text_of_reasonable_length(self):
         with self.assertRaises(ValueError):

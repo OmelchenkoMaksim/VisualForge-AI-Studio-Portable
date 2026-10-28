@@ -26,6 +26,8 @@ The gear button at the top right opens Components, Logs, model popup preferences
 
 Image, Video and Music share the disk/directory browser. Each saves its own output setting. Selecting a folder commits it immediately; cancel leaves the setting unchanged. On first opening, a missing configured directory falls back to its nearest existing parent without creating folders. Manual navigation still reports missing paths.
 
+The Agent project-folder button uses this same in-window browser with a project-specific title and hint. It stays above the studio content instead of opening a detached native dialog behind the application. Confirming updates only the agent's workspace; cancellation preserves it and output-folder settings are unaffected.
+
 Terminal jobs produce a persistent in-app notification and a short local synthesized chime: ascending for success, descending for errors. Cancelled jobs and opening historical results do not notify. Duplicate terminal responses are ignored. Browser audio is unlocked on the first pointer/key interaction; browser/Windows mute and autoplay restrictions still apply. Success opens the actual job output directory, independently of later setting changes. Errors open the module's bounded job log; pre-submission failures have no job log yet and show their message directly.
 
 The `/api/open-output-dir` POST route opens an existing absolute directory through Windows `os.startfile`, with the bridge's existing same-origin checks and a 4096-byte request limit. It does not create directories or change settings.
@@ -73,7 +75,7 @@ The launcher owns one notification icon with the normal VisualForge logo while t
 
 The idle tray icon uses the matching small size from the shared `visualforge-icon.ico`; animated frames use the system small-icon size without extra transparent padding. This keeps the logo readable beside the clock instead of shrinking it inside an oversized canvas.
 
-A dedicated STA WinForms loop animates 24 pre-rendered logo rotations every 90 ms while `/api/busy` reports generation. The supervisor polls once per loop (about one second); a temporary failed request keeps the last known state. Idle returns to the unrotated logo. This covers Image, Video, Music and Text, including voice prompt polishing. CPU-only exports and downloads do not rotate the generation icon. Animation and native icon/GDI handles are disposed on shutdown.
+A dedicated STA WinForms loop animates 72 pre-rendered logo rotations every 30 ms while `/api/busy` reports generation. All rotation frames use the PNG, including the frame at the end of each turn; the separate size-optimized ICO is used only while idle, so it cannot change the logo's scale/alpha once per turn. The supervisor polls once per loop (about one second); a temporary failed request keeps the last known state. Idle returns to the unrotated logo. This covers Image, Video, Music and Text, including voice prompt polishing. CPU-only exports and downloads do not rotate the generation icon. Animation and native icon/GDI handles are disposed on shutdown.
 
 Full exit first matches the exact isolated browser executable and complete profile argument, rechecks process identity, then terminates that process tree. The existing bridge/backend ownership checks remain mandatory; owned service trees are stopped including their workers, and workers also use kill-on-close job objects. Independently started Ollama, browsers and ComfyUI are preserved. Active studio work is interrupted when choosing full exit.
 
