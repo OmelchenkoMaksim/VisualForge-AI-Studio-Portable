@@ -61,6 +61,8 @@ def handle(handler, manager, gpu, route, data, query):
             answer = manager.log(ident)
         elif route == 'result' and data is None:
             return serve_audio(handler, manager.file(ident))
+        elif route == 'delete' and data is not None:
+            answer = manager.delete(data)
         elif route == 'cancel' and data is not None:
             answer = manager.cancel(data)
         elif route == 'generate' and data is not None:

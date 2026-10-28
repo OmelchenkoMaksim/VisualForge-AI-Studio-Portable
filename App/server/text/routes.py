@@ -1,5 +1,6 @@
 """HTTP endpoints of the Text module, served through the loopback bridge after its same-origin checks."""
 import json
+from generation import begin as generation_begin, finish as generation_finish
 from urllib.parse import parse_qs
 
 from text.manager import Busy
@@ -109,6 +110,7 @@ def send(handler, manager, store, data, admit):
     if images and not usable[model].get('vision'):
         raise ValueError('Выбранная модель не умеет работать с изображениями')
     cancel = admit(chat_id)
+    generation_info = generation_begin('Text')
     content, thinking, final = [], [], None
 
     def emit(event):
@@ -121,6 +123,7 @@ def send(handler, manager, store, data, admit):
 
     try:
         chat = store.prepare_regenerate(chat_id) if regenerate else store.add_user(chat_id, question, images)
+        chat = store.update_generation(chat_id, generation_info, request=True)
         handler.send_response(200)
         handler.send_header('Content-Type', 'application/x-ndjson; charset=utf-8')
         handler.send_header('Cache-Control', 'no-store')
@@ -129,6 +132,7 @@ def send(handler, manager, store, data, admit):
         handler.end_headers()
         error = ''
         try:
+            emit(dict(type='status', phase='Подготовка ответа…', generation=generation_info))
             if not manager.alive():
                 emit(dict(type='status', phase='Запуск Ollama…'))
             manager.start()
@@ -138,7 +142,7 @@ def send(handler, manager, store, data, admit):
             for m in chat['messages']:
                 if m['content'].strip() or m.get('images'):
                     history.append(dict(role=m['role'], content=m['content'], **({'images': store.images_b64(chat_id, m)} if m.get('images') else {})))
-            for row in manager.stream_chat(model, history, chat.get('think', True), cancel):
+            for row in manager.stream_chat(model, history, chat.get('think', True), cancel, generation_id=generation_info['id']):
                 message = row.get('message') or {}
                 piece, thought = message.get('content') or '', message.get('thinking') or ''
                 if piece or thought:
@@ -153,14 +157,20 @@ def send(handler, manager, store, data, admit):
             error = str(failure)[:500] or 'Не удалось получить ответ от модели'
         text, thought = ''.join(content), ''.join(thinking)
         stopped = cancel.is_set() and final is None
+        generation_finish(generation_info, state='error' if error else 'cancelled' if stopped else 'done' if text.strip() or thought.strip() else 'error')
         if text.strip() or thought.strip():
-            chat, saved = store.add_assistant(chat_id, text, thought, model, _stats(final, dict(num_ctx=manager.context_length(model))) if final else None, stopped, error)
+            chat, saved = store.add_assistant(chat_id, text, thought, model, _stats(final, dict(num_ctx=manager.context_length(model))) if final else None, stopped, error, generation=generation_info)
             result = dict(type='done', message=saved, chat=dict(id=chat['id'], title=chat['title'], updated=chat['updated']))
         else:
-            result = dict(type='error', error=error or ('Ответ остановлен до первых слов' if stopped else 'Модель вернула пустой ответ'))
+            result = dict(type='error', error=error or ('Ответ остановлен до первых слов' if stopped else 'Модель вернула пустой ответ'), generation=generation_info)
         try:
             emit(dict(result, error=error) if result['type'] == 'done' and error else result)
         except Disconnected:
             pass
     finally:
-        manager.end(chat_id)
+        if generation_info.get('duration_sec') is None:
+            generation_finish(generation_info, state='cancelled' if cancel.is_set() else 'error')
+        try:
+            store.update_generation(chat_id, generation_info)
+        finally:
+            manager.end(chat_id)

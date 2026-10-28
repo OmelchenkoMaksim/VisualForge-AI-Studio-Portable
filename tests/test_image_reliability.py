@@ -15,7 +15,7 @@ import server
 
 class HistoryTests(unittest.TestCase):
     def setUp(self):
-        self.temp_root = Path(__file__).resolve().parents[1] / 'reports/test-temp'
+        self.temp_root = Path(tempfile.gettempdir()) / 'image-history-tests'
         self.temp_root.mkdir(parents=True, exist_ok=True)
         self.directory = tempfile.TemporaryDirectory(dir=self.temp_root)
         self.root = Path(self.directory.name)

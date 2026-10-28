@@ -89,6 +89,10 @@ class ServiceExportTests(unittest.TestCase):
         self.assertEqual(Path(row['saved_path']).parent, self.output)
         self.assertTrue(Path(row['saved_path']).is_file())
         self.assertEqual(row['receipt']['delivered']['width'], 720)
+        self.assertEqual(row['receipt']['generation'], row['generation'])
+        self.assertEqual(row['generation']['id'], started['generation']['id'])
+        metadata = json.loads(Path(row['saved_path']).with_suffix('.delivery.json').read_text(encoding='utf-8'))
+        self.assertEqual(metadata['generation'], row['generation'])
         self.assertEqual(self.clips['sound'].read_bytes(), before)
         self.assertIsNone(self.jobs.export_status('')['export'])
 

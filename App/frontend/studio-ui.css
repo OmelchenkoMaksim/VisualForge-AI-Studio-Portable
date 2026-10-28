@@ -24,3 +24,9 @@ body.studio-busy [data-allow-busy]:not(:disabled):not(.voice-bar):not(.voice-bar
 .studio-settings-toggle {display:grid;place-items:center;padding:0;}
 .studio-settings-menu {position:absolute;right:0;width:200px;padding:6px;border-radius:var(--r-l);}
 .studio-settings-menu button {display:block;width:100%;padding:10px 12px;border-radius:var(--r-s);background:transparent;text-align:left;font-size:14px;}
+
+.generation-info { flex-basis:100%; margin-top:8px; font-size:12px; overflow-wrap:anywhere; }
+.generation-info summary { cursor:pointer; color:var(--muted); }
+.generation-info dl { margin:8px 0; }
+.generation-info dt { font-weight:600; }
+.generation-info dd { margin:0 0 6px; }

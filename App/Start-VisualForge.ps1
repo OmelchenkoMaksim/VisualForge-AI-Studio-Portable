@@ -70,6 +70,7 @@ $profileDir = Join-Path $profileBase 'qwen-studio-v3'
 $mutex = [System.Threading.Mutex]::new($false, 'Local\QwenImageStudioPortableV3_Lifecycle')
 $hasLock = $false
 $startedBrowser = $false
+$shutdownStarted = ($Mode -eq 'Cleanup')
 $ownedServerThisRun = $false
 $ownedUiThisRun = $false
 $utf8 = New-Object System.Text.UTF8Encoding($false)
@@ -351,7 +352,7 @@ function Test-V2-InUse {
     }
     return $false
 }
-function Stop-ExactProcess([object]$process, [string]$description, [switch]$Tree) {
+function Stop-ExactProcess([object]$process, [string]$description, [switch]$Tree, [switch]$SkipChangedIdentity) {
     $targetPid = [int]$process.ProcessId
     # Recheck the process creation time and command line to reject PID reuse.
     $again = Get-CimInstance Win32_Process -Filter ('ProcessId = '+$targetPid) -ErrorAction Stop
@@ -359,6 +360,10 @@ function Stop-ExactProcess([object]$process, [string]$description, [switch]$Tree
     if (-not [string]::Equals([string]$again.ExecutablePath,[string]$process.ExecutablePath,[StringComparison]::OrdinalIgnoreCase) -or
         -not [string]::Equals([string]$again.CommandLine,[string]$process.CommandLine,[StringComparison]::Ordinal) -or
         [math]::Abs((([datetime]$again.CreationDate).ToUniversalTime()-([datetime]$process.CreationDate).ToUniversalTime()).TotalSeconds) -gt 2) {
+        if ($SkipChangedIdentity) {
+            Log ($description+' identity changed or became incomplete; left untouched: PID '+$targetPid)
+            return
+        }
         throw ('PID reuse/identity change: '+$targetPid+'. Refusing termination.')
     }
     Log ('FORCE STOP '+$description+' PID '+$targetPid+' (active jobs may be interrupted)')
@@ -388,7 +393,9 @@ function Stop-StudioBrowserWindows {
                 $command = [string]$candidate.CommandLine
                 if (-not (Test-StudioBrowserCommand $command $expectedProfile)) { continue }
                 if (-not [string]::Equals([string]$candidate.ExecutablePath,$browser,[StringComparison]::OrdinalIgnoreCase)) { continue }
-                Stop-ExactProcess $candidate 'VisualForge isolated browser' -Tree
+                # Stopping a browser tree invalidates pre-enumerated child snapshots.
+                # Skip stale entries without ever terminating a replacement process.
+                Stop-ExactProcess $candidate 'VisualForge isolated browser' -Tree -SkipChangedIdentity
             }
         }
     }
@@ -547,6 +554,7 @@ try {
         }
         if ((Get-ProfileWindows $profileDir) -eq 0) {$gone++} else {$gone=0}
     }
+    $shutdownStarted = $true
     Log 'Window closed.'
     Lock-Lifecycle
     try {
@@ -564,7 +572,8 @@ try {
         Lock-Lifecycle
         try { if (-not $startedBrowser) {Stop-Managed} } finally {Unlock-Lifecycle}
     } catch {Log ('Cleanup failed: '+$_.Exception.Message)}
-    $message='Не удалось запустить VisualForge AI Studio. Подробности в журнале: '+$runLog
+    $message = if ($shutdownStarted) { 'Не удалось полностью закрыть VisualForge AI Studio. Подробности в журнале: '+$runLog }
+               else { 'Не удалось запустить VisualForge AI Studio. Подробности в журнале: '+$runLog }
     try {
         Add-Type -AssemblyName System.Windows.Forms
         [void][System.Windows.Forms.MessageBox]::Show($message,'VisualForge AI Studio',[System.Windows.Forms.MessageBoxButtons]::OK,[System.Windows.Forms.MessageBoxIcon]::Error)

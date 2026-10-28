@@ -82,6 +82,9 @@ class MixerServiceTests(unittest.TestCase):
         entry = self.jobs.rows[row['result_id']]
         self.assertEqual((entry['state'], entry['derived_from'], entry['derived_kind']), ('done', self.ids['clip'], 'mix'))
         self.assertEqual(entry['output_path'], str(saved))
+        self.assertEqual(entry['generation'], row['generation'])
+        self.assertEqual(row['receipt']['generation'], row['generation'])
+        self.assertNotEqual(entry['generation']['id'], (self.jobs.rows[self.ids['clip']].get('generation') or {}).get('id'))
         self.assertIn('Calm piano', entry['mix_summary'])
         self.assertTrue(entry['metadata']['has_audio'])
         self.assertEqual(self.jobs.rows[self.ids['clip']]['output_path'], str(self.clip))

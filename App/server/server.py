@@ -34,6 +34,7 @@ from engines.registry import DEFAULT_ENGINE, get_engine
 from engines.workflow_builder import validate_request, build_workflow, collect_outputs, collect_expansion, resolve_expansion, resolve_workflow_mode
 from engines.preflight import all_readiness, engine_readiness, upscale_available
 from job_history import JobHistory
+from generation import begin as generation_begin, finish as generation_finish, configure as configure_events, history as event_history, remove as remove_event
 from gpu import Busy, GpuCoordinator, GpuUnavailable
 from model_policy import ModelPolicy, apply_profiles
 
@@ -110,6 +111,8 @@ STATIC['/text.js'] = ('static/text.js', 'application/javascript; charset=utf-8')
 STATIC['/text.css'] = ('static/text.css', 'text/css; charset=utf-8')
 STATIC['/agent.js'] = ('static/agent.js', 'application/javascript; charset=utf-8')
 STATIC['/agent.css'] = ('static/agent.css', 'text/css; charset=utf-8')
+STATIC['/event-history.js'] = ('static/event-history.js', 'application/javascript; charset=utf-8')
+STATIC['/event-history.css'] = ('static/event-history.css', 'text/css; charset=utf-8')
 STATIC['/voice.js'] = ('static/voice.js', 'application/javascript; charset=utf-8')
 STATIC['/voice-gate.js'] = ('static/voice-gate.js', 'application/javascript; charset=utf-8')
 STATIC['/voice-worklet.js'] = ('static/voice-worklet.js', 'application/javascript; charset=utf-8')
@@ -596,6 +599,9 @@ class Handler(BaseHTTPRequestHandler):
     server_version = 'LocalQwenUI/3.1'
 
     def log_message(self, fmt, *args):
+        # The independent journal must not feed its reads/session IDs back into the existing HTTP log.
+        if urlparse(self.path).path in ('/api/event-history', '/api/event-history/session'):
+            return
         if self.command == 'GET' and self.path.startswith('/api/music/') and len(args) > 1 and str(args[1]) in ('200', '206'):
             return  # Music polling belongs in job state, not repetitive access logs.
         print('%s %s' % (self.log_date_time_string(), fmt % args), flush=True)
@@ -676,7 +682,7 @@ class Handler(BaseHTTPRequestHandler):
                     pass
                 return
             if route not in ('generate', 'cancel', 'status', 'history', 'settings', 'logs', 'prompts', 'active',
-                             'export', 'export-cancel', 'export-status', 'export-preview', 'mix', 'mix-preview'):
+                             'export', 'export-cancel', 'export-status', 'export-preview', 'mix', 'mix-preview', 'delete'):
                 return self.response_json(404, {'error': 'Unknown Video endpoint'})
             if route in ('mix', 'mix-preview'):
                 try:
@@ -799,6 +805,8 @@ class Handler(BaseHTTPRequestHandler):
         with JOBS_LOCK:
             meta = JOB_META.get(ident) or {}
             existing = meta.get('saved_files')
+        if not meta:
+            raise ValueError('Задача удалена или недоступна для сохранения')
         if existing is not None:
             return existing, str(meta.get('save_dir') or load_settings()['save_dir'])
         settings = load_settings()
@@ -809,6 +817,7 @@ class Handler(BaseHTTPRequestHandler):
         quality = str(meta.get('quality', 'low'))
         upscale = int(meta.get('upscale', 1))
         mode = str(meta.get('mode', 'single'))
+        meta['comfy_files'] = [{'filename': item['filename'], 'subfolder': item.get('subfolder', ''), 'type': item.get('type', 'output')} for item in outputs]
         saved = []
         for index, item in enumerate(outputs, start=1):
             filename = str(item.get('filename', 'result.png'))
@@ -859,6 +868,9 @@ class Handler(BaseHTTPRequestHandler):
                 failing = False
                 if not history:
                     continue
+                for detail in meta.get('_technical', []):
+                    generation_finish(detail, state='error')
+                generation_finish(meta.get('generation'), state='error')
                 # ComfyUI writes the history entry when the run ends, successful or not: an error has nothing to save either
                 # (it used to keep this thread polling every 3 s for two hours).
                 return
@@ -866,6 +878,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not failing:  # once per outage, not every 3 s
                     print('[autosave] attempt pending or failed: ' + str(type(exc).__name__), flush=True)
                 failing = True
+        with JOBS_LOCK:
+            expired = JOB_META.get(ident) or {}
+        for detail in expired.get('_technical', []):
+            generation_finish(detail, state='interrupted')
+        generation_finish(expired.get('generation'), state='interrupted')
         print('[autosave] job watch timed out', flush=True)
 
     def list_save_dirs(self, raw_path, initial=False):
@@ -1065,6 +1082,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self.result(qs.get('id', [''])[0], qs.get('index', ['0'])[0])
             if u.path == '/api/settings':
                 return self.response_json(200, load_settings())
+            if u.path == '/api/event-history':
+                import sqlite3
+                try:
+                    return self.response_json(200, event_history().page(u.query))
+                except ValueError as error:
+                    return self.response_json(400, {'error': str(error)})
+                except (sqlite3.Error, OSError):
+                    return self.response_json(503, {'error': 'История событий недоступна. Проверьте доступ к папке UserData и свободное место.'})
             if u.path == '/api/history':
                 return self.response_json(200, {'entries': HISTORY.completed(), 'warning': HISTORY.warning})
             if u.path == '/api/favorites':
@@ -1153,21 +1178,21 @@ class Handler(BaseHTTPRequestHandler):
         try:
             route = urlparse(self.path).path
             is_video = route in ('/api/video/generate', '/api/video/cancel', '/api/video/settings', '/api/video/prompts',
-                                 '/api/video/export', '/api/video/export-cancel', '/api/video/mix', '/api/video/mix-preview')
-            is_music = route in ('/api/music/generate', '/api/music/cancel', '/api/music/settings')
+                                 '/api/video/export', '/api/video/export-cancel', '/api/video/mix', '/api/video/mix-preview', '/api/video/delete')
+            is_music = route in ('/api/music/generate', '/api/music/cancel', '/api/music/settings', '/api/music/delete')
             is_text = route in ('/api/text/chats', '/api/text/chat-rename', '/api/text/chat-update', '/api/text/chat-delete', '/api/text/settings',
                                 '/api/text/stop', '/api/text/unload')
             is_components = route in ('/api/components/install', '/api/components/cancel', '/api/components/model-toggle', '/api/components/model-remove-plan', '/api/components/model-remove', '/api/components/repair', '/api/components/recovery-answer', '/api/components/recovery-file')
             is_speech = route in ('/api/speech/settings', '/api/speech/unload', '/api/speech/prepare')
             is_agents = route in ('/api/agents/chats', '/api/agents/chat-update', '/api/agents/permission', '/api/agents/stop', '/api/agents/settings',
                                   '/api/agents/choose-workspace')
-            if not is_video and not is_music and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
+            if not is_video and not is_music and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
                 return self.response_json(404, {'error': 'Not found'})
             size = int(self.headers.get('Content-Length', '0') or '0')
-            max_size = 4096 if route in ('/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
+            max_size = 4096 if route in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
             if is_video:
                 max_size = {'generate': 100 * 1024 * 1024, 'cancel': 4096, 'settings': 8192, 'prompts': 32768,
-                            'export': 4096, 'export-cancel': 4096, 'mix': 16384, 'mix-preview': 16384}[route.rsplit('/', 1)[-1]]
+                            'export': 4096, 'export-cancel': 4096, 'mix': 16384, 'mix-preview': 16384, 'delete': 4096}[route.rsplit('/', 1)[-1]]
             if is_music:
                 max_size = 40000
             if is_text:
@@ -1186,6 +1211,13 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(body)
             if not isinstance(data, dict):
                 raise ValueError('Ожидается JSON-объект')
+            if route == '/api/event-history/session':
+                return self.microphone_event(data)
+            if route == '/api/history/delete':
+                try:
+                    return self.delete_image(data)
+                except OSError as error:
+                    return self.response_json(500, {'error': 'Не удалось удалить все файлы генерации. Запись сохранена для повторной попытки: ' + str(error)[:500]})
             if is_text:
                 from text.routes import handle as text_handle
                 return text_handle(self, TEXT, TEXT_STORE, route.removeprefix('/api/text/'), data, '')
@@ -1278,11 +1310,19 @@ class Handler(BaseHTTPRequestHandler):
             ident = answer['prompt_id']
             token = secrets.token_urlsafe(32)
             submitted_at = time.time()
+            generation_info = generation_begin('Image')
+            technical = []
+            if expand and engine.expand_nodes:
+                technical.append(generation_begin('ImagePromptExpansion', parent_id=generation_info['id']))
+            for _ in range({1: 0, 2: 1, 4: 2}[upscale]):
+                technical.append(generation_begin('ImageUpscale', parent_id=generation_info['id']))
             filename_base = build_filename_base(original_prompt, selected_mode, submitted_at, operation=operation, upscale=upscale)
             with JOBS_LOCK:
                 JOB_TOKENS[ident] = token
                 JOB_META[ident] = {
                     **engine_meta,
+                    'generation': generation_info,
+                    '_technical': technical,
                     'quality': quality,
                     'steps': engine.quality_steps[quality],
                     'upscale': upscale,
@@ -1293,6 +1333,7 @@ class Handler(BaseHTTPRequestHandler):
                     'filename_base': filename_base,
                     'original_prompt': original_prompt,
                     'save_dir': load_settings()['save_dir'],
+                    'input_files': [value for value in (input1, input2) if value],
                 }
                 SAVE_LOCKS[ident] = Lock()
             print('[generation] ' + json.dumps({k: engine_meta[k] for k in ('engine', 'workflow_version', 'seed', 'sampler_parameters', 'workflow_sha256')}, ensure_ascii=True), flush=True)
@@ -1300,6 +1341,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.response_json(200, {
                 **engine_meta,
                 'prompt_id': ident,
+                'generation': generation_info,
                 'cancel_token': token,
                 'quality': quality,
                 'steps': engine.quality_steps[quality],
@@ -1389,6 +1431,19 @@ class Handler(BaseHTTPRequestHandler):
         })
 
     def status(self, ident):
+        def reply(code, payload):
+            receipt = HISTORY.get(ident)
+            with JOBS_LOCK:
+                metadata = JOB_META.get(ident) or {}
+            record = (receipt or metadata).get('generation')
+            if record:
+                if payload.get('state') in ('done', 'error', 'cancelled') and record.get('duration_sec') is None:
+                    for detail in metadata.get('_technical', []):
+                        generation_finish(detail, state=payload['state'])
+                    generation_finish(record, payload.get('elapsed_sec'), state=payload['state'])
+                payload['generation'] = record
+            return self.response_json(code, payload)
+
         try:
             uuid.UUID(ident)
         except (ValueError, TypeError, AttributeError):
@@ -1396,18 +1451,18 @@ class Handler(BaseHTTPRequestHandler):
         receipt = HISTORY.get(ident)
         if receipt:
             if receipt['state'] == 'cancelled':
-                return self.response_json(200, {'state': 'cancelled', 'elapsed_sec': receipt['elapsed_sec']})
+                return reply(200, {'state': 'cancelled', 'elapsed_sec': receipt['elapsed_sec']})
             files = receipt['saved_files']
             if files and all(Path(p).is_file() for p in files):
-                return self.response_json(200, {'state': 'done', 'images': len(files), 'saved_count': len(files), 'elapsed_sec': receipt['elapsed_sec'], 'save_dir': str(Path(files[0]).parent), 'expanded_prompt': receipt.get('expanded_prompt', '')})
-            return self.response_json(200, {'state': 'error', 'error': 'Сохранённые файлы сейчас недоступны. Проверьте папку результатов или подключение диска.'})
+                return reply(200, {'state': 'done', 'images': len(files), 'saved_count': len(files), 'elapsed_sec': receipt['elapsed_sec'], 'save_dir': str(Path(files[0]).parent), 'expanded_prompt': receipt.get('expanded_prompt', '')})
+            return reply(200, {'state': 'error', 'error': 'Сохранённые файлы сейчас недоступны. Проверьте папку результатов или подключение диска.'})
         with JOBS_LOCK:
             meta = JOB_META.get(ident) or {}
             cancelling = ident in CANCELLING
         elapsed = int(time.time() - meta.get('submitted_at', time.time()))
         if cancelling:
             if self.job_is_queued_or_running(ident):
-                return self.response_json(200, {'state': 'cancelling', 'elapsed_sec': elapsed})
+                return reply(200, {'state': 'cancelling', 'elapsed_sec': elapsed})
             with JOBS_LOCK:
                 CANCELLING.discard(ident)
                 JOB_TOKENS.pop(ident, None)
@@ -1415,9 +1470,9 @@ class Handler(BaseHTTPRequestHandler):
             outputs = self.job_outputs(ident, history)
             if outputs:
                 saved, save_dir = self.maybe_save_outputs(ident, outputs)
-                return self.response_json(200, {'state': 'done', 'images': len(outputs), 'elapsed_sec': elapsed, 'saved_count': len(saved), 'save_dir': save_dir, 'expanded_prompt': meta.get('expanded_prompt', '')})
+                return reply(200, {'state': 'done', 'images': len(outputs), 'elapsed_sec': elapsed, 'saved_count': len(saved), 'save_dir': save_dir, 'expanded_prompt': meta.get('expanded_prompt', '')})
             HISTORY.record(ident, 'cancelled', meta, elapsed_sec=elapsed)
-            return self.response_json(200, {'state': 'cancelled', 'elapsed_sec': elapsed})
+            return reply(200, {'state': 'cancelled', 'elapsed_sec': elapsed})
 
         history = self.fetch_history(ident)
         if not history:
@@ -1425,32 +1480,97 @@ class Handler(BaseHTTPRequestHandler):
             if queue.get('location') == 'running':
                 payload = {'state': 'running', 'elapsed_sec': elapsed, **queue}
                 payload.update(self.progress_info(ident))
-                return self.response_json(200, payload)
+                return reply(200, payload)
             if queue.get('location') == 'pending':
-                return self.response_json(200, {'state': 'queued', 'elapsed_sec': elapsed, **queue})
-            return self.response_json(200, {'state': 'queued', 'elapsed_sec': elapsed})
+                return reply(200, {'state': 'queued', 'elapsed_sec': elapsed, **queue})
+            return reply(200, {'state': 'queued', 'elapsed_sec': elapsed})
 
         outputs = self.job_outputs(ident, history)
         info = history.get('status', {})
         if outputs:
             try:
                 saved, save_dir = self.maybe_save_outputs(ident, outputs)
-                return self.response_json(200, {'state': 'done', 'images': len(outputs), 'elapsed_sec': elapsed, 'saved_count': len(saved), 'save_dir': save_dir, 'expanded_prompt': meta.get('expanded_prompt', '')})
+                return reply(200, {'state': 'done', 'images': len(outputs), 'elapsed_sec': elapsed, 'saved_count': len(saved), 'save_dir': save_dir, 'expanded_prompt': meta.get('expanded_prompt', '')})
             except (OSError, ValueError, HTTPError, URLError, TimeoutError) as exc:
-                return self.response_json(200, {'state': 'done', 'images': len(outputs), 'elapsed_sec': elapsed, 'saved_count': 0, 'save_error': str(exc)[:300]})
+                return reply(200, {'state': 'done', 'images': len(outputs), 'elapsed_sec': elapsed, 'saved_count': 0, 'save_error': str(exc)[:300]})
         if info.get('completed') is False:
             errors = [m for m in info.get('messages', []) if m and m[0] == 'execution_error']
             if errors:
-                return self.response_json(200, {'state': 'error', 'error': str(errors[-1][1])[:1800], 'elapsed_sec': elapsed})
+                return reply(200, {'state': 'error', 'error': str(errors[-1][1])[:1800], 'elapsed_sec': elapsed})
         if info.get('completed') is True:
-            return self.response_json(200, {'state': 'error', 'error': 'ComfyUI завершил задачу без ожидаемого выходного изображения.', 'elapsed_sec': elapsed})
+            return reply(200, {'state': 'error', 'error': 'ComfyUI завершил задачу без ожидаемого выходного изображения.', 'elapsed_sec': elapsed})
         queue = self.queue_info(ident)
         state = 'running' if queue.get('location') == 'running' else 'waiting'
         payload = {'state': state, 'elapsed_sec': elapsed, 'status': str(info.get('status_str', 'unknown'))}
         payload.update(queue)
         if state == 'running':
             payload.update(self.progress_info(ident))
-        return self.response_json(200, payload)
+        return reply(200, payload)
+
+    def microphone_event(self, data):
+        import sqlite3
+        try:
+            if data.get('action') == 'start' and set(data) == {'action'}:
+                return self.response_json(200, {'generation': generation_begin('MicrophoneSession')})
+            if data.get('action') == 'finish' and set(data) <= {'action', 'id', 'state'}:
+                state = data.get('state', 'done')
+                if state not in ('done', 'cancelled', 'error', 'interrupted'):
+                    raise ValueError('Некорректное состояние микрофона')
+                record = event_history().microphone(data.get('id'))
+                generation_finish(record, state=state)
+                return self.response_json(200, {'generation': record})
+            raise ValueError('Некорректное событие микрофона')
+        except (sqlite3.Error, OSError):
+            return self.response_json(503, {'error': 'Не удалось сохранить событие микрофона.'})
+
+    def delete_image(self, data):
+        from job_delete import DeletePlan, confined_file
+        ident = data.get('id')
+        if not isinstance(ident, str) or str(uuid.UUID(ident)) != ident:
+            raise ValueError('Некорректный идентификатор генерации')
+        with JOBS_LOCK:
+            guard = SAVE_LOCKS.setdefault(ident, Lock())
+        with guard:
+            receipt = HISTORY.get(ident)
+            if receipt is None or not HISTORY.writable:
+                raise ValueError('Запись не найдена или история недоступна для записи')
+            if self.job_is_queued_or_running(ident):
+                raise ValueError('Сначала остановите генерацию и дождитесь её завершения')
+            upstream_history = self.fetch_history(ident)
+            plan = DeletePlan()
+            for value in receipt['saved_files']:
+                plan.file(value)
+            files = list(receipt.get('comfy_files') or [])
+            inputs = list(receipt.get('input_files') or [])
+            if upstream_history:
+                for node in upstream_history.get('outputs', {}).values():
+                    for item in node.get('images', []):
+                        files.append(item)
+                # Older receipts did not record upload names; recover only our own uniquely named uploads.
+                prompt = upstream_history.get('prompt') or []
+                graph = prompt[2] if len(prompt) > 2 and isinstance(prompt[2], dict) else {}
+                for node in graph.values():
+                    value = node.get('inputs', {}).get('image')
+                    if isinstance(value, str) and Path(value).name.startswith('qwen_local_'):
+                        inputs.append(value)
+            for value in inputs:
+                plan.file(confined_file(getattr(PATHS, 'comfy_input', PATHS.comfy / 'input'), value))
+            for item in files:
+                area = item.get('type', 'output')
+                if area not in ('output', 'temp'):
+                    raise ValueError('Некорректная область файла ComfyUI')
+                base = getattr(PATHS, 'comfy_' + area, PATHS.comfy / area)
+                relative = str(Path(item.get('subfolder', '')) / item['filename'])
+                plan.file(confined_file(base, relative))
+            plan.execute()
+            json_upstream('/history', {'delete': [ident]}, timeout=15)
+            remove_event(receipt.get('generation'))
+            HISTORY.remove(ident)
+            with JOBS_LOCK:
+                JOB_META.pop(ident, None)
+                JOB_TOKENS.pop(ident, None)
+                CANCELLING.discard(ident)
+            return self.response_json(200, {'deleted': True})
 
     def result(self, ident, index):
         receipt = HISTORY.get(ident)
@@ -1480,5 +1600,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    configure_events(PATHS.settings / 'event-history.sqlite3', inherit=True)
     print('QwenDesktopApp-v3 local UI on http://127.0.0.1:%d' % PORT, flush=True)
     ThreadingHTTPServer(('127.0.0.1', PORT), Handler).serve_forever(poll_interval=0.25)

@@ -6,6 +6,13 @@ import sys
 import time
 import traceback
 
+def trace_planner(planner):
+    from generation import tracked
+    # ACE-Step invokes this public LM entry point internally; wrapping it keeps the pinned vendor files unchanged.
+    planner.generate_with_stop_condition = tracked('MusicPlanning')(planner.generate_with_stop_condition)
+    return planner
+
+
 def main():
     spec = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
     directory = Path(sys.argv[1]).parent
@@ -57,6 +64,7 @@ def main():
         lm = LLMHandler()
         request = spec['request']
         if request['planner']:
+            trace_planner(lm)
             phase('Загрузка музыкального планировщика')
             status, ok = lm.initialize(checkpoint_dir=spec['models'],
                 lm_model_path='acestep-5Hz-lm-0.6B', backend='pt', device='cuda',

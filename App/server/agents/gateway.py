@@ -145,8 +145,23 @@ class ResponseUsage:
         return self.usage, self.body_bytes
 
 
+def has_images(body):
+    messages = body.get('messages') or []
+    if not isinstance(messages, list):
+        return False
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        if message.get('images'):
+            return True
+        content = message.get('content')
+        if isinstance(content, list) and any(isinstance(part, dict) and part.get('type') in ('image', 'image_url', 'input_image') for part in content):
+            return True
+    return False
+
+
 class ModelGateway:
-    def __init__(self, port, upstream, admit, finish, models, observe=None):
+    def __init__(self, port, upstream, admit, finish, models, observe=None, activity=None):
         """`upstream()` starts Ollama when needed and returns its port; `admit()` blocks until the GPU may be used and returns a
         cancel event (raises Busy/GpuUnavailable/ValueError); `finish()` releases it; `models()` maps aliases to Ollama names;
         `observe(tokens, measured)` gets the context filled by each answered request (prompt + answer), `measured` False for an
@@ -154,6 +169,7 @@ class ModelGateway:
         self.port = port
         self.upstream, self.admit, self.finish, self.models = upstream, admit, finish, models
         self.observe = observe or (lambda tokens, measured: None)
+        self.activity = activity or (lambda: ('AgentModelCall', None))
         self.token = secrets.token_urlsafe(32)
         self.server = None
         self.lock = threading.Lock()
@@ -253,8 +269,22 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return self.fail(409, str(error))
         except (GpuUnavailable, ValueError, OSError) as error:
             return self.fail(503, str(error)[:600])
+        from contextlib import nullcontext
+        from generation import operation, finish as finish_event, TYPES as EVENT_TYPES
         try:
-            tail = self.relay(port, payload, cancel)
+            # Optional journal metadata must not leak an admitted GPU slot or interrupt model streaming.
+            try:
+                kind, parent_id = self.owner.activity()
+                if not isinstance(kind, str) or kind not in EVENT_TYPES:
+                    raise ValueError('Unknown event type')
+            except Exception:
+                kind, parent_id = 'AgentModelCall', None
+            with operation(kind, parent_id, cancel=cancel) as record:
+                with operation('ImageRecognition', cancel=cancel) if has_images(body) else nullcontext() as vision:
+                    tail = self.relay(port, payload, cancel)
+                    if cancel.is_set() or not tail:
+                        for entry in (record, vision):
+                            finish_event(entry, state='cancelled' if cancel.is_set() else 'error')
         finally:
             self.owner.finish()
         usage, output_bytes = tail if tail else (None, 0)

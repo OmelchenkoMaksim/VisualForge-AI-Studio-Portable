@@ -13,6 +13,7 @@ class Element {
   fire(type, extra = {}) {const event = {target: this, ...extra};for (const fn of this.events[type] || []) fn(event);if (this['on' + type]) this['on' + type](event);}
   setAttribute(name, value) {this[name] = value;}
   getClientRects() {return this.visible ? [{}] : [];}
+  getAnimations() {return [];} // No CSS animations in this DOM fixture.
   append(...items) {this.children.push(...items);}
   replaceChildren(...items) {this.children = items;}
   showModal() {this.open = true;}

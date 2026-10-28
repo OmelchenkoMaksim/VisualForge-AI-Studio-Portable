@@ -25,6 +25,7 @@
   </button>
   <div id="studioSettingsMenu" class="studio-settings-menu" role="group" aria-label="Разделы настроек" hidden>
     <button type="button" id="componentsTab" aria-selected="false">Компоненты</button>
+    <button type="button" id="openEventHistory">История событий</button>
     <button type="button" id="openLogs" title="Посмотреть локальные журналы запуска и ошибок">Логи</button>
     <button type="button" id="openCompatibilitySettings" title="Показ карточек совместимости при выборе модели">Подсказки моделей</button>
     <button type="button" id="openSounds" title="Выбрать мелодии, которые звучат по окончании генерации">Звуки</button>
@@ -413,6 +414,19 @@
   </div>
 </div>
 
+<dialog id="eventHistoryDialog" class="event-history-dialog" aria-labelledby="eventHistoryTitle">
+  <div class="event-history-heading"><h2 id="eventHistoryTitle">История событий</h2><button id="eventHistoryClose" type="button" class="secondary" aria-label="Закрыть историю событий">✕</button></div>
+  <p class="muted">Общий локальный журнал генераций и технических операций, сначала новые. Журналы разделов доступны отдельно через «Логи».</p>
+  <div class="event-history-controls">
+    <label for="eventHistoryScope">События<select id="eventHistoryScope"><option value="">Все</option><option value="main">Генерации и результаты</option><option value="technical">Технические операции</option></select></label>
+    <label for="eventHistoryType">Тип<select id="eventHistoryType"><option value="">Все типы</option></select></label>
+    <label for="eventHistoryState">Состояние<select id="eventHistoryState"><option value="">Все</option><option value="running">Без завершения</option><option value="done">Завершено</option><option value="error">Ошибка</option><option value="cancelled">Отменено</option><option value="interrupted">Не завершено</option></select></label>
+    <button id="eventHistoryRefresh" type="button" class="secondary">Обновить</button>
+  </div>
+  <p id="eventHistoryStatus" role="status"></p><div id="eventHistoryEntries"></div>
+  <button id="eventHistoryMore" type="button" class="secondary" hidden>Показать более ранние</button>
+</dialog>
+
 <div id="logsPanel" class="logs-panel" role="dialog" aria-modal="true" aria-labelledby="logsTitle" hidden>
   <div class="logs-window" tabindex="-1">
     <div class="logs-heading"><h2 id="logsTitle">Логи · VisualForge AI Studio</h2><button id="logsClose" type="button" class="secondary" aria-label="Закрыть окно логов">✕</button></div>
@@ -457,6 +471,7 @@
 <link rel="stylesheet" href="/agent.css">
 <script src="/sounds.js" defer></script>
 <script src="/studio-ui.js" defer></script>
+<link rel="stylesheet" href="/event-history.css"><script src="/event-history.js" defer></script>
 <script src="/shell.js" defer></script>
 <script src="/engine-state.js" defer></script>
 <script src="/prompt-guides.js"></script><script src="/app.js" defer></script><script src="/video.js" defer></script><script src="/music.js" defer></script><script src="/agent.js" defer></script><script src="/text.js" defer></script><script src="/components.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice.js" defer></script></body></html>

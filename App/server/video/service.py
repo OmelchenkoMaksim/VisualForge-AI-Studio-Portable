@@ -19,6 +19,7 @@ from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from smart_filenames import build_filename_base
+from generation import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, configure as configure_events, remove as remove_event
 from video.registry import validate, ENGINES
 from video.runtime import environment
 from video.owned import OwnedJob
@@ -83,6 +84,8 @@ class Jobs:
                             path = (self.user / row[key]).resolve()
                             path.relative_to(self.user.resolve())
                             row[key] = str(path)
+                    row['export_files'] = [str((self.user / value).absolute()) if not Path(value).is_absolute() else value for value in row.get('export_files', [])]
+                    generation_ensure(row, 'Video', row['id'], row.get('submitted_at'), duration_between(row.get('submitted_at'), row.get('finished_at')))
                     self.rows[row['id']] = row
         except (OSError, ValueError, KeyError, TypeError, RecursionError):
             self.warning = 'Историю Video не удалось прочитать; исходный файл сохранён.'
@@ -121,7 +124,64 @@ class Jobs:
                     path = Path(row[key]).resolve()
                     if path.is_relative_to(self.user.resolve()):
                         row[key] = path.relative_to(self.user.resolve()).as_posix()
+            row['export_files'] = [Path(value).resolve().relative_to(self.user.resolve()).as_posix() if Path(value).resolve().is_relative_to(self.user.resolve()) else value for value in row.get('export_files', [])]
         atomic_json(self.history_path, {'schema_version': 1, 'entries': rows})
+
+    def delete(self, data):
+        from job_delete import DeletePlan
+        ident = data.get('id')
+        if not isinstance(ident, str) or str(uuid.UUID(ident)) != ident:
+            raise ValueError('Неверный идентификатор Video')
+        with self.lock:
+            row = self.rows.get(ident)
+            if row is None or self.active == ident or row['state'] not in ('done', 'error', 'cancelled'):
+                raise ValueError('Задача не найдена или ещё выполняется. Сначала остановите генерацию.')
+            if not self.history_writable:
+                raise ValueError('История Video недоступна для записи.')
+            if any(r['state'] == 'running' for r in self.exports.values()):
+                raise ValueError('Дождитесь завершения экспорта или микширования перед удалением Video.')
+            plan = DeletePlan()
+            output = Path(row['output_path']) if row.get('output_path') else None
+            if output:
+                if output.suffix.lower() != '.mp4':
+                    raise ValueError('Некорректный файл результата Video')
+                plan.file(output)
+                plan.sidecar(output.with_suffix('.json'), 'id', ident)
+                plan.sidecar(output.with_name(output.stem + '.' + ident + '.json'), 'id', ident)
+                if row.get('derived_kind') == 'mix':
+                    plan.sidecar(output.with_suffix('.mix.json'), 'output_file', output.name)
+            # Derived videos inherit the source folder/log. Remove shared scratch only with its last receipt.
+            if row.get('folder'):
+                folder = Path(os.path.abspath(row['folder']))
+                bases = [Path(os.path.abspath(base)) for base in (self.user / 'Cache/Video/Jobs', wan_scratch(self.user) / 'Jobs')]
+                if folder.parent not in bases or str(uuid.UUID(folder.name)) != folder.name:
+                    raise ValueError('Некорректная техническая папка Video')
+                if not any(r.get('folder') and Path(os.path.abspath(r['folder'])) == folder for key, r in self.rows.items() if key != ident):
+                    plan.tree(folder)
+            log = Path(row.get('log_path') or self.user / 'Logs/Video/Wan' / (ident + '.log'))
+            if log.parent != self.user / 'Logs/Video/Wan' or str(uuid.UUID(log.stem)) != log.stem or log.suffix != '.log':
+                raise ValueError('Некорректный путь журнала Video')
+            if not any(r.get('log_path') and Path(r['log_path']) == log for key, r in self.rows.items() if key != ident):
+                plan.file(log)
+            for value in row.get('export_files', []):
+                path = Path(value)
+                if path.suffix.lower() != '.mp4':
+                    raise ValueError('Некорректный файл экспорта Video')
+                plan.file(path)
+                plan.sidecar(path.with_suffix('.delivery.json'), 'output_file', path.name)
+            plan.execute()
+            remove_event(row.get('generation'))
+            del self.rows[ident]
+            try:
+                self.persist()
+            except OSError:
+                self.rows[ident] = row
+                raise
+            related = [key for key, value in self.exports.items() if value.get('source_id') == ident or value.get('result_id') == ident]
+            for key in related:
+                self.exports.pop(key, None)
+                self.export_events.pop(key, None)
+            return {'deleted': True}
 
     def public(self, row):
         result = copy.deepcopy(row)
@@ -182,7 +242,7 @@ class Jobs:
         with self.lock:
             if self.active is not None:  # another start won the slot meanwhile (the bridge serializes starts, so only a direct caller)
                 raise ValueError('GPU занят задачей Video')
-            row = dict(spec, id=ident, module='video', state='queued', phase='Подготовка Video',
+            row = dict(spec, id=ident, generation=generation_begin('Video'), module='video', state='queued', phase='Подготовка Video',
                 submitted_at=time.time(), folder=str(folder), save_dir=save_dir,
                 cancel_token=secrets.token_urlsafe(32), events=[], output_path=None,
                 engine_release=ENGINES[spec['engine']]['release'], model_revision=ENGINES[spec['engine']]['model_revision'])
@@ -316,8 +376,9 @@ class Jobs:
         with self.lock:
             if any(r['state'] == 'running' for r in self.exports.values()):
                 raise ValueError('Экспорт уже выполняется. Дождитесь завершения или отмените его.')
+            self.export_source(data['id'])  # Recheck after taking the lock: deletion may have won during the probe.
             ident = str(uuid.uuid4())
-            row = dict(id=ident, source_id=data['id'], preset=preset, label=delivery.PRESETS[preset]['label'], audio=audio,
+            row = dict(id=ident, generation=generation_begin('VideoExport'), source_id=data['id'], preset=preset, label=delivery.PRESETS[preset]['label'], audio=audio,
                        state='running', phase='Подготовка', progress=0.0, started_at=time.time(), cancel_token=secrets.token_urlsafe(24))
             event = self.export_events[ident] = threading.Event()
             self.exports[ident] = row
@@ -333,6 +394,7 @@ class Jobs:
 
         try:
             receipt = delivery.export_clip(source, directory, row['preset'], ffmpeg, ffprobe, audio=row['audio'], cancel=cancel, progress=progress)
+            self.export_identity(row, receipt, directory, '.delivery.json')
             final = dict(state='done', phase='Готово', progress=1.0, receipt=receipt, filename=receipt['output_file'],
                          saved_path=str(Path(directory) / receipt['output_file']))
         except delivery.DeliveryCancelled:
@@ -343,7 +405,25 @@ class Jobs:
             final = dict(state='error', phase='Ошибка экспорта', error='Непредвиденная ошибка экспорта: ' + str(error)[-500:])
         with self.lock:
             self.export_events.pop(row['id'], None)
+            generation_finish(row.get('generation'), state=final['state'])
             row.update(final, finished_at=time.time())
+            if row['state'] == 'done':
+                source_row = self.rows.get(row['source_id'])
+                if source_row is not None:
+                    source_row.setdefault('export_files', []).append(row['saved_path'])
+                    try:
+                        self.persist()
+                    except OSError:
+                        self.warning = 'Экспорт сохранён, но запись истории не удалась.'
+
+    def export_identity(self, row, receipt, directory, suffix):
+        record = generation_finish(row.get('generation'))
+        if record:
+            receipt['generation'] = dict(record)
+            try:
+                atomic_json((Path(directory) / receipt['output_file']).with_suffix(suffix), receipt)
+            except OSError:
+                row['metadata_warning'] = 'Результат сохранён, но идентификатор в метаданные записать не удалось.'
 
     def mix_plan(self, data):
         request = mixer.validate_request(data)
@@ -364,8 +444,9 @@ class Jobs:
         with self.lock:
             if any(r['state'] == 'running' for r in self.exports.values()):
                 raise ValueError('Экспорт или микширование уже выполняется. Дождитесь завершения или отмените его.')
+            self.export_source(request['id'])
             ident = str(uuid.uuid4())
-            row = dict(id=ident, kind='mix', source_id=request['id'], label='Музыка и звук', state='running', phase='Подготовка', progress=0.0,
+            row = dict(id=ident, generation=generation_begin('VideoMix'), kind='mix', source_id=request['id'], label='Музыка и звук', state='running', phase='Подготовка', progress=0.0,
                        started_at=time.time(), cancel_token=secrets.token_urlsafe(24))
             event = self.export_events[ident] = threading.Event()
             self.exports[ident] = row
@@ -381,9 +462,10 @@ class Jobs:
 
         try:
             receipt = mixer.mix_clip(source, directory, request, ffmpeg, ffprobe, cancel=cancel, progress=progress)
+            self.export_identity(row, receipt, directory, '.mix.json')
             saved = Path(directory) / receipt['output_file']
             final = dict(state='done', phase='Готово', progress=1.0, receipt=receipt, filename=receipt['output_file'], saved_path=str(saved),
-                         result_id=self.register_mix(row['source_id'], saved, receipt))
+                         result_id=self.register_mix(row['source_id'], saved, receipt, row.get('generation')))
         except delivery.DeliveryCancelled:
             final = dict(state='cancelled', phase='Отменено')
         except (ValueError, delivery.DeliveryError) as error:
@@ -392,16 +474,18 @@ class Jobs:
             final = dict(state='error', phase='Ошибка микширования', error='Непредвиденная ошибка микширования: ' + str(error)[-500:])
         with self.lock:
             self.export_events.pop(row['id'], None)
+            generation_finish(row.get('generation'), state=final['state'])
             row.update(final, finished_at=time.time())
 
-    def register_mix(self, source_id, target, receipt):
+    def register_mix(self, source_id, target, receipt, generation=None):
         """The mixed MP4 becomes a history entry of its own, so it can be opened, exported and mixed again."""
         with Path(target).open('rb') as stream:
             digest = hashlib.file_digest(stream, 'sha256').hexdigest()  # reads the whole clip: before taking the lock
         with self.lock:
             row = copy.deepcopy(self.rows[source_id])
             ident = str(uuid.uuid4())
-            row.update(id=ident, state='done', phase='Готово', output_path=str(target), saved_path=str(target), filename=Path(target).name, output_sha256=digest,
+            row.pop('export_files', None)
+            row.update(id=ident, generation=generation_finish(generation or generation_begin('Video')), state='done', phase='Готово', output_path=str(target), saved_path=str(target), filename=Path(target).name, output_sha256=digest,
                        submitted_at=time.time(), finished_at=time.time(), derived_from=source_id, derived_kind='mix',
                        mix_summary='Музыка: %s' % ', '.join(track['label'] for track in receipt['tracks']))
             row['metadata'] = dict(row.get('metadata') or {}, has_audio=True, duration=receipt['delivered']['duration'])
@@ -485,6 +569,7 @@ class Jobs:
         output = folder / 'result.mp4'
         offsets = {}
         owned = None
+        engine_record = None
         try:
             (folder / 'prompt.txt').write_text(row['original_prompt'], encoding='utf-8')
             command = build_command(self.root, self.models, folder, row)
@@ -497,6 +582,8 @@ class Jobs:
                 with (folder / 'backend.log').open('wb') as log:
                     state = wan_scratch(self.user) / 'Runtime' if row['engine'] in SCRATCH_IDS else self.state
                     env = environment(self.root,self.models,state)
+                    engine_record = generation_begin('VideoModelGeneration', parent_id=(row.get('generation') or {}).get('id'))
+                    env['VISUALFORGE_EVENT_PARENT'] = engine_record['id']
                     if row['engine'] in SCRATCH_IDS:
                         env['PYTHONDONTWRITEBYTECODE'] = '1'
                     self.process = subprocess.Popen(command, cwd=self.root, env=env,
@@ -535,6 +622,7 @@ class Jobs:
             row['filename'] = target.name
             with target.open('rb') as stream:
                 row['output_sha256'] = hashlib.file_digest(stream, 'sha256').hexdigest()
+            generation_finish(row.get('generation'))
             row['state'], row['phase'] = 'done', 'Готово'
             row['finished_at'] = time.time()
             sidecar = target.with_suffix('.json')
@@ -554,6 +642,10 @@ class Jobs:
                     owned.close()
                 self.process = None
                 row['finished_at'] = time.time()
+                terminal_state = 'cancelled' if row['state'] == 'cancelled' else 'error' if row['state'] == 'error' else 'done'
+                generation_finish(engine_record, state=terminal_state)
+                generation_finish(row.get('generation'), state=terminal_state)
+                generation_log(folder / 'backend.log', row.get('generation'))
                 self.active = None
                 self.rows = dict(list(self.rows.items())[-100:])
                 if row['engine'] in SCRATCH_IDS:
@@ -664,6 +756,8 @@ def make_handler(jobs, token, stop_server):
                     return self.reply(200, jobs.start_export(data))
                 if parsed.path == '/export-cancel' and data is not None:
                     return self.reply(200, jobs.cancel_export(data))
+                if parsed.path == '/delete' and data is not None:
+                    return self.reply(200, jobs.delete(data))
                 if parsed.path == '/generate' and data is not None:
                     return self.reply(200, jobs.submit(data))
                 if parsed.path == '/cancel' and data is not None:
@@ -699,6 +793,7 @@ def main():
     parser.add_argument('--port', required=True, type=int)
     parser.add_argument('--parent', required=True, type=int)
     args = parser.parse_args()
+    configure_events(Path(args.user) / 'Settings/event-history.sqlite3', inherit=True)
     token = os.environ['VISUALFORGE_VIDEO_TOKEN']
     jobs = Jobs(args)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(jobs, token, lambda: threading.Thread(target=server.shutdown, daemon=True).start()))

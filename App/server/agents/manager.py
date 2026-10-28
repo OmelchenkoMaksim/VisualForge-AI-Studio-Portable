@@ -14,6 +14,7 @@ import time
 from typing import Callable
 
 from gpu import Busy
+from generation import begin as generation_begin, finish as generation_finish, append_log as generation_log
 from .aider import AiderRunner
 from .dsh import DshRunner
 from .gateway import ModelGateway
@@ -107,7 +108,7 @@ class AgentManager:
         self.settings_path = paths.settings / 'agents.settings.json'
         self.gateway = ModelGateway(_port(paths, 'AgentGatewayPort', 'VISUALFORGE_AGENT_GATEWAY_PORT', GATEWAY_PORT),
                                     upstream=self._upstream, admit=self._admit, finish=self._finish, models=self._aliases,
-                                    observe=self._observe)
+                                    observe=self._observe, activity=self._event_activity)
         self.opencode = opencode or OpenCodeServer(paths, paths.root / AGENTS['opencode']['executable'],
                                                    _port(paths, 'OpenCodePort', 'VISUALFORGE_OPENCODE_PORT', OPENCODE_PORT))
         self.aider = aider or AiderRunner(paths, paths.root / AGENTS['aider']['executable'])
@@ -231,6 +232,13 @@ class AgentManager:
                     run['emit'](dict(type='status', phase='Агент ждёт видеокарту: ' + str(error)))
                 run['cancel'].wait(2)
 
+    def _event_activity(self):
+        ticket = getattr(self.requests, 'ticket', None)
+        if ticket:
+            run, _, _, phase = ticket
+            return ('AgentHandoff' if phase == 'handoff' else 'AgentModelCall', (run.get('record') or {}).get('id'))
+        return 'AgentModelCall', None
+
     def _finish(self):
         ticket = getattr(self.requests, 'ticket', None)
         if ticket is not None:
@@ -330,20 +338,33 @@ class AgentManager:
             self.run = dict(generation=object(), chat=chat_id, cancel=cancel, emit=emit, waiting='', session='', directory=directory, pending={},
                             model=info['name'], agent=agent['id'], size=info['context'], used=0, measured=True, limit=0,
                             wrap=threading.Event(), phase='work')
+            # The existing 'generation' object guards iteration callbacks; 'record' is the public identity of the whole task.
+            generation_info = self.run['record'] = generation_begin('Agent')
         try:
+            emit(dict(type='status', phase='Агент начинает задачу…', generation=generation_info))
             if options:
-                return self._loop(chat, content, alias, emit, cancel, disconnected, options)
+                chat, message, error = self._loop(chat, content, alias, emit, cancel, disconnected, options)
+                generation_finish(generation_info, state='error' if error else 'cancelled' if message.get('stopped') else 'done')
+                chat = self.store.update_generation(chat_id, generation_info)
+                message = next(m for m in chat['messages'] if m['id'] == message['id'])
+                return chat, message, error
             history = [m for m in chat['messages'] if m.get('content') and not m.get('error')][-AIDER_HISTORY:]
-            self.store.add_user(chat_id, content)
+            self.store.add_user(chat_id, content, generation=generation_info)
             turn = self._turn(chat, content, alias, history, emit, cancel, disconnected)
+            generation_finish(generation_info, state='error' if turn['error'] else 'cancelled' if turn['stopped'] else 'done')
+            self.store.update_generation(chat_id, generation_info)
             chat, message = self.store.add_assistant(chat_id, turn['content'], turn['thinking'], chat.get('model', ''), turn['stats'],
-                                                     turn['stopped'], turn['error'], steps=turn['steps'])
+                                                     turn['stopped'], turn['error'], steps=turn['steps'], generation=generation_info)
             return chat, message, turn['error']
         except (OSError, OpenCodeError, ValueError) as failure:
             message = str(failure)[:500] or 'Агент не смог выполнить задание'
-            self.store.add_assistant(chat_id, '', '', chat.get('model', ''), None, False, message)
+            generation_finish(generation_info, state='error')
+            self.store.update_generation(chat_id, generation_info)
+            self.store.add_assistant(chat_id, '', '', chat.get('model', ''), None, False, message, generation=generation_info)
             raise ValueError(message) from None
         finally:
+            generation_finish(generation_info)
+            generation_log(self.paths.logs / ('agent-' + agent['id'] + '.log'), generation_info)
             with self.lock:
                 self.run = None
                 with self.store.lock:
@@ -510,7 +531,7 @@ class AgentManager:
         folder = loop_module.prepare(workspace, run_id)
         start = loop_module.head(workspace)
         fingerprint = loop_module.facts(workspace, start)['fingerprint']
-        self.store.add_user(chat['id'], goal)
+        self.store.add_user(chat['id'], goal, generation=run['record'])
         previous, message, error, last_step = None, None, '', None
         for number in range(1, total + 1):
             with self.lock:
@@ -544,7 +565,7 @@ class AgentManager:
             footer = '**Итерация %d из %d** · %s · итог: `%s`' % (number, total, verdict, rel)
             content = (turn['content'].rstrip() + '\n\n---\n' if turn['content'].strip() else '') + footer
             chat, message = self.store.add_assistant(chat['id'], content, turn['thinking'], model, turn['stats'], ended == 'user',
-                                                     turn['error'] if ended == 'error' else '', steps=turn['steps'])
+                                                     turn['error'] if ended == 'error' else '', steps=turn['steps'], generation=run['record'])
             error = turn['error'] if ended == 'error' else ''
             if stop:
                 return chat, message, error

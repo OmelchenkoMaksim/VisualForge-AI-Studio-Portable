@@ -97,6 +97,22 @@ class LauncherTests(unittest.TestCase):
         done = subprocess.run([shell, '-NoProfile', '-Command', command], capture_output=True, text=True, timeout=60)
         self.assertEqual(done.returncode, 0, done.stdout[-500:] + done.stderr[-500:])
 
+    def test_shutdown_skips_stale_browser_snapshots_but_preserves_strict_checks(self):
+        import shutil
+        import subprocess
+        shell = shutil.which('powershell.exe')
+        if not shell:
+            self.skipTest('Windows PowerShell is not available')
+        fixture = str(ROOT / 'tests/launcher_shutdown_test.ps1').replace("'", "''")
+        source = str(ROOT / 'App/Start-VisualForge.ps1').replace("'", "''")
+        # Execute only the test fixture's parsed functions and mocked process operations.
+        command = "& ([scriptblock]::Create([IO.File]::ReadAllText('%s'))) -Source '%s'" % (fixture, source)
+        done = subprocess.run([shell, '-NoProfile', '-NonInteractive', '-Command', command], capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stdout[-1000:] + done.stderr[-1000:])
+        self.assertIn('launcher shutdown ok', done.stdout)
+        supervisor = (ROOT / 'App/Start-VisualForge.ps1').read_text(encoding='utf-8-sig')
+        self.assertIn('Не удалось полностью закрыть VisualForge AI Studio.', supervisor)
+
     def test_frontend_scripts_parse(self):
         import shutil
         import subprocess

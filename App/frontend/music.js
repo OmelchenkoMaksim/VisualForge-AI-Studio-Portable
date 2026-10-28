@@ -4,7 +4,7 @@
   const el = id => document.getElementById(id);
   const fields = ['Engine','Caption','Lyrics','Mode','Duration','Bpm','Language','Seed','Planner'];
   const draftKey = 'visualforge.music.draft.v1';
-  let active = null, selected = '', available = false, timer = null, polling = false, profiles=[];
+  let active = null, selected = '', playing = '', available = false, timer = null, polling = false, profiles=[];
   const defaultGuide='Начните с жанра и настроения, добавьте 2–3 главных инструмента, темп и характер звучания. Лучше использовать конкретное английское описание стиля; слова песни можно написать по-русски. Для инструментала не просите вокал в описании.';
   function capabilities() {
     const profile=profiles.find(row=>row.id===el('musicEngine').value);
@@ -70,7 +70,7 @@
     el('musicCancel').disabled = !active;
   }
   function show(row) {
-    selected = row.id;
+    selected = row.id; playing = row.id;
     const url = '/api/music/result?id=' + encodeURIComponent(row.id);
     el('musicPlayer').src = url; el('musicPlayer').hidden = false;
     el('musicDownload').href = url; el('musicDownload').download = row.filename || 'Generated Music.wav';
@@ -106,6 +106,19 @@
         play.onclick = () => show(row); card.append(play);
       }
       if (row.error) { const error = document.createElement('p'); error.textContent = row.error; card.append(error); }
+      card.append(StudioUI.deleteGenerationButton('Music', row.id, async () => {
+        if (playing === row.id) {
+          playing='';
+          el('musicPlayer').pause(); el('musicPlayer').removeAttribute('src'); el('musicPlayer').load(); el('musicPlayer').hidden=true;
+          el('musicDownload').removeAttribute('href'); el('musicDownload').hidden=true;
+          el('musicResultMeta').textContent=''; el('musicSavedPath').textContent='';
+        }
+        if (selected === row.id) { selected=''; el('musicLogs').textContent='Генерация удалена.'; }
+        await history();
+      }, () => {
+        if (playing === row.id) {el('musicPlayer').pause(); el('musicPlayer').removeAttribute('src'); el('musicPlayer').load();}
+      }));
+      if (row.generation) card.append(StudioUI.generationInfo(row.generation));
       el('musicHistory').append(card);
     }
   }

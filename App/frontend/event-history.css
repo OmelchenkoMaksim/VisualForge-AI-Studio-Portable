@@ -1,0 +1,9 @@
+.event-history-dialog {width:min(960px,calc(100vw - 32px));max-height:88vh;padding:22px;border:1px solid var(--border-strong);border-radius:var(--r-l);background:var(--raised);color:var(--text);box-shadow:var(--shadow);}
+.event-history-dialog::backdrop {background:#0008;}
+.event-history-heading {display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.event-history-heading h2 {margin:0;}
+.event-history-controls {display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:16px 0;}
+.event-history-controls label {display:flex;flex-direction:column;gap:5px;}
+.event-history-card {padding:14px 0;border-top:1px solid var(--border);overflow-wrap:anywhere;}
+.event-history-title {font-weight:600;margin:0 0 8px;}
+.event-history-card code {user-select:text;}

@@ -142,6 +142,19 @@
       const reuse=document.createElement('button');reuse.type='button';reuse.className='secondary';reuse.textContent='Вернуть промпт и seed';reuse.onclick=()=>{el('videoPrompt').value=row.original_prompt;el('videoSeed').value=row.seed;draft();};
       card.append(title,prompt,reuse);
       if(row.state==='done') {const play=document.createElement('button');play.type='button';play.className='secondary';play.textContent='Открыть видео';play.onclick=()=>show(row);card.append(play);}
+      card.append(StudioUI.deleteGenerationButton('Video', row.id, async () => {
+        if (last?.id === row.id) {
+          last=null; el('videoPlayer').pause(); el('videoPlayer').removeAttribute('src'); el('videoPlayer').load(); el('videoPlayer').hidden=true;
+          el('videoDownload').removeAttribute('href'); el('videoDownload').hidden=true;
+          el('videoResultMeta').textContent=''; el('videoSavedPath').textContent='';
+          exportSourceId=''; ++previewSeq; ++mixSeq; el('videoExportBlock').hidden=true; el('videoMixBlock').hidden=true;
+        }
+        el('videoLogs').textContent='Генерация удалена.';
+        await history();
+      }, () => {
+        if (last?.id === row.id) {el('videoPlayer').pause(); el('videoPlayer').removeAttribute('src'); el('videoPlayer').load();}
+      }));
+      if (row.generation) card.append(StudioUI.generationInfo(row.generation));
       el('videoHistory').append(card);
     }
   }

@@ -14,6 +14,11 @@ class VoiceGateTests(unittest.TestCase):
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
         self.assertIn('voice gate ok', done.stdout)
 
+    def test_voice_bar_preferences_focus_and_model_readiness(self):
+        done = subprocess.run([shutil.which('node'), str(ROOT / 'tests/voice_ui_test.js')], capture_output=True, text=True, timeout=30)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertIn('voice UI ok', done.stdout)
+
     def test_the_bar_cannot_hide_while_waiting_for_the_microphone(self):
         # Regression: the browser's permission dialog takes the focus away from the field, which used to hide the bar (and its stop button)
         # while the recording had already started. Every non-idle state must keep it visible.

@@ -323,7 +323,7 @@ class TextManager:
                 return None
         return 'thinking' in self.capabilities[model]
 
-    def stream_chat(self, model, messages, think, cancel, options=None):
+    def stream_chat(self, model, messages, think, cancel, options=None, generation_id=None):
         """Yield Ollama /api/chat NDJSON objects until done or `cancel` is set. `options` override the chat settings (voice input edits with its own)."""
         settings = self.settings()
         # An empty options object preserves every imported Modelfile parameter, including ones absent from our controls.
@@ -333,17 +333,22 @@ class TextManager:
         if think is not None and self.can_think(model):
             body['think'] = bool(think)
         payload = json.dumps(body, ensure_ascii=False).encode('utf-8')
-        try:
-            for line in self._stream_lines(payload, cancel):
-                if line.strip():
-                    row = json.loads(line)
-                    if row.get('error'):
-                        raise ValueError(str(row['error'])[:600])
-                    yield row
-        except OSError:
-            if cancel.is_set():
-                return
-            raise
+        from contextlib import nullcontext
+        from generation import operation
+        # Vision calls stay part of their chat; only the central history receives this technical child.
+        activity = operation('ImageRecognition', generation_id, cancel=cancel) if any(m.get('images') for m in messages) else nullcontext()
+        with activity:
+            try:
+                for line in self._stream_lines(payload, cancel):
+                    if line.strip():
+                        row = json.loads(line)
+                        if row.get('error'):
+                            raise ValueError(str(row['error'])[:600])
+                        yield row
+            except OSError:
+                if cancel.is_set():
+                    return
+                raise
 
     # Ollama sends no byte (not even the HTTP headers) while it loads the model, which takes minutes from a hard disk.
     # Windows socket shutdown did not reliably wake a blocking recv during this phase.

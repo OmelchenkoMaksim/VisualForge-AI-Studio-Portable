@@ -10,7 +10,7 @@
   const node = (tag, text, className) => {const item = document.createElement(tag);item.textContent = text;if (className) item.className = className;return item;};
   const gb = value => Number.isFinite(value) ? `${(Math.abs(value - Math.round(value)) < .15 ? Math.round(value) : value).toLocaleString('ru-RU', {maximumFractionDigits:1})} ГБ` : 'Нет данных';
   const popupKey = 'vf-compatibility-popup';
-  let preferences = readPreferences(), hideTimer = null, openRequest = 0, automatic = false;
+  let preferences = readPreferences(), hideTimer = null, openRequest = 0, automatic = false, closingAnimation = null;
   function readPreferences() {
     let saved;
     try { saved = JSON.parse(localStorage.getItem(popupKey) || 'null'); } catch {}
@@ -21,7 +21,18 @@
   }
   function closePopup() {
     clearTimeout(hideTimer);hideTimer = null;
-    popup.hidden = true;automatic = false;openRequest++;
+    automatic = false;openRequest++;
+    if (popup.hidden || closingAnimation) return;
+    const animation = popup.getAnimations().find(item => item.animationName === 'vf-in');
+    if (!animation) {popup.hidden = true;return;}
+    // Keep the card rendered until its entrance animation has played backwards.
+    closingAnimation = animation;
+    animation.reverse();
+    const finish = () => {
+      if (closingAnimation !== animation) return;
+      popup.hidden = true;closingAnimation = null;
+    };
+    animation.finished.then(finish, finish);
   }
   function scheduleHide() {
     clearTimeout(hideTimer);hideTimer = null;
@@ -100,6 +111,10 @@
     el('compatibilityProfile').textContent = result.profile.note;
     el('compatibilityCaveat').textContent = result.caveat;
     el('compatibilityGpu').textContent = result.gpu_name ? `Оценка для ${result.gpu_name}` : 'Ускоритель CUDA не подтверждён';
+    if (open && closingAnimation) {
+      // Reopening mid-close reverses direction from the current frame without a jump.
+      const animation = closingAnimation;closingAnimation = null;animation.reverse();
+    }
     popup.hidden = false;
     if (open) {automatic = !manual;scheduleHide();}
   }

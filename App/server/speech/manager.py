@@ -13,6 +13,7 @@ import subprocess
 import sys
 import threading
 import time
+from generation import tracked, parent as generation_parent, scope as generation_scope
 
 from gpu import Busy
 
@@ -171,6 +172,7 @@ class SpeechManager:
                 continue
         self.replies.put({'closed': True})
 
+    @tracked('SpeechModelLoad')
     def _start(self, model):
         device = self._decide_device(model)
         folder = self.models / model
@@ -183,6 +185,8 @@ class SpeechManager:
         self.state.mkdir(parents=True, exist_ok=True)
         (self.state / 'tmp').mkdir(parents=True, exist_ok=True)
         env = {k: v for k, v in os.environ.items() if not k.upper().startswith(('PYTHON', 'VIRTUAL_ENV'))}
+        if generation_parent():
+            env['VISUALFORGE_EVENT_PARENT'] = generation_parent()
         env.update(HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', PYTHONNOUSERSITE='1', PYTHONUTF8='1', PYTHONIOENCODING='utf-8', TEMP=str(self.state / 'tmp'), TMP=str(self.state / 'tmp'))
         with log.open('ab') as errors:
             self.process = subprocess.Popen(command, cwd=str(self.paths.root), env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors,
@@ -263,14 +267,40 @@ class SpeechManager:
         self.timer.start()
 
     # ---- recognition --------------------------------------------------------------------------------------------
-    def transcribe(self, audio, language=None, partial=False, enhance=False):
+    def transcribe(self, audio, language=None, partial=False, enhance=False, parent_id=None):
         """Recognition, then (enhance=True, final recordings only) an edit by the local Gemma. The recognition lock is released before the
         edit, because Gemma needs the video card and the coordinator would otherwise see the voice worker as busy."""
-        result = self._recognize(audio, language, partial)
-        if enhance and not partial and result.get('text') and self.polisher is not None:
-            polished, note = self.polisher.polish(result['text'], language or self.settings()['language'])
-            result.update(enhanced=not note, enhance_note=note, plain=result['text'], text=polished)
-        return result
+        from generation import begin, finish
+        started_at, clock = time.time(), time.monotonic()
+        generation_info = None
+        kind = 'SpeechRecognitionPreview' if partial else 'SpeechRecognition'
+        terminal_state = 'done'
+
+        def admitted():
+            nonlocal generation_info
+            generation_info = begin(kind, started_at, clock, parent_id=parent_id)
+            return generation_info
+
+        try:
+            result = self._recognize(audio, language, partial, admitted=admitted)
+            # A skipped live preview performs no inference and keeps its existing small response.
+            if result.get('skipped'):
+                return result
+            if generation_info is None:
+                admitted()
+            if enhance and not partial and result.get('text') and self.polisher is not None:
+                with generation_scope(generation_info):
+                    polished, note = self.polisher.polish(result['text'], language or self.settings()['language'])
+                result.update(enhanced=not note, enhance_note=note, plain=result['text'], text=polished)
+            result['generation'] = generation_info
+            return result
+        except BaseException:
+            terminal_state = 'error'
+            if generation_info is None:
+                admitted()
+            raise
+        finally:
+            finish(generation_info, state=terminal_state)
 
     def prepare_enhance(self):
         """Load Gemma in the background when the person switches the enhanced mode on (the first load can take a minute)."""
@@ -279,7 +309,7 @@ class SpeechManager:
         threading.Thread(target=self.polisher.warm, daemon=True, name='speech-enhance-warm').start()
         return True
 
-    def _recognize(self, audio, language=None, partial=False):
+    def _recognize(self, audio, language=None, partial=False, admitted=None):
         """WAV bytes (16-bit PCM) -> dict(text, seconds, device, model). One recording at a time.
 
         partial=True is the live preview while someone is still speaking: it is answered only if the model already sits on the video card and
@@ -302,13 +332,18 @@ class SpeechManager:
                 return dict(text=None, skipped=True)
             raise Busy('Распознавание занято дольше обычного. Повторите запись.')
         try:
+            active_generation = admitted() if admitted else None
             model = self.chosen_model()
             with self.lock:
                 if self.timer:
                     self.timer.cancel()
                 if not self.alive() or self.model_name != model:
                     self.stop()
-                    self._start(model)
+                    if active_generation:
+                        with generation_scope(active_generation):
+                            self._start(model)
+                    else:
+                        self._start(model)
                 process = self.process
             self.state.mkdir(parents=True, exist_ok=True)
             path = self.state / ('recording-%d.wav' % os.getpid())
@@ -316,7 +351,7 @@ class SpeechManager:
             self.requests += 1
             identifier = self.requests
             try:
-                process.stdin.write((json.dumps(dict(id=identifier, path=str(path), language=language, partial=partial), ensure_ascii=False) + '\n').encode('utf-8'))
+                process.stdin.write((json.dumps(dict(id=identifier, path=str(path), language=language, partial=partial, generation_parent=(active_generation or {}).get('id')), ensure_ascii=False) + '\n').encode('utf-8'))
                 process.stdin.flush()
             except OSError:
                 self.stop()

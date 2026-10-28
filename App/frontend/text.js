@@ -105,6 +105,7 @@
           `контекст ${fmt(s.context_tokens, 0)} из ${fmt(s.context, 0)}`].filter(Boolean).join(' · ');
       row.foot.append(note);
     }
+    if (message.role === 'assistant' && message.generation && window.StudioUI?.generationInfo) row.foot.append(StudioUI.generationInfo(message.generation));
     if (message.stopped || message.error) {
       const note = document.createElement('span');note.className = 'text-warn';note.textContent = message.error ? 'Ответ прерван: ' + message.error : 'Остановлено вами';row.foot.append(note);
     }

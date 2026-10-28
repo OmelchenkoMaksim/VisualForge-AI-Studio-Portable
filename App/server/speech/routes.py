@@ -45,7 +45,13 @@ def transcribe(handler, manager, query=''):
         audio = handler.rfile.read(size)
         options = parse_qs(query.lstrip('?'))
         language = options.get('lang', [None])[0]
-        return handler.response_json(200, manager.transcribe(audio, language, partial=options.get('partial', ['0'])[0] == '1', enhance=options.get('enhance', ['0'])[0] == '1'))
+        parent_id = handler.headers.get('X-VisualForge-Session')
+        if parent_id is not None:
+            from event_history import ID
+            if not ID.fullmatch(parent_id):
+                raise SpeechError('Некорректный идентификатор записи микрофона')
+        extra = {'parent_id': parent_id} if parent_id else {}
+        return handler.response_json(200, manager.transcribe(audio, language, **extra, partial=options.get('partial', ['0'])[0] == '1', enhance=options.get('enhance', ['0'])[0] == '1'))
     except Busy as error:
         return handler.response_json(409, {'error': str(error)})
     except SpeechError as error:

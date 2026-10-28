@@ -70,3 +70,19 @@ The launcher owns one notification icon with the normal VisualForge logo while t
 A dedicated STA WinForms loop animates 24 pre-rendered logo rotations every 90 ms while `/api/busy` reports generation. The supervisor polls once per loop (about one second); a temporary failed request keeps the last known state. Idle returns to the unrotated logo. This covers Image, Video, Music and Text, including voice prompt polishing. CPU-only exports and downloads do not rotate the generation icon. Animation and native icon/GDI handles are disposed on shutdown.
 
 Full exit first matches the exact isolated browser executable and complete profile argument, rechecks process identity, then terminates that process tree. The existing bridge/backend ownership checks remain mandatory; owned service trees are stopped including their workers, and workers also use kill-on-close job objects. Independently started Ollama, browsers and ComfyUI are preserved. Active studio work is interrupted when choosing full exit.
+
+## Event history
+
+The settings menu includes «История событий», an independent local timeline of main generations and technical operations with date ordering, type/state filters and older-page loading. Existing module logs remain separate. The [event-history reference](Event-History.md) describes storage, operation types and timing boundaries. Click analytics is not collected yet.
+
+## Generation identity
+
+Image, Video and Music history cards and Text/Agent answers show «Данные генерации»: type, full ID, start date and elapsed generation time, plus «Скопировать объект». The canonical four-field format and historical-data rules are documented in [Generations.md](Generations.md).
+
+## Deleting a generation
+
+Image, Video and Music history cards offer «Удалить». A confirmation explains that deletion is permanent: the receipt, recorded output files (including external output folders), owned JSON sidecars, per-job scratch and dedicated job logs are removed. Active jobs cannot be deleted; Video also refuses deletion during export/mixing. Saved output settings, models, shared runtime caches, separate generated jobs and derived mixes are preserved. Shared scratch/logs inherited by a mix survive until their last referencing receipt is deleted.
+
+Image also removes its ComfyUI history entry, recorded originals/previews and uniquely uploaded inputs. Stable Audio removes its ComfyUI entry and temporary audio; new jobs record remote ownership in their scratch metadata even if generation fails. Image receipts created before artifact tracking recover names from ComfyUI history when it is still available; once that old history is lost, unrecorded artifacts cannot be identified reliably. Video exports made with artifact tracking are linked to their source receipt for deletion; older unrecorded exports and manually copied files cannot be discovered reliably.
+
+The operation inventories explicit artifacts before deletion and refuses symlinks/junctions. It does not empty a chosen output folder or use filename substring matches. A file/persistence failure keeps the receipt for retry; some files may already have been removed. The shared launch/backend logs are not rewritten: their interleaved messages often lack a job ID, so deleting one generation is not a promise to erase every trace from shared logs, browser caches, backups or the filesystem. The UI clears the selected deleted result and its dedicated log; another open tab may still display an already loaded copy until refreshed.

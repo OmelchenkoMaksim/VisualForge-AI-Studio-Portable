@@ -4,6 +4,8 @@ The Text tab has a «Чат | Агент» switch. In agent mode a local coding 
 files, runs commands and uses git, asking the user before actions the chosen permission level does not allow. Everything runs
 offline on the private Text model.
 
+Each accepted task has one four-field `generation` identity shared across its loop iterations and saved answers. The final duration includes model/GPU waits, handoffs and verification. See [Generations.md](Generations.md).
+
 ## Agents
 
 | Agent | State | Installed as |

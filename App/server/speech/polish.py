@@ -8,6 +8,7 @@ what idle modules hold (including the voice worker), and the Stop banner can sto
 import difflib
 import re
 import threading
+from generation import operation
 
 from gpu import Busy, GpuUnavailable
 
@@ -64,11 +65,12 @@ class Polisher:
             return dict(available=False, reason=info['reason'] or 'Text недоступен.', model='')
         return dict(available=True, reason='', model=self.text.default_model())
 
-    def _run(self, messages, cancel, limit):
+    def _run(self, messages, cancel, limit, kind='SpeechTextPolish'):
         pieces = []
         options = dict(temperature=0.2, top_p=0.9, top_k=40, num_ctx=4096, num_predict=limit)
-        for row in self.text.stream_chat(self.text.default_model(), messages, False, cancel, options=options):
-            pieces.append((row.get('message') or {}).get('content', ''))
+        with operation(kind, cancel=cancel):
+            for row in self.text.stream_chat(self.text.default_model(), messages, False, cancel, options=options):
+                pieces.append((row.get('message') or {}).get('content', ''))
         return ''.join(pieces)
 
     def _claim(self):
@@ -118,7 +120,7 @@ class Polisher:
             return False
         try:
             self.text.start()
-            self._run([dict(role='user', content='ок')], cancel, 4)
+            self._run([dict(role='user', content='ок')], cancel, 4, kind='SpeechTextPolishWarmup')
             return True
         except (ValueError, OSError):
             return False

@@ -1,8 +1,8 @@
 /* The voice bar is deliberately larger than a normal control: it is used with a quick glance while talking. */
 .voice-bar{position:fixed;z-index:2147483000;display:flex;align-items:center;gap:8px;padding:4px 11px 4px 6px;border:1px solid var(--border-strong);border-radius:999px;background:var(--raised);box-shadow:var(--shadow);font-size:15px;color:var(--text);max-width:min(700px,calc(100vw - 8px));animation:vf-pop var(--fast) var(--ease) both}
-.voice-mic{width:39px;height:39px;padding:0;border-radius:50%;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);font-size:20px;line-height:1;font-weight:400;cursor:pointer;flex:none}
-.voice-mic:hover:not(:disabled){background:var(--accent-soft);border-color:var(--accent)}
-.voice-bar[data-state="recording"] .voice-mic{background:var(--danger);border-color:var(--danger);color:#fff;animation:voice-pulse 1s ease-in-out infinite}
+.voice-mic{display:inline-flex;align-items:center;justify-content:center;width:39px;height:39px;padding:0;border-radius:var(--r);background:transparent;color:var(--text);border:0;font-size:36px;line-height:1;font-weight:400;cursor:pointer;flex:none}
+.voice-mic:hover:not(:disabled){background:transparent;color:var(--accent)}
+.voice-bar[data-state="recording"] .voice-mic{color:var(--danger-ink);animation:voice-pulse 1s ease-in-out infinite}
 .voice-bar[data-state="processing"] .voice-mic,.voice-bar[data-state="starting"] .voice-mic{cursor:progress}
 .voice-lang{font-size:14px;padding:4px 30px 4px 8px;cursor:pointer;background-position:right 6px center}
 .voice-enhance{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:15px;color:var(--text);user-select:none}
@@ -16,6 +16,11 @@
 .voice-enhance.blocked{opacity:.5;filter:grayscale(.7)}
 .voice-meter{display:inline-block;flex:none;width:64px;height:10px;border-radius:5px;background:var(--surface-3);border:1px solid var(--border-strong);overflow:hidden}
 .voice-meter i{display:block;height:100%;width:0;background:var(--ok);transition:width .08s linear}
+.voice-label:empty{display:none}
 .voice-label{max-width:434px;overflow-wrap:anywhere;color:var(--muted);cursor:default;line-height:1.25}
 .voice-bar[data-state="recording"] .voice-label{color:var(--danger-ink)}
-@keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 rgba(229,83,75,.45)}50%{box-shadow:0 0 0 7px rgba(229,83,75,0)}}
+/* Absolute positioning keeps model-loading messages out of the bar's dimensions. */
+.voice-hint{position:absolute;right:0;bottom:calc(100% + 9px);width:max-content;max-width:min(320px,calc(100vw - 16px));box-sizing:border-box;padding:10px 13px;border:1px solid var(--border-strong);border-radius:var(--r);background:var(--raised);color:var(--text-2);box-shadow:var(--shadow);font-size:13px;line-height:1.45;overflow-wrap:anywhere;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(5px);transition:opacity var(--mid) var(--ease),transform var(--mid) var(--ease),visibility 0s var(--mid)}
+.voice-hint.visible{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+.voice-hint::after{content:"";position:absolute;right:34px;bottom:-5px;width:8px;height:8px;background:var(--raised);border-right:1px solid var(--border-strong);border-bottom:1px solid var(--border-strong);transform:rotate(45deg)}
+@keyframes voice-pulse{0%,100%{opacity:1}50%{opacity:.5}}

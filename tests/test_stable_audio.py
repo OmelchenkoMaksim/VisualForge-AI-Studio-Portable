@@ -298,6 +298,9 @@ class SuccessTests(StableAudioBase):
         self.assertEqual((row['backend'], row['mode'], row['lyrics']), ('comfy', 'audio', ''))
         self.assertEqual(len(row['metadata']['workflow_sha256']), 64)
         sidecar = json.loads(saved.with_suffix('.json').read_text(encoding='utf-8'))
+        self.assertEqual(sidecar['generation'], row['generation'])
+        self.assertEqual(row['generation']['id'], job['generation']['id'])
+        self.assertIsNotNone(row['generation']['duration_sec'])
         self.assertEqual(sidecar['seed'], 7)
         self.assertEqual(self.manager.file(job['id']), saved)
 

@@ -201,9 +201,12 @@ class ComfyBackend:
                 raise RuntimeError('ComfyUI отклонил граф: ' + str(answer)[:600])
             with self._lock:
                 self._prompt_id = prompt_id
+            from .storage import write_json
+            write_json(directory / 'comfy-artifacts.json', {'prompt_id': prompt_id})
             log('Граф отправлен в ComfyUI, prompt_id=' + prompt_id)
             progress('Ожидание очереди ComfyUI')
             item = self._wait(prompt_id, started, progress, log, cancelled)
+            write_json(directory / 'comfy-artifacts.json', {'prompt_id': prompt_id, 'outputs': [item]})
             flac = scratch / 'result.flac'
             query = urllib.parse.urlencode({'filename': item['filename'], 'subfolder': item.get('subfolder', ''), 'type': item.get('type', 'temp')})
             flac.write_bytes(self.client.fetch('/view?' + query))

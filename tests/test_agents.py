@@ -164,6 +164,15 @@ class GatewayTest(unittest.TestCase):
         self.assertTrue(sent['body']['stream_options']['include_usage'])
         self.assertEqual(self.observed, [(12 + 2, True)])
 
+    def test_optional_event_metadata_failure_does_not_interrupt_or_leak_admission(self):
+        def failed_metadata():
+            raise RuntimeError('fixture event metadata failure')
+        self.gateway.activity = failed_metadata
+        status, text = self.post(dict(model='m-demo', stream=True, messages=[dict(role='user', content='fixture')]))
+        self.assertEqual(status, 200)
+        self.assertIn('[DONE]', text)
+        self.assertEqual(self.finished, [1])
+
     def test_refuses_wrong_token_host_and_model(self):
         self.assertEqual(self.post(dict(model='m-demo', messages=[]), token='wrong')[0], 401)
         self.assertEqual(self.post(dict(model='m-demo', messages=[]), host='evil.example:80')[0], 403)

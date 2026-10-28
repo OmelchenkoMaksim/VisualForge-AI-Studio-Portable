@@ -12,6 +12,9 @@ import re
 import sys
 import time
 import wave
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from generation import operation
 
 LANGUAGES = {'ru': 'russian', 'en': 'english', 'uk': 'ukrainian', 'de': 'german', 'fr': 'french', 'es': 'spanish', 'it': 'italian', 'pl': 'polish',
              'tr': 'turkish', 'zh': 'chinese', 'ja': 'japanese', 'ko': 'korean', 'pt': 'portuguese', 'nl': 'dutch', 'cs': 'czech', 'be': 'belarusian'}
@@ -127,7 +130,8 @@ def main():
             sys.stderr.write('RUPunct could not be loaded: %s\n' % error)
     try:  # the first real recognition after loading is slow (kernel set-up); do it now, on one second of silence
         import numpy as np
-        recognizer({'raw': np.zeros(TARGET_RATE, dtype=np.float32), 'sampling_rate': TARGET_RATE}, generate_kwargs={'task': 'transcribe', 'language': 'russian'})
+        with operation('SpeechModelWarmup'):
+            recognizer({'raw': np.zeros(TARGET_RATE, dtype=np.float32), 'sampling_rate': TARGET_RATE}, generate_kwargs={'task': 'transcribe', 'language': 'russian'})
     except Exception:
         pass
     send({'ready': True, 'device': device, 'torch': torch.__version__, 'punctuation': classify is not None})
@@ -150,7 +154,8 @@ def main():
             text = raw = ' '.join(str(result.get('text', '')).split())
             if classify is not None and request.get('punctuate', True) and not request.get('partial') and text and not is_punctuated(text):
                 try:
-                    text = punctuate_text(text, classify)
+                    with operation('SpeechPunctuation', request.get('generation_parent')):
+                        text = punctuate_text(text, classify)
                 except Exception:
                     text = raw
             if level < -42 and any(text.lower().startswith(phantom) for phantom in PHANTOMS):

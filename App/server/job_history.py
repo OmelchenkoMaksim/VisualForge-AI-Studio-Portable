@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import threading
 import uuid
+from generation import ensure as generation_ensure, finish as generation_finish
 
 
 class JobHistory:
@@ -13,13 +14,14 @@ class JobHistory:
     FIELDS = ('engine', 'mode', 'selected_mode', 'operation', 'seed', 'quality',
               'steps', 'upscale', 'submitted_at', 'filename_base', 'original_prompt',
               'workflow_sha256', 'workflow_version', 'result_node_ids',
-              'graph_sha256', 'sampler_parameters', 'expansion', 'expanded_prompt')
+              'graph_sha256', 'sampler_parameters', 'expansion', 'expanded_prompt', 'input_files', 'comfy_files', 'generation')
 
     def __init__(self, path, portable_root=None):
         self.path = Path(path)
         self.portable_root = Path(portable_root).resolve() if portable_root else None
         self.lock = threading.RLock()
         self.rows = {}
+        self.deleted = set()  # In-flight status/watcher requests must not resurrect a removed receipt.
         self.warning = ''
         self.writable = True
         try:
@@ -32,6 +34,7 @@ class JobHistory:
                 raise ValueError('Invalid history document')
             for row in raw['entries']:
                 self._validate(row)
+                generation_ensure(row, 'Image', row['prompt_id'], row.get('submitted_at'), row.get('elapsed_sec'))
                 self.rows[row['prompt_id']] = row
         except (OSError, ValueError, TypeError, AttributeError, KeyError, RecursionError):
             self.rows = {}
@@ -73,10 +76,15 @@ class JobHistory:
             raise ValueError('Receipt exceeds size limit')
 
     def record(self, ident, state, metadata, saved_files=(), elapsed_sec=0):
+        for detail in metadata.get('_technical', []):
+            generation_finish(detail, state=state)
+        generation_finish(generation_ensure(metadata, 'Image', ident, metadata.get('submitted_at')), elapsed_sec, state=state)
         row = {k: copy.deepcopy(metadata[k]) for k in self.FIELDS if k in metadata}
         row.update(prompt_id=ident, state=state, saved_files=[self._stored_file(p) for p in saved_files], elapsed_sec=max(0, int(elapsed_sec)))
         self._validate(row)
         with self.lock:
+            if ident in self.deleted:
+                return
             self.rows.pop(ident, None)
             self.rows[ident] = row
             while len(self.rows) > self.LIMIT:
@@ -96,6 +104,17 @@ class JobHistory:
                     temporary.unlink(missing_ok=True)
                 except OSError:
                     pass
+
+    def remove(self, ident):
+        from job_delete import write_receipt
+        with self.lock:
+            if not self.writable:
+                raise ValueError('История недоступна для записи. Удаление не выполнено.')
+            remaining = {key: row for key, row in self.rows.items() if key != ident}
+            write_receipt(self.path, {'schema_version': 1, 'entries': list(remaining.values())})
+            self.rows = remaining
+            self.deleted.add(ident)
+            self.warning = ''
 
     def get(self, ident):
         with self.lock:

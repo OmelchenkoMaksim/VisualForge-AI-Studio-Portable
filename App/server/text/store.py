@@ -10,6 +10,7 @@ import struct
 import threading
 import time
 import uuid
+from generation import ensure as generation_ensure
 
 SCHEMA_VERSION = 1
 ID_PATTERN = re.compile(r'[0-9a-f]{32}\Z')
@@ -141,6 +142,9 @@ class ChatStore:
         chat = json.loads(path.read_text(encoding='utf-8'))
         if chat.get('schema_version') != SCHEMA_VERSION or chat.get('id') != ident or not isinstance(chat.get('messages'), list):
             raise ValueError('Файл чата повреждён')
+        for index, message in enumerate(chat['messages']):
+            if message.get('role') == 'assistant':
+                generation_ensure(message, 'Agent' if chat.get('kind') == 'agent' else 'Text', message.get('id', ident + ':' + str(index)))
         return chat
 
     def _save(self, chat):
@@ -256,7 +260,7 @@ class ChatStore:
             result.append(base64.b64encode(path.read_bytes()).decode('ascii'))
         return result
 
-    def add_user(self, ident, content, images=None):
+    def add_user(self, ident, content, images=None, generation=None):
         images = images or []
         if not isinstance(content, str) or len(content) > MAX_CONTENT or not (content.strip() or images):
             raise ValueError('Сообщение: текст до %d символов или хотя бы одно изображение' % MAX_CONTENT)
@@ -269,6 +273,8 @@ class ChatStore:
             if sum(len(m.get('images', [])) for m in chat['messages']) + len(images) > MAX_IMAGES_PER_CHAT:
                 raise ValueError('В чате уже много изображений (не больше %d): начните новый чат' % MAX_IMAGES_PER_CHAT)
             message = dict(id=uuid.uuid4().hex, role='user', content=content, created=time.time())
+            if generation:
+                message['generation'] = dict(generation)
             written = []
             try:
                 for image in images:
@@ -288,6 +294,21 @@ class ChatStore:
                 raise
             return chat
 
+    def update_generation(self, ident, generation, request=False):
+        """Finalize all messages of one task; loop iterations share one operation ID."""
+        with self.lock:
+            chat = self.get(ident)
+            if request:
+                for message in reversed(chat['messages']):
+                    if message['role'] == 'user':
+                        message['generation'] = dict(generation)
+                        break
+            for message in chat['messages']:
+                if (message.get('generation') or {}).get('id') == generation['id']:
+                    message['generation'] = dict(generation)
+            self._save(chat)
+            return chat
+
     def prepare_regenerate(self, ident):
         """Regeneration or retry: drop a trailing assistant answer so the chat ends with the user message to answer."""
         with self.lock:
@@ -299,10 +320,12 @@ class ChatStore:
                 raise ValueError('В чате нет вопроса, на который можно ответить')
             return chat
 
-    def add_assistant(self, ident, content, thinking='', model='', stats=None, stopped=False, error='', steps=None):
+    def add_assistant(self, ident, content, thinking='', model='', stats=None, stopped=False, error='', steps=None, generation=None):
         with self.lock:
             chat = self.get(ident)
             message = dict(id=uuid.uuid4().hex, role='assistant', content=content[:MAX_CONTENT * 4], created=time.time(), model=model)
+            if generation:
+                message['generation'] = dict(generation)
             if thinking:
                 message['thinking'] = thinking[:MAX_CONTENT * 4]
             if steps:

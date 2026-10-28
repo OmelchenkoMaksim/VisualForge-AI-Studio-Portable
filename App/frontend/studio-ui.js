@@ -99,6 +99,7 @@
       host.setAttribute('aria-label', 'Уведомления студии'); document.body.append(host);
     }
     const card = document.createElement('div'); card.className = 'studio-notice' + (error ? ' studio-notice-error' : '');
+    if (id) card.dataset.jobKey = module + ':' + id;
     card.setAttribute('role', error ? 'alert' : 'status');
     const title = document.createElement('strong');
     title.textContent = module + (error ? ' · Ошибка' : ' · Завершено успешно');
@@ -117,6 +118,49 @@
     action('Закрыть', () => card.remove());
     host.append(card);
     sound(error);
+  }
+  function generationInfo(record) {
+    const details = document.createElement('details'); details.className = 'generation-info';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Данные генерации · ' + record.type + ' · ' + record.id.slice(0, 12) + '…';
+    details.append(summary);
+    const list = document.createElement('dl');
+    const date = record.started_at ? new Date(record.started_at).toLocaleString('ru-RU') : 'неизвестно';
+    const duration = record.duration_sec === null ? 'ещё не завершена или время неизвестно' : record.duration_sec.toLocaleString('ru-RU') + ' с';
+    for (const [label, value] of [['Тип', record.type], ['ID', record.id], ['Начало', date], ['Длительность', duration]]) {
+      const key = document.createElement('dt'), text = document.createElement('dd');
+      key.textContent = label; text.textContent = value; list.append(key, text);
+    }
+    const copy = document.createElement('button'); copy.type='button'; copy.className='secondary slim'; copy.textContent='Скопировать объект';
+    copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(JSON.stringify(record, null, 2)); copy.textContent='Скопировано'; }
+      catch { copy.textContent='Не удалось скопировать'; }
+    };
+    details.append(list, copy);
+    return details;
+  }
+  function deleteGenerationButton(module, id, afterDelete, beforeDelete = () => {}) {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'secondary slim'; button.textContent = 'Удалить';
+    button.title = 'Удалить генерацию вместе с результатом, метаданными и отдельным логом задачи';
+    const reportFailure = message => notify({module, error:true, message:'Не удалось завершить удаление: ' + message});
+    button.onclick = async () => {
+      if (button.disabled || !window.confirm('Удалить эту генерацию безвозвратно?\n\nБудут удалены запись истории, файлы результата, метаданные, временные файлы и отдельный лог задачи. Общие журналы студии и движков могут содержать сведения об этой генерации и сохранятся. Отдельные генерации и миксы останутся.')) return;
+      button.disabled = true;
+      try {
+        // Release range requests before deleting a playing file: Windows otherwise keeps its handle open.
+        await beforeDelete();
+        const url = module === 'Image' ? '/api/history/delete' : '/api/' + module.toLowerCase() + '/delete';
+        const response = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
+        const value = await response.json();
+        if (!response.ok || !value?.deleted) {reportFailure(value?.error || 'Удаление не подтверждено');return;}
+        for (const card of document.querySelectorAll('.studio-notice')) if (card.dataset.jobKey === module + ':' + id) card.remove();
+        await afterDelete();
+      } catch (error) {
+        reportFailure(error.message);
+      } finally { button.disabled = false; }
+    };
+    return button;
   }
   function showLogs(module, id, load) {
     document.getElementById(module.toLowerCase() + 'Tab')?.click();
@@ -190,7 +234,7 @@
   setInterval(() => {if (!document.hidden) poll();}, 1200);
   poll();
   window.StudioUI = {
-    notify, openFolder, showLogs, setHeader, isBusy: () => locked, refreshBusy: poll,
+    notify, openFolder, showLogs, setHeader, deleteGenerationButton, generationInfo, isBusy: () => locked, refreshBusy: poll,
     parentFolder: path => { const text=String(path || ''); const index=Math.max(text.lastIndexOf('\\'),text.lastIndexOf('/')); return index<0?'':text.slice(0, index<=2?index+1:index); },
     modelLabel: (id, name) => releases[id] ? `${name} · ${releases[id][1]}: ${releases[id][0]}` : name,
     modelSource: id => releases[id]?.[2] || ''

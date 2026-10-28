@@ -44,17 +44,26 @@ compete for the video card (the local Gemma could do it, but it is a separate, o
 
 ## Enhanced mode: the local Gemma edits the text
 
-The bar has a small switch **Gemma** next to the language selector (off by default; the choice is remembered). When it is on, a final
+The bar has a **Gemma AI** switch next to the language selector. It is off for a new browser profile; explicit on/off choices are saved in local storage and restored on the next visit. When it is on, a final
 recording goes through two steps: Whisper recognizes, then the local Gemma (the model of the **Text** section, through its private Ollama) restores
 punctuation and capital letters, fixes obvious mishearings and removes stutters, without answering, translating or rewriting. Live previews
-are not edited. Switching the switch on starts loading Gemma in the background.
+are not edited. Switching the switch on starts loading Gemma in the background. The microphone icon is 36 px with a borderless
+39 px hit area. Clicking or tabbing into the language selector or the Gemma AI checkbox keeps the bar visible and preserves the
+original dictation field. Leaving both the field and the bar hides it after a short delay.
+
+A separate animated hint above the bar shows that Gemma AI is loading or waiting for the GPU. It is absolutely positioned so
+the message never changes the bar's dimensions. The page reads the existing local Text status endpoint until the selected model
+is loaded and its voice warmup has finished, then fades the hint away. Disabling enhancement or leaving the field stops this
+tracking; late responses cannot reopen the hint. Errors are shown separately, and a five-minute readiness deadline prevents an
+endless loading message. An already loaded model is reused without another warmup. No inference is started for enhancement
+when its switch is off; the ordinary Whisper warmup remains independent.
 
 What to expect:
 
 - **First use:** loading a big model from a hard disk takes up to a minute (one real test: 64 s for `gemma4:e2b`); afterwards an edit takes about
   0.1-0.2 s per phrase. The model stays loaded for the keep-alive time of the Text settings.
 - **During a generation** the switch is greyed out but stays on; dictation then inserts the plain Whisper text ("Gemma пропущена"), and when the
-  generation ends Gemma is loaded again by itself in the background, so the next dictation is quick (the model files stay in the Windows file
+  generation ends Gemma is loaded again in the background if the voice bar is visible (otherwise on the next field focus), so the next dictation is quick (the model files stay in the Windows file
   cache, so a reload takes seconds rather than the first minute). While Gemma loads or edits, the banner says "Gemma работает для голосового ввода"
   instead of "generation".
 - **It takes the video card** like a chat answer: the coordinator refuses while another module generates (the plain Whisper text is inserted

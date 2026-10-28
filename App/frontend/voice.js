@@ -11,7 +11,8 @@
   const Gate = window.VoiceGate;
   let target = null, state = 'idle', availability = null, hideTimer = null, warmedAt = 0;
   let stream = null, context = null, nodes = [], chunks = [], gate = null, tick = null, partialTimer = null, inFlight = false, preview = '', startedAt = 0, speaking = false, partialController = null;
-  let bar, button, select, label, meter, meterFill, enhanceBox, enhanceLabel;
+  let bar, button, select, label, meter, meterFill, enhanceBox, enhanceLabel, hint;
+  let hintTimer = null, enhanceTimer = null, enhanceRequest = 0, enhanceTask = null, busyKind = '';
 
   const make = (tag, className, text) => {const node = document.createElement(tag);if (className) node.className = className;if (text !== undefined) node.textContent = text;return node;};
   const remember = value => {try {localStorage.setItem(LANG_KEY, value);} catch {}};
@@ -35,22 +36,23 @@
     select.value = recall();select.onchange = () => remember(select.value);
     enhanceLabel = make('label', 'voice-enhance');enhanceLabel.dataset.allowBusy = '1';
     enhanceBox = document.createElement('input');enhanceBox.type = 'checkbox';enhanceBox.dataset.allowBusy = '1';enhanceBox.checked = enhanceWanted();
-    enhanceBox.setAttribute('aria-label', 'Улучшенное распознавание с Gemma');
-    enhanceLabel.append(enhanceBox, make('span', 'voice-switch'), make('span', 'voice-enhance-text', 'Gemma'));
+    enhanceBox.setAttribute('aria-label', 'Улучшенное распознавание с Gemma AI');
+    enhanceLabel.append(enhanceBox, make('span', 'voice-switch'), make('span', 'voice-enhance-text', 'Gemma AI'));
     enhanceBox.onchange = () => {
       try {localStorage.setItem(ENHANCE_KEY, enhanceBox.checked ? '1' : '0');} catch {}
-      if (!enhanceBox.checked) {updateEnhance();return;}
-      if (!enhanceReady()) {enhanceBox.checked = false;try {localStorage.setItem(ENHANCE_KEY, '0');} catch {}flash(enhanceReason(), 8000);return;}
-      if (generating()) {flash('Идёт генерация: Gemma загрузится сама, когда она закончится.', 8000);return;}
-      flash('Gemma загружается (первый раз до минуты); потом ответы быстрые.', 8000);
-      fetch('/api/speech/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enhance: true})}).catch(() => {});
+      clearTimeout(hideTimer);
+      if (!enhanceBox.checked) {stopEnhanceNotice();updateEnhance();return;}
+      if (!enhanceReady()) {showHint(enhanceReason(), 8000);return;}
+      prepareEnhance();
     };
     meter = make('span', 'voice-meter');meterFill = make('i');meter.append(meterFill);meter.hidden = true;
     label = make('span', 'voice-label');label.setAttribute('role', 'status');
-    bar.append(button, select, enhanceLabel, meter, label);document.body.append(bar);
+    hint = make('div', 'voice-hint');hint.setAttribute('role', 'status');hint.setAttribute('aria-live', 'polite');hint.setAttribute('aria-hidden', 'true');
+    bar.append(button, select, enhanceLabel, meter, label, hint);document.body.append(bar);
     updateEnhance();
     // Pressing the bar must not take the focus (and the cursor position) away from the text field.
     bar.addEventListener('mousedown', event => {if (event.target !== select) event.preventDefault();});
+    bar.addEventListener('focusin', () => clearTimeout(hideTimer));
     button.onclick = toggle;
   }
 
@@ -69,8 +71,19 @@
     warmedAt = Date.now();
     fetch('/api/speech/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'}).catch(() => {});
   }
-  const show = () => {clearTimeout(hideTimer);bar.hidden = false;place();if (!availability) load();warm();};
-  const hideSoon = () => {clearTimeout(hideTimer);hideTimer = setTimeout(() => {if (state === 'idle') bar.hidden = true;}, 250);};
+  const show = () => {
+    clearTimeout(hideTimer);bar.hidden = false;place();
+    if (!availability) load().then(prepareEnhance);else prepareEnhance();
+    warm();
+  };
+  const hideSoon = () => {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      if (state === 'idle' && document.activeElement !== target && !bar.contains(document.activeElement)) {
+        bar.hidden = true;stopEnhanceNotice();
+      }
+    }, 250);
+  };
 
   function setState(next, text) {
     state = next;
@@ -99,14 +112,75 @@
   // ---- the Gemma switch ---------------------------------------------------------------------------------------------
   const generating = () => !!(window.StudioUI && window.StudioUI.isBusy());
   const enhanceReady = () => !!(availability && availability.enhance && availability.enhance.available);
-  const enhanceReason = () => (availability && availability.enhance && availability.enhance.reason) || 'Gemma сейчас недоступна: нужна модель в разделе Text.';
+  const enhanceReason = () => (availability && availability.enhance && availability.enhance.reason) || 'Gemma AI сейчас недоступна: нужна модель в разделе Text.';
   function updateEnhance() {
     const ready = enhanceReady();
     enhanceLabel.classList.toggle('unavailable', !ready);
     enhanceLabel.title = ready
-      ? 'Улучшенное распознавание: после Whisper локальная Gemma (' + availability.enhance.model + ') расставит знаки и заглавные и исправит ошибки. Медленнее, занимает видеокарту.'
+      ? 'Gemma AI — локальный ИИ: после Whisper модель (' + availability.enhance.model + ') расставит знаки и заглавные и исправит ошибки. Первый запуск требует загрузки модели в видеопамять.'
       : 'Улучшенное распознавание недоступно: ' + enhanceReason();
-    if (!ready && availability) enhanceBox.checked = false;
+    // Availability may change while the GPU is busy; it must not overwrite the user's saved choice.
+  }
+
+  function showHint(text, ms = 0) {
+    clearTimeout(hintTimer);hintTimer = null;
+    if (hint.textContent !== text) hint.textContent = text;
+    // Establish the hidden frame even when the whole bar was just shown.
+    if (!hint.classList.contains('visible')) hint.getBoundingClientRect();
+    hint.classList.add('visible');hint.setAttribute('aria-hidden', 'false');
+    if (ms) hintTimer = setTimeout(hideHint, ms);
+  }
+  function hideHint() {
+    clearTimeout(hintTimer);hintTimer = null;
+    hint.classList.remove('visible');hint.setAttribute('aria-hidden', 'true');
+  }
+  function stopEnhanceNotice() {
+    enhanceRequest++;enhanceTask = null;clearTimeout(enhanceTimer);enhanceTimer = null;hideHint();
+  }
+  function prepareEnhance() {
+    if (!enhanceBox.checked || !enhanceReady() || bar.hidden || enhanceTask !== null) return;
+    const request = ++enhanceRequest, started = Date.now(), model = availability.enhance.model;
+    enhanceTask = request;
+    let sent = false;
+    const current = () => enhanceTask === request && enhanceRequest === request && enhanceBox.checked && !bar.hidden;
+    const fail = message => {
+      if (!current()) return;
+      enhanceTask = null;showHint(message, 8000);
+    };
+    const loading = 'Gemma AI загружается… Первый запуск может занять несколько минут.';
+    const waiting = 'Gemma AI ждёт освобождения видеокарты…';
+    showHint(generating() && busyKind !== 'voice' ? waiting : loading);
+    async function poll() {
+      try {
+        const response = await fetch('/api/text/status', {cache: 'no-store'});
+        if (!response.ok) {fail('Не удалось проверить загрузку Gemma AI. Попробуйте включить её снова.');return;}
+        const status = await response.json();
+        if (!current()) return;
+        const jobs = Array.isArray(status.generating) ? status.generating : [];
+        const otherBusy = (generating() && busyKind !== 'voice') || jobs.some(id => id !== 'voice-polish');
+        if (otherBusy) {
+          showHint(waiting);sent = false;
+        } else {
+          if ((status.loaded || []).some(item => item.name === model) && !jobs.includes('voice-polish')) {
+            enhanceTask = null;hideHint();return;
+          }
+          showHint(loading);
+          if (!sent && !jobs.includes('voice-polish')) {
+            const prepare = await fetch('/api/speech/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enhance: true})});
+            if (!current()) return;
+            if (!prepare.ok || !(await prepare.json()).preparing) {fail('Gemma AI не удалось запустить. Проверьте доступность модели в Text.');return;}
+            if (!current()) return;
+            sent = true;
+          }
+        }
+        // Loaded models, not elapsed UI timers, decide when the hint disappears.
+        if (Date.now() - started > 300000) {fail('Gemma AI пока не готова. Проверьте состояние Text и видеокарты.');return;}
+        if (current()) enhanceTimer = setTimeout(poll, 1000);
+      } catch {
+        fail('Нет связи со студией. Проверьте, запущено ли приложение.');
+      }
+    }
+    poll();
   }
 
   // ---- availability ------------------------------------------------------------------------------------------------
@@ -120,8 +194,10 @@
   }
 
   // ---- recording -----------------------------------------------------------------------------------------------------
+  let microphoneEvent=null, recognitionEvent=null;
   async function start() {
     if (!target || state !== 'idle') return;
+    microphoneEvent=window.StudioEvents?.microphoneStart();recognitionEvent=microphoneEvent;
     setState('starting', 'Разрешите доступ к микрофону, если браузер спросит…');
     if (!availability || !availability.available) await load();
     if (!availability.available) {setState('idle', '');flash(availability.reason + ' Нажмите, чтобы открыть «Компоненты».', 8000);label.onclick = () => window.showComponents && window.showComponents();return;}
@@ -144,7 +220,7 @@
       }
       source.connect(capture);capture.connect(mute);
       nodes = [source, capture, mute];
-    } catch (error) {release();setState('idle', '');flash('Не удалось начать запись: ' + (error.message || error), 8000);return;}
+    } catch (error) {release('error');setState('idle', '');flash('Не удалось начать запись: ' + (error.message || error), 8000);return;}
     chunks = [];preview = '';speaking = false;inFlight = false;startedAt = Date.now();
     gate = new Gate.SpeechGate(context.sampleRate);
     warmedAt = 0;warm();    // the model must be loading while the person speaks
@@ -164,7 +240,8 @@
     }
   }
 
-  function release() {
+  function release(eventState='done') {
+    window.StudioEvents?.microphoneFinish(microphoneEvent,eventState);microphoneEvent=null;
     clearInterval(tick);clearInterval(partialTimer);tick = partialTimer = null;
     for (const node of nodes) {try {node.disconnect();} catch {}}
     nodes = [];
@@ -183,7 +260,7 @@
     if (state !== 'recording') return;
     const audio = reason === 'cancel' ? null : samples16k(0);
     if (partialController) partialController.abort();   // the final recording must not queue behind a preview
-    release();
+    release(reason === 'cancel' ? 'cancelled' : 'done');
     if (reason === 'cancel') {setState('idle', '');return;}
     if (reason === 'no-speech' && !preview) {setState('idle', '');flash('Не услышал речь. Проверьте микрофон и говорите ближе.');return;}
     if (audio.length < MIN_SAMPLES) {setState('idle', '');flash('Слишком короткая запись.');return;}
@@ -193,11 +270,11 @@
   async function finish(audio) {
     const wanted = enhanceBox.checked && enhanceReady();
     const enhance = wanted && !generating();   // the video card belongs to the running generation
-    setState('processing', enhance ? 'Распознаю и улучшаю с Gemma…' : 'Распознаю…');
+    setState('processing', enhance ? 'Распознаю и улучшаю с Gemma AI…' : 'Распознаю…');
     try {
       const answer = await transcribe(new Blob([Gate.wavBuffer(audio, RATE)], {type: 'audio/wav'}), false, undefined, enhance);
       setState('idle', '');
-      if (answer.text) {insert(target, answer.text);flash(answer.note ? 'Готово. ' + answer.note : wanted && !enhance ? 'Готово. Идёт генерация: Gemma пропущена, текст без её правки.' : enhance ? 'Готово (Gemma)' : 'Готово', answer.note || (wanted && !enhance) ? 9000 : 4000);}
+      if (answer.text) {insert(target, answer.text);flash(answer.note ? 'Готово. ' + answer.note : wanted && !enhance ? 'Готово. Идёт генерация: Gemma AI пропущена, текст без её правки.' : enhance ? 'Готово (Gemma AI)' : 'Готово', answer.note || (wanted && !enhance) ? 9000 : 4000);}
       else flash('Речь не распознана. Говорите ближе к микрофону.');
     } catch (error) {setState('idle', '');flash(error.message || 'Не удалось распознать.', 8000);}
   }
@@ -214,8 +291,12 @@
   }
 
   async function transcribe(wav, isPartial, signal, enhance) {
+    const microphone=await recognitionEvent;
+    const headers={'Content-Type':'audio/wav'};
+    // Headers keep the technical parent ID out of the existing HTTP request-path log.
+    if(microphone)headers['X-VisualForge-Session']=microphone.id;
     let response;
-    try {response = await fetch('/api/speech/transcribe?lang=' + encodeURIComponent(select.value) + (isPartial ? '&partial=1' : '') + (enhance ? '&enhance=1' : ''), {method: 'POST', headers: {'Content-Type': 'audio/wav'}, body: wav, signal});}
+    try {response = await fetch('/api/speech/transcribe?lang=' + encodeURIComponent(select.value) + (isPartial ? '&partial=1' : '') + (enhance ? '&enhance=1' : ''), {method: 'POST', headers, body: wav, signal});}
     catch {throw new Error('Нет связи со студией. Проверьте, запущено ли приложение.');}
     let value;
     try {value = await response.json();} catch {throw new Error('Некорректный ответ службы распознавания.');}
@@ -250,7 +331,10 @@
     if (state !== 'idle') return;
     if (eligible(event.target)) {target = event.target;show();}
   });
-  document.addEventListener('focusout', event => {if (event.target === target) hideSoon();});
+  document.addEventListener('focusout', event => {
+    // A label click can focus its checkbox despite mousedown.preventDefault(). Keep the whole bar in the focus scope.
+    if ((event.target === target || bar.contains(event.target)) && event.relatedTarget !== target && !bar.contains(event.relatedTarget)) hideSoon();
+  });
   document.addEventListener('keydown', event => {
     if (event.key === 'F9') {
       event.preventDefault();
@@ -258,12 +342,16 @@
       toggle();
     } else if (event.key === 'Escape' && state === 'recording') stop('cancel');   // drop the recording without recognizing it
   });
-  // During a generation the video card is taken: the switch is greyed out (it stays on) and Gemma is loaded again by itself afterwards.
-  window.addEventListener('studio:busy', () => {enhanceLabel.classList.add('blocked');enhanceLabel.title = 'Идёт генерация: Gemma сейчас выгружена и не используется. Переключатель остаётся включённым, после генерации Gemma загрузится сама.';});
+  // Keep the saved choice while another module owns the GPU; resume warmup when the voice bar is visible.
+  window.addEventListener('studio:busy', event => {
+    busyKind = event.detail?.kind || '';
+    enhanceLabel.classList.toggle('blocked', busyKind !== 'voice');
+    if (busyKind !== 'voice') enhanceLabel.title = 'Идёт генерация: Gemma AI загрузится после её окончания. Ваш выбор сохранён.';
+  });
   window.addEventListener('studio:idle', event => {
-    enhanceLabel.classList.remove('blocked');updateEnhance();
+    busyKind = '';enhanceLabel.classList.remove('blocked');updateEnhance();
     const ownWork = event.detail && event.detail.kind === 'voice';   // Gemma's own loading or editing must not trigger another load
-    if (!ownWork && enhanceBox.checked && enhanceReady()) setTimeout(() => {if (!generating()) fetch('/api/speech/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enhance: true})}).catch(() => {});}, 1500);
+    if (!ownWork) prepareEnhance();
   });
   window.addEventListener('resize', place);
   window.addEventListener('scroll', place, true);

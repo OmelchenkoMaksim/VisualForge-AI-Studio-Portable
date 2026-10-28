@@ -355,6 +355,9 @@ class ChatFlowTests(Base):
         saved = self.store.get(chat['id'])
         self.assertEqual([m['role'] for m in saved['messages']], ['user', 'assistant'])
         self.assertEqual(saved['messages'][1]['thinking'], 'Думаю над ответом')
+        self.assertEqual(done['message']['generation'], saved['messages'][1]['generation'])
+        self.assertEqual(saved['messages'][0]['generation'], saved['messages'][1]['generation'])
+        self.assertIsNotNone(saved['messages'][1]['generation']['duration_sec'])
         body = [r for r in self.requests() if r['path'] == '/api/chat'][0]['body']
         self.assertEqual([m['role'] for m in body['messages']], ['system', 'user'])
         self.assertEqual((body['model'], body['think'], body['options'], body['keep_alive']), (MODEL, True, {}, '10m'))
@@ -371,8 +374,10 @@ class ChatFlowTests(Base):
     def test_regenerate_replaces_the_last_answer(self):
         chat = self.store.create('', MODEL)
         self.send(chat['id'], 'вопрос')
+        first = self.store.get(chat['id'])['messages'][-1]['generation']['id']
         handler = self.send(chat['id'], regenerate=True)
         self.assertEqual(handler.events()[-1]['type'], 'done')
+        self.assertNotEqual(handler.events()[-1]['message']['generation']['id'], first)
         self.assertEqual([m['role'] for m in self.store.get(chat['id'])['messages']], ['user', 'assistant'])
 
     def test_error_keeps_the_question_and_retry_works(self):
@@ -381,6 +386,8 @@ class ChatFlowTests(Base):
         last = handler.events()[-1]
         self.assertEqual(last['type'], 'error')
         self.assertIn('out of memory', last['error'])
+        self.assertIsNotNone(last['generation']['duration_sec'])
+        self.assertEqual(self.store.get(chat['id'])['messages'][0]['generation'], last['generation'])
         self.assertEqual([m['role'] for m in self.store.get(chat['id'])['messages']], ['user'])
         again = self.send(chat['id'], regenerate=True).events()[-1]
         self.assertEqual(again['type'], 'error')

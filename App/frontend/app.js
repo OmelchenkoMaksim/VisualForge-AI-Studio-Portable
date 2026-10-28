@@ -903,7 +903,18 @@ async function loadResultHistory() {
       if (Number.isSafeInteger(row.seed) && row.seed >= 0 && row.seed < 2**48) {
         const seedButton = document.createElement('button'); seedButton.type = 'button'; seedButton.className='secondary slim'; seedButton.textContent='Использовать seed'; seedButton.disabled=busy; seedButton.addEventListener('click',()=>useSeed(row.seed)); links.append(seedButton);
       }
-      card.append(links); byId('historyCards').append(card);
+      links.append(StudioUI.deleteGenerationButton('Image', row.prompt_id, async () => {
+        for (const link of byId('images').querySelectorAll('a[href^="/api/result"]')) {
+          if (new URL(link.href, location.href).searchParams.get('id') === row.prompt_id) link.parentElement.remove();
+        }
+        if (lastResultInfo && new URL(lastResultInfo.href, location.href).searchParams.get('id') === row.prompt_id) {
+          lastResultInfo = null; hasSuccessfulResult = false; refreshVariantButton();
+        }
+        await loadResultHistory();
+      }));
+      card.append(links);
+      if (row.generation) card.append(StudioUI.generationInfo(row.generation));
+      byId('historyCards').append(card);
     }
   } catch { byId('historyStatus').textContent = 'История сейчас недоступна. Генерация и сохранённые файлы остаются доступными.'; }
 }

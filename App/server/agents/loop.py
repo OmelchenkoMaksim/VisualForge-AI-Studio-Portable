@@ -247,6 +247,7 @@ def write(folder, workspace, number, total, run, goal, note, ended, fact, verifi
     context = ('%d%% of %d tokens%s' % (round(100 * used / size), size, '' if run.get('measured', True) else ', estimated')) if size else 'unknown'
     header = ['# Iteration %02d of %d: handoff' % (number, total), '',
               '- Agent: %s; model: %s' % (run.get('agent', ''), run.get('model', '')),
+              '- Generation ID: %s' % ((run.get('record') or {}).get('id') or 'unknown'),
               '- Ended: %s; context %s' % (ENDED.get(ended, ended), context), '']
     lines = []
     body = (note or '').strip()

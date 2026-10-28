@@ -52,7 +52,7 @@ The runtime loader is checked to use these local C++ DLLs rather than System32.
 ## API and job behavior
 
 The existing loopback bridge serves `/api/music/availability`, `settings`, `active`,
-`generate`, `status?id=`, `cancel`, `history`, `logs?id=` and `result?id=`.
+`generate`, `status?id=`, `cancel`, `history`, `logs?id=` and `result?id=`. `POST delete {id}` removes a terminal job and its recorded artifacts; see [generation deletion](Interface.md#deleting-a-generation).
 POST requests inherit safe-origin checks, JSON bounds and the shared submission lock.
 Generation refuses an active Image, Video or Music job, unloads idle Image models,
 closes the owned idle Video backend, then checks for at least 8 GB free VRAM.

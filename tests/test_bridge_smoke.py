@@ -79,6 +79,23 @@ class BridgeSmoke(unittest.TestCase):
         self.assertEqual(self.json('/api/launch-ready?launch=abcdefgh12345678'), (200, {'ready': True, 'ok': True}))
         self.assertEqual(self.json('/api/launch-ready?launch=otherlaunch00000')[1]['ready'], False)
 
+    def test_unified_event_history_records_only_authorized_microphone_events(self):
+        code, started = self.json('/api/event-history/session', {'action':'start'})
+        self.assertEqual(code, 200)
+        record = started['generation']
+        self.assertEqual(record['type'], 'MicrophoneSession')
+        self.assertEqual(len(record['id']), 64)
+        code, page = self.json('/api/event-history?type=MicrophoneSession')
+        self.assertEqual(code, 200)
+        self.assertTrue(any(row['generation']['id'] == record['id'] and row['state'] == 'running' for row in page['entries']))
+        code, stopped = self.json('/api/event-history/session', {'action':'finish', 'id':record['id'], 'state':'done'})
+        self.assertEqual(code, 200)
+        self.assertIsNotNone(stopped['generation']['duration_sec'])
+        self.assertNotIn(record['id'], self.log.read_text(encoding='utf-8', errors='replace'), 'technical session IDs must stay out of the existing launcher/HTTP log')
+        self.assertEqual(self.json('/api/event-history?type=invalid')[0], 400)
+        self.assertEqual(self.json('/api/event-history/session', {'action':'start', 'type':'Text'})[0], 400)
+        self.assertEqual(self.json('/api/event-history/session', {'action':'finish', 'id':'f'*64})[0], 400)
+
     def test_every_asset_linked_from_the_page_is_served(self):
         # The bridge serves only an explicit STATIC list; a stylesheet or script added to index.html but not to that list would 404 silently.
         page = (self.root / 'App/frontend/index.html').read_text(encoding='utf-8')
@@ -118,7 +135,8 @@ class BridgeSmoke(unittest.TestCase):
         self.assertEqual(self.json('/api/text/chat-rename', {'id': chat['id'], 'title': 'Smoke'})[1]['title'], 'Smoke')
         self.assertEqual(self.json('/api/text/chat-delete', {'id': chat['id']}), (200, {'deleted': True}))
         for path, body in (('/api/music/generate', {'caption': 'Piano'}), ('/api/video/generate', {'engine': 'nope'}), ('/api/generate', {}),
-                           ('/api/music/cancel', {'id': 'x', 'token': 'y'}), ('/api/cancel', {'prompt_id': 'x'})):
+                           ('/api/music/cancel', {'id': 'x', 'token': 'y'}), ('/api/cancel', {'prompt_id': 'x'}),
+                           ('/api/history/delete', {'id': 'x'}), ('/api/music/delete', {'id': 'x'}), ('/api/video/delete', {'id': 'x'})):
             self.assertIn(self.call(path, body)[0], (400, 403, 409, 502, 503), path)
         self.assertEqual(self.json('/api/components/cancel', {}), (200, {'cancelled': False}))
         status, answer = self.json('/api/speech/availability')
