@@ -566,5 +566,61 @@
   "settings.logs_output_click_refresh_view": {
     "ru": "Нажми «Обновить» для просмотра журналов.",
     "en": "Click Refresh to view logs."
+  },
+  "settings.color_schemes_menu_button_label": {
+    "ru": "Цветовые схемы",
+    "en": "Color schemes"
+  },
+  "settings.color_schemes_menu_button_hint": {
+    "ru": "Выбрать цветовую схему отдельно для тёмной и светлой темы",
+    "en": "Choose a color scheme separately for the dark and the light theme"
+  },
+  "settings.color_schemes_dialog_title": {
+    "ru": "Цветовые схемы",
+    "en": "Color schemes"
+  },
+  "settings.color_schemes_dialog_intro_paragraph": {
+    "ru": "Схема выбирается отдельно для тёмной и светлой темы и применяется сразу. Переключатель с солнцем и луной меняет саму тему; выбор схем сохраняется на этом компьютере.",
+    "en": "A scheme is chosen separately for the dark and the light theme and applies at once. The sun and moon switch changes the theme itself; the choice is saved on this computer."
+  },
+  "settings.color_schemes_dark_group_label": {
+    "ru": "Тёмная тема",
+    "en": "Dark theme"
+  },
+  "settings.color_schemes_light_group_label": {
+    "ru": "Светлая тема",
+    "en": "Light theme"
+  },
+  "settings.color_schemes_active_theme_badge": {
+    "ru": "Сейчас на экране",
+    "en": "Shown now"
+  },
+  "settings.color_schemes_reset_button_label": {
+    "ru": "Сбросить",
+    "en": "Reset"
+  },
+  "settings.color_scheme_indigo_name_label": {
+    "ru": "Индиго",
+    "en": "Indigo"
+  },
+  "settings.color_scheme_ocean_name_label": {
+    "ru": "Океан",
+    "en": "Ocean"
+  },
+  "settings.color_scheme_emerald_name_label": {
+    "ru": "Изумруд",
+    "en": "Emerald"
+  },
+  "settings.color_scheme_sunset_name_label": {
+    "ru": "Закат",
+    "en": "Sunset"
+  },
+  "settings.color_scheme_orchid_name_label": {
+    "ru": "Орхидея",
+    "en": "Orchid"
+  },
+  "settings.color_scheme_graphite_name_label": {
+    "ru": "Графит",
+    "en": "Graphite"
   }
 }

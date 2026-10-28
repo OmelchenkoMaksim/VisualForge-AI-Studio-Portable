@@ -6,6 +6,8 @@ The page is a 56 px top bar plus a section rail on the left. The top bar shows t
 
 All colors are variables in `App/frontend/theme.css`, defined for `data-theme="dark"` and `"light"` on `<html>`; the accent is Indigo. `theme-init.js` applies the saved theme before the first paint. The sun (dark theme) / moon (light theme) button switches it with a View Transition circle reveal, or instantly when the browser lacks it or reduced motion is requested. Motion uses only transform and opacity. The theme is saved in the browser profile's localStorage (`vf-theme`).
 
+The gear menu's «Цветовые схемы» opens a dialog with six schemes (Индиго, Океан, Изумруд, Закат, Орхидея, Графит) for the dark theme and the same six for the light one; the two choices are independent, apply at once and are marked by a miniature preview painted with each scheme's own colors. Indigo is the default defined by `theme.css`; the others are blocks `[data-theme="…"][data-palette="…"]` in `App/frontend/palettes.css` that override only the neutral and accent tokens (status colors, shadows and the overlay are shared). The choice is kept in the browser profile's localStorage (`vf-palette-dark`, `vf-palette-light`); `theme-init.js` sets `<html data-palette>` for the theme in use before the first paint and `palettes.js` keeps it in step when the theme is switched, when «Сбросить» returns both themes to Indigo, and when another window changes it. To add a scheme: add its two blocks to `palettes.css`, an entry to `SCHEMES` in `palettes.js` and a name string `settings.color_scheme_<id>_name_label` in both languages; `tests/test_palettes.py` checks that every scheme is complete and that text pairs reach WCAG AA contrast (4.5:1).
+
 The gear menu's «Звуки» chooses the completion melody for success and for errors (or none) and the volume, with previews. `sounds.js` synthesizes every melody with Web Audio (no audio files); each lasts at most 7 s including the reverb tail. Choices are kept in localStorage (`vf-sounds`). Notifications sound only after the page has had a click or key press, as browsers require. `StudioSounds.render(kind, id)` renders a preset silently and reports its audible length and peak.
 
 ## Model compatibility popups
@@ -18,7 +20,7 @@ Image, Video, Music and Text share the same banner: the selected model above the
 
 ## Settings menu
 
-The gear button at the top right opens Components, Logs, model popup preferences and completion sounds. Components opens the existing installer workspace; Logs opens the existing log dialog. The four creative modules remain in the main navigation. The menu closes after choosing an action, clicking outside, moving keyboard focus outside, or pressing Escape. Arrow keys, Home and End navigate its actions; Escape returns focus to the gear. The menu stays available during generation, while the existing installation admission rules still apply.
+The gear button at the top right opens Components, Logs, model popup preferences, completion sounds and color schemes. Components opens the existing installer workspace; Logs opens the existing log dialog. The four creative modules remain in the main navigation. The menu closes after choosing an action, clicking outside, moving keyboard focus outside, or pressing Escape. Arrow keys, Home and End navigate its actions; Escape returns focus to the gear. The menu stays available during generation, while the existing installation admission rules still apply.
 
 # Folder selection and completion feedback
 

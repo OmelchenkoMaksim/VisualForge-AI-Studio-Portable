@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>VisualForge AI Studio</title><link rel="icon" href="/visualforge-icon.png"><script src="/theme-init.js"></script><script src="/strings.js"></script><script src="/i18n.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/progress-save.css"><link rel="stylesheet" href="/video.css"><link rel="stylesheet" href="/music.css"><link rel="stylesheet" href="/voiceover.css"><link rel="stylesheet" href="/text.css"><link rel="stylesheet" href="/components.css"><link rel="stylesheet" href="/voice.css"></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>VisualForge AI Studio</title><link rel="icon" href="/visualforge-icon.png"><script src="/theme-init.js"></script><script src="/strings.js"></script><script src="/i18n.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/palettes.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/progress-save.css"><link rel="stylesheet" href="/video.css"><link rel="stylesheet" href="/music.css"><link rel="stylesheet" href="/voiceover.css"><link rel="stylesheet" href="/text.css"><link rel="stylesheet" href="/components.css"><link rel="stylesheet" href="/voice.css"></head>
 <body><main>
 <header>
 <span class="brand-symbol" aria-hidden="true"><img src="/visualforge-icon.png" alt=""></span><h1 id="title">VisualForge AI Studio</h1>
@@ -30,6 +30,7 @@
     <button type="button" id="openLogs" title="Посмотреть локальные журналы запуска и ошибок" data-i18n-attrs="{&quot;title&quot;:&quot;settings.open_logs_view_local_startup_error&quot;}"><!--i18n:settings.diagnostic_logs_menu_button_label-->Логи</button>
     <button type="button" id="openCompatibilitySettings" title="Показ карточек совместимости при выборе модели" data-i18n-attrs="{&quot;title&quot;:&quot;settings.open_compatibility_show_cards_when_selecting_model&quot;}"><!--i18n:settings.open_compatibility_model_tips-->Подсказки моделей</button>
     <button type="button" id="openSounds" title="Выбрать мелодии, которые звучат по окончании генерации" data-i18n-attrs="{&quot;title&quot;:&quot;settings.open_sounds_choose_played_when_generation_finishes&quot;}"><!--i18n:settings.completion_sounds_settings_button_label-->Звуки</button>
+    <button type="button" id="openPalettes" title="Выбрать цветовую схему отдельно для тёмной и светлой темы" data-i18n-attrs="{&quot;title&quot;:&quot;settings.color_schemes_menu_button_hint&quot;}"><!--i18n:settings.color_schemes_menu_button_label-->Цветовые схемы</button>
   </div>
 </div>
 </div>
@@ -431,6 +432,13 @@
   <p class="muted sounds-note"><!--i18n:settings.sounds_dialog_no_sound_check_windows_volume_ensure-->Не слышно? Проверьте громкость Windows и что звук этого окна не выключен в микшере.</p>
   <div class="actions"><button type="button" id="soundsDone"><!--i18n:settings.generation_completed_status_label-->Готово</button></div>
 </dialog>
+<dialog id="palettesDialog" class="palettes-dialog" aria-labelledby="palettesTitle">
+  <div class="sounds-head"><h2 id="palettesTitle"><!--i18n:settings.color_schemes_dialog_title-->Цветовые схемы</h2><button type="button" id="palettesClose" class="icon-button" aria-label="Закрыть" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.dialog_close_button_label&quot;}">✕</button></div>
+  <p class="muted"><!--i18n:settings.color_schemes_dialog_intro_paragraph-->Схема выбирается отдельно для тёмной и светлой темы и применяется сразу. Переключатель с солнцем и луной меняет саму тему; выбор схем сохраняется на этом компьютере.</p>
+  <fieldset class="palette-group"><legend><!--i18n:settings.color_schemes_dark_group_label-->Тёмная тема<span class="palette-badge"><!--i18n:settings.color_schemes_active_theme_badge-->Сейчас на экране</span></legend><div id="palettesDark" class="palette-grid" role="radiogroup" aria-label="Тёмная тема" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.color_schemes_dark_group_label&quot;}"></div></fieldset>
+  <fieldset class="palette-group"><legend><!--i18n:settings.color_schemes_light_group_label-->Светлая тема<span class="palette-badge"><!--i18n:settings.color_schemes_active_theme_badge-->Сейчас на экране</span></legend><div id="palettesLight" class="palette-grid" role="radiogroup" aria-label="Светлая тема" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.color_schemes_light_group_label&quot;}"></div></fieldset>
+  <div class="actions"><button type="button" id="palettesReset" class="secondary"><!--i18n:settings.color_schemes_reset_button_label-->Сбросить</button><button type="button" id="palettesDone"><!--i18n:settings.generation_completed_status_label-->Готово</button></div>
+</dialog>
 <details class="panel" id="studioTerms"><summary><!--i18n:settings.studio_terms_what_do_special_settings_mean-->Что означают специальные слова и настройки?</summary>
 <dl>
 <dt><strong>Image / Video</strong></dt><dd><!--i18n:settings.studio_terms_sections_images_video-->Разделы для изображений и видео.</dd>
@@ -542,6 +550,7 @@
 <script src="/sounds.js" defer></script>
 <script src="/studio-ui.js" defer></script>
 <link rel="stylesheet" href="/event-history.css"><script src="/event-history.js" defer></script>
+<script src="/palettes.js" defer></script>
 <script src="/shell.js" defer></script>
 <script src="/engine-state.js" defer></script>
 <script src="/prompt-guides.js"></script><script src="/app.js" defer></script><script src="/video.js" defer></script><script src="/music.js" defer></script><script src="/voiceover.js" defer></script><script src="/agent.js" defer></script><script src="/text.js" defer></script><script src="/components.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice.js" defer></script></body></html>

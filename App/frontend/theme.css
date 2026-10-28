@@ -1,7 +1,8 @@
 /* VisualForge design tokens and application shell.
    Every color in the studio comes from these variables, so the light/dark switch and a future accent change touch only this block.
    Motion uses transform/opacity only (compositor work, no layout), and everything stops under prefers-reduced-motion. */
-:root,:root[data-theme="dark"]{
+/* The preview tiles of the color-scheme dialog carry data-theme too, so they get the tokens of their own theme whatever theme is on screen. */
+:root,:root[data-theme="dark"],.palette-preview[data-theme="dark"]{
   color-scheme:dark;
   --bg:#0d1015;--shell:#10141a;--surface:#151a22;--surface-2:#0f131a;--surface-3:#1c232d;--raised:#1b212b;
   --border:#232b36;--border-strong:#34404f;
@@ -16,7 +17,7 @@
   --shadow:0 14px 44px rgba(0,0,0,.45);--shadow-s:0 4px 14px rgba(0,0,0,.3);--overlay:rgba(4,7,12,.72);
   --select-chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239aa5b4' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
-:root[data-theme="light"]{
+:root[data-theme="light"],.palette-preview[data-theme="light"]{
   color-scheme:light;
   --bg:#f3f5f8;--shell:#ffffff;--surface:#ffffff;--surface-2:#f5f7fa;--surface-3:#eaeef3;--raised:#ffffff;
   --border:#dde2e9;--border-strong:#c4ccd7;
