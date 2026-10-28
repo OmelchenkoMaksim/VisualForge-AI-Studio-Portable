@@ -1,7 +1,7 @@
 """One place that decides whether a module may start GPU work and frees what the idle modules still hold.
 
-Image, Video, Music and Text take the video card one at a time. What stays in video memory after a job differs:
-Video and Music run in worker processes that exit when the job ends (nothing is left), ComfyUI (Image) keeps its models
+Image, Video, Music, Text and Voiceover take the video card one at a time. What stays in video memory after a job differs:
+Video, Music and Voiceover run in worker processes that exit when the job ends (nothing is left), ComfyUI (Image) keeps its models
 cached until told to drop them, and Ollama (Text) keeps the chat model for the keep-alive time. `claim()` is what every
 "start" route calls: it refuses while another module works, asks each idle module to release what it holds and, when the
 caller needs a minimum, waits until that much memory is really free.
@@ -9,12 +9,13 @@ caller needs a minimum, waits until that much memory is really free.
 from ui_strings import source as ui_text
 import time
 
-MODULES = ('image', 'video', 'music', 'text')
+MODULES = ('image', 'video', 'music', 'text', 'voiceover')
 # Voice input is not a module that blocks others (it never locks the interface), but its worker may hold video memory: it is released like the rest.
 RELEASABLE = MODULES + ('speech',)
-NAMES = dict(image='Image', video='Video', music='Music', text='Text')
+NAMES = dict(image='Image', video='Video', music='Music', text='Text', voiceover='Voiceover')
 HINTS = dict(image=ui_text('common.gpu_wait_completion_cancel_task'), video=ui_text('common.gpu_wait_completion_cancel_video_task'),
-             music=ui_text('common.gpu_wait_completion_cancel_music_task'), text=ui_text('common.gpu_wait_response_finish_stop'))
+             music=ui_text('common.gpu_wait_completion_cancel_music_task'), text=ui_text('common.gpu_wait_response_finish_stop'),
+             voiceover=ui_text('common.gpu_wait_completion_cancel_voiceover_task'))
 
 
 class Busy(ValueError):

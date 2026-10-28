@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>VisualForge AI Studio</title><link rel="icon" href="/visualforge-icon.png"><script src="/theme-init.js"></script><script src="/strings.js"></script><script src="/i18n.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/progress-save.css"><link rel="stylesheet" href="/video.css"><link rel="stylesheet" href="/music.css"><link rel="stylesheet" href="/text.css"><link rel="stylesheet" href="/components.css"><link rel="stylesheet" href="/voice.css"></head>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>VisualForge AI Studio</title><link rel="icon" href="/visualforge-icon.png"><script src="/theme-init.js"></script><script src="/strings.js"></script><script src="/i18n.js"></script><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/progress-save.css"><link rel="stylesheet" href="/video.css"><link rel="stylesheet" href="/music.css"><link rel="stylesheet" href="/voiceover.css"><link rel="stylesheet" href="/text.css"><link rel="stylesheet" href="/components.css"><link rel="stylesheet" href="/voice.css"></head>
 <body><main>
 <header>
 <span class="brand-symbol" aria-hidden="true"><img src="/visualforge-icon.png" alt=""></span><h1 id="title">VisualForge AI Studio</h1>
@@ -39,6 +39,7 @@
 <button type="button" id="videoTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="13" height="14" rx="3"/><path d="M16 10l5-3v10l-5-3"/></svg>Video</button>
 <button type="button" id="musicTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Music</button>
 <button type="button" id="textTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg>Text</button>
+<button type="button" id="voiceoverTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg><!--i18n:voiceover.tab_section_name_label-->Озвучка</button>
 </nav>
 <div id="imageWorkspace">
 <section class="panel"><form id="form">
@@ -253,6 +254,74 @@
   <section class="panel"><h2><!--i18n:music.workspace_music_result-->Результат Music</h2><audio id="musicPlayer" controls preload="metadata" hidden></audio><p id="musicResultMeta" class="muted"></p><p id="musicSavedPath" class="muted music-path"></p><a id="musicDownload" download hidden><!--i18n:music.download_wav_copy-->Скачать копию WAV</a>
     <details open><summary><!--i18n:music.workspace_music_history-->История Music</summary><div id="musicHistory"></div></details>
     <details><summary><!--i18n:music.workspace_music_logs-->Логи Music</summary><p class="muted"><!--i18n:music.workspace_stages_errors_selected_task_without_detailed-->Только этапы и ошибки выбранной задачи, без подробного журнала каждого шага.</p><button id="musicRefreshLogs" type="button" class="secondary"><!--i18n:music.data_refresh_button_label-->Обновить</button><button id="musicCopyLogs" type="button" class="secondary"><!--i18n:music.clipboard_copy_button_label-->Скопировать</button><pre id="musicLogs"><!--i18n:music.logs_select_task_history_start_generation-->Выберите задачу в истории или запустите генерацию.</pre></details>
+  </section>
+</div>
+<div id="voiceoverWorkspace" hidden>
+  <section class="panel">
+    <p class="eyebrow"><!--i18n:voiceover.workspace_local_voiceover_eyebrow-->ЛОКАЛЬНАЯ ОЗВУЧКА ТЕКСТА</p><h2><!--i18n:voiceover.workspace_heading_voiceover_title-->Озвучка</h2>
+    <p id="voiceoverAvailability" class="muted"><!--i18n:voiceover.availability_checking_voiceover_label-->Проверка Озвучки…</p>
+    <form id="voiceoverForm">
+      <h3><!--i18n:voiceover.step_text_heading_label-->1. Текст</h3>
+      <label for="voiceoverText"><!--i18n:voiceover.text_input_field_label-->Текст для озвучки</label>
+      <textarea id="voiceoverText" rows="6" maxlength="2000000" placeholder="Вставьте текст сюда или выберите файл книги ниже." data-i18n-attrs="{&quot;placeholder&quot;:&quot;voiceover.text_input_placeholder_text&quot;}"></textarea>
+      <label for="voiceoverFile"><!--i18n:voiceover.text_file_field_label-->Или файл: TXT, EPUB, FB2, DOCX</label>
+      <input id="voiceoverFile" type="file" accept=".txt,.epub,.fb2,.docx">
+      <label for="voiceoverTitle"><!--i18n:voiceover.text_title_field_label-->Название (необязательно)</label>
+      <input id="voiceoverTitle" type="text" maxlength="200">
+      <div class="voiceover-actions"><button id="voiceoverPrepare" type="button" class="secondary"><!--i18n:voiceover.text_prepare_button_label-->Подготовить текст</button></div>
+      <p class="muted"><!--i18n:voiceover.text_hint_paragraph_label-->Главы определяются по заголовкам файла или по строкам вида «Глава 3», «Пролог». Текст без заголовков озвучивается как одна часть.</p>
+      <div id="voiceoverSummary" hidden><p id="voiceoverTotals"></p><ul id="voiceoverChapters"></ul>
+        <details id="voiceoverExamples" hidden open><summary id="voiceoverExamplesSummary"></summary><ul id="voiceoverExamplesList"></ul></details></div>
+      <h3><!--i18n:voiceover.step_voice_heading_label-->2. Голос</h3>
+      <label for="voiceoverVoice"><!--i18n:voiceover.voice_select_field_label-->Голос</label>
+      <select id="voiceoverVoice"></select>
+      <audio id="voiceoverVoicePlayer" controls preload="none" hidden></audio>
+      <div class="voiceover-actions"><button id="voiceoverVoiceDelete" type="button" class="secondary" disabled><!--i18n:voiceover.voice_delete_button_label-->Удалить голос</button></div>
+      <details><summary><!--i18n:voiceover.voice_add_summary_label-->Добавить голос</summary>
+        <label for="voiceoverVoiceName"><!--i18n:voiceover.voice_name_field_label-->Название голоса</label>
+        <input id="voiceoverVoiceName" type="text" maxlength="60">
+        <label for="voiceoverVoiceFile"><!--i18n:voiceover.voice_file_field_label-->Образец: чистая запись 10–30 секунд, без музыки</label>
+        <input id="voiceoverVoiceFile" type="file" accept="audio/*,.wav,.mp3,.m4a,.flac,.ogg">
+        <label for="voiceoverVoiceTranscript"><!--i18n:voiceover.voice_transcript_field_label-->Что сказано в образце (необязательно)</label>
+        <textarea id="voiceoverVoiceTranscript" rows="2" maxlength="1000"></textarea>
+        <p class="muted"><!--i18n:voiceover.voice_transcript_hint_paragraph_label-->Нужна только VoxCPM2: с точной расшифровкой он продолжает образец и ближе повторяет манеру речи, но в пробе читал слова немного хуже и медленнее, чем без неё. Обычно поле лучше оставить пустым. Qwen3-TTS расшифровку не использует.</p>
+        <label class="voiceover-check" for="voiceoverVoiceConsent"><input id="voiceoverVoiceConsent" type="checkbox"><!--i18n:voiceover.voice_consent_checkbox_label-->У меня есть право использовать этот голос</label>
+        <div class="voiceover-actions"><button id="voiceoverVoiceAdd" type="button" class="secondary"><!--i18n:voiceover.voice_add_button_label-->Сохранить голос</button></div>
+        <p class="muted"><!--i18n:voiceover.voice_add_hint_paragraph_label-->Образец сохраняется в папке UserData/Voiceover/Voices этой установки и никуда не отправляется. Чужой голос без согласия использовать нельзя.</p>
+      </details>
+      <h3><!--i18n:voiceover.step_options_heading_label-->3. Параметры</h3>
+      <label for="voiceoverEngine"><!--i18n:voiceover.engine_field_label-->Движок озвучки</label>
+      <select id="voiceoverEngine"></select>
+      <div class="voiceover-grid">
+        <label><!--i18n:voiceover.language_field_label-->Язык текста<select id="voiceoverLanguage"><option value="Russian">Русский</option><option value="English">English</option><option value="German">Deutsch</option><option value="French">Français</option><option value="Spanish">Español</option><option value="Italian">Italiano</option><option value="Portuguese">Português</option><option value="Chinese">中文</option><option value="Japanese">日本語</option><option value="Korean">한국어</option></select></label>
+        <label><!--i18n:voiceover.format_field_label-->Формат файла<select id="voiceoverFormat"><option value="m4b"><!--i18n:voiceover.format_m4b_option_label-->M4B — аудиокнига с главами</option><option value="mp3"><!--i18n:voiceover.format_mp3_option_label-->MP3 — компактный файл</option><option value="wav"><!--i18n:voiceover.format_wav_option_label-->WAV — без сжатия</option></select></label>
+        <label><!--i18n:voiceover.seed_field_label-->Seed — номер варианта<input id="voiceoverSeed" type="text" inputmode="numeric" maxlength="10" placeholder="Пусто — случайный" data-i18n-attrs="{&quot;placeholder&quot;:&quot;voiceover.seed_placeholder_text&quot;}"></label>
+      </div>
+      <details><summary><!--i18n:voiceover.dictionary_summary_label-->Словарь произношения</summary>
+        <label for="voiceoverDictionary"><!--i18n:voiceover.dictionary_field_label-->Одна замена на строку: слово=как читать</label>
+        <textarea id="voiceoverDictionary" rows="4" maxlength="20000"></textarea>
+        <p class="muted"><!--i18n:voiceover.dictionary_hint_paragraph_label-->Модель сама не расставляет ударения. Впишите, как читать трудное слово, например: Ёлкин=Йолкин. Замены учитывают регистр и применяются до озвучки.</p>
+      </details>
+      <label class="voiceover-check" for="voiceoverBuiltin"><input id="voiceoverBuiltin" type="checkbox" checked><!--i18n:voiceover.builtin_dictionary_checkbox_label-->Встроенный словарь произношения (слова, которые движок читает неверно)</label>
+      <p class="muted"><!--i18n:voiceover.builtin_dictionary_hint_paragraph_label-->Небольшой список слов, найденных по измерениям: для таких слов подставляется написание, которое выбранный движок читает правильно. Он действует после вашего словаря и только для русского языка; проверка по распознаванию его учитывает, а в отчёте остаётся ваш текст.</p>
+      <label class="voiceover-check" for="voiceoverNormalize"><input id="voiceoverNormalize" type="checkbox" checked><!--i18n:voiceover.normalize_checkbox_label-->Записывать числа и сокращения словами (русский язык)</label>
+      <p class="muted"><!--i18n:voiceover.normalize_hint_paragraph_label-->Числа, годы, проценты, «т.д.», «стр.» и подобное заменяются тем, как их произносят: модель читает цифры и сокращения ненадёжно. Окончания подбираются по соседним словам и в редких случаях могут быть неточными; пример после подготовки текста показывает, что изменится. Ваш словарь произношения применяется раньше.</p>
+      <label class="voiceover-check" for="voiceoverVerify"><input id="voiceoverVerify" type="checkbox" checked><!--i18n:voiceover.verify_checkbox_label-->Проверять каждый фрагмент распознаванием и переозвучивать ошибки</label>
+      <p id="voiceoverVerifyHint" class="muted"><!--i18n:voiceover.verify_hint_paragraph_label-->После озвучки Whisper слушает каждый фрагмент и сверяет слова с текстом. Фрагмент с лишними, пропущенными или чужими словами переозвучивается (до двух раз); что не удалось исправить, попадает в список. Это добавляет около минуты на каждые 10 минут речи.</p>
+      <div class="voiceover-actions"><button id="voiceoverGenerate" type="submit" disabled><!--i18n:voiceover.generate_button_label-->Озвучить</button><button id="voiceoverCancel" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:voiceover.cancel_button_label-->Отменить</button></div>
+      <progress id="voiceoverProgress" max="1" value="0" hidden></progress>
+      <p id="voiceoverStatus" role="status" aria-live="polite"><!--i18n:voiceover.status_ready_label-->Выберите текст и голос.</p>
+      <p class="muted"><!--i18n:voiceover.shared_gpu_hint_paragraph_label-->Озвучка использует видеокарту по очереди с Image, Video, Music и Text. Остановленную задачу можно запустить снова: готовые фрагменты не пересчитываются.</p>
+    </form>
+    <details><summary><!--i18n:voiceover.requirements_summary_label-->Проверки модели Озвучки</summary><p id="voiceoverEngineInfo" class="muted"></p><p class="muted"><!--i18n:voiceover.limitations_paragraph_label-->Голос клонируется по образцу, а не обучается. Качество и ударения на часовом тексте ещё не проверялись на этой машине; автоматическая проверка распознаванием появится позже.</p></details>
+    <details><summary><!--i18n:voiceover.output_folder_summary_label-->Папка результатов Озвучки</summary><label for="voiceoverSaveDir"><!--i18n:voiceover.save_dir_path_field_label-->Абсолютный путь или путь внутри portable-папки</label><input id="voiceoverSaveDir" type="text"><button id="voiceoverChooseSaveDir" type="button" class="secondary"><!--i18n:voiceover.save_dir_choose_button_label-->Выбрать…</button><button id="voiceoverOpenSaveDir" type="button" class="secondary"><!--i18n:voiceover.save_dir_open_button_label-->Открыть папку</button><button id="voiceoverSaveSettings" type="button" class="secondary"><!--i18n:voiceover.save_dir_apply_button_label-->Применить папку</button><p id="voiceoverOutputLocation" class="muted voiceover-path"></p><p class="muted"><!--i18n:voiceover.save_dir_auto_save_hint_paragraph_label-->Каждый результат сохраняется автоматически под уникальным именем вместе с настройками.</p></details>
+    <details><summary><!--i18n:voiceover.cache_summary_label-->Кэш фрагментов</summary><p class="muted"><!--i18n:voiceover.cache_hint_paragraph_label-->Готовые фрагменты хранятся на системном диске, чтобы остановленная озвучка продолжалась с того же места. Это около 170 МБ на час речи.</p><button id="voiceoverClearCache" type="button" class="secondary"><!--i18n:voiceover.cache_clear_button_label-->Очистить кэш фрагментов</button><p id="voiceoverCacheStatus" class="muted"></p></details>
+  </section>
+  <section class="panel"><h2><!--i18n:voiceover.result_heading_label-->Результат Озвучки</h2><audio id="voiceoverPlayer" controls preload="metadata" hidden></audio><p id="voiceoverResultMeta" class="muted"></p><p id="voiceoverSavedPath" class="muted voiceover-path"></p><a id="voiceoverDownload" download hidden><!--i18n:voiceover.result_download_label-->Скачать копию</a>
+    <p id="voiceoverVerification" class="muted" hidden></p>
+    <details id="voiceoverFlagged" open hidden><summary id="voiceoverFlaggedSummary"></summary><p class="muted"><!--i18n:voiceover.flagged_hint_paragraph_label-->Исправьте слово в словаре произношения («слово=как читать») или в тексте и запустите озвучку снова: пересчитаются только изменённые фрагменты. Распознавание тоже ошибается, поэтому сначала послушайте.</p><div id="voiceoverFlaggedList"></div></details>
+    <details open><summary><!--i18n:voiceover.history_heading_label-->История Озвучки</summary><div id="voiceoverHistory"></div></details>
+    <details><summary><!--i18n:voiceover.logs_heading_label-->Логи Озвучки</summary><p class="muted"><!--i18n:voiceover.logs_hint_paragraph_label-->Только этапы и ошибки выбранной задачи.</p><button id="voiceoverRefreshLogs" type="button" class="secondary"><!--i18n:voiceover.logs_refresh_button_label-->Обновить</button><button id="voiceoverCopyLogs" type="button" class="secondary"><!--i18n:voiceover.logs_copy_button_label-->Скопировать</button><pre id="voiceoverLogs"><!--i18n:voiceover.logs_select_task_hint_label-->Выберите задачу в истории или запустите озвучку.</pre></details>
   </section>
 </div>
 <div id="componentsWorkspace" hidden>
@@ -475,4 +544,4 @@
 <link rel="stylesheet" href="/event-history.css"><script src="/event-history.js" defer></script>
 <script src="/shell.js" defer></script>
 <script src="/engine-state.js" defer></script>
-<script src="/prompt-guides.js"></script><script src="/app.js" defer></script><script src="/video.js" defer></script><script src="/music.js" defer></script><script src="/agent.js" defer></script><script src="/text.js" defer></script><script src="/components.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice.js" defer></script></body></html>
+<script src="/prompt-guides.js"></script><script src="/app.js" defer></script><script src="/video.js" defer></script><script src="/music.js" defer></script><script src="/voiceover.js" defer></script><script src="/agent.js" defer></script><script src="/text.js" defer></script><script src="/components.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice.js" defer></script></body></html>

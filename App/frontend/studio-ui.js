@@ -62,7 +62,8 @@
     image: {model: '', description: document.getElementById('subtitle').textContent, status: document.getElementById('preflight').textContent, tone: 'muted'},
     video: {model: 'Video', description: StudioI18n.t("settings.studio_ui_headers_description_local_video_generation"), status: StudioI18n.t("settings.studio_ui_headers_checking_video_models"), tone: 'muted'},
     music: {model: 'Music', description: StudioI18n.t("settings.studio_ui_headers_description_local_music_song_generation"), status: StudioI18n.t("settings.studio_ui_headers_checking_music_models"), tone: 'muted'},
-    text: {model: 'Text', description: StudioI18n.t("settings.studio_ui_headers_description_local_text_assistant"), status: StudioI18n.t("settings.studio_ui_headers_checking_text_models"), tone: 'muted'}
+    text: {model: 'Text', description: StudioI18n.t("settings.studio_ui_headers_description_local_text_assistant"), status: StudioI18n.t("settings.studio_ui_headers_checking_text_models"), tone: 'muted'},
+    voiceover: {model: 'Voiceover', description: StudioI18n.t("settings.studio_ui_headers_description_local_voiceover"), status: StudioI18n.t("settings.studio_ui_headers_checking_voiceover_models"), tone: 'muted'}
   };
   function renderHeader() {
     const state = headers[document.body.dataset.studioModule || 'image'];
@@ -182,8 +183,8 @@
   // changing the Text chat or the save folder under a running job, installing components) are dimmed and ignored, and so are the forms
   // (Enter in a field) and the chat's Enter-to-send. The bridge knows who is working (/api/busy covers Image, Video, Music and Text), so
   // this also holds after a reload and on other tabs. The banner's button stops whatever runs, wherever it was started.
-  const BLOCKED = '#generate, #variant, #videoGenerate, #musicGenerate, #textSend, #textRegenerate, #textNewChat, #textRename, #textDelete, #textUnload, #textSaveSettings, #textChats button, #videoMixStart, #videoExportStart, #saveSaveDir, #chooseSaveDir, #useInternalResults, #videoChooseSaveDir, #videoSaveSettings, #musicChooseSaveDir, #musicSaveSettings, #componentsStart, #componentsModules .components-model-actions button, #componentRemoveConfirm';
-  const START_FORMS = '#form, #videoForm, #musicForm, #textForm';
+  const BLOCKED = '#generate, #variant, #videoGenerate, #musicGenerate, #voiceoverGenerate, #voiceoverPrepare, #voiceoverVoiceAdd, #voiceoverVoiceDelete, #voiceoverClearCache, #voiceoverChooseSaveDir, #voiceoverSaveSettings, #textSend, #textRegenerate, #textNewChat, #textRename, #textDelete, #textUnload, #textSaveSettings, #textChats button, #videoMixStart, #videoExportStart, #saveSaveDir, #chooseSaveDir, #useInternalResults, #videoChooseSaveDir, #videoSaveSettings, #musicChooseSaveDir, #musicSaveSettings, #componentsStart, #componentsModules .components-model-actions button, #componentRemoveConfirm';
+  const START_FORMS = '#form, #videoForm, #musicForm, #voiceoverForm, #textForm';
   const ALLOWED = '[data-allow-busy], #studioNotifications *, #studioBusy *';
   let locked = false, lockKind = '', banner = null, banner_text = null, banner_stop = null, polling = false;
   const isBlocked = target => {

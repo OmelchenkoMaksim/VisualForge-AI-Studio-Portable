@@ -69,6 +69,8 @@ keeps a reused bridge from closing a new launch's splash early. A failure to sho
 
 The launcher owns one notification icon with the normal VisualForge logo while the window is open. Its two context menu commands restore/maximize/focus the isolated studio window, or exit the studio completely. Double-click also restores the window. Closing the normal application window still exits as before; closing to tray is not enabled.
 
+The idle tray icon uses the matching small size from the shared `visualforge-icon.ico`; animated frames use the system small-icon size without extra transparent padding. This keeps the logo readable beside the clock instead of shrinking it inside an oversized canvas.
+
 A dedicated STA WinForms loop animates 24 pre-rendered logo rotations every 90 ms while `/api/busy` reports generation. The supervisor polls once per loop (about one second); a temporary failed request keeps the last known state. Idle returns to the unrotated logo. This covers Image, Video, Music and Text, including voice prompt polishing. CPU-only exports and downloads do not rotate the generation icon. Animation and native icon/GDI handles are disposed on shutdown.
 
 Full exit first matches the exact isolated browser executable and complete profile argument, rechecks process identity, then terminates that process tree. The existing bridge/backend ownership checks remain mandatory; owned service trees are stopped including their workers, and workers also use kill-on-close job objects. Independently started Ollama, browsers and ComfyUI are preserved. Active studio work is interrupted when choosing full exit.

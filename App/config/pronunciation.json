@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "notes": "Built-in pronunciation rules of the Voiceover section (see docs/Voiceover.md). Each rule was measured against speech recognition (8 takes per context): the engine garbled the word in its normal spelling and read the replacement more often. match is lower case; kind 'word' matches the whole word, 'stem' the beginning of a word and keeps its ending; the capital letter is kept unless keep_case is false. A rule without engines applies to all of them.",
+  "rules": [
+    {
+      "match": "подарок",
+      "kind": "word",
+      "replace": "подаррок",
+      "keep_case": false,
+      "engines": ["qwen3-tts-12hz-0.6b-base"]
+    }
+  ]
+}

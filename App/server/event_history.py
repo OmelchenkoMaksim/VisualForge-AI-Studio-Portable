@@ -11,6 +11,7 @@ from urllib.parse import parse_qs
 ID = re.compile(r'[0-9a-f]{64}\Z')
 STATES = ('running', 'done', 'error', 'cancelled', 'interrupted')
 MAIN_TYPES = {'Image': ui_text('events.operation_type_image_label'), 'Video': ui_text('events.operation_type_video_label'), 'Music': ui_text('events.operation_type_music_label'), 'Text': ui_text('events.operation_type_text_label'), 'Agent': ui_text('events.operation_type_agent_label'),
+              'Voiceover': ui_text('events.operation_type_voiceover_label'),
               'VideoExport': ui_text('events.operation_type_video_export_label'), 'VideoMix': ui_text('events.operation_type_video_mix_label')}
 TECHNICAL_TYPES = {
     'Speech': ui_text('events.operation_type_speech_label'),

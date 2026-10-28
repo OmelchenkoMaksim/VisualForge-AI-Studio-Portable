@@ -123,6 +123,14 @@
     "ru": "Локальный текстовый ассистент",
     "en": "Local text assistant"
   },
+  "settings.studio_ui_headers_description_local_voiceover": {
+    "ru": "Локальная озвучка текста",
+    "en": "Local text-to-speech"
+  },
+  "settings.studio_ui_headers_checking_voiceover_models": {
+    "ru": "Проверка модели Озвучки…",
+    "en": "Checking the Voiceover model…"
+  },
   "settings.studio_ui_headers_checking_text_models": {
     "ru": "Проверка моделей Text…",
     "en": "Checking Text models…"

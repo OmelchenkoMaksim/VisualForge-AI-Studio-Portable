@@ -1,6 +1,7 @@
-# One GPU, four modules: coordinator, global lock and the Stop banner
+# One GPU, five modules: coordinator, global lock and the Stop banner
 
-Image, Video, Music and Text take the video card **one at a time**. Status: **installed in release `2026.10.25-gpu.2`
+Image, Video, Music, Text and Voiceover take the video card **one at a time** (Voiceover was added later: a worker process per job,
+nothing stays in video memory afterwards; see [Voiceover.md](Voiceover.md)). The tables below describe the first four. Status: **installed in release `2026.10.25-gpu.2`
 (application files verified by SHA-256; the installed EXE was not launched for this release).**
 
 ## What stays in video memory when a module is idle

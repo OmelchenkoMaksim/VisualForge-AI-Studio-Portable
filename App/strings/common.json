@@ -11,6 +11,14 @@
     "ru": "Дождитесь завершения или отмените задачу Music.",
     "en": "Wait for completion or cancel the Music task."
   },
+  "common.gpu_wait_completion_cancel_voiceover_task": {
+    "ru": "Дождитесь завершения или отмените задачу Озвучки.",
+    "en": "Wait for completion or cancel the Voiceover task."
+  },
+  "common.studio_bridge_voiceover_unavailable": {
+    "ru": "Озвучка недоступна: ",
+    "en": "Voiceover unavailable: "
+  },
   "common.gpu_wait_response_finish_stop": {
     "ru": "Дождитесь окончания ответа или остановите его.",
     "en": "Wait for the response to finish or stop it."

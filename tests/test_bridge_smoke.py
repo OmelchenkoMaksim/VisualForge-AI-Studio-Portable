@@ -72,6 +72,29 @@ class BridgeSmoke(unittest.TestCase):
         status, raw = self.call(path, data)
         return status, json.loads(raw or b'{}')
 
+    def test_server_module_imports_without_the_script_folder_on_sys_path(self):
+        # The installed launcher starts the bridge with the embedded Python, which does not put the script's folder on
+        # sys.path (isolated mode reproduces that); the other tests here use the system Python and cannot see such a failure.
+        code = "import runpy, sys; runpy.run_path(sys.argv[1], run_name='probe')"
+        done = subprocess.run([sys.executable, '-I', '-c', code, str(self.root / 'App/server/server.py')], capture_output=True, text=True, timeout=120,
+                              env={**os.environ, 'VISUALFORGE_PORTABLE_ROOT': str(self.root), 'PYTHONIOENCODING': 'utf-8'})
+        self.assertEqual(done.returncode, 0, done.stderr[-1500:])
+
+    def test_voiceover_routes_answer_through_the_bridge(self):
+        status, availability = self.json('/api/voiceover/availability')
+        self.assertEqual(status, 200)
+        self.assertFalse(availability['available'], 'the throw-away root has no model or runtime')
+        self.assertEqual(self.json('/api/voiceover/voices'), (200, {'voices': []}))
+        self.assertEqual(self.json('/api/voiceover/history'), (200, {'entries': []}))
+        self.assertEqual(self.json('/api/voiceover/settings')[0], 200)
+        status, book = self.json('/api/voiceover/prepare', {'title': 'Тест', 'text': 'Глава 1\n\nПервый абзац.\n\nГлава 2\n\nВторой абзац.'})
+        self.assertEqual(status, 200)
+        self.assertEqual([row['title'] for row in book['chapters']], ['Глава 1', 'Глава 2'])
+        self.assertEqual(self.json('/api/voiceover/prepare', {'text': '   '})[0], 400)
+        self.assertEqual(self.json('/api/voiceover/generate', {'book_id': 'bad'})[0], 400)
+        self.assertEqual(self.json('/api/voiceover/generate', {'book_id': book['book_id'], 'voice_id': 'b' * 32})[0], 503)
+        self.assertEqual(self.json('/api/voiceover/unknown')[0], 404)
+
     def test_launch_readiness_is_reported_by_the_page_for_its_own_launch(self):
         self.assertEqual(self.json('/api/launch-ready?launch=abcdefgh12345678'), (200, {'ready': False, 'ok': False}))
         self.assertEqual(self.json('/api/launch-ready', {'launch': '../x', 'ok': True})[0], 400)
@@ -126,7 +149,7 @@ class BridgeSmoke(unittest.TestCase):
         self.assertEqual(results['/api/text/chats'], 200)
         self.assertEqual(results['/api/components'], 200)
         modules = self.json('/api/components')[1]['modules']
-        self.assertEqual([m['id'] for m in modules], ['core', 'image', 'video', 'music', 'text', 'speech'])
+        self.assertEqual([m['id'] for m in modules], ['core', 'image', 'video', 'music', 'text', 'speech', 'voiceover'])
 
     def test_posts_of_every_module_are_routed(self):
         self.assertEqual(self.json('/api/stop-generation', {}), (200, {'stopped': []}))

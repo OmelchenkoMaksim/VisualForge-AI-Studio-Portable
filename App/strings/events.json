@@ -15,6 +15,10 @@
     "ru": "Ответ в чате",
     "en": "Chat response"
   },
+  "events.operation_type_voiceover_label": {
+    "ru": "Озвучка текста",
+    "en": "Text voiceover"
+  },
   "events.operation_type_agent_label": {
     "ru": "Задача агента",
     "en": "Agent task"

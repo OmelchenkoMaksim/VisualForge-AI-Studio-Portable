@@ -1,4 +1,4 @@
-﻿param([string]$Root, [string]$Scratch)
+﻿param([string]$Root, [string]$Scratch, [switch]$IconOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.Windows.Forms,System.Drawing
@@ -11,12 +11,25 @@ $icon=Join-Path $Root 'App\frontend\visualforge-icon.png'
 $hostTray=New-Object VisualForge.StudioTray($state,$icon)
 try {
     if (-not $state.Shown -or $hostTray.Menu.Items.Count -ne 2) {throw 'Tray/menu not ready'}
+    $traySize=[Windows.Forms.SystemInformation]::SmallIconSize
+    if ($hostTray.Notification.Icon.Size -ne $traySize) {throw 'Tray icon does not use the native small size'}
+    $expectedIcon=New-Object Drawing.Icon((Join-Path $Root 'App\frontend\visualforge-icon.ico'),$traySize)
+    $actualBitmap=$hostTray.Notification.Icon.ToBitmap()
+    $expectedBitmap=$expectedIcon.ToBitmap()
+    try {
+        for ($y=0;$y -lt $traySize.Height;$y++) {
+            for ($x=0;$x -lt $traySize.Width;$x++) {
+                if ($actualBitmap.GetPixel($x,$y).ToArgb() -ne $expectedBitmap.GetPixel($x,$y).ToArgb()) {throw 'Idle tray icon differs from the shared ICO'}
+            }
+        }
+    } finally { $actualBitmap.Dispose(); $expectedBitmap.Dispose(); $expectedIcon.Dispose() }
     if ($hostTray.Menu.Items[0].Text -ne 'Открыть приложение на весь экран' -or $hostTray.Menu.Items[1].Text -ne 'Закрыть приложение полностью') {throw 'Menu labels differ'}
     $hostTray.Menu.Items[0].PerformClick()
     $hostTray.Menu.Items[1].PerformClick()
     if (-not $state.Open -or -not $state.Quit) {throw 'Menu signals not delivered'}
     $state.Busy=$true
     $hostTray.Update(); $a=$hostTray.Frame
+    if ($hostTray.Notification.Icon.Size -ne $traySize) {throw 'Animated tray icon does not use the native small size'}
     $hostTray.Update(); $b=$hostTray.Frame
     if ($a -eq $b) {throw 'Animation did not advance'}
     $state.Busy=$false
@@ -36,6 +49,10 @@ try {
     $script:traySync.Busy=$false
 } finally { Close-StudioTray }
 if ($script:traySync.Shown) {throw 'STA tray failed to close'}
+if ($IconOnly) {
+    'Native tray size, shared idle icon, animation, menu and STA shutdown passed.'
+    return
+}
 $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $Root 'App\Start-VisualForge.ps1'),[ref]$tokens,[ref]$errors)
 if ($errors.Count) {throw 'Supervisor parse failed'}

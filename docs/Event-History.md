@@ -6,7 +6,7 @@ The object defined in [Generations.md](Generations.md) remains exactly `{type, i
 
 ## Operations
 
-`App/server/event_history.py` is the authoritative type/label registry. Main operations are Image, Video, Music, Text, Agent, VideoExport and VideoMix. Technical operations have their own types and IDs:
+`App/server/event_history.py` is the authoritative type/label registry. Main operations are Image, Video, Music, Text, Agent, Voiceover, VideoExport and VideoMix. Technical operations have their own types and IDs:
 
 | Area | Types and boundary |
 |---|---|

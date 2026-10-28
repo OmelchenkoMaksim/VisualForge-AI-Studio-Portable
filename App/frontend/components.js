@@ -2,7 +2,7 @@
 (() => {
   // The Components tab: what is installed, and downloading missing models (the programs are installed by Setup).
   const el = id => document.getElementById(id);
-  const WORKSPACES = ['image', 'video', 'music', 'text'];
+  const WORKSPACES = ['image', 'video', 'music', 'text', 'voiceover'];
   let state = null, selected = new Set(), timer = null, busyLocal = false;
   const fmt = (n, digits = 1) => Number(n).toLocaleString(StudioI18n.locale, {maximumFractionDigits: digits});
   const gb = bytes => bytes >= 1e9 ? fmt(bytes / 1e9) + StudioI18n.t("components.memory_gigabytes_unit_suffix") : fmt(bytes / 1e6, 0) + StudioI18n.t("components.memory_megabytes_unit_suffix");

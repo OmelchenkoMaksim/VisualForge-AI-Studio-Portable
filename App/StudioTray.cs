@@ -25,21 +25,32 @@ namespace VisualForge {
             frames = new Icon[24];
             context = new ApplicationContext();
             try {
+                Size iconSize = SystemInformation.SmallIconSize;
                 using (Image source = Image.FromFile(imagePath)) {
                     for (int i = 0; i < frames.Length; i++) {
-                        using (Bitmap bitmap = new Bitmap(48, 48)) {
+                        using (Bitmap bitmap = new Bitmap(iconSize.Width, iconSize.Height)) {
                             using (Graphics g = Graphics.FromImage(bitmap)) {
                                 g.Clear(Color.Transparent);
                                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                                g.TranslateTransform(24, 24);
+                                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                                // Extra padding made the logo tiny after the shell scaled the old 48px canvas down.
+                                g.TranslateTransform(iconSize.Width / 2f, iconSize.Height / 2f);
                                 g.RotateTransform(i * 360f / frames.Length);
-                                g.DrawImage(source, -17, -17, 34, 34);
+                                g.DrawImage(source, -iconSize.Width / 2f, -iconSize.Height / 2f, iconSize.Width, iconSize.Height);
                             }
                             IntPtr handle = bitmap.GetHicon();
                             try { using (Icon borrowed = Icon.FromHandle(handle)) frames[i] = (Icon)borrowed.Clone(); }
                             finally { DestroyIcon(handle); }
                         }
+                    }
+                }
+                // The shared ICO contains dedicated small sizes, avoiding another resize of the splash PNG at idle.
+                string iconPath = System.IO.Path.ChangeExtension(imagePath, ".ico");
+                if (System.IO.File.Exists(iconPath)) {
+                    using (Icon idle = new Icon(iconPath, iconSize)) {
+                        frames[0].Dispose();
+                        frames[0] = (Icon)idle.Clone();
                     }
                 }
                 Menu = new ContextMenuStrip();

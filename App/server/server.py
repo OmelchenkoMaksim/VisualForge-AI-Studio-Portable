@@ -69,7 +69,7 @@ HISTORY = JobHistory(PATHS.settings / 'image-job-history.json', portable_root=PA
 GPU_SUBMISSION_LOCK = RLock()
 # Keep admission and start atomic so competing modules cannot both claim the GPU.
 # Locking every POST previously let a modal folder dialog block Stop.
-GPU_START_ROUTES = frozenset(('/api/generate', '/api/video/generate', '/api/music/generate', '/api/components/install', '/api/text/unload',
+GPU_START_ROUTES = frozenset(('/api/generate', '/api/video/generate', '/api/music/generate', '/api/voiceover/generate', '/api/components/install', '/api/text/unload',
                               '/api/components/model-toggle', '/api/components/model-remove-plan', '/api/components/model-remove', '/api/components/repair'))
 DIALOG_LOCK = Lock()
 # The launcher's splash waits for the page it opened (`?launch=<nonce>`) to report that its ComfyUI check finished.
@@ -89,6 +89,13 @@ try:
 except (ImportError, OSError, ValueError) as _music_error:
     MUSIC = None
     print(ui_text('common.studio_bridge_music_unavailable') + str(_music_error), flush=True)
+try:
+    from voiceover.routes import POST_LIMITS as POST_LIMITS_VOICEOVER
+    from voiceover.voiceover_manager import VoiceoverManager
+    VOICEOVER = VoiceoverManager(PATHS)
+except (ImportError, OSError, ValueError) as _voiceover_error:
+    VOICEOVER, POST_LIMITS_VOICEOVER = None, {}
+    print(ui_text('common.studio_bridge_voiceover_unavailable') + str(_voiceover_error), flush=True)
 try:
     from speech.speech_manager import SpeechManager
     SPEECH = SpeechManager(PATHS, free_vram=lambda: _gpu_free_mb(), gpu_busy=lambda: bool(GPU.busy_modules()))
@@ -110,6 +117,8 @@ STATIC['/video.js'] = ('static/video.js', 'application/javascript; charset=utf-8
 STATIC['/video.css'] = ('static/video.css', 'text/css; charset=utf-8')
 STATIC['/music.js'] = ('static/music.js', 'application/javascript; charset=utf-8')
 STATIC['/music.css'] = ('static/music.css', 'text/css; charset=utf-8')
+STATIC['/voiceover.js'] = ('static/voiceover.js', 'application/javascript; charset=utf-8')
+STATIC['/voiceover.css'] = ('static/voiceover.css', 'text/css; charset=utf-8')
 STATIC['/text.js'] = ('static/text.js', 'application/javascript; charset=utf-8')
 STATIC['/text.css'] = ('static/text.css', 'text/css; charset=utf-8')
 STATIC['/agent.js'] = ('static/agent.js', 'application/javascript; charset=utf-8')
@@ -192,7 +201,8 @@ def _comfy_held_mb():
 
 # Every "start" route calls GPU.claim(module): refuse while another module works, free what the idle ones still hold.
 GPU = GpuCoordinator(
-    probes=dict(image=_image_busy, video=lambda: VIDEO is not None and VIDEO.busy(), music=lambda: MUSIC is not None and MUSIC.busy(), text=lambda: TEXT is not None and TEXT.busy()),
+    probes=dict(image=_image_busy, video=lambda: VIDEO is not None and VIDEO.busy(), music=lambda: MUSIC is not None and MUSIC.busy(), text=lambda: TEXT is not None and TEXT.busy(),
+                voiceover=lambda: VOICEOVER is not None and VOICEOVER.busy()),
     releasers=dict(image=_comfy_free, text=lambda: TEXT is not None and TEXT.release_gpu(), speech=lambda: SPEECH is not None and SPEECH.release_gpu()),
     free_vram=_gpu_free_mb, held=dict(image=_comfy_held_mb))
 if MUSIC is not None:
@@ -247,6 +257,11 @@ def stop_generation():
         if row.get('token'):
             MUSIC.cancel({'id': row['id'], 'token': row['token']})
             stopped.append('music')
+    if VOICEOVER is not None and VOICEOVER.busy():
+        row = VOICEOVER.status()
+        if row.get('token'):
+            VOICEOVER.cancel({'id': row['id'], 'token': row['token']})
+            stopped.append('voiceover')
     if VIDEO is not None and VIDEO.busy():
         job = VIDEO.call('/active').get('job') or {}
         if job.get('id') and job.get('cancel_token'):
@@ -607,7 +622,7 @@ class Handler(BaseHTTPRequestHandler):
         # The independent journal must not feed its reads/session IDs back into the existing HTTP log.
         if urlparse(self.path).path in ('/api/event-history', '/api/event-history/session'):
             return
-        if self.command == 'GET' and self.path.startswith('/api/music/') and len(args) > 1 and str(args[1]) in ('200', '206'):
+        if self.command == 'GET' and self.path.startswith(('/api/music/', '/api/voiceover/')) and len(args) > 1 and str(args[1]) in ('200', '206'):
             return  # Music polling belongs in job state, not repetitive access logs.
         print('%s %s' % (self.log_date_time_string(), fmt % args), flush=True)
 
@@ -1044,6 +1059,9 @@ class Handler(BaseHTTPRequestHandler):
             if u.path.startswith('/api/music/'):
                 from music.routes import handle
                 return handle(self, MUSIC, GPU, u.path.removeprefix('/api/music/'), None, u.query)
+            if u.path.startswith('/api/voiceover/'):
+                from voiceover.routes import handle as voiceover_handle
+                return voiceover_handle(self, VOICEOVER, GPU, u.path.removeprefix('/api/voiceover/'), None, u.query)
             if u.path == '/api/text/image' and TEXT_STORE is not None:
                 from text.routes import image as text_image
                 return text_image(self, TEXT_STORE, u.query)
@@ -1185,13 +1203,14 @@ class Handler(BaseHTTPRequestHandler):
             is_video = route in ('/api/video/generate', '/api/video/cancel', '/api/video/settings', '/api/video/prompts',
                                  '/api/video/export', '/api/video/export-cancel', '/api/video/mix', '/api/video/mix-preview', '/api/video/delete')
             is_music = route in ('/api/music/generate', '/api/music/cancel', '/api/music/settings', '/api/music/delete')
+            is_voiceover = route.startswith('/api/voiceover/') and route.removeprefix('/api/voiceover/') in POST_LIMITS_VOICEOVER
             is_text = route in ('/api/text/chats', '/api/text/chat-rename', '/api/text/chat-update', '/api/text/chat-delete', '/api/text/settings',
                                 '/api/text/stop', '/api/text/unload')
             is_components = route in ('/api/components/install', '/api/components/cancel', '/api/components/model-toggle', '/api/components/model-remove-plan', '/api/components/model-remove', '/api/components/repair', '/api/components/recovery-answer', '/api/components/recovery-file')
             is_speech = route in ('/api/speech/settings', '/api/speech/unload', '/api/speech/prepare')
             is_agents = route in ('/api/agents/chats', '/api/agents/chat-update', '/api/agents/permission', '/api/agents/stop', '/api/agents/settings',
                                   '/api/agents/choose-workspace')
-            if not is_video and not is_music and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
+            if not is_video and not is_music and not is_voiceover and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
                 return self.response_json(404, {'error': 'Not found'})
             size = int(self.headers.get('Content-Length', '0') or '0')
             max_size = 4096 if route in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
@@ -1200,6 +1219,8 @@ class Handler(BaseHTTPRequestHandler):
                             'export': 4096, 'export-cancel': 4096, 'mix': 16384, 'mix-preview': 16384, 'delete': 4096}[route.rsplit('/', 1)[-1]]
             if is_music:
                 max_size = 40000
+            if is_voiceover:
+                max_size = POST_LIMITS_VOICEOVER[route.removeprefix('/api/voiceover/')]
             if is_text:
                 max_size = 65536
             if is_components:
@@ -1249,6 +1270,9 @@ class Handler(BaseHTTPRequestHandler):
             if is_music:
                 from music.routes import handle
                 return handle(self, MUSIC, GPU, route.removeprefix('/api/music/'), data, '')
+            if is_voiceover:
+                from voiceover.routes import handle as voiceover_handle
+                return voiceover_handle(self, VOICEOVER, GPU, route.removeprefix('/api/voiceover/'), data, '')
             if is_video:
                 return self.video_request(route.removeprefix('/api/video/'), data)
             if route == '/api/cancel':

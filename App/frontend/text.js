@@ -425,7 +425,7 @@
     clearInterval(statusTimer);statusTimer = setInterval(pollStatus, 5000);
   }
   el('textTab').onclick = showModule;
-  for (const name of ['imageTab', 'videoTab', 'musicTab']) el(name).addEventListener('click', () => {el('textWorkspace').hidden = true;el('textTab').setAttribute('aria-selected', 'false');clearInterval(statusTimer);});
+  for (const name of ['imageTab', 'videoTab', 'musicTab', 'voiceoverTab']) el(name).addEventListener('click', () => {el('textWorkspace').hidden = true;el('textTab').setAttribute('aria-selected', 'false');clearInterval(statusTimer);});
   el('textForm').onsubmit = event => {event.preventDefault();send(false);};
   el('textInput').addEventListener('keydown', event => {if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {event.preventDefault();send(false);}});
   el('textAttach').onclick = () => el('textFile').click();

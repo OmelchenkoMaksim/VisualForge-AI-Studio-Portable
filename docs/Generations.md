@@ -11,7 +11,7 @@
 }
 ```
 
-- `type`: a unique operation category from `event_history.TYPES`. Main types include `Image`, `Video`, `Music`, `Text`, `Agent`, `VideoExport` and `VideoMix`; recognition, warmups, model calls and other technical work have distinct types listed in [Event-History.md](Event-History.md).
+- `type`: a unique operation category from `event_history.TYPES`. Main types include `Image`, `Video`, `Music`, `Text`, `Agent`, `Voiceover`, `VideoExport` and `VideoMix`; recognition, warmups, model calls and other technical work have distinct types listed in [Event-History.md](Event-History.md).
 - `id`: 32 cryptographically random bytes encoded as 64 lowercase hexadecimal characters. At one million operations the birthday-bound collision probability is approximately 4.3 × 10⁻⁶⁶, not a mathematical guarantee of uniqueness. Active IDs are also checked in-process before issuance.
 - `started_at`: UTC ISO 8601 with milliseconds (`Z`). Requests rejected at route admission do not create a generation. Module-specific validation and preparation may run before or within an operation.
 - `duration_sec`: seconds rounded to milliseconds, `null` while running. A monotonic timer measures the accepted operation, including cold model loading and subsequent GPU waits. Completion freezes the value once, including cancellation/error; a system clock adjustment does not alter it. Media duration (e.g. a 30-second song) is a separate field. Final file metadata/log bookkeeping may happen after this measurement is frozen.

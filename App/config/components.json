@@ -72,6 +72,15 @@
     "speech.model.whisper-large-v3",
     "speech.model.rupunct-big"
    ]
+  },
+  {
+   "id": "voiceover",
+   "title": "Voiceover",
+   "summary": "Text to speech of long texts with a cloned voice; uses the Video runtime and the Qwen3-TTS model of the Video section, VoxCPM2 is an optional second engine.",
+   "components": [
+    "voiceover.runtime",
+    "voiceover.model.voxcpm2"
+   ]
   }
  ],
  "presets": {
@@ -19477,6 +19486,188 @@
    ],
    "download_bytes": 41162142158,
    "disk_bytes": 41162142158
+  },
+  {
+   "id": "voiceover.runtime",
+   "module": "voiceover",
+   "kind": "software",
+   "title": "Voiceover: VoxCPM2 packages",
+   "description": "The voxcpm package (pinned 2.0.3) and its extra dependencies, installed beside the Qwen3-TTS packages in the Video runtime. It borrows PyTorch, librosa and transformers from the Video runtime.",
+   "license": "Apache-2.0 (voxcpm); pydantic and the others are MIT",
+   "requires": [
+    "video.runtime"
+   ],
+   "present": [
+    "Runtime/Video/voxcpm-packages/voxcpm/__init__.py",
+    "Runtime/Video/voxcpm-packages/pydantic/__init__.py"
+   ],
+   "disk_bytes": 8467938,
+   "downloads": [
+    {
+     "id": "voiceover:voxcpm-2.0.3-py3-none-any.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/f5/50/76e912427684f7e71d443d9542802ad33df8764ef3bba954b96feeab41ba/voxcpm-2.0.3-py3-none-any.whl",
+      "https://pypi.org/packages/f5/50/76e912427684f7e71d443d9542802ad33df8764ef3bba954b96feeab41ba/voxcpm-2.0.3-py3-none-any.whl"
+     ],
+     "filename": "voxcpm-2.0.3-py3-none-any.whl",
+     "bytes": 88270,
+     "sha256": "24da58a30d094a9e9a7ead450ae9cffda0d31eaeba620b61ad99179dd87e486b"
+    },
+    {
+     "id": "voiceover:pydantic-2.14.1-py3-none-any.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/35/ea/a56b9fe5066f3537b7882f77e9c5dfb26d8c2eefdaed9b5fc73d57b4dc22/pydantic-2.14.1-py3-none-any.whl",
+      "https://pypi.org/packages/35/ea/a56b9fe5066f3537b7882f77e9c5dfb26d8c2eefdaed9b5fc73d57b4dc22/pydantic-2.14.1-py3-none-any.whl"
+     ],
+     "filename": "pydantic-2.14.1-py3-none-any.whl",
+     "bytes": 488106,
+     "sha256": "9195d967ec791692a04438115466764fb8b9a27b31f14a760437694f40d6b454"
+    },
+    {
+     "id": "voiceover:pydantic_core-2.50.1-cp312-cp312-win_amd64.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/c5/17/8bbd530b8659e9d963f5b16f6cb8e159f4cd174b4d6304e48969ab12dba8/pydantic_core-2.50.1-cp312-cp312-win_amd64.whl",
+      "https://pypi.org/packages/c5/17/8bbd530b8659e9d963f5b16f6cb8e159f4cd174b4d6304e48969ab12dba8/pydantic_core-2.50.1-cp312-cp312-win_amd64.whl"
+     ],
+     "filename": "pydantic_core-2.50.1-cp312-cp312-win_amd64.whl",
+     "bytes": 2172522,
+     "sha256": "132529c83901437ff642f585216831bf5fd7a91df66829907e155192ead62498"
+    },
+    {
+     "id": "voiceover:annotated_types-0.8.0-py3-none-any.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl",
+      "https://pypi.org/packages/99/91/8acff4f5e50511b911bbccb72b8628a49c68ce14148cd9f6431094859a90/annotated_types-0.8.0-py3-none-any.whl"
+     ],
+     "filename": "annotated_types-0.8.0-py3-none-any.whl",
+     "bytes": 13427,
+     "sha256": "f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0"
+    },
+    {
+     "id": "voiceover:typing_inspection-0.4.4-py3-none-any.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl",
+      "https://pypi.org/packages/67/81/4add07e5172b7ac40d8ed5ff580409a7801a4fe26d529bdd915401dabfbe/typing_inspection-0.4.4-py3-none-any.whl"
+     ],
+     "filename": "typing_inspection-0.4.4-py3-none-any.whl",
+     "bytes": 14750,
+     "sha256": "65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147"
+    },
+    {
+     "id": "voiceover:typing_extensions-4.16.0-py3-none-any.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+      "https://pypi.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+     ],
+     "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+     "bytes": 45571,
+     "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+    }
+   ],
+   "steps": [
+    {
+     "op": "unpack_wheels",
+     "downloads": [
+      "voiceover:voxcpm-2.0.3-py3-none-any.whl",
+      "voiceover:pydantic-2.14.1-py3-none-any.whl",
+      "voiceover:pydantic_core-2.50.1-cp312-cp312-win_amd64.whl",
+      "voiceover:annotated_types-0.8.0-py3-none-any.whl",
+      "voiceover:typing_inspection-0.4.4-py3-none-any.whl",
+      "voiceover:typing_extensions-4.16.0-py3-none-any.whl"
+     ],
+     "to": "Runtime/Video/voxcpm-packages"
+    }
+   ]
+  },
+  {
+   "id": "voiceover.model.voxcpm2",
+   "module": "voiceover",
+   "kind": "model",
+   "group": "Voiceover",
+   "title": "VoxCPM2 (48 kHz voice cloning, 30 languages)",
+   "description": "Second Voiceover engine: 2B parameters, 48 kHz output, Russian among 30 languages, cloning from a short sample (more exact with its transcript). About 8 GB of video memory; voices fragments one at a time.",
+   "license": "Apache-2.0",
+   "requires": [
+    "voiceover.runtime"
+   ],
+   "files": [
+    {
+     "path": "Models/Voiceover/VoxCPM2/config.json",
+     "bytes": 4336,
+     "sha256": "405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/config.json",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/config.json"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/model.safetensors",
+     "bytes": 4580080592,
+     "sha256": "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/model.safetensors",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/model.safetensors"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/audiovae.pth",
+     "bytes": 376951122,
+     "sha256": "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/audiovae.pth",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/audiovae.pth"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/special_tokens_map.json",
+     "bytes": 1632,
+     "sha256": "068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/special_tokens_map.json",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/special_tokens_map.json"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/tokenization_voxcpm2.py",
+     "bytes": 2895,
+     "sha256": "84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenization_voxcpm2.py",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenization_voxcpm2.py"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/tokenizer.json",
+     "bytes": 3676772,
+     "sha256": "f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenizer.json",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenizer.json"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/tokenizer_config.json",
+     "bytes": 5059,
+     "sha256": "e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenizer_config.json",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/tokenizer_config.json"
+     ]
+    },
+    {
+     "path": "Models/Voiceover/VoxCPM2/README.md",
+     "bytes": 7939,
+     "sha256": "c18d2ffbfb2f0aec770481c967842aee6c200cde65f6b033efd892a849986fda",
+     "urls": [
+      "https://huggingface.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/README.md",
+      "https://hf.co/openbmb/VoxCPM2/resolve/32279effe8c19989596f05d353d1447f51d9e915/README.md"
+     ]
+    }
+   ],
+   "present": [
+    "Models/Voiceover/VoxCPM2/model.safetensors",
+    "Models/Voiceover/VoxCPM2/audiovae.pth"
+   ]
   }
  ]
 }

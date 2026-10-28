@@ -540,6 +540,7 @@ MODULES = [
     dict(id='music', title='Music', summary='ACE-Step 1.5, MiniMax Music3 and Stable Audio 3.'),
     dict(id='text', title='Text', summary='Private chat model through a separate Ollama, plus the OpenCode, Aider and DeepSeek Harness agent modes.'),
     dict(id='speech', title='Voice input', summary='Speech recognition for the microphone buttons in every text field.'),
+    dict(id='voiceover', title='Voiceover', summary='Text to speech of long texts with a cloned voice; uses the Video runtime and the Qwen3-TTS model of the Video section, VoxCPM2 is an optional second engine.'),
 ]
 
 PRESETS = {
@@ -557,8 +558,14 @@ def build_ltx25():
     return component(**manifest['component'],files=files,download_bytes=size,disk_bytes=size)
 
 
+def build_voiceover():
+    """The Voiceover components pinned by tools/build_voiceover_assets.py."""
+    return read_json(REPO / 'App/config/voiceover-assets.json')['components']
+
+
 def build_all(installed, work, skip_gated=False):
-    components = build_core() + build_image(installed, skip_gated) + build_video(installed, work) + build_music(installed) + build_text(installed) + build_speech() + [build_ltx25()]
+    components = (build_core() + build_image(installed, skip_gated) + build_video(installed, work) + build_music(installed) + build_text(installed)
+                  + build_speech() + [build_ltx25()] + build_voiceover())
     modules = []
     for module in MODULES:
         ids = [c['id'] for c in components if c['module'] == module['id']]
