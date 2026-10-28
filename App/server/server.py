@@ -1,4 +1,5 @@
 """Local-only VisualForge AI Studio UI bridge. Python stdlib; no remote dependencies."""
+from ui_strings import source as ui_text
 import base64
 import binascii
 import zlib
@@ -73,33 +74,33 @@ DIALOG_LOCK = Lock()
 LAUNCHES = {}
 LAUNCH_PATTERN = re.compile(r'[A-Za-z0-9_-]{8,64}')
 try:
-    from video.manager import VideoManager
+    from video.video_manager import VideoManager
     VIDEO = VideoManager(PATHS)
     VIDEO_WARNING = ''
 except (ImportError, OSError, ValueError) as _video_error:
     VIDEO = None
-    VIDEO_WARNING = 'Video недоступен: ' + str(_video_error)
+    VIDEO_WARNING = ui_text('common.studio_bridge_video_unavailable') + str(_video_error)
 LOCAL_OPENER = build_opener(ProxyHandler({}))
 try:
-    from music.manager import MusicManager
+    from music.music_manager import MusicManager
     MUSIC = MusicManager(PATHS)
 except (ImportError, OSError, ValueError) as _music_error:
     MUSIC = None
-    print('Music недоступен: ' + str(_music_error), flush=True)
+    print(ui_text('common.studio_bridge_music_unavailable') + str(_music_error), flush=True)
 try:
-    from speech.manager import SpeechManager
+    from speech.speech_manager import SpeechManager
     SPEECH = SpeechManager(PATHS, free_vram=lambda: _gpu_free_mb(), gpu_busy=lambda: bool(GPU.busy_modules()))
 except (ImportError, OSError, ValueError) as _speech_error:
     SPEECH = None
-    print('Voice input недоступен: ' + str(_speech_error), flush=True)
+    print(ui_text('common.studio_bridge_voice_input_unavailable') + str(_speech_error), flush=True)
 try:
-    from text.manager import TextManager
+    from text.text_manager import TextManager
     from text.store import ChatStore
     TEXT = TextManager(PATHS)
     TEXT_STORE = ChatStore(TEXT.chats_dir)
 except (ImportError, OSError, ValueError) as _text_error:
     TEXT = TEXT_STORE = None
-    print('Text недоступен: ' + str(_text_error), flush=True)
+    print(ui_text('common.studio_bridge_text_unavailable') + str(_text_error), flush=True)
 AGENTS = None  # constructed below, after the GPU coordinator it needs
 STATIC = {'/engine-state.js': ('static/engine-state.js', 'application/javascript; charset=utf-8'), '/': ('static/index.html','text/html; charset=utf-8'), '/app.js': ('static/app.js','application/javascript; charset=utf-8'), '/style.css': ('static/style.css','text/css; charset=utf-8'), '/progress-save.css': ('static/progress-save.css','text/css; charset=utf-8')}
 STATIC['/prompt-guides.js'] = ('static/prompt-guides.js', 'application/javascript; charset=utf-8')
@@ -126,6 +127,8 @@ STATIC['/hardware.css'] = ('static/hardware.css', 'text/css; charset=utf-8')
 STATIC['/model-requirements.js'] = ('static/model-requirements.js', 'application/javascript; charset=utf-8')
 STATIC['/theme.css'] = ('static/theme.css', 'text/css; charset=utf-8')
 STATIC['/theme-init.js'] = ('static/theme-init.js', 'application/javascript; charset=utf-8')
+STATIC['/strings.js'] = ('static/strings.js', 'application/javascript; charset=utf-8')
+STATIC['/i18n.js'] = ('static/i18n.js', 'application/javascript; charset=utf-8')
 STATIC['/shell.js'] = ('static/shell.js', 'application/javascript; charset=utf-8')
 STATIC['/sounds.js'] = ('static/sounds.js', 'application/javascript; charset=utf-8')
 REQUIRED = {'LoadImage', 'UNETLoader', 'CLIPLoader', 'VAELoader', 'LoraLoaderModelOnly', 'ModelSamplingAuraFlow', 'CFGNorm', 'FluxKontextImageScale', 'TextEncodeQwenImageEditPlus', 'FluxKontextMultiReferenceLatentMethod', 'VAEEncode', 'KSampler', 'VAEDecode', 'SaveImage'}
@@ -198,17 +201,17 @@ if SPEECH is not None and TEXT is not None:
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
 if TEXT is not None:
     try:
-        from agents.manager import AgentManager
+        from agents.agent_manager import AgentManager
         AGENTS = AgentManager(PATHS, TEXT, TEXT_STORE, GPU, GPU_SUBMISSION_LOCK)
     except (ImportError, OSError, ValueError) as _agents_error:
-        print('Режим «Агент» недоступен: ' + str(_agents_error), flush=True)
+        print(ui_text('common.studio_bridge_agent_mode_unavailable') + str(_agents_error), flush=True)
 try:
-    from provision.manager import ComponentsManager
+    from provision.components_manager import ComponentsManager
     COMPONENTS = ComponentsManager(PATHS.root, PATHS.root / 'App/config/components.json', GPU)
     COMPONENTS.models.text_models = lambda: TEXT.installed_models(include_disabled=True) if TEXT else []
     def _release_managed_models():
         if SPEECH and SPEECH.busy():
-            raise Busy('Сначала завершите голосовой ввод.')
+            raise Busy(ui_text('common.studio_bridge_release_managed_models_finish_voice_input_first'))
         if TEXT:
             TEXT.release_gpu()
         _comfy_free()
@@ -217,14 +220,14 @@ try:
     COMPONENTS.models.release = _release_managed_models
 except (ImportError, OSError, ValueError) as _components_error:
     COMPONENTS = None
-    print('Components недоступен: ' + str(_components_error), flush=True)
+    print(ui_text('common.studio_bridge_components_unavailable') + str(_components_error), flush=True)
 
 
 def busy_state():
     """Who works on the GPU right now; `kind: 'voice'` when the only job is Gemma editing a dictation (the page words it differently)."""
     state = GPU.snapshot()
     if state['modules'] == ['text'] and TEXT is not None and set(TEXT.active) == {'voice-polish'}:
-        state.update(kind='voice', labels=['Gemma (голосовой ввод)'])
+        state.update(kind='voice', labels=[ui_text('common.studio_bridge_busy_state_gemma_voice_input')])
     return state
 
 
@@ -270,13 +273,13 @@ def stop_generation():
 def resolve_mix_tracks(data):
     """The browser names music by Music job id; only the bridge turns an id into a file, so a client can never pass a path."""
     if not isinstance(data, dict) or not isinstance(data.get('tracks'), list):
-        raise ValueError('Добавьте дорожки музыки')
+        raise ValueError(ui_text('common.studio_bridge_resolve_mix_tracks_add_music'))
     if MUSIC is None:
-        raise ValueError('Модуль Music недоступен: дорожки взять негде')
+        raise ValueError(ui_text('common.studio_bridge_resolve_mix_tracks_music_module_unavailable_no_use'))
     tracks = []
     for track in data['tracks']:
         if not isinstance(track, dict) or 'path' in track or not isinstance(track.get('music_id'), str):
-            raise ValueError('Выберите готовый результат Music для каждой дорожки')
+            raise ValueError(ui_text('common.studio_bridge_resolve_mix_tracks_select_finished_music_result_each_track'))
         track = dict(track)
         track['path'] = str(MUSIC.file(track.pop('music_id')))
         tracks.append(track)
@@ -334,7 +337,7 @@ def blank_canvas_png(shape):
 
 def prompt_base_image(shape):
     if shape not in PROMPT_CANVASES:
-        raise ValueError('Неверный формат холста')
+        raise ValueError(ui_text('common.studio_bridge_prompt_base_image_invalid_canvas_format'))
     # Keep the normal upload path and the known-good image-edit graph unchanged.
     return upload_image({'base64': base64.b64encode(blank_canvas_png(shape)).decode('ascii')})
 
@@ -346,7 +349,7 @@ def default_save_dir():
 
 def normalize_save_dir(value):
     if not isinstance(value, str) or not value.strip():
-        raise ValueError('Укажи папку для автосохранения результата')
+        raise ValueError(ui_text('common.studio_bridge_normalize_save_dir_specify_output_autosave_folder'))
     path = Path(value.strip()).expanduser()
     if not path.is_absolute():
         path = PATHS.storage_base / path
@@ -362,13 +365,13 @@ def load_settings():
             raw = json.loads(SETTINGS_FILE.read_text(encoding='utf-8'))
             if not isinstance(raw,dict):raise ValueError('Invalid settings object')
             if isinstance(raw.get('save_dir'),str) and raw['save_dir'].strip():data['save_dir']=raw['save_dir'].strip()
-        except (OSError,ValueError,TypeError):warning='Не удалось прочитать настройки. Выберите папку сохранения явно.'
+        except (OSError,ValueError,TypeError):warning=ui_text('common.studio_bridge_settings_read_select_save_folder_explicitly_failed')
     candidate=Path(data['save_dir']).expanduser()
     if not candidate.is_absolute():candidate=PATHS.storage_base/candidate
     if candidate.resolve().is_relative_to(PATHS.root.resolve()):
         try:candidate.mkdir(parents=True,exist_ok=True)
-        except OSError:warning='Внутренняя папка сохранения недоступна.'
-    if not candidate.is_dir():warning='Папка сохранения недоступна. Выберите другую папку или внутреннюю Results.'
+        except OSError:warning=ui_text('common.studio_bridge_settings_internal_save_folder_unavailable')
+    if not candidate.is_dir():warning=ui_text('common.studio_bridge_settings_save_folder_unavailable_select_another_internal')
     data.update(save_dir=str(candidate.resolve()),save_dir_available=not warning,save_dir_warning=warning,internal_save_dir=default_save_dir())
     return data
 
@@ -395,9 +398,9 @@ def save_settings(raw):
     return target
 
 
-def choose_save_dir(initial_dir=None, description='Выберите папку автосохранения результатов Qwen', normalize=True):
+def choose_save_dir(initial_dir=None, description=ui_text('common.studio_bridge_choose_save_dir_select_qwen_output_autosave_folder'), normalize=True):
     if os.name != 'nt':
-        raise ValueError('Нативный выбор папки поддерживается только на Windows')
+        raise ValueError(ui_text('common.studio_bridge_choose_save_dir_native_folder_selection_supported_windows'))
     shell = shutil.which('pwsh.exe') or shutil.which('powershell.exe') or 'powershell.exe'
     script = r'''
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -439,7 +442,7 @@ finally {
     proc = subprocess.run([shell, '-NoProfile', '-STA', '-Command', script], text=True, capture_output=True, env=env, timeout=180)
     if proc.returncode != 0:
         details = (proc.stderr or proc.stdout or '').strip()
-        raise ValueError('Не удалось открыть диалог выбора папки' + (': ' + details if details else ''))
+        raise ValueError(ui_text('common.studio_bridge_choose_save_dir_open_folder_picker_failed') + (': ' + details if details else ''))
     chosen = (proc.stdout or '').strip()
     if not chosen:
         return None
@@ -449,9 +452,9 @@ finally {
 def choose_agent_workspace(initial_dir=None):
     """The native folder dialog for the agent's project folder; one dialog at a time, like the save-folder chooser."""
     if not DIALOG_LOCK.acquire(blocking=False):
-        raise ValueError('Окно выбора папки уже открыто: найдите его на панели задач.')
+        raise ValueError(ui_text('common.studio_bridge_choose_agent_workspace_folder_picker_already_open_find_taskbar'))
     try:
-        return choose_save_dir(initial_dir, 'Выберите папку проекта, в которой будет работать агент', normalize=False) or ''
+        return choose_save_dir(initial_dir, ui_text('common.studio_bridge_choose_agent_workspace_select_project_folder'), normalize=False) or ''
     finally:
         DIALOG_LOCK.release()
 
@@ -459,16 +462,16 @@ def choose_agent_workspace(initial_dir=None):
 def open_existing_directory(path_text):
     # Open a selected/result folder without changing settings or creating directories.
     if not isinstance(path_text, str) or not path_text.strip():
-        raise ValueError('Укажите папку')
+        raise ValueError(ui_text('common.studio_bridge_open_existing_directory_specify_folder'))
     path = Path(path_text)
     if not path.is_absolute() or not path.is_dir():
-        raise ValueError('Папка недоступна. Проверьте подключение диска и путь.')
+        raise ValueError(ui_text('common.studio_bridge_open_existing_directory_folder_unavailable_check_drive_connection_path'))
     if os.name != 'nt':
-        raise ValueError('Открытие папки поддерживается только на Windows')
+        raise ValueError(ui_text('common.studio_bridge_open_existing_directory_opening_folders_supported_windows'))
     try:
         os.startfile(str(path.resolve()))
     except OSError as exc:
-        raise ValueError('Не удалось открыть папку: ' + str(exc)) from exc
+        raise ValueError(ui_text('common.studio_bridge_open_existing_directory_folder_failed') + str(exc)) from exc
     return str(path.resolve())
 
 
@@ -477,22 +480,22 @@ def open_directory(path_text):
     if os.name == 'nt':
         os.startfile(str(path))
     else:
-        raise ValueError('Открытие папки поддерживается только на Windows')
+        raise ValueError(ui_text('common.studio_bridge_open_existing_directory_opening_folders_supported_windows'))
     return str(path)
 
 
 def check_image(item):
     if not isinstance(item, dict) or not isinstance(item.get('base64'), str):
-        raise ValueError('Изображение отсутствует или имеет неверный формат')
+        raise ValueError(ui_text('common.studio_bridge_check_image_missing_invalid_format'))
     s = item['base64']
     if len(s) > ((IMAGE_LIMIT + 2) // 3) * 4 + 10:
-        raise ValueError('Файл слишком большой (максимум 100 МиБ)')
+        raise ValueError(ui_text('common.studio_bridge_check_image_file_too_large_maximum_100_mi'))
     try:
         data = base64.b64decode(s, validate=True)
     except (ValueError, binascii.Error) as exc:
-        raise ValueError('Некорректные данные изображения') from exc
+        raise ValueError(ui_text('common.studio_bridge_check_image_invalid_data')) from exc
     if len(data) > IMAGE_LIMIT or len(data) == 0:
-        raise ValueError('Файл пустой или больше 100 МиБ')
+        raise ValueError(ui_text('common.studio_bridge_check_image_file_empty_exceeds_100_mi_b'))
     if data.startswith(b'\x89PNG\r\n\x1a\n'):
         suffix, mimetype = '.png', 'image/png'
     elif data.startswith(b'\xff\xd8\xff'):
@@ -500,7 +503,7 @@ def check_image(item):
     elif data[:4] == b'RIFF' and data[8:12] == b'WEBP':
         suffix, mimetype = '.webp', 'image/webp'
     else:
-        raise ValueError('Поддерживаются только PNG, JPEG и WebP')
+        raise ValueError(ui_text('common.studio_bridge_check_image_png_jpeg_web_p_supported'))
     return data, suffix, mimetype
 
 
@@ -528,7 +531,7 @@ def upload_image(item):
     body.extend(('--' + boundary + '--\r\n').encode('ascii'))
     result = json.loads(upstream('/upload/image', bytes(body), 'multipart/form-data; boundary=' + boundary, timeout=90))
     if not result.get('name'):
-        raise ValueError('ComfyUI не вернул имя загруженного файла')
+        raise ValueError(ui_text('common.studio_bridge_upload_image_comfy_ui_did_not_return_uploaded'))
     return (result.get('subfolder', '') + '/' if result.get('subfolder') else '') + result['name']
 
 
@@ -541,17 +544,17 @@ def _read_prompt_archive():
     if not PROMPT_ARCHIVE_FILE.exists():
         return []
     if PROMPT_ARCHIVE_FILE.stat().st_size > 5 * 1024 * 1024:
-        raise ValueError('Архив промптов слишком большой для безопасного чтения')
+        raise ValueError(ui_text('common.studio_bridge_read_prompt_archive_too_large_safely'))
     raw = json.loads(PROMPT_ARCHIVE_FILE.read_text(encoding='utf-8'))
     if not isinstance(raw, dict) or raw.get('schema_version') != 1 or not isinstance(raw.get('entries'), list):
-        raise ValueError('Некорректный формат архива промптов')
+        raise ValueError(ui_text('common.studio_bridge_read_prompt_archive_invalid_format'))
     entries = raw['entries']
     if len(entries) > 200:
-        raise ValueError('В архиве больше 200 записей')
+        raise ValueError(ui_text('common.studio_bridge_read_prompt_archive_contains_more_than_200_entries'))
     for item in entries:
         if (not isinstance(item, dict) or not isinstance(item.get('id'), str)
                 or not isinstance(item.get('prompt'), str) or not isinstance(item.get('created_at'), str)):
-            raise ValueError('Некорректная запись в архиве промптов')
+            raise ValueError(ui_text('common.studio_bridge_read_prompt_archive_invalid_entry'))
     return entries
 
 
@@ -574,12 +577,12 @@ def modify_prompt_archive(data):
         if action == 'add':
             prompt = data.get('prompt')
             if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 5000:
-                raise ValueError('Промпт должен содержать от 1 до 5000 символов')
+                raise ValueError(ui_text('common.studio_bridge_modify_prompt_archive_must_contain_1_5000_characters'))
             prompt = prompt.strip()
             if any(record['prompt'] == prompt for record in entries):
                 return {'entries': entries, 'added': False, 'duplicate': True}
             if len(entries) >= 200:
-                raise ValueError('Архив содержит 200 записей. Удали ненужные, чтобы сохранить новые.')
+                raise ValueError(ui_text('common.studio_bridge_modify_prompt_archive_contains_200_entries_delete_unused_save'))
             record = {'id': uuid.uuid4().hex, 'prompt': prompt,
                       'created_at': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}
             entries.insert(0, record)
@@ -588,12 +591,12 @@ def modify_prompt_archive(data):
         if action == 'delete':
             ident = data.get('id')
             if not isinstance(ident, str) or not re.fullmatch('[a-f0-9]{32}', ident):
-                raise ValueError('Некорректный ID сохранённого промпта')
+                raise ValueError(ui_text('common.studio_bridge_modify_prompt_archive_invalid_saved_id'))
             reduced = [entry for entry in entries if entry['id'] != ident]
             if len(reduced) != len(entries):
                 _write_prompt_archive(reduced)
             return {'entries': reduced, 'deleted': len(reduced) != len(entries)}
-        raise ValueError('Неизвестная операция с архивом промптов')
+        raise ValueError(ui_text('common.studio_bridge_modify_prompt_archive_unknown_operation'))
 
 class Handler(BaseHTTPRequestHandler):
     server_version = 'LocalQwenUI/3.1'
@@ -629,15 +632,15 @@ class Handler(BaseHTTPRequestHandler):
             if route == 'generate':
                 policy = ModelPolicy(PATHS.root)
                 if not policy.enabled('video', data.get('engine', 'freevideo-h3-int8')):
-                    raise ValueError('Модель отключена в разделе «Компоненты».')
+                    raise ValueError(ui_text('common.studio_bridge_video_model_disabled_components'))
                 uses_voice = (data.get('engine') == 'wan22-s2v-14b' and data.get('speech_mode', 'clone') == 'clone') or any(person.get('speech_text') for person in data.get('characters', []) if isinstance(person, dict))
                 if uses_voice and 'video.model.qwen3-tts' in policy.disabled():
-                    raise ValueError('Qwen3-TTS отключена в разделе «Компоненты».')
+                    raise ValueError(ui_text('common.studio_bridge_video_qwen3_tts_disabled_components'))
             VIDEO.start()
             if route == 'generate':
                 VIDEO.call('/validate', data)
                 if VIDEO.busy():
-                    return self.response_json(409, {'error': 'GPU уже занят задачей Video.'})
+                    return self.response_json(409, {'error': ui_text('common.studio_bridge_video_gpu_already_busy_task')})
                 from video.registry import ENGINES as _video_engines
                 # The submission lock spans this claim and the job start; it refuses while Image/Music/Text work and frees what they hold.
                 GPU.claim('video', _video_engines[data.get('engine', 'freevideo-h3-int8')].get('minimum_free_vram_mb', 12000))
@@ -645,7 +648,7 @@ class Handler(BaseHTTPRequestHandler):
                 answer = VIDEO.call('/file' + query)
                 path = Path(answer.get('path') or '')
                 if path.suffix.lower() != '.mp4' or not path.is_file():
-                    return self.response_json(404, {'error': 'Видео сейчас недоступно'})
+                    return self.response_json(404, {'error': ui_text('common.studio_bridge_video_currently_unavailable')})
                 size = path.stat().st_size
                 start, end, partial = 0, size - 1, False
                 requested = self.headers.get('Range')
@@ -694,7 +697,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 answer = json.loads(error.read(4000))
             except ValueError:
-                answer = {'error': 'Ошибка Video-backend'}
+                answer = {'error': ui_text('common.studio_bridge_video_backend_error')}
             return self.response_json(error.code, answer)
         except Busy as error:
             return self.response_json(409, {'error': str(error)})
@@ -806,7 +809,7 @@ class Handler(BaseHTTPRequestHandler):
             meta = JOB_META.get(ident) or {}
             existing = meta.get('saved_files')
         if not meta:
-            raise ValueError('Задача удалена или недоступна для сохранения')
+            raise ValueError(ui_text('common.studio_bridge_save_outputs_locked_task_deleted_unavailable_saving'))
         if existing is not None:
             return existing, str(meta.get('save_dir') or load_settings()['save_dir'])
         settings = load_settings()
@@ -888,11 +891,11 @@ class Handler(BaseHTTPRequestHandler):
     def list_save_dirs(self, raw_path, initial=False):
         """Browse directories only. No images or file contents are exposed."""
         if not isinstance(raw_path, str) or len(raw_path) > 1024:
-            raise ValueError('Слишком длинный путь')
+            raise ValueError(ui_text('common.studio_bridge_list_save_dirs_path_too_long'))
         selected = raw_path.strip() or load_settings()['save_dir']
         path = Path(selected).expanduser()
         if not path.is_absolute():
-            raise ValueError('Путь должен быть абсолютным')
+            raise ValueError(ui_text('common.studio_bridge_list_save_dirs_path_must_absolute'))
         try:
             if initial:
                 while not path.exists() and path.parent != path:
@@ -901,7 +904,7 @@ class Handler(BaseHTTPRequestHandler):
                     path = PATHS.root
             path = path.resolve(strict=True)
             if not path.is_dir():
-                raise ValueError('Указанный путь не является папкой')
+                raise ValueError(ui_text('common.studio_bridge_list_save_dirs_specified_path_not_folder'))
             entries = []
             with os.scandir(path) as listing:
                 for entry in listing:
@@ -923,17 +926,17 @@ class Handler(BaseHTTPRequestHandler):
                 'directories': entries[:500], 'truncated': len(entries) > 500
             })
         except OSError as exc:
-            raise ValueError('Не удалось открыть папку: ' + str(exc)) from exc
+            raise ValueError(ui_text('common.studio_bridge_open_existing_directory_folder_failed') + str(exc)) from exc
 
     # QWEN_LOGS_PANEL_V1: read-only, bounded local diagnostics.
     def diagnostic_logs(self, scope):
         import re
         if scope not in ('all', 'errors', 'ui', 'comfy', 'launcher'):
-            raise ValueError('Неизвестная категория логов')
+            raise ValueError(ui_text('common.studio_bridge_diagnostic_logs_unknown_log_category'))
         log_dir = PATHS.logs
         if not log_dir.is_dir():
             return self.response_json(200, {
-                'scope': scope, 'text': 'Папка logs ещё не создана. Запусти приложение хотя бы один раз.',
+                'scope': scope, 'text': ui_text('common.studio_bridge_diagnostic_logs_folder_has_not_been_created_yet'),
                 'files': 0, 'truncated': False
             })
 
@@ -942,7 +945,7 @@ class Handler(BaseHTTPRequestHandler):
             ('ui', 'UI stdout', 'ui-v3-*.stdout.txt', 3),
             ('comfy', 'ComfyUI stderr', 'comfy-v3-*.stderr.txt', 3),
             ('comfy', 'ComfyUI stdout', 'comfy-v3-*.stdout.txt', 3),
-            ('launcher', 'Запуск', 'desktop-v3-*.txt', 3),
+            ('launcher', ui_text('common.studio_bridge_diagnostic_logs_startup'), 'desktop-v3-*.txt', 3),
         )
         sources = []
         base = log_dir.resolve()
@@ -962,7 +965,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if not sources:
             return self.response_json(200, {
-                'scope': scope, 'text': 'Подходящих журналов пока нет.',
+                'scope': scope, 'text': ui_text('common.studio_bridge_diagnostic_logs_no_matching_yet'),
                 'files': 0, 'truncated': False
             })
         # Do not read unlimited log files or permit filenames supplied by callers.
@@ -996,7 +999,7 @@ class Handler(BaseHTTPRequestHandler):
                     lines = [line for index, line in enumerate(lines) if index in keep]
                     if not lines:
                         continue
-                content = '\n'.join(lines) if lines else '(пустой журнал)'
+                content = '\n'.join(lines) if lines else ui_text('common.studio_bridge_diagnostic_logs_empty_log')
                 # Mask typical Windows profile paths and common inline credentials.
                 profile = os.environ.get('USERPROFILE', '').rstrip('\\/')
                 if profile:
@@ -1014,7 +1017,7 @@ class Handler(BaseHTTPRequestHandler):
                     label, file_path.name, stamp, stat.st_size, content
                 )
                 if len(section) > remaining:
-                    section = section[:remaining] + '\n[Ограничение объёма вывода]\n'
+                    section = section[:remaining] + ui_text('common.studio_bridge_diagnostic_logs_output_size_limit')
                     abbreviated = True
                 pieces.append(section)
                 remaining -= len(section)
@@ -1024,9 +1027,9 @@ class Handler(BaseHTTPRequestHandler):
                 continue
         result = ''.join(pieces).strip()
         if not result:
-            result = 'В последних фрагментах доступных журналов явных ошибок не найдено.'
+            result = ui_text('common.studio_bridge_diagnostic_logs_no_obvious_errors_found_recent_excerpts')
         if abbreviated:
-            result += '\n\n[Показаны только последние фрагменты журналов. Нажми «Обновить» для актуальных данных.]'
+            result += ui_text('common.studio_bridge_diagnostic_logs_recent_log_excerpts_shown_click_refresh')
         return self.response_json(200, {
             'scope': scope, 'text': result, 'files': len(pieces), 'truncated': abbreviated
         })
@@ -1089,7 +1092,7 @@ class Handler(BaseHTTPRequestHandler):
                 except ValueError as error:
                     return self.response_json(400, {'error': str(error)})
                 except (sqlite3.Error, OSError):
-                    return self.response_json(503, {'error': 'История событий недоступна. Проверьте доступ к папке UserData и свободное место.'})
+                    return self.response_json(503, {'error': ui_text('common.studio_bridge_get_event_history_unavailable_check_user_data')})
             if u.path == '/api/history':
                 return self.response_json(200, {'entries': HISTORY.completed(), 'warning': HISTORY.warning})
             if u.path == '/api/favorites':
@@ -1135,7 +1138,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             size = int(self.headers.get('Content-Length', '0') or '0')
             if not 0 < size <= 40 * 1024 * 1024:  # up to four screenshots of about 6 MiB each, as base64
-                return self.response_json(413, {'error': 'Слишком большой запрос'})
+                return self.response_json(413, {'error': ui_text('common.studio_bridge_send_request_too_large')})
             body = self.rfile.read(size)
             if not self.headers.get('Content-Type', '').startswith('application/json'):
                 return self.response_json(415, {'error': 'Expected JSON'})
@@ -1161,7 +1164,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             size = int(self.headers.get('Content-Length', '0') or '0')
             if not 0 < size <= 512 * 1024:  # a task of up to 100 000 characters as JSON-escaped UTF-8
-                return self.response_json(413, {'error': 'Слишком большой запрос'})
+                return self.response_json(413, {'error': ui_text('common.studio_bridge_send_request_too_large')})
             body = self.rfile.read(size)
             if not self.headers.get('Content-Type', '').startswith('application/json'):
                 return self.response_json(415, {'error': 'Expected JSON'})
@@ -1204,20 +1207,20 @@ class Handler(BaseHTTPRequestHandler):
             if is_agents:
                 max_size = 16384  # a chat's system instruction (up to 8000 characters) plus a folder path
             if size < 0 or size > max_size:
-                return self.response_json(413, {'error': 'Слишком большой запрос'})
+                return self.response_json(413, {'error': ui_text('common.studio_bridge_send_request_too_large')})
             body = self.rfile.read(size) if size > 0 else b'{}'
             if not self.headers.get('Content-Type', '').startswith('application/json'):
                 return self.response_json(415, {'error': 'Expected JSON'})
             data = json.loads(body)
             if not isinstance(data, dict):
-                raise ValueError('Ожидается JSON-объект')
+                raise ValueError(ui_text('common.studio_bridge_post_expected_json_object'))
             if route == '/api/event-history/session':
                 return self.microphone_event(data)
             if route == '/api/history/delete':
                 try:
                     return self.delete_image(data)
                 except OSError as error:
-                    return self.response_json(500, {'error': 'Не удалось удалить все файлы генерации. Запись сохранена для повторной попытки: ' + str(error)[:500]})
+                    return self.response_json(500, {'error': ui_text('common.studio_bridge_post_delete_all_generation_files_entry_preserved_failed') + str(error)[:500]})
             if is_text:
                 from text.routes import handle as text_handle
                 return text_handle(self, TEXT, TEXT_STORE, route.removeprefix('/api/text/'), data, '')
@@ -1235,7 +1238,7 @@ class Handler(BaseHTTPRequestHandler):
             if route == '/api/launch-ready':
                 launch = data.get('launch')
                 if not isinstance(launch, str) or not LAUNCH_PATTERN.fullmatch(launch):
-                    raise ValueError('Некорректный номер запуска')
+                    raise ValueError(ui_text('common.studio_bridge_post_invalid_launch_number'))
                 with JOBS_LOCK:
                     LAUNCHES[launch] = {'ok': data.get('ok') is True, 'at': time.time()}
                     while len(LAUNCHES) > 16:
@@ -1254,7 +1257,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response_json(200, modify_prompt_archive(data))
             if route == '/api/choose-save-dir':
                 if not DIALOG_LOCK.acquire(blocking=False):
-                    return self.response_json(409, {'error': 'Окно выбора папки уже открыто: найдите его на панели задач.'})
+                    return self.response_json(409, {'error': ui_text('common.studio_bridge_choose_agent_workspace_folder_picker_already_open_find_taskbar')})
                 try:
                     chosen = choose_save_dir(load_settings()['save_dir'])
                 finally:
@@ -1283,7 +1286,7 @@ class Handler(BaseHTTPRequestHandler):
             if not readiness['ready']:
                 raise ValueError('; '.join(readiness['reasons']))
             if upscale > 1 and (not upscale_available(obj) or 'image.model.upscale' in ModelPolicy(PATHS.root).disabled()):
-                raise ValueError('Для AI Upscale нужен RealESRGAN_x2plus.pth и ImageUpscaleWithModel')
+                raise ValueError(ui_text('common.studio_bridge_post_ai_upscale_requires_real_esrgan_x2'))
             if not load_settings().get('save_dir_available',True):
                 raise ValueError(load_settings()['save_dir_warning'])
             # Refuses while Video/Music/Text work; unloads an idle chat model first; waits for the engine's own memory estimate.
@@ -1306,7 +1309,7 @@ class Handler(BaseHTTPRequestHandler):
             engine_meta.update(selected_mode=selected_mode, operation=operation)
             answer = json_upstream('/prompt', {'prompt': graph, 'client_id': CLIENT_ID}, timeout=30)
             if 'prompt_id' not in answer:
-                raise ValueError('ComfyUI отклонил граф: ' + str(answer)[:700])
+                raise ValueError(ui_text('common.studio_bridge_post_comfy_ui_rejected_graph') + str(answer)[:700])
             ident = answer['prompt_id']
             token = secrets.token_urlsafe(32)
             submitted_at = time.time()
@@ -1359,7 +1362,7 @@ class Handler(BaseHTTPRequestHandler):
             details = exc.read(3000).decode('utf-8', 'replace')
             return self.response_json(502, {'error': ('ComfyUI HTTP ' + str(exc.code) + ': ' + details)[:1500]})
         except (URLError, TimeoutError) as exc:
-            return self.response_json(502, {'error': 'ComfyUI недоступен: ' + str(exc)[:500]})
+            return self.response_json(502, {'error': ui_text('common.studio_bridge_post_comfy_ui_unavailable') + str(exc)[:500]})
 
     def cancel(self, data):
         ident = data.get('prompt_id')
@@ -1367,13 +1370,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             uuid.UUID(ident)
         except (ValueError, TypeError, AttributeError):
-            raise ValueError('Некорректный prompt_id')
+            raise ValueError(ui_text('common.studio_bridge_cancel_invalid_prompt_id'))
         if not isinstance(token, str) or not token:
-            return self.response_json(403, {'error': 'Отсутствует право на отмену этой задачи'})
+            return self.response_json(403, {'error': ui_text('common.studio_bridge_cancel_permission_task_missing')})
         with JOBS_LOCK:
             expected = JOB_TOKENS.get(ident)
         if not expected or not secrets.compare_digest(expected, token):
-            return self.response_json(403, {'error': 'Эта задача не была запущена текущей сессией приложения'})
+            return self.response_json(403, {'error': ui_text('common.studio_bridge_cancel_task_not_started_current_application_session')})
         answer = json_upstream('/api/jobs/' + ident + '/cancel', {}, timeout=15)
         confirmed = answer.get('cancelled') is True
         if confirmed:
@@ -1393,7 +1396,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             uuid.UUID(ident)
         except (ValueError, TypeError):
-            raise ValueError('Некорректный prompt_id')
+            raise ValueError(ui_text('common.studio_bridge_cancel_invalid_prompt_id'))
         return json_upstream('/history/' + ident).get(ident)
 
     def job_outputs(self, ident, history):
@@ -1447,7 +1450,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             uuid.UUID(ident)
         except (ValueError, TypeError, AttributeError):
-            raise ValueError('Некорректный ID задачи')
+            raise ValueError(ui_text('common.studio_bridge_invalid_task_id'))
         receipt = HISTORY.get(ident)
         if receipt:
             if receipt['state'] == 'cancelled':
@@ -1455,7 +1458,7 @@ class Handler(BaseHTTPRequestHandler):
             files = receipt['saved_files']
             if files and all(Path(p).is_file() for p in files):
                 return reply(200, {'state': 'done', 'images': len(files), 'saved_count': len(files), 'elapsed_sec': receipt['elapsed_sec'], 'save_dir': str(Path(files[0]).parent), 'expanded_prompt': receipt.get('expanded_prompt', '')})
-            return reply(200, {'state': 'error', 'error': 'Сохранённые файлы сейчас недоступны. Проверьте папку результатов или подключение диска.'})
+            return reply(200, {'state': 'error', 'error': ui_text('common.studio_bridge_saved_files_currently_unavailable_check_output')})
         with JOBS_LOCK:
             meta = JOB_META.get(ident) or {}
             cancelling = ident in CANCELLING
@@ -1498,7 +1501,7 @@ class Handler(BaseHTTPRequestHandler):
             if errors:
                 return reply(200, {'state': 'error', 'error': str(errors[-1][1])[:1800], 'elapsed_sec': elapsed})
         if info.get('completed') is True:
-            return reply(200, {'state': 'error', 'error': 'ComfyUI завершил задачу без ожидаемого выходного изображения.', 'elapsed_sec': elapsed})
+            return reply(200, {'state': 'error', 'error': ui_text('common.studio_bridge_comfy_ui_finished_without_expected_output'), 'elapsed_sec': elapsed})
         queue = self.queue_info(ident)
         state = 'running' if queue.get('location') == 'running' else 'waiting'
         payload = {'state': state, 'elapsed_sec': elapsed, 'status': str(info.get('status_str', 'unknown'))}
@@ -1515,27 +1518,27 @@ class Handler(BaseHTTPRequestHandler):
             if data.get('action') == 'finish' and set(data) <= {'action', 'id', 'state'}:
                 state = data.get('state', 'done')
                 if state not in ('done', 'cancelled', 'error', 'interrupted'):
-                    raise ValueError('Некорректное состояние микрофона')
+                    raise ValueError(ui_text('common.studio_bridge_microphone_event_invalid_state'))
                 record = event_history().microphone(data.get('id'))
                 generation_finish(record, state=state)
                 return self.response_json(200, {'generation': record})
-            raise ValueError('Некорректное событие микрофона')
+            raise ValueError(ui_text('common.studio_bridge_microphone_event_invalid'))
         except (sqlite3.Error, OSError):
-            return self.response_json(503, {'error': 'Не удалось сохранить событие микрофона.'})
+            return self.response_json(503, {'error': ui_text('common.studio_bridge_microphone_event_save_failed')})
 
     def delete_image(self, data):
         from job_delete import DeletePlan, confined_file
         ident = data.get('id')
         if not isinstance(ident, str) or str(uuid.UUID(ident)) != ident:
-            raise ValueError('Некорректный идентификатор генерации')
+            raise ValueError(ui_text('common.studio_bridge_delete_image_invalid_generation_identifier'))
         with JOBS_LOCK:
             guard = SAVE_LOCKS.setdefault(ident, Lock())
         with guard:
             receipt = HISTORY.get(ident)
             if receipt is None or not HISTORY.writable:
-                raise ValueError('Запись не найдена или история недоступна для записи')
+                raise ValueError(ui_text('common.studio_bridge_delete_image_entry_not_found_history_writable'))
             if self.job_is_queued_or_running(ident):
-                raise ValueError('Сначала остановите генерацию и дождитесь её завершения')
+                raise ValueError(ui_text('common.studio_bridge_delete_image_stop_generation_wait_finish_first'))
             upstream_history = self.fetch_history(ident)
             plan = DeletePlan()
             for value in receipt['saved_files']:
@@ -1558,7 +1561,7 @@ class Handler(BaseHTTPRequestHandler):
             for item in files:
                 area = item.get('type', 'output')
                 if area not in ('output', 'temp'):
-                    raise ValueError('Некорректная область файла ComfyUI')
+                    raise ValueError(ui_text('common.studio_bridge_delete_image_invalid_comfy_ui_file_scope'))
                 base = getattr(PATHS, 'comfy_' + area, PATHS.comfy / area)
                 relative = str(Path(item.get('subfolder', '')) / item['filename'])
                 plan.file(confined_file(base, relative))
@@ -1576,14 +1579,14 @@ class Handler(BaseHTTPRequestHandler):
         receipt = HISTORY.get(ident)
         if receipt and receipt['state'] == 'done':
             if not index.isdecimal() or int(index) >= len(receipt['saved_files']):
-                return self.response_json(404, {'error': 'Изображение не найдено'})
+                return self.response_json(404, {'error': ui_text('common.studio_bridge_image_not_found')})
             path = Path(receipt['saved_files'][int(index)])
             if not path.is_file():
-                return self.response_json(404, {'error': 'Файл результата сейчас недоступен'})
+                return self.response_json(404, {'error': ui_text('common.studio_bridge_result_file_currently_unavailable')})
             try:
                 return self.reply(200, path.read_bytes(), 'image/png' if path.suffix.lower() == '.png' else 'image/jpeg')
             except OSError:
-                return self.response_json(404, {'error': 'Файл результата сейчас недоступен'})
+                return self.response_json(404, {'error': ui_text('common.studio_bridge_result_file_currently_unavailable')})
         h = self.fetch_history(ident)
         if not h:
             return self.response_json(404, {'error': 'No results'})

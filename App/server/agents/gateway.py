@@ -8,6 +8,7 @@ wait for it and it waits for them. The response is relayed byte for byte, so str
 The gateway also measures how full the model's context is after every request (the usage Ollama reports at the end of a
 response, asked for with `stream_options.include_usage`): agents do not know their own context budget, and the studio stops a
 loop iteration before it runs out."""
+from ui_strings import source as ui_text
 import json
 import secrets
 import select
@@ -189,7 +190,7 @@ class ModelGateway:
             try:
                 server = ThreadingHTTPServer(('127.0.0.1', self.port), Handler)
             except OSError:
-                raise ValueError('Порт шлюза агента %d занят другой программой. Измените AgentGatewayPort в настройке запуска.' % self.port) from None
+                raise ValueError(ui_text('agent.start_agent_gateway_port_occupied_another_application') % self.port) from None
             server.daemon_threads = True
             threading.Thread(target=server.serve_forever, name='agent-gateway', daemon=True).start()
             self.server = server
@@ -226,7 +227,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return False
         given = self.headers.get('Authorization', '')
         if not given.startswith('Bearer ') or not secrets.compare_digest(given[7:].encode(), self.owner.token.encode()):
-            self.fail(401, 'Неверный ключ шлюза агента')
+            self.fail(401, ui_text('agent.allowed_invalid_agent_gateway_key'))
             return False
         return True
 
@@ -251,17 +252,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
         try:
             size = int(self.headers.get('Content-Length', '0') or '0')
             if not 0 < size <= MAX_BODY:
-                return self.fail(413, 'Слишком большой запрос к модели')
+                return self.fail(413, ui_text('agent.post_model_request_too_large'))
             body = json.loads(self.rfile.read(size))
             names = self.owner.models()
             if not isinstance(body, dict) or body.get('model') not in names:
-                return self.fail(400, 'Модель агента не найдена среди установленных моделей Text')
+                return self.fail(400, ui_text('agent.post_agent_model_not_found_among_installed'))
             body['model'] = names[body['model']]
             if body.get('stream'):
                 body['stream_options'] = dict(body.get('stream_options') or {}, include_usage=True)
             payload = json.dumps(body, ensure_ascii=False).encode('utf-8')
         except (ValueError, TypeError):
-            return self.fail(400, 'Некорректный запрос к модели')
+            return self.fail(400, ui_text('agent.post_invalid_model_request'))
         try:
             port = self.owner.upstream()
             cancel = self.owner.admit()
@@ -300,7 +301,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         try:
             upstream = socket.create_connection(('127.0.0.1', port), timeout=10)
         except OSError:
-            self.fail(503, 'Ollama (Text) не отвечает')
+            self.fail(503, ui_text('agent.relay_ollama_text_not_responding'))
             return b''
         sent = False
         accounting = ResponseUsage()
@@ -319,14 +320,14 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 accounting.feed(piece)
             if cancel.is_set():
                 if not sent:
-                    self.fail(499, 'Остановлено пользователем')
+                    self.fail(499, ui_text('agent.relay_stopped_user'))
                 return b''
             return accounting.result()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             cancel.set()  # the agent dropped the request (its own abort): stop Ollama's generation too
         except OSError:
             if not sent:
-                self.fail(502, 'Ollama (Text) прервал ответ')
+                self.fail(502, ui_text('agent.relay_ollama_text_interrupted_response'))
         finally:
             upstream.close()
         return b''

@@ -2,6 +2,7 @@
 
 Aider has no server mode, so the studio starts it for each task and passes the conversation so far; the bridge answers Aider's
 questions by the chat's permission level and asks the user through the same permission cards as OpenCode."""
+from ui_strings import source as ui_text
 import json
 from pathlib import Path
 import queue
@@ -45,7 +46,7 @@ class AiderRunner:
     def run(self, start, on_event, cancel, disconnected):
         """Run one task; `on_event` gets the page events. Returns the bridge's `done` event, or None when the task was stopped."""
         if not self.installed():
-            raise AiderError('Aider не установлен: нет Runtime/Agents/aider. Установите его в «Настройки → Компоненты», раздел Text.')
+            raise AiderError(ui_text('agent.run_aider_not_installed_runtime_agents_missing'))
         self.state.mkdir(parents=True, exist_ok=True)
         # -I: the user's PYTHONPATH or site-packages must not leak into Aider's interpreter; -X utf8 replaces PYTHONUTF8, which -I ignores.
         command = self.command or [str(self.python), '-I', '-X', 'utf8', str(self.bridge)]
@@ -90,11 +91,11 @@ class AiderRunner:
                         code = process.wait(5)
                     except subprocess.TimeoutExpired:
                         code = None
-                    raise AiderError('Aider неожиданно завершился (код %s). Подробности — в журнале agent-aider.log.' % code)
+                    raise AiderError(ui_text('agent.run_aider_exited_unexpectedly_code_see_agent') % code)
                 if event.get('type') == 'done':
                     return event
                 if event.get('type') == 'error':
-                    raise AiderError('Aider: ' + str(event.get('message') or 'ошибка')[:500])
+                    raise AiderError('Aider: ' + str(event.get('message') or ui_text('agent.agent_step_failed_status'))[:500])
                 on_event(event)
         finally:
             with self.lock:
@@ -113,16 +114,16 @@ class AiderRunner:
         with self.lock:
             process = self.process
             if process is None or process.poll() is not None:
-                raise AiderError('Aider уже не выполняет задачу')
+                raise AiderError(ui_text('agent.write_aider_no_longer_running_task'))
             try:
                 process.stdin.write((json.dumps(message, ensure_ascii=False) + '\n').encode('utf-8'))
                 process.stdin.flush()
             except OSError:
-                raise AiderError('Aider уже не выполняет задачу') from None
+                raise AiderError(ui_text('agent.write_aider_no_longer_running_task')) from None
 
     def reply(self, request_id, answer):
         if answer not in ('once', 'always', 'reject'):
-            raise ValueError('Ответ на запрос: разрешить один раз, разрешать всегда или отклонить')
+            raise ValueError(ui_text('agent.reply_permission_allow_once_always_reject'))
         self._write(dict(type='reply', id=request_id, reply=answer))
 
     def wrap(self):

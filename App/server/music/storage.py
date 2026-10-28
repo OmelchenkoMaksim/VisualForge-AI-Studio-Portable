@@ -1,4 +1,5 @@
 """Atomic metadata and portable output paths for Music."""
+from ui_strings import source as ui_text
 import json
 import os
 from pathlib import Path
@@ -44,7 +45,7 @@ def resolve_path(value, root):
         return path.resolve()
     path = (root / path).resolve()
     if not path.is_relative_to(root.resolve()):
-        raise ValueError('Путь Music выходит за пределы portable-папки')
+        raise ValueError(ui_text('music.resolve_path_music_outside_portable_folder'))
     return path
 
 def publish(source, folder, row, root):

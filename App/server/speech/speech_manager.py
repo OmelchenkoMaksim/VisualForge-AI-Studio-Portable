@@ -4,6 +4,7 @@ The worker keeps the model loaded for a few minutes after the last recording (so
 It runs on the video card only when enough memory is free and no other module works; otherwise on the processor. Before another
 module claims the GPU the coordinator calls `release_gpu()`, which stops a GPU-resident worker, so voice input never blocks generation.
 """
+from ui_strings import source as ui_text
 import atexit
 import json
 import os
@@ -91,11 +92,11 @@ class SpeechManager:
         usable = [m for m in self.installed_models() if m['ok']]
         problems = []
         if self.command is None and not self.python.is_file():
-            problems.append('Не найдено окружение Music (Runtime/Music/python), на котором работает распознавание.')
+            problems.append(ui_text('speech.availability_music_runtime_python_required_recognition_not'))
         if not usable:
-            problems.append('Нет модели распознавания речи. Скачайте её во вкладке «Компоненты» (раздел «Voice input»).')
+            problems.append(ui_text('speech.availability_speech_recognition_model_missing_download_components'))
         punct = all((self.models / PUNCT_MODEL / name).is_file() for name in PUNCT_FILES)
-        enhance = self.polisher.status() if self.polisher else dict(available=False, reason='Gemma недоступна.', model='')
+        enhance = self.polisher.status() if self.polisher else dict(available=False, reason=ui_text('speech.availability_gemma_unavailable'), model='')
         return dict(available=not problems, reason=' '.join(problems), models=self.installed_models(), languages=list(LANGUAGES), settings=self.settings(), punctuation_installed=punct, enhance=enhance, **self.status())
 
     def status(self):
@@ -114,19 +115,19 @@ class SpeechManager:
         if data is None:
             return current
         if not isinstance(data, dict) or set(data) - set(DEFAULTS):
-            raise SpeechError('Настройки голосового ввода содержат неподдерживаемые параметры')
+            raise SpeechError(ui_text('speech.settings_voice_input_contain_unsupported_parameters'))
         names = {m['name'] for m in self.installed_models() if m['ok']}
         for key, value in data.items():
             if key == 'model' and value != '' and value not in names:
-                raise SpeechError('Эта модель распознавания не установлена')
+                raise SpeechError(ui_text('speech.settings_recognition_model_not_installed'))
             if key == 'device' and value not in DEVICES:
-                raise SpeechError('Устройство: auto, cpu или cuda')
+                raise SpeechError(ui_text('speech.settings_device_auto_cpu_cuda'))
             if key == 'language' and value not in LANGUAGES:
-                raise SpeechError('Неизвестный язык распознавания')
+                raise SpeechError(ui_text('speech.settings_unknown_recognition_language'))
             if key == 'keep_alive' and value not in KEEP_ALIVE_CHOICES:
-                raise SpeechError('Держать модель в памяти: 1, 5, 15 или 60 минут')
+                raise SpeechError(ui_text('speech.settings_keep_model_memory_1_5_15'))
             if key == 'punctuation' and not isinstance(value, bool):
-                raise SpeechError('Расстановка знаков: включить или выключить')
+                raise SpeechError(ui_text('speech.settings_punctuation_enable_disable'))
             current[key] = value
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.settings_path.with_name(self.settings_path.name + '.tmp')
@@ -197,17 +198,17 @@ class SpeechManager:
         except OSError:
             self.process.terminate()
             self.process = None
-            raise SpeechError('Не удалось запустить распознавание речи') from None
+            raise SpeechError(ui_text('speech.start_speech_recognition_failed')) from None
         self.replies = queue.Queue()
         threading.Thread(target=self._reader, args=(self.process,), daemon=True, name='speech-reader').start()
         try:
             ready = self.replies.get(timeout=START_TIMEOUT)
         except queue.Empty:
             self.stop()
-            raise SpeechError('Модель распознавания не загрузилась за %d секунд. Подробности: UserData/Logs/speech-worker.log' % START_TIMEOUT) from None
+            raise SpeechError(ui_text('speech.start_recognition_model_did_not_load_within') % START_TIMEOUT) from None
         if not ready.get('ready'):
             self.stop()
-            raise SpeechError('Распознавание речи не запустилось. Подробности: UserData/Logs/speech-worker.log')
+            raise SpeechError(ui_text('speech.start_speech_recognition_did_not_details_user'))
         self.model_name, self.device = model, ready.get('device', device)
 
     def stop(self):
@@ -238,7 +239,7 @@ class SpeechManager:
     def release_gpu(self):
         """Called before another module takes the video card: a GPU-resident worker goes away, a processor worker stays."""
         if self.busy() and self.device == 'cuda':
-            raise Busy('GPU занят распознаванием речи: подождите пару секунд.')
+            raise Busy(ui_text('speech.release_gpu_busy_recognizing_speech_wait_few_seconds'))
         if self.alive() and self.device == 'cuda':
             self.stop()
 
@@ -315,9 +316,9 @@ class SpeechManager:
         partial=True is the live preview while someone is still speaking: it is answered only if the model already sits on the video card and
         nothing else is being recognized (otherwise {text: None, skipped: True} at once), so it never loads a model or waits."""
         if not isinstance(audio, (bytes, bytearray)) or len(audio) < 1000 or audio[:4] != b'RIFF' or audio[8:12] != b'WAVE':
-            raise SpeechError('Ожидается запись в формате WAV')
+            raise SpeechError(ui_text('speech.recognize_expected_wav_recording'))
         if len(audio) > MAX_AUDIO_BYTES:
-            raise SpeechError('Запись слишком длинная: до двух минут')
+            raise SpeechError(ui_text('speech.recognize_recording_too_long_maximum_two_minutes'))
         if partial and (not self.alive() or self.device != 'cuda' or self.busy()):
             return dict(text=None, skipped=True)
         status = self.availability()
@@ -325,12 +326,12 @@ class SpeechManager:
             raise SpeechError(status['reason'])
         language = language or self.settings()['language']
         if language not in LANGUAGES:
-            raise SpeechError('Неизвестный язык распознавания')
+            raise SpeechError(ui_text('speech.settings_unknown_recognition_language'))
         # A final recording waits for a running preview instead of being refused (that refusal once made a whole dictation vanish).
         if not self.working.acquire(blocking=False) and (partial or not self.working.acquire(timeout=FINAL_WAIT)):
             if partial:
                 return dict(text=None, skipped=True)
-            raise Busy('Распознавание занято дольше обычного. Повторите запись.')
+            raise Busy(ui_text('speech.recognize_recognition_taking_longer_than_usual_record'))
         try:
             active_generation = admitted() if admitted else None
             model = self.chosen_model()
@@ -355,21 +356,21 @@ class SpeechManager:
                 process.stdin.flush()
             except OSError:
                 self.stop()
-                raise SpeechError('Распознавание речи прервано. Повторите запись.') from None
+                raise SpeechError(ui_text('speech.recognize_speech_recognition_interrupted_record_again')) from None
             deadline = time.monotonic() + REQUEST_TIMEOUT
             while True:
                 try:
                     reply = self.replies.get(timeout=max(0.1, deadline - time.monotonic()))
                 except queue.Empty:
                     self.stop()
-                    raise SpeechError('Распознавание заняло слишком много времени и было остановлено.') from None
+                    raise SpeechError(ui_text('speech.recognize_recognition_took_too_long_stopped')) from None
                 if reply.get('closed'):
                     self.stop()
-                    raise SpeechError('Распознавание речи прервано (например, запуском генерации). Повторите запись.')
+                    raise SpeechError(ui_text('speech.recognize_speech_recognition_interrupted_e_g_starting'))
                 if reply.get('id') == identifier:
                     break
             if not reply.get('ok'):
-                raise SpeechError(reply.get('error') or 'Ошибка распознавания')
+                raise SpeechError(reply.get('error') or ui_text('speech.recognize_recognition_error'))
             self._arm_timer()
             return dict(text=reply.get('text', ''), raw=reply.get('raw'), seconds=reply.get('seconds'), device=self.device, model=model, level_db=reply.get('level_db'), note=reply.get('note'))
         finally:

@@ -7,6 +7,7 @@
 
 Everything is resumable: finished downloads and finished model files are kept, partial files continue where they stopped.
 """
+from ui_strings import source as ui_text
 import json
 import os
 from pathlib import Path
@@ -342,13 +343,13 @@ class Engine:
                 choice = self.recover(dict(component=self.active_component['id'], title=self.active_component['title'],
                                            name=name, bytes=size, sha256=sha256), self.cancelled)
                 if not choice:
-                    raise RecoverySkipped('Источник не указан за 30 секунд или файл пропущен: ' + name) from None
+                    raise RecoverySkipped(ui_text('components.fetch_no_source_provided_within_30_seconds') + name) from None
                 if choice['kind'] == 'file':
                     try:
                         path = net.import_file(choice['value'], destination, size, sha256, self._progress(name), self.cancelled)
                         break
                     except (OSError, net.DownloadError) as error:
-                        self.emit('note', text='Выбранный файл не подошёл: ' + str(error))
+                        self.emit('note', text=ui_text('components.fetch_selected_file_unsuitable') + str(error))
                         urls = []
                 else:
                     urls = [choice['value']]
@@ -375,7 +376,7 @@ class Engine:
                 skipped.append(Path(item['path']).name)
         if skipped:
             # Keep fetched artifacts for the next attempt, but never execute an incomplete installation.
-            raise ProvisionError('Пропущены зависимости: ' + ', '.join(skipped[:8]))
+            raise ProvisionError(ui_text('components.install_one_dependencies_skipped') + ', '.join(skipped[:8]))
         context = Context(self.root, paths, self.root / 'UserData/Cache', self.emit, self.cancelled, self.environ, self.run, self.ollama_command)
         if component.get('steps') or component.get('after'):
             self._mark_in_progress(component)

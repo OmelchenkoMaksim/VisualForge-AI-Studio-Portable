@@ -1,0 +1,610 @@
+{
+  "hardware.hardware_add_studio_startup_profile_memory_reduction_has": {
+    "ru": "Стартовый профиль студии; уменьшение памяти отдельно не проверялось.",
+    "en": "Studio startup profile; memory reduction has not been tested separately."
+  },
+  "hardware.hardware_profiles_studio_startup_profile_prompt_upsampler_tested": {
+    "ru": "Стартовый профиль студии. Prompt с upsampler проверен один раз: пик 15,5 из 16,3 ГБ видеопамяти, запас очень мал. Single и Reference не измерены.",
+    "en": "Studio startup profile. Prompt with upsampler tested once: peak 15.5 of 16.3 GB VRAM, with very little headroom. Single and Reference have not been measured."
+  },
+  "hardware.hardware_profiles_studio_startup_profile_gpu_has_not": {
+    "ru": "Стартовый профиль студии; работа на этой видеокарте ещё не проверена, потребление памяти не измерено.",
+    "en": "Studio startup profile; this GPU has not been tested and memory usage has not been measured."
+  },
+  "hardware.hardware_compatibility_assessment_portable_build_requires_windows_x64": {
+    "ru": "Эта portable-сборка требует Windows x64.",
+    "en": "This portable build requires Windows x64."
+  },
+  "hardware.hardware_compatibility_assessment_video_memory": {
+    "ru": "видеопамяти",
+    "en": "video memory"
+  },
+  "hardware.hardware_ram_specification_label": {
+    "ru": "ОЗУ",
+    "en": "RAM"
+  },
+  "hardware.hardware_compatibility_assessment_estimate_startup_profile_frame_size_context": {
+    "ru": "Оценка для стартового профиля. Размер кадра, контекст и занятая другими программами память влияют на запуск и скорость.",
+    "en": "Estimate for the startup profile. Frame size, context and memory used by other applications affect startup and speed."
+  },
+  "hardware.hardware_scan_not_detected": {
+    "ru": "Не определён",
+    "en": "Not detected"
+  },
+  "hardware.hardware_profiles_estimate_based_installed_build_size_memory": {
+    "ru": "Оценка по объёму установленной сборки с запасом памяти. Длинный контекст требует больше памяти; Ollama может использовать ОЗУ и CPU.",
+    "en": "Estimate based on installed build size with memory headroom. Long context needs more memory; Ollama may use RAM and CPU."
+  },
+  "hardware.hardware_compatibility_assessment_text_model_run_cpu_ram_but": {
+    "ru": "Текстовая модель может работать на процессоре и ОЗУ, но ответы будут медленнее.",
+    "en": "The text model can run on CPU and RAM, but responses will be slower."
+  },
+  "hardware.hardware_compatibility_assessment_ram_below_profile_s_stated_minimum": {
+    "ru": "ОЗУ ниже заявленного минимума этого профиля: %g ГБ.",
+    "en": "RAM is below this profile's stated minimum: %g GB."
+  },
+  "hardware.hardware_profiles_studio_profile_512_288_16_gb": {
+    "ru": "Профиль студии: 512×288, 16 ГБ VRAM и 64 ГБ ОЗУ.",
+    "en": "Studio profile: 512×288, 16 GB VRAM and 64 GB RAM."
+  },
+  "hardware.hardware_compatibility_assessment_confirm_nvidia_cuda_video_memory_check_failed": {
+    "ru": "Не удалось подтвердить NVIDIA CUDA и объём видеопамяти. Проверьте драйвер и обновите данные ПК.",
+    "en": "Could not confirm NVIDIA CUDA and video memory. Check the driver and refresh PC data."
+  },
+  "hardware.hardware_compatibility_assessment_engine_requires_nvidia_cuda_no_compatible": {
+    "ru": "Этот движок требует NVIDIA CUDA; совместимая видеокарта не обнаружена.",
+    "en": "This engine requires NVIDIA CUDA; no compatible GPU detected."
+  },
+  "hardware.hardware_compatibility_assessment_video_memory_below_mandatory_engine_startup": {
+    "ru": "Объём видеопамяти меньше обязательного порога запуска движка: нужно не менее %s ГБ свободной VRAM.",
+    "en": "Video memory is below the mandatory engine startup threshold: at least %s GB free VRAM required."
+  },
+  "hardware.hardware_compatibility_assessment_insufficient_data_estimate": {
+    "ru": "Недостаточно данных для оценки %s.",
+    "en": "Insufficient data to estimate %s."
+  },
+  "hardware.hardware_compatibility_assessment_model_not_start_configuration": {
+    "ru": "Модель не запустится в этой конфигурации",
+    "en": "The model will not start with this configuration"
+  },
+  "hardware.hardware_compatibility_assessment_limitations_slower": {
+    "ru": "С ограничениями / медленнее",
+    "en": "With limitations / slower"
+  },
+  "hardware.hardware_compatibility_assessment_system_meets_main_requirements": {
+    "ru": "Система подходит по основным требованиям",
+    "en": "System meets the main requirements"
+  },
+  "hardware.hardware_compatibility_assessment_memory_meets_recommended_startup_profile": {
+    "ru": "Память соответствует рекомендуемому стартовому профилю.",
+    "en": "Memory meets the recommended startup profile."
+  },
+  "hardware.hardware_compatibility_assessment_vram_below_recommendation_ram_cpu_offloading": {
+    "ru": "Объём видеопамяти ниже рекомендуемого. Возможны выгрузка в ОЗУ / CPU, замедление или ошибка нехватки памяти.",
+    "en": "VRAM is below the recommendation. RAM / CPU offloading, slowdowns or out-of-memory errors are possible."
+  },
+  "hardware.hardware_compatibility_assessment_ram_below_recommendation_page_file_may": {
+    "ru": "Объём ОЗУ ниже рекомендуемого. Может потребоваться файл подкачки; вероятны замедление или ошибка нехватки памяти.",
+    "en": "RAM is below the recommendation. A page file may be needed; slowdowns or out-of-memory errors are likely."
+  },
+  "hardware.model_requirements_video_text": {
+    "ru": "Видео по тексту",
+    "en": "Video from text"
+  },
+  "hardware.model_requirements_image_animation": {
+    "ru": "Оживление изображения",
+    "en": "Image animation"
+  },
+  "hardware.model_requirements_first_last_frame": {
+    "ru": "Первый / последний кадр",
+    "en": "First / last frame"
+  },
+  "hardware.model_requirements_characters_references": {
+    "ru": "Персонажи по референсам",
+    "en": "Characters from references"
+  },
+  "hardware.model_requirements_speech_video": {
+    "ru": "Речь → видео",
+    "en": "Speech → video"
+  },
+  "hardware.generation_instrumental_mode_label": {
+    "ru": "Инструментал",
+    "en": "Instrumental"
+  },
+  "hardware.model_requirements_song_vocals": {
+    "ru": "Песня с вокалом",
+    "en": "Song with vocals"
+  },
+  "hardware.model_requirements_editing": {
+    "ru": "Редактирование",
+    "en": "Editing"
+  },
+  "hardware.model_requirements_editing_reference": {
+    "ru": "Редактирование с референсом",
+    "en": "Editing with reference"
+  },
+  "hardware.model_requirements_image_text": {
+    "ru": "Изображение по тексту",
+    "en": "Image from text"
+  },
+  "hardware.model_requirements_music_sounds_description": {
+    "ru": "Музыка и звуки по описанию",
+    "en": "Music and sounds from a description"
+  },
+  "hardware.model_requirements_characteristics_fp8_text_encoder": {
+    "ru": "FP8; текстовый энкодер FP8",
+    "en": "FP8; FP8 text encoder"
+  },
+  "hardware.model_requirements_characteristics_capabilities": {
+    "ru": "Возможности",
+    "en": "Capabilities"
+  },
+  "hardware.model_requirements_characteristics_parameters": {
+    "ru": "Параметры модели",
+    "en": "Model parameters"
+  },
+  "hardware.model_requirements_characteristics_quantization": {
+    "ru": "Квантизация",
+    "en": "Quantization"
+  },
+  "hardware.model_requirements_characteristics_build_context": {
+    "ru": "Контекст сборки",
+    "en": "Build context"
+  },
+  "hardware.model_requirements_characteristics_execution": {
+    "ru": "Исполнение",
+    "en": "Execution"
+  },
+  "hardware.model_requirements_characteristics_ollama_gpu_cpu_ram": {
+    "ru": "Ollama · GPU и/или CPU с ОЗУ",
+    "en": "Ollama · GPU and/or CPU with RAM"
+  },
+  "hardware.model_requirements_characteristics_output_format": {
+    "ru": "Формат результата",
+    "en": "Output format"
+  },
+  "hardware.model_requirements_characteristics_quality": {
+    "ru": "Качество",
+    "en": "Quality"
+  },
+  "hardware.model_requirements_characteristics_frame_scratch": {
+    "ru": "Кадр с нуля",
+    "en": "Frame from scratch"
+  },
+  "hardware.model_requirements_characteristics_weights": {
+    "ru": "Веса",
+    "en": "Weights"
+  },
+  "hardware.model_requirements_characteristics_profile": {
+    "ru": "Профиль",
+    "en": "Profile"
+  },
+  "hardware.model_requirements_characteristics_frame_dimensions": {
+    "ru": "Размеры кадра",
+    "en": "Frame dimensions"
+  },
+  "hardware.model_requirements_characteristics_frame_rate": {
+    "ru": "Частота",
+    "en": "Frame rate"
+  },
+  "hardware.model_requirements_characteristics_durations": {
+    "ru": "Длительности",
+    "en": "Durations"
+  },
+  "hardware.model_requirements_characteristics_audio": {
+    "ru": "Звук",
+    "en": "Audio"
+  },
+  "hardware.model_requirements_characteristics_features": {
+    "ru": "Особенности",
+    "en": "Features"
+  },
+  "hardware.generation_identity_duration_field_label": {
+    "ru": "Длительность",
+    "en": "Duration"
+  },
+  "hardware.generation_output_region_label": {
+    "ru": "Результат",
+    "en": "Result"
+  },
+  "hardware.model_license_row_label": {
+    "ru": "Лицензия",
+    "en": "License"
+  },
+  "hardware.model_requirements_characteristics_planner": {
+    "ru": "Планировщик",
+    "en": "Planner"
+  },
+  "hardware.model_requirements_characteristics_text_images": {
+    "ru": "Текст и изображения",
+    "en": "Text and images"
+  },
+  "hardware.text_section_title_label": {
+    "ru": "Текст",
+    "en": "Text"
+  },
+  "hardware.specifications_missing_value_label": {
+    "ru": "Нет данных",
+    "en": "No data"
+  },
+  "hardware.model_requirements_characteristics_ollama_settings": {
+    "ru": "По настройкам Ollama",
+    "en": "From Ollama settings"
+  },
+  "hardware.model_requirements_characteristics_fp8_int8_text_encoder": {
+    "ru": "FP8; текстовый энкодер INT8",
+    "en": "FP8; INT8 text encoder"
+  },
+  "hardware.model_requirements_characteristics_int8_transformer_fp8_qwen3_4_b": {
+    "ru": "Трансформер INT8; текстовый энкодер Qwen3-4B FP8",
+    "en": "INT8 transformer; FP8 Qwen3-4B text encoder"
+  },
+  "hardware.model_requirements_characteristics_distilled_int8_qwen3_vl_4_b": {
+    "ru": "Distilled INT8; энкодер Qwen3-VL-4B INT8; upsampler промпта Qwen3.5-9B INT8",
+    "en": "Distilled INT8; INT8 Qwen3-VL-4B encoder; INT8 Qwen3.5-9B prompt upsampler"
+  },
+  "hardware.model_requirements_characteristics_steps": {
+    "ru": " шагов",
+    "en": " steps"
+  },
+  "hardware.model_requirements_characteristics_text_image_no_editing_references_variations": {
+    "ru": "Только создание по тексту: нет редактирования, референсов и вариантов; негативный промпт не используется (CFG 1).",
+    "en": "Text-to-image only: no editing, references or variations; negative prompts are not used (CFG 1)."
+  },
+  "hardware.model_requirements_characteristics_flux_kommunity_license_noncommercial_use_commercial": {
+    "ru": "FLUX Kommunity License: некоммерческое использование; коммерческое — только при выручке до 5 млн долл. в год и с проверкой результатов",
+    "en": "FLUX Kommunity License: noncommercial use; commercial use only below $5 million annual revenue and with output review"
+  },
+  "hardware.duration_seconds_unit_suffix": {
+    "ru": " с",
+    "en": " s"
+  },
+  "hardware.model_requirements_characteristics_joint_video_audio_generation": {
+    "ru": "Совместная генерация видео и звука",
+    "en": "Joint video and audio generation"
+  },
+  "hardware.model_requirements_characteristics_s": {
+    "ru": "%g–%g с",
+    "en": "%g–%g s"
+  },
+  "hardware.model_requirements_characteristics_k_hz": {
+    "ru": "%s · %g кГц",
+    "en": "%s · %g kHz"
+  },
+  "hardware.model_requirements_characteristics_not_used": {
+    "ru": "Не используется",
+    "en": "Not used"
+  },
+  "hardware.model_requirements_characteristics_local_instrumental_music_song_generation_no": {
+    "ru": "Локальная генерация инструментальной музыки и песен; без клонирования голоса.",
+    "en": "Local instrumental music and song generation; no voice cloning."
+  },
+  "hardware.model_requirements_characteristics_tokens": {
+    "ru": "%s токенов",
+    "en": "%s tokens"
+  },
+  "hardware.model_requirements_characteristics_speech_synchronization": {
+    "ru": "Синхронизация с речью",
+    "en": "Speech synchronization"
+  },
+  "hardware.model_requirements_characteristics_no_audio_generation": {
+    "ru": "Без генерации звука",
+    "en": "No audio generation"
+  },
+  "hardware.model_requirements_characteristics_video_audio_voice_cloning_separately": {
+    "ru": "Видео и звук; клонирование голоса — отдельно",
+    "en": "Video and audio; voice cloning separately"
+  },
+  "hardware.model_requirements_characteristics_experimental": {
+    "ru": " (экспериментально)",
+    "en": " (experimental)"
+  },
+  "hardware.memory_size_gigabytes_template": {
+    "ru": "{0} ГБ",
+    "en": "{0} GB"
+  },
+  "hardware.specifications_missing_value_label_machine_no_data": {
+    "ru": "Нет данных",
+    "en": "No data"
+  },
+  "hardware.duration_seconds_template": {
+    "ru": "{0} с",
+    "en": "{0} s"
+  },
+  "hardware.hardware_cpu_specification_label": {
+    "ru": "Процессор",
+    "en": "Processor"
+  },
+  "hardware.hardware_gpu_specification_label": {
+    "ru": "Видеокарта",
+    "en": "Graphics card"
+  },
+  "hardware.machine_not_detected": {
+    "ru": "Не определена",
+    "en": "Not detected"
+  },
+  "hardware.hardware_vram_specification_label": {
+    "ru": "Видеопамять",
+    "en": "Video memory"
+  },
+  "hardware.hardware_ram_specification_label_machine": {
+    "ru": "ОЗУ",
+    "en": "RAM"
+  },
+  "hardware.footnote_memory_different_graphics_cards_not_combined": {
+    "ru": "Память разных видеокарт не суммируется.",
+    "en": "Memory from different graphics cards is not combined."
+  },
+  "hardware.footnote_pc_s_data_local": {
+    "ru": "Данные этого ПК · только локально",
+    "en": "This PC's data · local only"
+  },
+  "hardware.compatibility_missing_model_profile_title": {
+    "ru": "Недостаточно данных о модели",
+    "en": "Insufficient model data"
+  },
+  "hardware.reasons_build_has_no_requirements_profile_yet": {
+    "ru": "Для этой сборки ещё нет профиля требований.",
+    "en": "This build has no requirements profile yet."
+  },
+  "hardware.note_refresh_data_after_installing_new_model": {
+    "ru": "Обновите данные после установки новой модели.",
+    "en": "Refresh data after installing a new model."
+  },
+  "hardware.caveat_compatibility_not_confirmed": {
+    "ru": "Совместимость не подтверждена.",
+    "en": "Compatibility not confirmed."
+  },
+  "hardware.summary_check_failed_refresh_data": {
+    "ru": "Не удалось проверить · обновить данные",
+    "en": "Check failed · refresh data"
+  },
+  "hardware.summary_checking_compatibility": {
+    "ru": "Проверяем совместимость…",
+    "en": "Checking compatibility…"
+  },
+  "hardware.compatibility_gpu_estimate": {
+    "ru": "Оценка для {0}",
+    "en": "Estimate for {0}"
+  },
+  "hardware.compatibility_gpu_cuda_accelerator_not_confirmed": {
+    "ru": "Ускоритель CUDA не подтверждён",
+    "en": "CUDA accelerator not confirmed"
+  },
+  "hardware.footnote_retrieve_data_click_refresh_failed": {
+    "ru": "Не удалось получить данные. Нажмите «Обновить».",
+    "en": "Could not retrieve data. Click Refresh."
+  },
+  "hardware.model_requirements_gb_not_detected": {
+    "ru": "Не определено",
+    "en": "Not detected"
+  },
+  "hardware.storage_size_zero_gigabytes_label": {
+    "ru": "0 ГБ",
+    "en": "0 GB"
+  },
+  "hardware.memory_size_megabytes_template": {
+    "ru": "{0} МБ",
+    "en": "{0} MB"
+  },
+  "hardware.name_select_model": {
+    "ru": "Выберите модель",
+    "en": "Select a model"
+  },
+  "hardware.brief_specifications_currently_unavailable": {
+    "ru": "Характеристики пока недоступны",
+    "en": "Specifications currently unavailable"
+  },
+  "hardware.requirements_select_model_or_refresh_hint": {
+    "ru": "Выберите модель или обновите данные ПК в боковой панели.",
+    "en": "Select a model or refresh PC data in the side panel."
+  },
+  "hardware.brief_vram_recommended_disk": {
+    "ru": "VRAM: {0} рекоменд. · На диске: {1}",
+    "en": "VRAM: {0} recommended · Disk: {1}"
+  },
+  "hardware.requirements_system_row_label": {
+    "ru": "Система",
+    "en": "System"
+  },
+  "hardware.requirements_cuda_windows_system_profile": {
+    "ru": "Windows x64 · NVIDIA CUDA · процессор x64",
+    "en": "Windows x64 · NVIDIA CUDA · x64 processor"
+  },
+  "hardware.requirements_cpu_windows_system_profile": {
+    "ru": "Windows x64 · процессор x64; GPU необязательна",
+    "en": "Windows x64 · x64 processor; GPU optional"
+  },
+  "hardware.requirements_recommended_vram_row_label": {
+    "ru": "VRAM рекомендуется",
+    "en": "Recommended VRAM"
+  },
+  "hardware.requirements_startup_vram_threshold_row_label": {
+    "ru": "VRAM для запуска",
+    "en": "VRAM required to start"
+  },
+  "hardware.requirements_cpu_execution_available_hint": {
+    "ru": "Можно без GPU — через CPU и ОЗУ",
+    "en": "Can run without a GPU using CPU and RAM"
+  },
+  "hardware.requirements_minimum_free_vram_template": {
+    "ru": "Не менее {0} свободной VRAM — порог запуска",
+    "en": "At least {0} free VRAM to start"
+  },
+  "hardware.requirements_unknown_minimum_memory_hint": {
+    "ru": "Точный минимум не подтверждён; используйте рекомендуемый профиль",
+    "en": "Exact minimum unconfirmed; use the recommended profile"
+  },
+  "hardware.requirements_recommended_ram_row_label": {
+    "ru": "ОЗУ рекомендуется",
+    "en": "Recommended RAM"
+  },
+  "hardware.requirements_minimum_memory_value_suffix": {
+    "ru": " · минимум {0}",
+    "en": " · minimum {0}"
+  },
+  "hardware.requirements_storage_download_section_title": {
+    "ru": "Скачивание и место на диске",
+    "en": "Download and disk space"
+  },
+  "hardware.requirements_installed_build_size_label": {
+    "ru": "Сборка на диске",
+    "en": "Installed build"
+  },
+  "hardware.requirements_import_transfer_row_label": {
+    "ru": "Импорт / перенос",
+    "en": "Import / transfer"
+  },
+  "hardware.requirements_import_full_copy_space_suffix": {
+    "ru": " на другом ПК для одной полной копии",
+    "en": " on another PC for one full copy"
+  },
+  "hardware.requirements_download_size_row_label": {
+    "ru": "Скачивание",
+    "en": "Download"
+  },
+  "hardware.requirements_local_ollama_source_unknown_hint": {
+    "ru": "Локальная сборка Ollama; публичный источник не задан",
+    "en": "Local Ollama build; no public source specified"
+  },
+  "hardware.requirements_runtime_software_row_label": {
+    "ru": "Программа для запуска",
+    "en": "Runtime software"
+  },
+  "hardware.requirements_ollama_runtime_disk_size_template": {
+    "ru": "Ollama · около {0} на диске отдельно",
+    "en": "Ollama · about {0} on disk separately"
+  },
+  "hardware.requirements_full_model_download_row_label": {
+    "ru": "Скачать модель целиком",
+    "en": "Full model download"
+  },
+  "hardware.requirements_model_disk_size_row_label": {
+    "ru": "Модель на диске",
+    "en": "Model on disk"
+  },
+  "hardware.requirements_fresh_download_total_row_label": {
+    "ru": "Вся загрузка с нуля",
+    "en": "Full fresh download"
+  },
+  "hardware.requirements_model_and_software_total_suffix": {
+    "ru": " · модель и программы",
+    "en": " · model and software"
+  },
+  "hardware.requirements_fresh_installation_space_row_label": {
+    "ru": "Для новой установки",
+    "en": "For a fresh installation"
+  },
+  "hardware.requirements_fresh_installation_space_template": {
+    "ru": "≈ {0} свободно · с распаковкой и запасом",
+    "en": "≈ {0} free · including extraction and reserve"
+  },
+  "hardware.requirements_remaining_download_row_label": {
+    "ru": "Осталось скачать здесь",
+    "en": "Remaining download here"
+  },
+  "hardware.requirements_additional_free_space_row_label": {
+    "ru": "Дополнительно свободно",
+    "en": "Additional free space"
+  },
+  "hardware.requirements_current_installation_space_template": {
+    "ru": "≈ {0} для установки здесь",
+    "en": "≈ {0} to install here"
+  },
+  "hardware.requirements_shared_files_included_row_label": {
+    "ru": "Общие файлы включены",
+    "en": "Shared files included"
+  },
+  "hardware.requirements_optional_model_download_hint_template": {
+    "ru": "Дополнительно, по необходимости: {0} — {1} загрузки и весов. В основной объём не входит.",
+    "en": "Optional, if needed: {0} — {1} of downloads and weights. Not included in the main total."
+  },
+  "hardware.requirements_size_estimates_and_memory_caveat": {
+    "ru": "Размеры из каталога выбранной сборки. ГБ = 1024³ байт. Место для результатов, рабочего кеша и файла подкачки понадобится дополнительно. VRAM зависит от кадра и контекста; порог запуска не гарантирует завершение генерации.",
+    "en": "Sizes come from the selected build's catalog. GB = 1024³ bytes. Results, working caches and the page file need extra space. VRAM depends on frame size and context; meeting the startup threshold does not guarantee generation will finish."
+  },
+  "hardware.model_requirements_panel_title": {
+    "ru": "Требования модели",
+    "en": "Model requirements"
+  },
+  "hardware.model_requirements_brief_checking": {
+    "ru": "Определяем требования…",
+    "en": "Checking requirements…"
+  },
+  "hardware.computer_summary_chip_label": {
+    "ru": "Ваш компьютер",
+    "en": "Your computer"
+  },
+  "hardware.panel_pc_s_specifications": {
+    "ru": "Характеристики этого ПК",
+    "en": "This PC's specifications"
+  },
+  "hardware.refresh_check_pc_specifications_again": {
+    "ru": "Повторить проверку характеристик ПК",
+    "en": "Check PC specifications again"
+  },
+  "hardware.data_refresh_button_label": {
+    "ru": "Обновить",
+    "en": "Refresh"
+  },
+  "hardware.specs_detecting_specifications": {
+    "ru": "Определяем характеристики…",
+    "en": "Detecting specifications…"
+  },
+  "hardware.compatibility_settings_model_tips": {
+    "ru": "Подсказки моделей",
+    "en": "Model tips"
+  },
+  "hardware.dialog_close_button_label": {
+    "ru": "Закрыть",
+    "en": "Close"
+  },
+  "hardware.compatibility_settings_dialog_estimate_computer_when_choosing_model_image": {
+    "ru": "Оценка совместимости с вашим компьютером при выборе модели в Image, Video, Music и Text.",
+    "en": "Compatibility estimate for your computer when choosing a model in Image, Video, Music and Text."
+  },
+  "hardware.compatibility_popup_enabled_show_automatically": {
+    "ru": "Показывать автоматически",
+    "en": "Show automatically"
+  },
+  "hardware.compatibility_popup_seconds_display_duration": {
+    "ru": "Время показа",
+    "en": "Display duration"
+  },
+  "hardware.compatibility_popup_seconds_3_s": {
+    "ru": "3 с",
+    "en": "3 s"
+  },
+  "hardware.compatibility_settings_dialog_setting_applies_all_sections_card_opened": {
+    "ru": "Настройка общая для всех разделов. Карточка, открытая вручную через оценку совместимости в «Ваш компьютер», остаётся до закрытия.",
+    "en": "This setting applies to all sections. A card opened manually through the compatibility estimate in Your computer stays open until closed."
+  },
+  "hardware.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "hardware.compatibility_card_selected_model": {
+    "ru": "Совместимость выбранной модели",
+    "en": "Selected model compatibility"
+  },
+  "hardware.compatibility_close_card": {
+    "ru": "Закрыть карточку совместимости",
+    "en": "Close compatibility card"
+  },
+  "hardware.compatibility_card_requirements_compared_pc": {
+    "ru": "Сравнение требований с вашим ПК",
+    "en": "Requirements compared with your PC"
+  },
+  "hardware.requirements_memory_column_label": {
+    "ru": "Память",
+    "en": "Memory"
+  },
+  "hardware.compatibility_card_recommended": {
+    "ru": "Рекомендуется",
+    "en": "Recommended"
+  },
+  "hardware.compatibility_card_installed": {
+    "ru": "Установлено",
+    "en": "Installed"
+  }
+}

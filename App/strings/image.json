@@ -1,0 +1,1162 @@
+{
+  "image.mode_source_image_editing_instruction": {
+    "ru": "Исходное изображение и текстовая инструкция",
+    "en": "Source image and editing instruction"
+  },
+  "image.mode_base_image_reference": {
+    "ru": "Изображение-основа и референс",
+    "en": "Base image and reference"
+  },
+  "image.mode_create_image_text": {
+    "ru": "Создание изображения по тексту",
+    "en": "Create an image from text"
+  },
+  "image.prompt_what_should_created": {
+    "ru": "Что создать?",
+    "en": "What should be created?"
+  },
+  "image.prompt_what_should_change": {
+    "ru": "Что изменить?",
+    "en": "What should change?"
+  },
+  "image.prompt_describe_image_you_want": {
+    "ru": "Опишите желаемое изображение…",
+    "en": "Describe the image you want…"
+  },
+  "image.prompt_describe_what_change_preserve": {
+    "ru": "Опишите изменение и то, что нужно сохранить…",
+    "en": "Describe what to change and what to preserve…"
+  },
+  "image.generation_create_from_prompt_button_label": {
+    "ru": "Создать по промпту",
+    "en": "Create from prompt"
+  },
+  "image.generation_create_image_button_label": {
+    "ru": "Создать изображение",
+    "en": "Create image"
+  },
+  "image.app_engine_header_text_image_generation_flux_3_klein": {
+    "ru": "Генерация изображения по тексту (FLUX.3 Klein)",
+    "en": "Text-to-image generation (FLUX.3 Klein)"
+  },
+  "image.app_engine_prompt_hint_native_text_image_generation_single_editing": {
+    "ru": "Нативная генерация по тексту; редактирование одного изображения и работа с референсом — в режимах Single и Reference. Короткий промпт расширяет официальный upsampler Qwen3.5. Размер до 1024×1024; негативный промпт не используется.",
+    "en": "Native text-to-image generation; single-image editing and references are available in Single and Reference modes. Short prompts are expanded by the official Qwen3.5 upsampler. Up to 1024×1024; negative prompts are not used."
+  },
+  "image.app_engine_transparency_flux_3_klein_outputs_rgb_without": {
+    "ru": "FLUX.3 Klein выдаёт RGB без прозрачности. AI Upscale увеличивает готовое изображение.",
+    "en": "FLUX.3 Klein outputs RGB without transparency. AI Upscale enlarges the finished image."
+  },
+  "image.app_engine_header_text_image_generation_z_turbo": {
+    "ru": "Генерация изображения по тексту (Z-Image Turbo)",
+    "en": "Text-to-image generation (Z-Image Turbo)"
+  },
+  "image.app_engine_prompt_hint_native_text_image_generation_mode_up": {
+    "ru": "Нативная генерация по тексту, только режим Prompt. Размер до 1024×1024; негативный промпт не используется (CFG 1).",
+    "en": "Native text-to-image generation, Prompt mode only. Up to 1024×1024; negative prompts are not used (CFG 1)."
+  },
+  "image.app_engine_transparency_z_image_turbo_outputs_rgb_without": {
+    "ru": "Z-Image Turbo выдаёт RGB без прозрачности. AI Upscale увеличивает готовое изображение.",
+    "en": "Z-Image Turbo outputs RGB without transparency. AI Upscale enlarges the finished image."
+  },
+  "image.selection_notice_does_not_support_mode_selected_model": {
+    "ru": "{0} не поддерживает режим {1}. Выбрана модель {2}.",
+    "en": "{0} does not support {1} mode. Selected model: {2}."
+  },
+  "image.app_quality_hints_low_40_steps_verified_baseline": {
+    "ru": "40 шагов · проверенный базовый режим.",
+    "en": "40 steps · verified baseline."
+  },
+  "image.app_quality_hints_good_50_steps_more_computation_improvements_depend": {
+    "ru": "50 шагов · больше вычислений; улучшение зависит от изображения.",
+    "en": "50 steps · more computation; improvements depend on the image."
+  },
+  "image.app_quality_hints_high_60_steps_maximum_sampling_budget_slower": {
+    "ru": "60 шагов · максимальный бюджет sampling, медленнее.",
+    "en": "60 steps · maximum sampling budget, slower."
+  },
+  "image.engine_steps_cfg": {
+    "ru": "{0} шагов · {1} · CFG {2}{3}",
+    "en": "{0} steps · {1} · CFG {2}{3}"
+  },
+  "image.engine_model_s_preset": {
+    "ru": " · единственный пресет модели",
+    "en": " · the model's only preset"
+  },
+  "image.engine_experimental_preset": {
+    "ru": " · экспериментальный пресет",
+    "en": " · experimental preset"
+  },
+  "image.next_element_sibling_steps": {
+    "ru": "{0} шагов",
+    "en": "{0} steps"
+  },
+  "image.engine_installed_workflow_verified": {
+    "ru": "установлена, workflow проверен",
+    "en": "installed, workflow verified"
+  },
+  "image.model_availability_unavailable_label": {
+    "ru": "недоступна",
+    "en": "unavailable"
+  },
+  "image.engine_single_image": {
+    "ru": "одно изображение",
+    "en": "single image"
+  },
+  "image.engine_reference_mode_label": {
+    "ru": "с референсом",
+    "en": "with reference"
+  },
+  "image.engine_text_to_image_mode_label": {
+    "ru": "по тексту",
+    "en": "from text"
+  },
+  "image.transparency_hint_qwen_2_1_supports_rgba_but": {
+    "ru": "Qwen 2.1 поддерживает RGBA, но прозрачность исходника при редактировании не гарантируется. AI Upscale сохраняет полученный альфа-канал.",
+    "en": "Qwen 2.1 supports RGBA, but source transparency is not guaranteed when editing. AI Upscale preserves the resulting alpha channel."
+  },
+  "image.transparency_hint_qwen_2511_outputs_rgb_source_not": {
+    "ru": "Qwen 2511 выдаёт RGB. Прозрачность исходника при редактировании не гарантируется.",
+    "en": "Qwen 2511 outputs RGB. Source transparency is not guaranteed when editing."
+  },
+  "image.engine_generate_image_directly_text": {
+    "ru": "Генерация изображения непосредственно из текста",
+    "en": "Generate an image directly from text"
+  },
+  "image.engine_qwen_image_edit_blank_canvas": {
+    "ru": "Qwen Image Edit и пустой холст",
+    "en": "Qwen Image Edit and a blank canvas"
+  },
+  "image.prompt_engine_hint_native_text_image_generation_up_1024": {
+    "ru": "Нативная генерация по тексту. Размер до 1024×1024; усилитель промпта отключён.",
+    "en": "Native text-to-image generation. Up to 1024×1024; prompt expansion is disabled."
+  },
+  "image.prompt_engine_hint_qwen_image_edit_2511_receives_blank": {
+    "ru": "Qwen Image Edit 2511 получает пустой холст. Это экспериментальный способ генерации.",
+    "en": "Qwen Image Edit 2511 receives a blank canvas. This is an experimental generation method."
+  },
+  "image.engine_comfy_ui_dependencies_workflow_schema_available": {
+    "ru": "ComfyUI: зависимости и схема workflow доступны. GPU-проверка выполняется при генерации.",
+    "en": "ComfyUI: dependencies and workflow schema are available. GPU validation runs during generation."
+  },
+  "image.selection_notice_supports_mode_has_been_changed": {
+    "ru": "{0} работает только в режиме {1}; режим переключён.",
+    "en": "{0} only supports {1} mode; the mode has been changed."
+  },
+  "image.upscale_hint_no_original_qwen_resolution": {
+    "ru": "Без upscale · исходное разрешение Qwen.",
+    "en": "No upscale · original Qwen resolution."
+  },
+  "image.upscale_hint_ai_2_width_height_4_pixels": {
+    "ru": "AI 2× по ширине и высоте · 4× пикселей.",
+    "en": "AI 2× width and height · 4× pixels."
+  },
+  "image.upscale_hint_ai_4_width_height_16_pixels": {
+    "ru": "AI 4× по ширине и высоте · 16× пикселей (два прохода).",
+    "en": "AI 4× width and height · 16× pixels (two passes)."
+  },
+  "image.upscale_hint_model_has_not_yet_been_confirmed": {
+    "ru": " · Модель пока не подтверждена ComfyUI; сервер проверит её перед запуском.",
+    "en": " · The model has not yet been confirmed by ComfyUI; the server will check it before starting."
+  },
+  "image.generation_live_status_prefix": {
+    "ru": "Генерация: ",
+    "en": "Generation: "
+  },
+  "image.live_preparing_data": {
+    "ru": "подготовка данных",
+    "en": "preparing data"
+  },
+  "image.live_task_submitted_comfy_ui": {
+    "ru": "задача отправлена в ComfyUI",
+    "en": "task submitted to ComfyUI"
+  },
+  "image.live_waiting_queue": {
+    "ru": "ожидание в очереди",
+    "en": "waiting in queue"
+  },
+  "image.generation_queue_position_template": {
+    "ru": " · позиция {0}",
+    "en": " · position {0}"
+  },
+  "image.generation_queue_total_template": {
+    "ru": " из {0}",
+    "en": " of {0}"
+  },
+  "image.agent_step_running_status": {
+    "ru": "выполняется",
+    "en": "running"
+  },
+  "image.live_comfy_ui_finishing_interrupted_task": {
+    "ru": "ComfyUI завершает прерванную задачу…",
+    "en": "ComfyUI is finishing the interrupted task…"
+  },
+  "image.live_elapsed_comfy_ui_responded_s_ago": {
+    "ru": "Прошло: {0} · ответ ComfyUI: {1} с назад",
+    "en": "Elapsed: {0} · ComfyUI responded {1} s ago"
+  },
+  "image.variant_button_model_does_not_edit_images_change": {
+    "ru": "Эта модель не редактирует изображения. Для нового результата измените Seed и создайте заново.",
+    "en": "This model does not edit images. Change the seed and generate again for a new result."
+  },
+  "image.variant_button_generate_image_first": {
+    "ru": "Сначала сгенерируй изображение.",
+    "en": "Generate an image first."
+  },
+  "image.variant_button_create_similar_variation_latest_result_target": {
+    "ru": "Создать похожий вариант на основе последнего результата (ориентир: до 20% отличий).",
+    "en": "Create a similar variation of the latest result (target: up to 20% difference)."
+  },
+  "image.cancel_button_stop_generation": {
+    "ru": "Остановить генерацию",
+    "en": "Stop generation"
+  },
+  "image.cancel_button_stopping": {
+    "ru": "Остановка…",
+    "en": "Stopping…"
+  },
+  "image.cancel_button_stopping_task": {
+    "ru": "Остановка задачи",
+    "en": "Stopping task"
+  },
+  "image.cancel_button_cancellation_requested": {
+    "ru": "Отмена запрошена",
+    "en": "Cancellation requested"
+  },
+  "image.cancel_button_task_almost_complete_checking_status_again": {
+    "ru": "Задача уже почти завершилась; перепроверяем статус",
+    "en": "The task is almost complete; checking its status again"
+  },
+  "image.cancel_button_cancellation_error": {
+    "ru": "Ошибка отмены: ",
+    "en": "Cancellation error: "
+  },
+  "image.cancel_button_generation_may_still_running": {
+    "ru": ". Генерация может продолжаться.",
+    "en": ". Generation may still be running."
+  },
+  "image.cancel_button_retry_stopping": {
+    "ru": "Повторить остановку",
+    "en": "Retry stopping"
+  },
+  "image.slot_button_paste_here_ctrl_v": {
+    "ru": "Вставлять сюда (Ctrl+V)",
+    "en": "Paste here (Ctrl+V)"
+  },
+  "image.slot_button_select_paste_target_ctrl_v": {
+    "ru": "Выбрать для вставки (Ctrl+V)",
+    "en": "Select as paste target (Ctrl+V)"
+  },
+  "image.paste_image_1_base_selected": {
+    "ru": "Выбрано Image 1 (основа).",
+    "en": "Image 1 (base) selected."
+  },
+  "image.paste_image_2_reference_selected": {
+    "ru": "Выбрано Image 2 (референс).",
+    "en": "Image 2 (reference) selected."
+  },
+  "image.paste_copy_image_browser_press_ctrl_v": {
+    "ru": " Скопируй картинку в браузере и нажми Ctrl+V в окне VisualForge.",
+    "en": " Copy an image in your browser and press Ctrl+V in VisualForge."
+  },
+  "image.paste_generation_running_stop_wait_finish_before": {
+    "ru": "Генерация идёт. Останови или дождись завершения перед заменой изображения.",
+    "en": "Generation is running. Stop it or wait for it to finish before replacing the image."
+  },
+  "image.paste_clipboard_format_not_supported_use_png": {
+    "ru": "Этот формат буфера не поддерживается. Используй PNG, JPEG или WebP.",
+    "en": "This clipboard format is not supported. Use PNG, JPEG or WebP."
+  },
+  "image.paste_rejected_empty_image_size_exceeds_100": {
+    "ru": "Вставка отклонена: пустое изображение или размер больше 100 МиБ.",
+    "en": "Paste rejected: empty image or size exceeds 100 MiB."
+  },
+  "image.paste_image_pasted_you_continue": {
+    "ru": "Изображение вставлено. Можно продолжить работу.",
+    "en": "Image pasted. You can continue."
+  },
+  "image.paste_clipboard_image_failed": {
+    "ru": "Не удалось вставить изображение из буфера: ",
+    "en": "Could not paste the clipboard image: "
+  },
+  "image.save_dir_results_saved_folder_automatically_after_successful": {
+    "ru": "Результаты автоматически сохраняются в эту папку после успешной генерации.",
+    "en": "Results are saved to this folder automatically after successful generation."
+  },
+  "image.save_dir_load_autosave_folder_failed": {
+    "ru": "Не удалось загрузить папку автосохранения: ",
+    "en": "Could not load the autosave folder: "
+  },
+  "image.save_dir_autosave_folder_saved_future_results_there": {
+    "ru": "Папка автосохранения сохранена. Следующие результаты будут сохраняться туда автоматически.",
+    "en": "Autosave folder saved. Future results will be saved there automatically."
+  },
+  "image.folder_picker_loading_folders": {
+    "ru": "Загружаем папки…",
+    "en": "Loading folders…"
+  },
+  "image.info_no_subfolders": {
+    "ru": "Вложенных папок нет.",
+    "en": "No subfolders."
+  },
+  "image.folder_picker_folders": {
+    "ru": " папок",
+    "en": " folders"
+  },
+  "image.folder_picker_showing_first_500": {
+    "ru": " · показаны первые 500",
+    "en": " · showing the first 500"
+  },
+  "image.folder_picker_open_failed": {
+    "ru": "Не удалось открыть папку: ",
+    "en": "Could not open the folder: "
+  },
+  "image.folder_picker_save_failed": {
+    "ru": "Не удалось сохранить папку: ",
+    "en": "Could not save the folder: "
+  },
+  "image.save_dir_autosave_folder_opened_file_explorer": {
+    "ru": "Папка автосохранения открыта в Проводнике.",
+    "en": "Autosave folder opened in File Explorer."
+  },
+  "image.selection_notice_saved_model_unavailable_qwen_image_edit": {
+    "ru": "Сохранённая модель недоступна. Выбран Qwen Image Edit 2511; режим сохранён.",
+    "en": "The saved model is unavailable. Qwen Image Edit 2511 selected; mode preserved."
+  },
+  "image.component_installation_installed_label": {
+    "ru": "установлена",
+    "en": "installed"
+  },
+  "image.model_readiness_ready_label": {
+    "ru": "готова",
+    "en": "ready"
+  },
+  "image.backend_preflight_comfy_ui_check_unavailable": {
+    "ru": "Проверка ComfyUI недоступна: ",
+    "en": "ComfyUI check unavailable: "
+  },
+  "image.select_preview_any_image_file_up_100_mi": {
+    "ru": "Любой файл изображения до 100 МиБ · прямые форматы сохраняются как есть, остальные конвертируются в PNG",
+    "en": "Any image file up to 100 MiB · supported formats are kept as is; others are converted to PNG"
+  },
+  "image.select_preview_mi_b": {
+    "ru": "{0} · {1} МиБ",
+    "en": "{0} · {1} MiB"
+  },
+  "image.reader_image_read_error": {
+    "ru": "Ошибка чтения изображения",
+    "en": "Image read error"
+  },
+  "image.reader_read_converted_image_failed": {
+    "ru": "Ошибка чтения изображения после конвертации",
+    "en": "Could not read the converted image"
+  },
+  "image.tag_format_not_directly_supported_could_decoded": {
+    "ru": "Формат не поддерживается напрямую и не удалось декодировать его для конвертации в PNG.",
+    "en": "This format is not directly supported and could not be decoded for PNG conversion."
+  },
+  "image.convert_unsupported_to_png_determine_image_dimensions_conversion_failed": {
+    "ru": "Не удалось определить размер изображения для конвертации.",
+    "en": "Could not determine image dimensions for conversion."
+  },
+  "image.convert_unsupported_to_png_canvas_unavailable_conversion_impossible": {
+    "ru": "Canvas недоступен; конвертация в PNG невозможна.",
+    "en": "Canvas is unavailable; PNG conversion is impossible."
+  },
+  "image.convert_unsupported_to_png_browser_could_not_image": {
+    "ru": "Браузер не смог конвертировать изображение в PNG.",
+    "en": "The browser could not convert the image to PNG."
+  },
+  "image.convert_unsupported_to_png_converted_exceeds_100_mi_b": {
+    "ru": "PNG после конвертации больше 100 МиБ.",
+    "en": "Converted PNG exceeds 100 MiB."
+  },
+  "image.encode_file_no_image_selected": {
+    "ru": "Не выбран файл изображения",
+    "en": "No image file selected"
+  },
+  "image.encode_file_image_exceeds_100_mi_b": {
+    "ru": "Изображение больше 100 МиБ",
+    "en": "Image exceeds 100 MiB"
+  },
+  "image.variant_retrieve_previous_result_variation_failed": {
+    "ru": "Не удалось получить предыдущий результат для варианта.",
+    "en": "Could not retrieve the previous result for a variation."
+  },
+  "image.variant_previous_result_empty": {
+    "ru": "Предыдущий результат пустой.",
+    "en": "The previous result is empty."
+  },
+  "image.variant_canvas_unavailable_creating_variation": {
+    "ru": "Canvas недоступен для создания варианта.",
+    "en": "Canvas is unavailable for creating a variation."
+  },
+  "image.variant_prepare_previous_result_variation_failed": {
+    "ru": "Не удалось подготовить предыдущий результат для варианта.",
+    "en": "Could not prepare the previous result for a variation."
+  },
+  "image.generation_error_notification_prefix": {
+    "ru": "Ошибка: ",
+    "en": "Error: "
+  },
+  "image.run_generation_preparing_similar_variation_latest_result": {
+    "ru": "подготовка похожего варианта из последнего результата",
+    "en": "preparing a similar variation of the latest result"
+  },
+  "image.run_generation_preparing_images_prompt": {
+    "ru": "подготовка изображений и prompt",
+    "en": "preparing images and prompt"
+  },
+  "image.run_generation_uploading_images_local_comfy_ui": {
+    "ru": "загрузка изображений в локальный ComfyUI",
+    "en": "uploading images to local ComfyUI"
+  },
+  "image.run_generation_task_accepted_comfy_ui": {
+    "ru": "Задание принято ComfyUI",
+    "en": "Task accepted by ComfyUI"
+  },
+  "image.run_generation_no_response_comfy_ui_retrying": {
+    "ru": "нет ответа от ComfyUI, повторяю…",
+    "en": "no response from ComfyUI, retrying…"
+  },
+  "image.run_generation_cancelled_you_start_another": {
+    "ru": "Генерация отменена. Можно запускать следующую.",
+    "en": "Generation cancelled. You can start another."
+  },
+  "image.run_generation_execution_error": {
+    "ru": "Ошибка исполнения",
+    "en": "Execution error"
+  },
+  "image.run_generation_done_result_received": {
+    "ru": "Готово: результат получен",
+    "en": "Done: result received"
+  },
+  "image.run_generation_autosave_failed_copy_remains_comfy_ui": {
+    "ru": "\nАвтосохранение не удалось: {0}. Копия осталась в ComfyUI.",
+    "en": "\nAutosave failed: {0}. A copy remains in ComfyUI."
+  },
+  "image.run_generation_autosaved_file_s": {
+    "ru": "\nАвтосохранено: {0} файл(ов) · {1}",
+    "en": "\nAutosaved: {0} file(s) · {1}"
+  },
+  "image.run_generation_checking_autosave": {
+    "ru": "\nАвтосохранение проверяется…",
+    "en": "\nChecking autosave…"
+  },
+  "image.run_generation_results": {
+    "ru": "{0}. Результатов: {1} · {2} / {3}{4}",
+    "en": "{0}. Results: {1} · {2} / {3}{4}"
+  },
+  "image.run_generation_new_variation_ready": {
+    "ru": "Новый вариант готов",
+    "en": "New variation ready"
+  },
+  "image.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "image.run_generation_generated_image": {
+    "ru": "Сгенерированное изображение",
+    "en": "Generated image"
+  },
+  "image.link_save_result": {
+    "ru": "Сохранить результат",
+    "en": "Save result"
+  },
+  "image.summary_expanded_prompt_upsampler": {
+    "ru": "Расширенный промпт (upsampler)",
+    "en": "Expanded prompt (upsampler)"
+  },
+  "image.run_generation_image_created_but_autosave_failed": {
+    "ru": "Изображение создано, но автосохранение не удалось: ",
+    "en": "Image created, but autosave failed: "
+  },
+  "image.run_generation_image_created_saved": {
+    "ru": "Изображение создано и сохранено.",
+    "en": "Image created and saved."
+  },
+  "image.run_generation_no_result_hour_check_comfy_ui": {
+    "ru": "Нет результата в течение часа. Проверьте журнал ComfyUI.",
+    "en": "No result for an hour. Check the ComfyUI log."
+  },
+  "image.run_generation_waiting_comfy_ui_queue": {
+    "ru": "Ожидание в очереди ComfyUI",
+    "en": "Waiting in the ComfyUI queue"
+  },
+  "image.run_generation_live_comfy_ui_stage": {
+    "ru": "Live этап ComfyUI",
+    "en": "Live ComfyUI stage"
+  },
+  "image.run_generation_step": {
+    "ru": "{0} · шаг {1}/{2}",
+    "en": "{0} · step {1}/{2}"
+  },
+  "image.run_generation_comfy_ui_running_task": {
+    "ru": "ComfyUI выполняет задачу",
+    "en": "ComfyUI is running the task"
+  },
+  "image.read_fixed_seed_must_integer_0_281474976710655": {
+    "ru": "Seed должен быть целым числом от 0 до 281474976710655.",
+    "en": "Seed must be an integer from 0 to 281474976710655."
+  },
+  "image.history_tasks_showing_latest_files_remain_folders": {
+    "ru": "Заданий в истории: {0}. Показаны последние {1}. Файлы хранятся в выбранных при генерации папках.",
+    "en": "History tasks: {0}. Showing the latest {1}. Files remain in the folders selected during generation."
+  },
+  "image.history_new_saved_results_appear_here_persist": {
+    "ru": "Новые сохранённые результаты появятся здесь и останутся после перезапуска. История хранит до 100 заданий.",
+    "en": "New saved results will appear here and persist after restarting. History keeps up to 100 tasks."
+  },
+  "image.heading_saved_result": {
+    "ru": "Сохранённый результат",
+    "en": "Saved result"
+  },
+  "image.history_result_indexed_open_accessibility_template": {
+    "ru": "Открыть результат {0}",
+    "en": "Open result {0}"
+  },
+  "image.history_result_open_button_label": {
+    "ru": "Открыть результат",
+    "en": "Open result"
+  },
+  "image.missing_files_currently_unavailable_check_output_folder": {
+    "ru": "Файлы сейчас недоступны. Проверьте папку результатов или подключение диска.",
+    "en": "Files are currently unavailable. Check the output folder or drive connection."
+  },
+  "image.seed_button_use": {
+    "ru": "Использовать seed",
+    "en": "Use seed"
+  },
+  "image.history_currently_unavailable_generation_saved_files_remain": {
+    "ru": "История сейчас недоступна. Генерация и сохранённые файлы остаются доступными.",
+    "en": "History is currently unavailable. Generation and saved files remain available."
+  },
+  "image.logs_reading_recent_entries": {
+    "ru": "Читаем последние записи…",
+    "en": "Reading recent entries…"
+  },
+  "image.update_logs_panel_no_entries": {
+    "ru": "Нет записей.",
+    "en": "No entries."
+  },
+  "image.diagnostics_log_file_count_template": {
+    "ru": "Файлов: {0}",
+    "en": "Files: {0}"
+  },
+  "image.logs_showing_recent_excerpts": {
+    "ru": " · показаны последние фрагменты",
+    "en": " · showing recent excerpts"
+  },
+  "image.logs_local_never_sent_online": {
+    "ru": " · локально, без отправки в интернет",
+    "en": " · local only, never sent online"
+  },
+  "image.logs_output_read_failed": {
+    "ru": "Не удалось прочитать логи: ",
+    "en": "Could not read the logs: "
+  },
+  "image.logs_retrieve_failed": {
+    "ru": "Ошибка получения логов",
+    "en": "Could not retrieve the logs"
+  },
+  "image.logs_load_first": {
+    "ru": "Сначала получи логи.",
+    "en": "Load the logs first."
+  },
+  "image.logs_copied_clipboard": {
+    "ru": "Логи скопированы в буфер обмена.",
+    "en": "Logs copied to the clipboard."
+  },
+  "image.logs_copying_unavailable_select_log_text_manually": {
+    "ru": "Копирование недоступно: выдели текст журнала вручную (Ctrl+A / Ctrl+C внутри области).",
+    "en": "Copying is unavailable: select the log text manually (Ctrl+A / Ctrl+C inside the log area)."
+  },
+  "image.logs_txt_sent_browser_saving": {
+    "ru": "TXT передан браузеру для сохранения.",
+    "en": "TXT sent to the browser for saving."
+  },
+  "image.app_qwen_names_loading_source_image": {
+    "ru": "Загрузка исходного изображения",
+    "en": "Loading source image"
+  },
+  "image.app_qwen_names_loading_reference": {
+    "ru": "Загрузка референса",
+    "en": "Loading reference"
+  },
+  "image.app_qwen_names_loading_diffusion_model": {
+    "ru": "Загрузка Qwen diffusion model",
+    "en": "Loading Qwen diffusion model"
+  },
+  "image.app_qwen_names_loading_text_encoder": {
+    "ru": "Загрузка текстового энкодера",
+    "en": "Loading text encoder"
+  },
+  "image.app_qwen_names_loading_vae": {
+    "ru": "Загрузка VAE",
+    "en": "Loading VAE"
+  },
+  "image.app_qwen_names_applying_lo_ra": {
+    "ru": "Подключение LoRA",
+    "en": "Applying LoRA"
+  },
+  "image.app_qwen_names_configuring_sampling": {
+    "ru": "Настройка сэмплинга",
+    "en": "Configuring sampling"
+  },
+  "image.app_qwen_names_preparing_cfg": {
+    "ru": "Подготовка CFG",
+    "en": "Preparing CFG"
+  },
+  "image.app_qwen_names_scaling_input_image": {
+    "ru": "Масштабирование входного изображения",
+    "en": "Scaling input image"
+  },
+  "image.app_qwen_names_processing_prompt": {
+    "ru": "Обработка промпта",
+    "en": "Processing prompt"
+  },
+  "image.app_qwen_names_preparing_conditioning": {
+    "ru": "Подготовка conditioning",
+    "en": "Preparing conditioning"
+  },
+  "image.app_qwen_names_preparing_references": {
+    "ru": "Подготовка референсов",
+    "en": "Preparing references"
+  },
+  "image.app_qwen_names_encoding_input_image_vae": {
+    "ru": "Кодирование входного изображения (VAE)",
+    "en": "Encoding input image (VAE)"
+  },
+  "image.app_qwen_names_generating_image_k_sampler": {
+    "ru": "Генерация изображения · KSampler",
+    "en": "Generating image · KSampler"
+  },
+  "image.app_qwen_names_decoding_result_vae": {
+    "ru": "Декодирование результата (VAE)",
+    "en": "Decoding result (VAE)"
+  },
+  "image.app_qwen_names_loading_real_esrgan_model": {
+    "ru": "Загрузка модели Real-ESRGAN",
+    "en": "Loading Real-ESRGAN model"
+  },
+  "image.app_qwen_names_ai_upscale_first_pass": {
+    "ru": "AI Upscale · первый проход",
+    "en": "AI Upscale · first pass"
+  },
+  "image.app_qwen_names_ai_upscale_second_pass": {
+    "ru": "AI Upscale · второй проход",
+    "en": "AI Upscale · second pass"
+  },
+  "image.app_qwen_names_writing_output_file": {
+    "ru": "Запись готового файла",
+    "en": "Writing output file"
+  },
+  "image.qwen_stage_name_preparing_request": {
+    "ru": "Подготовка запроса",
+    "en": "Preparing request"
+  },
+  "image.qwen_progress_hint_real_comfy_ui_events_shown_step": {
+    "ru": "Показываем только реальные события ComfyUI. Процент шагов — не процент всей генерации.",
+    "en": "Only real ComfyUI events are shown. Step progress is not overall generation progress."
+  },
+  "image.qwen_stage_step": {
+    "ru": "Шаг {0}/{1}",
+    "en": "Step {0}/{1}"
+  },
+  "image.qwen_record_stage_k_sampler_step": {
+    "ru": "KSampler · шаг {0}/{1}",
+    "en": "KSampler · step {0}/{1}"
+  },
+  "image.qwen_socket_message_comfy_ui_started_execution": {
+    "ru": "ComfyUI начал выполнение",
+    "en": "ComfyUI started execution"
+  },
+  "image.qwen_progress_hint_live_unavailable_task_status_still_reliably": {
+    "ru": "Live-прогресс недоступен: остаётся надёжный опрос состояния задачи каждые 2 секунды.",
+    "en": "Live progress unavailable: task status is still reliably checked every 2 seconds."
+  },
+  "image.qwen_progress_hint_no_web_socket_http_status_checks": {
+    "ru": "Нет WebSocket-прогресса; работает HTTP-статус. Результат генерации не затронут.",
+    "en": "No WebSocket progress; HTTP status checks are active. The generation result is unaffected."
+  },
+  "image.qwen_progress_hint_comfy_ui_web_socket_could_not": {
+    "ru": "ComfyUI WebSocket не подключился, используется обычный HTTP-статус.",
+    "en": "ComfyUI WebSocket could not connect; using HTTP status checks."
+  },
+  "image.empty_no_matches": {
+    "ru": "По запросу ничего нет.",
+    "en": "No matches."
+  },
+  "image.empty_archive_save_prompt": {
+    "ru": "Архив пока пуст. Сохрани промпт кнопкой ♡.",
+    "en": "The archive is empty. Save a prompt with ♡."
+  },
+  "image.prompt_archive_entry_saved_date_template": {
+    "ru": "Сохранён: {0}",
+    "en": "Saved: {0}"
+  },
+  "image.prompt_archive_append_to_prompt_button_label": {
+    "ru": "Добавить к промпту",
+    "en": "Append to prompt"
+  },
+  "image.qwen_archive_combined_prompt_would_exceed_5000_characters": {
+    "ru": "После добавления получится больше 5000 символов. Сократи текущий промпт.",
+    "en": "The combined prompt would exceed 5000 characters. Shorten the current prompt."
+  },
+  "image.qwen_fav_archived_prompt_appended_text": {
+    "ru": "Промпт из архива добавлен в конец текста.",
+    "en": "Archived prompt appended to the text."
+  },
+  "image.del_delete_archive": {
+    "ru": "Удалить из архива",
+    "en": "Delete from archive"
+  },
+  "image.del_delete_archived_prompt_cannot_undone": {
+    "ru": "Удалить этот промпт из архива? Это нельзя отменить.",
+    "en": "Delete this archived prompt? This cannot be undone."
+  },
+  "image.qwen_archive_entry_deleted": {
+    "ru": "Запись удалена из архива.",
+    "en": "Entry deleted from the archive."
+  },
+  "image.qwen_archive_deletion_error": {
+    "ru": "Ошибка удаления: ",
+    "en": "Deletion error: "
+  },
+  "image.qwen_fav_enter_prompt_first": {
+    "ru": "Сначала введи промпт.",
+    "en": "Enter a prompt first."
+  },
+  "image.qwen_fav_prompt_already_archived": {
+    "ru": "Этот промпт уже есть в архиве.",
+    "en": "This prompt is already archived."
+  },
+  "image.qwen_fav_saved_portable_archive": {
+    "ru": "♡ Сохранено в portable-архив.",
+    "en": "♡ Saved to the portable archive."
+  },
+  "image.qwen_fav_save_error": {
+    "ru": "Ошибка сохранения: ",
+    "en": "Save error: "
+  },
+  "image.qwen_archive_loading": {
+    "ru": "Загружаем архив…",
+    "en": "Loading archive…"
+  },
+  "image.qwen_archive_saved_prompts": {
+    "ru": "Сохранено промптов: {0}",
+    "en": "Saved prompts: {0}"
+  },
+  "image.qwen_archive_read_failed": {
+    "ru": "Не удалось прочитать архив: ",
+    "en": "Could not read the archive: "
+  },
+  "image.engine_select_generation_model": {
+    "ru": "Модель генерации",
+    "en": "Generation model"
+  },
+  "image.form_model_selected_neural_network_different_models": {
+    "ru": "Модель — выбранная нейросеть: разные модели по-разному понимают описание и рисуют детали.",
+    "en": "Model is the selected neural network: different models interpret descriptions and draw details differently."
+  },
+  "image.generation_mode_selector_label": {
+    "ru": "Режим",
+    "en": "Mode"
+  },
+  "image.mode_select_single_one_image": {
+    "ru": "Single — одно изображение",
+    "en": "Single — one image"
+  },
+  "image.mode_select_reference": {
+    "ru": "Reference — с референсом",
+    "en": "Reference — with reference"
+  },
+  "image.mode_select_prompt_text": {
+    "ru": "Prompt — по тексту",
+    "en": "Prompt — from text"
+  },
+  "image.form_single_works_one_image_reference_adds": {
+    "ru": "Single — работа с одной картинкой. Reference — дополнительная картинка-образец. Prompt — создание по текстовому описанию; особенности выбранной модели указаны ниже.",
+    "en": "Single works with one image. Reference adds a reference image. Prompt creates from a text description; selected model details are shown below."
+  },
+  "image.engine_checking_models": {
+    "ru": "Проверка моделей…",
+    "en": "Checking models…"
+  },
+  "image.engine_dependency_details_summary_label": {
+    "ru": "Зависимости движков",
+    "en": "Engine dependencies"
+  },
+  "image.prompt_only_controls_create_scratch_using_description": {
+    "ru": "Создать с нуля по описанию",
+    "en": "Create from scratch using a description"
+  },
+  "image.prompt_engine_hint_mode_uses_qwen_image_edit_2511": {
+    "ru": "Режим использует Qwen-Image-Edit-2511: приложение подставляет пустой холст и просит модель полностью нарисовать сцену. Это экспериментальный способ, не отдельная text-to-image модель.",
+    "en": "This mode uses Qwen-Image-Edit-2511: the application supplies a blank canvas and asks the model to draw the whole scene. This is experimental, not a separate text-to-image model."
+  },
+  "image.prompt_only_controls_new_image_format": {
+    "ru": "Формат нового изображения",
+    "en": "New image format"
+  },
+  "image.prompt_only_controls_1_square": {
+    "ru": "1:1 · квадрат",
+    "en": "1:1 · square"
+  },
+  "image.prompt_only_controls_3_2_landscape": {
+    "ru": "3:2 · пейзаж",
+    "en": "3:2 · landscape"
+  },
+  "image.prompt_only_controls_2_3_portrait": {
+    "ru": "2:3 · портрет",
+    "en": "2:3 · portrait"
+  },
+  "image.expand_group_prompt_upsampler": {
+    "ru": "Расширять промпт (upsampler)",
+    "en": "Expand prompt (upsampler)"
+  },
+  "image.expand_group_official_qwen3_5_model_turns_short": {
+    "ru": "Официальная модель Qwen3.5 превращает короткую идею в подробное описание на английском. Без неё короткие промпты дают заметно худший результат. Первая загрузка долгая; расширенный текст показан под результатом.",
+    "en": "The official Qwen3.5 model turns a short idea into a detailed English description. Short prompts give noticeably worse results without it. First load is slow; expanded text is shown below the result."
+  },
+  "image.image1_source_image_1": {
+    "ru": "Исходное изображение · Image 1",
+    "en": "Source image · Image 1"
+  },
+  "image.preview1_source_image_preview": {
+    "ru": "Предпросмотр исходного изображения",
+    "en": "Source image preview"
+  },
+  "image.image2_reference_image_2": {
+    "ru": "Изображение-референс · Image 2",
+    "en": "Reference image · Image 2"
+  },
+  "image.preview2_reference_image_preview": {
+    "ru": "Предпросмотр изображения-референса",
+    "en": "Reference image preview"
+  },
+  "image.paste_copy_image_browser_select_field_above": {
+    "ru": "Скопируй изображение в браузере, выбери поле выше и нажми Ctrl+V.",
+    "en": "Copy an image in your browser, select the field above and press Ctrl+V."
+  },
+  "image.prompt_guide_tips_selected_model_mode": {
+    "ru": "Подсказка для выбранной модели и режима",
+    "en": "Tips for the selected model and mode"
+  },
+  "image.prompt_guide_common_mistakes": {
+    "ru": "Частые ошибки:",
+    "en": "Common mistakes:"
+  },
+  "image.guide_use_example_append_prompt": {
+    "ru": "Добавить пример к промпту",
+    "en": "Append example to prompt"
+  },
+  "image.qwen_favorite_save_prompt": {
+    "ru": "♡ Сохранить промпт",
+    "en": "♡ Save prompt"
+  },
+  "image.qwen_favorite_open_prompt_archive": {
+    "ru": "Архив промптов",
+    "en": "Prompt archive"
+  },
+  "image.quality_group_generation": {
+    "ru": "Качество генерации",
+    "en": "Generation quality"
+  },
+  "image.upscale_group_resolution": {
+    "ru": "Увеличение разрешения",
+    "en": "Resolution upscale"
+  },
+  "image.form_quality_low_baseline_good_enhanced_high": {
+    "ru": "Качество (Quality): Low — базовое, Good — повышенное, High — высокое. Эти варианты меняют число шагов — повторных уточнений изображения моделью. Больше шагов обычно требует больше времени и не всегда даёт лучший результат. AI Upscale — отдельное увеличение картинки с помощью ИИ: 2× удваивает ширину и высоту, 4× увеличивает их вчетверо; Off отключает увеличение. Для сравнения качества оставьте одинаковый Seed.",
+    "en": "Quality: Low is baseline, Good is enhanced, High is high quality. These choices change the step count: repeated model refinements. More steps usually take longer and do not always improve results. AI Upscale is a separate AI enlargement: 2× doubles width and height, 4× quadruples them; Off disables it. Keep the same seed when comparing quality."
+  },
+  "image.seed_randomness_value": {
+    "ru": "Seed — число случайности",
+    "en": "Seed — randomness value"
+  },
+  "image.seed_random_every_run": {
+    "ru": "Случайный при каждом запуске",
+    "en": "Random on every run"
+  },
+  "image.generation_seed_randomize_button_label": {
+    "ru": "Случайный",
+    "en": "Random"
+  },
+  "image.reuse_seed_last_result_s": {
+    "ru": "Seed последнего результата",
+    "en": "Last result's seed"
+  },
+  "image.seed_hint_determines_initial_randomness_leave_empty_new": {
+    "ru": "Seed (читается «сид») задаёт исходную случайность генерации. Пустое поле — новый случайный вариант. Одинаковый Seed при тех же модели, описании и настройках помогает повторить результат. Большее число не означает лучшее качество.",
+    "en": "Seed determines the initial randomness. Leave empty for a new random variation. The same seed with the same model, description and settings helps reproduce a result. A larger number does not mean better quality."
+  },
+  "image.form_result_autosave": {
+    "ru": "Автосохранение результата",
+    "en": "Result autosave"
+  },
+  "image.form_successful_results_always_saved_automatically_selected": {
+    "ru": "После успешной генерации результат всегда автоматически сохраняется в выбранную папку. Путь сохраняется между перезапусками.",
+    "en": "Successful results are always saved automatically to the selected folder. The path persists across restarts."
+  },
+  "image.save_dir_result_autosave_folder": {
+    "ru": "Папка автосохранения результата",
+    "en": "Result autosave folder"
+  },
+  "image.choose_save_dir": {
+    "ru": "Выбрать…",
+    "en": "Choose…"
+  },
+  "image.save_dir_folder": {
+    "ru": "Сохранить папку",
+    "en": "Save folder"
+  },
+  "image.open_save_dir_folder": {
+    "ru": "Открыть папку",
+    "en": "Open folder"
+  },
+  "image.use_internal_results": {
+    "ru": "Использовать внутреннюю Results",
+    "en": "Use internal Results"
+  },
+  "image.save_dir_loading_autosave_settings": {
+    "ru": "Загружаем настройки автосохранения…",
+    "en": "Loading autosave settings…"
+  },
+  "image.form_keep_window_open_during_generation_closing": {
+    "ru": "Во время генерации оставьте это окно открытым: его закрытие остановит задачу.",
+    "en": "Keep this window open during generation: closing it stops the task."
+  },
+  "image.variant_another_variation": {
+    "ru": "Ещё вариант",
+    "en": "Another variation"
+  },
+  "image.settings_summary_fp8_mcnl_lo_ra_40_steps": {
+    "ru": "FP8 · MCNL LoRA · 40 steps · CFG 4 · полностью локально",
+    "en": "FP8 · MCNL LoRA · 40 steps · CFG 4 · fully local"
+  },
+  "image.generation_output_region_label": {
+    "ru": "Результат",
+    "en": "Result"
+  },
+  "image.p_select_image_enter_prompt_click_create": {
+    "ru": "Выбери изображение, введи prompt и нажми «Создать изображение».",
+    "en": "Select an image, enter a prompt and click Create image."
+  },
+  "image.qwen_stage_name_preparation": {
+    "ru": "Подготовка",
+    "en": "Preparation"
+  },
+  "image.qwen_sampler_progress_k_step": {
+    "ru": "Прогресс шага KSampler",
+    "en": "KSampler step progress"
+  },
+  "image.qwen_progress_hint_stages_follow_comfy_ui_events_step": {
+    "ru": "Этапы отображаются по сигналам ComfyUI. Процент шагов — только для KSampler, не для всей задачи.",
+    "en": "Stages follow ComfyUI events. Step percentage applies only to KSampler, not the whole task."
+  },
+  "image.result_history_panel_title": {
+    "ru": "История результатов",
+    "en": "Result history"
+  },
+  "image.result_history_loading_status": {
+    "ru": "Загружаем историю…",
+    "en": "Loading history…"
+  },
+  "image.engine_readiness_text_image_no_editing_references": {
+    "ru": "Только текст → изображение; без редактирования и референсов",
+    "en": "Text → image only; no editing or references"
+  },
+  "image.engine_readiness_text_image_editing_two_images": {
+    "ru": "Текст → изображение; редактирование; два изображения",
+    "en": "Text → image; editing; two images"
+  },
+  "image.engine_readiness_editing_reference_prompt_through_blank_canvas": {
+    "ru": "Редактирование; референс; промпт через пустой холст",
+    "en": "Editing; reference; prompt through a blank canvas"
+  },
+  "image.engine_readiness_missing_comfy_ui_nodes": {
+    "ru": "Нет узлов ComfyUI: ",
+    "en": "Missing ComfyUI nodes: "
+  },
+  "image.engine_readiness_download_them_components": {
+    "ru": ". Скачайте их во вкладке «Компоненты».",
+    "en": ". Download them in Components."
+  },
+  "image.engine_readiness_incompatible_workflow": {
+    "ru": "Workflow несовместим: ",
+    "en": "Incompatible workflow: "
+  },
+  "image.engine_readiness_missing_models": {
+    "ru": "Нет моделей: ",
+    "en": "Missing models: "
+  },
+  "image.workflow_stage_source_image": {
+    "ru": "Исходное изображение",
+    "en": "Source image"
+  },
+  "image.source_reference_image_label": {
+    "ru": "Референс",
+    "en": "Reference"
+  },
+  "image.workflow_stage_loading_qwen_2511": {
+    "ru": "Загрузка Qwen 2511",
+    "en": "Loading Qwen 2511"
+  },
+  "image.workflow_stage_text_encoder": {
+    "ru": "Текстовый энкодер",
+    "en": "Text encoder"
+  },
+  "image.workflow_stage_image_size": {
+    "ru": "Размер изображения",
+    "en": "Image size"
+  },
+  "image.workflow_stage_prompt_processing_label": {
+    "ru": "Промпт",
+    "en": "Prompt"
+  },
+  "image.workflow_stage_references": {
+    "ru": "Референсы",
+    "en": "References"
+  },
+  "image.workflow_stage_saving": {
+    "ru": "Сохранение",
+    "en": "Saving"
+  },
+  "image.workflow_stage_source_image_image1": {
+    "ru": "Исходное изображение <image1>",
+    "en": "Source image <image1>"
+  },
+  "image.workflow_stage_reference_image2": {
+    "ru": "Референс <image2>",
+    "en": "Reference <image2>"
+  },
+  "image.workflow_stage_loading_qwen_2_1_fp8": {
+    "ru": "Загрузка Qwen 2.1 FP8",
+    "en": "Loading Qwen 2.1 FP8"
+  },
+  "image.workflow_stage_latent_dimensions": {
+    "ru": "Размер latent",
+    "en": "Latent dimensions"
+  },
+  "image.workflow_stage_saving_png": {
+    "ru": "Сохранение PNG",
+    "en": "Saving PNG"
+  },
+  "image.workflow_stage_loading_z_image_turbo_int8": {
+    "ru": "Загрузка Z-Image Turbo INT8",
+    "en": "Loading Z-Image Turbo INT8"
+  },
+  "image.workflow_stage_qwen3_4_b_text_encoder": {
+    "ru": "Текстовый энкодер Qwen3-4B",
+    "en": "Qwen3-4B text encoder"
+  },
+  "image.workflow_stage_zero_negative_conditioning": {
+    "ru": "Нулевой negative",
+    "en": "Zero negative conditioning"
+  },
+  "image.workflow_stage_loading_flux_3_klein_int8": {
+    "ru": "Загрузка FLUX.3 Klein INT8",
+    "en": "Loading FLUX.3 Klein INT8"
+  },
+  "image.workflow_stage_qwen3_vl_4_b_text_encoder": {
+    "ru": "Текстовый энкодер Qwen3-VL-4B",
+    "en": "Qwen3-VL-4B text encoder"
+  },
+  "image.workflow_stage_loading_qwen3_5_upsampler": {
+    "ru": "Загрузка upsampler Qwen3.5",
+    "en": "Loading Qwen3.5 upsampler"
+  },
+  "image.workflow_stage_upsampler_system_prompt": {
+    "ru": "Системный промпт upsampler",
+    "en": "Upsampler system prompt"
+  },
+  "image.workflow_stage_prompt_expansion": {
+    "ru": "Расширение промпта",
+    "en": "Prompt expansion"
+  },
+  "image.workflow_stage_expanded_prompt": {
+    "ru": "Расширенный промпт",
+    "en": "Expanded prompt"
+  },
+  "image.workflow_stage_upsampler_images": {
+    "ru": "Изображения для upsampler",
+    "en": "Upsampler images"
+  },
+  "image.workflow_stage_references_latent": {
+    "ru": "Референсы (latent)",
+    "en": "References (latent)"
+  },
+  "image.workflow_stage_empty_negative_prompt": {
+    "ru": "Пустой negative",
+    "en": "Empty negative prompt"
+  },
+  "image.get_engine_unknown": {
+    "ru": "Неизвестный движок",
+    "en": "Unknown engine"
+  },
+  "image.validate_mode_not_supported_engine": {
+    "ru": "Режим не поддерживается движком",
+    "en": "Mode not supported by the engine"
+  },
+  "image.validate_quality_must_low_good_high": {
+    "ru": "Quality должен быть Low, Good или High",
+    "en": "Quality must be Low, Good or High"
+  },
+  "image.validate_upscale_must_off_2_x_4": {
+    "ru": "Upscale должен быть Off, 2x или 4x",
+    "en": "Upscale must be Off, 2x or 4x"
+  },
+  "image.validate_prompt_must_contain_1_5000_characters": {
+    "ru": "Промпт должен содержать от 1 до 5000 символов",
+    "en": "Prompt must contain 1 to 5000 characters"
+  },
+  "image.validate_seed_must_integer_0_2_48": {
+    "ru": "Seed должен быть целым числом от 0 до 2^48-1",
+    "en": "Seed must be an integer from 0 to 2^48-1"
+  },
+  "image.validate_unknown_canvas_format": {
+    "ru": "Неизвестный формат холста",
+    "en": "Unknown canvas format"
+  },
+  "image.resolve_expansion_prompt_yes_no": {
+    "ru": "Расширение промпта: да или нет",
+    "en": "Prompt expansion: yes or no"
+  },
+  "image.resolve_expansion_model_does_not_expand_prompts": {
+    "ru": "Эта модель не расширяет промпт",
+    "en": "This model does not expand prompts"
+  },
+  "image.resolve_workflow_mode_unknown_generation_operation": {
+    "ru": "Неизвестная операция генерации",
+    "en": "Unknown generation operation"
+  },
+  "image.resolve_workflow_mode_operation_not_supported_engine": {
+    "ru": "Операция не поддерживается движком",
+    "en": "Operation not supported by the engine"
+  },
+  "image.build_workflow_loading_real_esrgan": {
+    "ru": "Загрузка Real-ESRGAN",
+    "en": "Loading Real-ESRGAN"
+  },
+  "image.qwen_archive_heading_favorite_prompts": {
+    "ru": "Избранные промпты",
+    "en": "Favorite prompts"
+  },
+  "image.qwen_archive_close": {
+    "ru": "Закрыть ✕",
+    "en": "Close ✕"
+  },
+  "image.qwen_archive_panel_click_append_prompt_add_entry_after": {
+    "ru": "Нажми «Добавить к промпту» — запись появится в конце уже введённого текста. Текущий текст не удаляется.",
+    "en": "Click Append to prompt to add the entry after the existing text. The current text is preserved."
+  },
+  "image.qwen_archive_search": {
+    "ru": "Поиск по архиву...",
+    "en": "Search archive..."
+  },
+  "image.qwen_archive_search_prompt": {
+    "ru": "Поиск промпта",
+    "en": "Search prompt"
+  }
+}

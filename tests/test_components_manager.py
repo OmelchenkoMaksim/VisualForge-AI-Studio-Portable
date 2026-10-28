@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / 'App/server'))
 sys.path.insert(0, str(ROOT / 'tests'))
 from fake_web import FakeWeb
 from provision import routes
-from provision.manager import ComponentsManager
+from provision.components_manager import ComponentsManager
 from test_provision import tiny_catalog
 
 

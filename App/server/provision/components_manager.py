@@ -1,4 +1,5 @@
 """Runs the installer in a background thread for the Components panel and exposes its state as plain dictionaries."""
+from ui_strings import source as ui_text
 from collections import deque
 import shutil
 import threading
@@ -60,9 +61,9 @@ class ComponentsManager:
         """Install the programs that are missing plus the chosen models. Returns the plan."""
         with self.lock:
             if self.running():
-                raise Busy('Установка уже идёт.')
+                raise Busy(ui_text('components.start_installation_already_running'))
             if self.gpu is not None and self.gpu.snapshot()['busy']:
-                raise Busy('Идёт генерация. Дождитесь её конца или остановите её, затем скачивайте компоненты.')
+                raise Busy(ui_text('components.start_generation_running_wait_finish_stop_before'))
             engine = self.factory(self.root, self.catalog_path, emit=self._on_event)
             chosen = list(models) + [engine.text_model_component(tag) for tag in text_models]
             if preset:
@@ -72,7 +73,7 @@ class ComponentsManager:
             ids = chosen if only_required else engine.select(models=chosen)
             plan = engine.plan(ids)
             if not plan['todo']:
-                raise ProvisionError('Всё выбранное уже установлено.')
+                raise ProvisionError(ui_text('components.start_everything_selected_already_installed'))
             engine.check_space(plan)
             self.engine = engine
             self.events.clear()
@@ -85,7 +86,7 @@ class ComponentsManager:
     def repair(self, ident):
         component = self.models.component(ident)
         if ident.startswith('text:'):
-            raise ProvisionError('Для локальной сборки используйте исходный импорт Ollama')
+            raise ProvisionError(ui_text('components.repair_local_build_use_original_ollama_import'))
         return self.start(models=[component['id']], only_required=True)
 
     def cancel(self):
@@ -113,7 +114,7 @@ class ComponentsManager:
                 self.error = str(error)
         except Exception as error:  # the thread must always end in a readable state
             with self.lock:
-                self.error = 'Неожиданная ошибка установки: %s' % error
+                self.error = ui_text('components.run_unexpected_installation_error') % error
         finally:
             with self.lock:
                 self.finished = time.time()

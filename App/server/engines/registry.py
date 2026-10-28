@@ -1,4 +1,5 @@
 """Versioned engine profiles and immutable workflow bindings."""
+from ui_strings import source as ui_text
 from dataclasses import dataclass
 from pathlib import Path
 import json
@@ -57,11 +58,11 @@ ENGINES = {
          ('CLIPLoader', 'clip_name', 'qwen_2.5_vl_7b_fp8_scaled.safetensors'),
          ('VAELoader', 'vae_name', 'qwen_image_vae.safetensors'),
          ('LoraLoaderModelOnly', 'lora_name', 'qwen-image-edit-plus-nsfw-lora.safetensors')),
-        {'41':'Исходное изображение', '83':'Референс', '161':'Загрузка Qwen 2511',
-         '162':'Текстовый энкодер', '146':'VAE', '170':'LoRA 2511', '145':'Sampling shift',
-         '152':'CFG', '160':'Размер изображения', '151':'Промпт', '149':'Conditioning',
-         '148':'Референсы', '147':'Conditioning', '156':'VAE encode',
-         '169':'Sampling', '158':'VAE decode', '9':'Сохранение'},
+        {'41':ui_text('image.workflow_stage_source_image'), '83':ui_text('image.source_reference_image_label'), '161':ui_text('image.workflow_stage_loading_qwen_2511'),
+         '162':ui_text('image.workflow_stage_text_encoder'), '146':'VAE', '170':'LoRA 2511', '145':'Sampling shift',
+         '152':'CFG', '160':ui_text('image.workflow_stage_image_size'), '151':ui_text('image.workflow_stage_prompt_processing_label'), '149':'Conditioning',
+         '148':ui_text('image.workflow_stage_references'), '147':'Conditioning', '156':'VAE encode',
+         '169':'Sampling', '158':'VAE decode', '9':ui_text('image.workflow_stage_saving')},
         output_prefix='Qwen_Edit_2511'),
     'qwen-image-21-uc-fp8': Engine(
         'qwen-image-21-uc-fp8', 'Qwen Image 2.1 Uncensored FP8', True,
@@ -69,10 +70,10 @@ ENGINES = {
         (('UNETLoader', 'unet_name', 'qwen-image-2.1-UC-fp8.safetensors'),
          ('CLIPLoader', 'clip_name', 'qwen3vl_8b_int8_convrot.safetensors'),
          ('VAELoader', 'vae_name', 'qwen_image_2.1_vae_bf16.safetensors')),
-        {'11':'Исходное изображение <image1>', '12':'Референс <image2>',
-         '20':'Загрузка Qwen 2.1 FP8', '21':'Qwen3-VL INT8', '22':'VAE RGBA',
-         '30':'KV cache', '40':'Conditioning Qwen 2.1', '50':'Размер latent',
-         '60':'Sampling', '70':'VAE decode RGBA', '90':'Сохранение PNG'},
+        {'11':ui_text('image.workflow_stage_source_image_image1'), '12':ui_text('image.workflow_stage_reference_image2'),
+         '20':ui_text('image.workflow_stage_loading_qwen_2_1_fp8'), '21':'Qwen3-VL INT8', '22':'VAE RGBA',
+         '30':'KV cache', '40':'Conditioning Qwen 2.1', '50':ui_text('image.workflow_stage_latent_dimensions'),
+         '60':'Sampling', '70':'VAE decode RGBA', '90':ui_text('image.workflow_stage_saving_png')},
         output_prefix='Qwen_Image_21_UC',
         reference_prefix='Edit <image1> as the source image; use <image2> as the reference. Follow the user instruction: '),
     # Text-to-image only: the graph has no image inputs, so single/reference are not modes of this engine.
@@ -82,9 +83,9 @@ ENGINES = {
         (('UNETLoader', 'unet_name', 'z_image_turbo_int8_convrot.safetensors'),
          ('CLIPLoader', 'clip_name', 'qwen_3_4b_fp8_mixed.safetensors'),
          ('VAELoader', 'vae_name', 'ae.safetensors')),
-        {'20':'Загрузка Z-Image Turbo INT8', '21':'Текстовый энкодер Qwen3-4B', '22':'VAE',
-         '25':'Sampling shift', '40':'Промпт', '41':'Нулевой negative', '50':'Размер latent',
-         '60':'Sampling', '70':'VAE decode', '90':'Сохранение PNG'},
+        {'20':ui_text('image.workflow_stage_loading_z_image_turbo_int8'), '21':ui_text('image.workflow_stage_qwen3_4_b_text_encoder'), '22':'VAE',
+         '25':'Sampling shift', '40':ui_text('image.workflow_stage_prompt_processing_label'), '41':ui_text('image.workflow_stage_zero_negative_conditioning'), '50':ui_text('image.workflow_stage_latent_dimensions'),
+         '60':'Sampling', '70':'VAE decode', '90':ui_text('image.workflow_stage_saving_png')},
         modes=('prompt',), prompt_key='text', output_prefix='Z_Image_Turbo',
         # Measured on the RTX 5070 Ti (nvidia-smi, whole GPU): peak about 13.6 GB above idle at 1024x1024. ComfyUI takes what is
         # free, so the peak is not a minimum; the estimate stays below it to pass with the usual 1-2.5 GB desktop use.
@@ -97,10 +98,10 @@ ENGINES = {
          ('CLIPLoader', 'clip_name', 'qwen3vl_4b_int8_convrot.safetensors'),
          ('CLIPLoader', 'clip_name', 'qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors'),
          ('VAELoader', 'vae_name', 'flux2-vae.safetensors')),
-        {'20':'Загрузка FLUX.3 Klein INT8', '21':'Текстовый энкодер Qwen3-VL-4B', '22':'VAE', '23':'Загрузка upsampler Qwen3.5',
-         '24':'Системный промпт upsampler', '25':'Промпт', '26':'Расширение промпта', '27':'Расширенный промпт',
-         '10':'Исходное изображение', '11':'Референс', '28':'Изображения для upsampler', '42':'Нулевой negative', '43':'Референсы (latent)',
-         '40':'Conditioning', '41':'Пустой negative', '50':'Размер latent', '60':'Sampling', '70':'VAE decode', '90':'Сохранение PNG'},
+        {'20':ui_text('image.workflow_stage_loading_flux_3_klein_int8'), '21':ui_text('image.workflow_stage_qwen3_vl_4_b_text_encoder'), '22':'VAE', '23':ui_text('image.workflow_stage_loading_qwen3_5_upsampler'),
+         '24':ui_text('image.workflow_stage_upsampler_system_prompt'), '25':ui_text('image.workflow_stage_prompt_processing_label'), '26':ui_text('image.workflow_stage_prompt_expansion'), '27':ui_text('image.workflow_stage_expanded_prompt'),
+         '10':ui_text('image.workflow_stage_source_image'), '11':ui_text('image.source_reference_image_label'), '28':ui_text('image.workflow_stage_upsampler_images'), '42':ui_text('image.workflow_stage_zero_negative_conditioning'), '43':ui_text('image.workflow_stage_references_latent'),
+         '40':'Conditioning', '41':ui_text('image.workflow_stage_empty_negative_prompt'), '50':ui_text('image.workflow_stage_latent_dimensions'), '60':'Sampling', '70':'VAE decode', '90':ui_text('image.workflow_stage_saving_png')},
         prompt_key='value', output_prefix='FLUX3_Klein',
         expand_nodes=('23', '24', '25', '26', '28'), encode_node='40', expansion_preview='27',
         # Measured peaks above idle: about 13.9 GB for a prompt with the upsampler, 14.6-14.7 GB for Single/Reference. An estimate
@@ -111,5 +112,5 @@ ENGINES = {
 def get_engine(engine_id=None):
     engine_id = DEFAULT_ENGINE if engine_id is None else engine_id
     if not isinstance(engine_id, str) or engine_id not in ENGINES:
-        raise ValueError('Неизвестный движок')
+        raise ValueError(ui_text('image.get_engine_unknown'))
     return ENGINES[engine_id]

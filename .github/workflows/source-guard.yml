@@ -14,3 +14,5 @@ jobs:
           python-version: '3.12'
       - run: python -I tools/check_repo.py --revision HEAD
       - run: python -B -m unittest discover -s tests -p test_repo_hygiene.py
+      - run: python -B tools/build_strings.py --check
+      - run: python -B -m unittest -v tests.test_i18n

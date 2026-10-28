@@ -1,4 +1,5 @@
 """Stdlib bridge manager for isolated, cancellable local Music jobs."""
+from ui_strings import source as ui_text
 import atexit
 from collections import deque
 import json
@@ -52,9 +53,9 @@ class MusicManager:
         kept = self.history_file.with_name('music-history.unreadable-%s.json' % time.strftime('%Y%m%d-%H%M%S'))
         try:
             os.replace(self.history_file, kept)
-            print('История Music не читается; файл сохранён как %s, начата новая история.' % kept.name, flush=True)
+            print(ui_text('music.read_history_music_unreadable_file_preserved_new_started') % kept.name, flush=True)
         except OSError as error:
-            print('История Music не читается и не может быть отложена: %s' % error, flush=True)
+            print(ui_text('music.read_history_music_unreadable_cannot_moved_aside') % error, flush=True)
         return []
 
     def engine_paths(self, ident):
@@ -71,19 +72,19 @@ class MusicManager:
         required += [models/name for name in ('diffusion_models/minimax_music3_dit_int8_convrot.safetensors','text_encoders/minimax_music3_text_encoder_pruned_int8_convrot.safetensors','vae/minimax_music3_dav.safetensors','LICENSE')]
         missing=[str(path) for path in required if not path.is_file()]
         mini=dict(ENGINES['minimax-music3-int8'],available=not missing,missing=missing,
-                  reason='Файлы MiniMax Music3 не установлены или недоступны.' if missing else '')
+                  reason=ui_text('music.availability_mini_max_music3_files_not_installed') if missing else '')
         evidence=read_json(Path(os.environ.get('VISUALFORGE_MINIMAX_VERIFICATION',self.paths.root/'Support/Diagnostics/MiniMaxMusicVerification.json')),{})
-        mini['evidence']=evidence.get('summary_ru','Работа MiniMax Music3 на этой GPU ещё не проверена.')
+        mini['evidence']=evidence.get('summary_ru',ui_text('music.availability_mini_max_music3_has_not_been'))
         sa3=dict(ENGINES['stable-audio-3-medium'],**self.comfy.availability())
         evidence=read_json(Path(os.environ.get('VISUALFORGE_SA3_VERIFICATION',self.paths.root/'Support/Diagnostics/StableAudio3Verification.json')),{})
-        sa3['evidence']=evidence.get('summary_ru','Работа Stable Audio 3 Medium на этой GPU ещё не проверена.')
+        sa3['evidence']=evidence.get('summary_ru',ui_text('music.availability_stable_audio_3_medium_has_not'))
         profiles=[dict(ace['engine'],available=ace['available'],missing=ace['missing'],reason=ace['reason']),mini,sa3]
         from model_policy import apply_profiles
         apply_profiles(self.paths.root, 'music', profiles)
         chosen=next((row for row in profiles if row['id']==ident),profiles[0])
         available=chosen['available'] if ident else any(row['available'] for row in profiles)
         return dict(available=available,engine=chosen,engines=profiles,busy=self.busy(),
-                    reason=chosen['reason'] if ident else ('' if available else 'Среда или модели Music недоступны.'),missing=chosen['missing'])
+                    reason=chosen['reason'] if ident else ('' if available else ui_text('music.availability_music_runtime_models_unavailable')),missing=chosen['missing'])
 
     def _ace_availability(self):
         required = [self.root / name for name in ('python/python.exe', 'python/msvcp140.dll', 'vendor/ACE-Step/acestep/handler.py', 'requirements-lock.txt')]
@@ -93,9 +94,9 @@ class MusicManager:
         missing = [str(path) for path in required if not path.is_file()]
         engine = dict(ENGINE)
         evidence = read_json(self.root / 'verification.json', {})
-        engine['evidence'] = evidence.get('summary_ru', 'Работа этой сборки на GPU ещё не проверена.')
+        engine['evidence'] = evidence.get('summary_ru', ui_text('music.ace_availability_build_has_not_been_tested_gpu'))
         return {'available': not missing, 'engine': engine,
-                'reason': 'Среда или модели Music ещё не установлены. Модели можно скачать во вкладке «Компоненты».' if missing else '',
+                'reason': ui_text('music.ace_availability_music_runtime_models_not_installed_yet') if missing else '',
                 'busy': self.busy(), 'missing': missing}
 
     def busy(self):
@@ -114,10 +115,10 @@ class MusicManager:
             if data is not None:
                 value = data.get('save_dir')
                 if not isinstance(value, str) or not value.strip() or len(value) > 1000:
-                    raise ValueError('Укажите папку результатов Music')
+                    raise ValueError(ui_text('music.settings_specify_music_output_folder'))
                 path = resolve_path(value.strip(), self.paths.root)
                 if path.exists() and not path.is_dir():
-                    raise ValueError('Путь Music не является папкой')
+                    raise ValueError(ui_text('music.settings_music_path_not_folder'))
                 current = {'save_dir': stored_path(path, self.paths.root)}
                 write_json(self.settings_file, current)
             path = resolve_path(current['save_dir'], self.paths.root)
@@ -130,14 +131,14 @@ class MusicManager:
             self.comfy.preflight(request)  # one HTTP call to ComfyUI, kept outside the manager lock
         with self.lock:
             if self.closing or self.busy():
-                raise ValueError('Music уже занят или студия закрывается')
+                raise ValueError(ui_text('music.submit_music_busy_studio_shutting_down'))
             availability=self.availability(request['engine'])
             if not availability['available']:
                 raise ValueError(availability['reason'])
             ident = uuid.uuid4().hex
             directory = self.state / ident
             directory.mkdir(parents=True, exist_ok=False)
-            row = dict(request, id=ident, generation=generation_begin('Music'), state='queued', phase='Подготовка Music',
+            row = dict(request, id=ident, generation=generation_begin('Music'), state='queued', phase=ui_text('music.submit_preparing_music'),
                        created=time.time(), token=secrets.token_urlsafe(24),
                        upstream_revision=get_engine(request['engine'])['upstream_revision'], backend=backend,
                        save_dir=stored_path(Path(self.settings()['save_dir']), self.paths.root))
@@ -169,7 +170,7 @@ class MusicManager:
 
     @staticmethod
     def _missing():
-        raise ValueError('Задача Music не найдена')
+        raise ValueError(ui_text('music.missing_music_task_not_found'))
 
     def entries(self):
         with self.lock:
@@ -179,19 +180,19 @@ class MusicManager:
         from job_delete import DeletePlan, confined_file, plain_path, write_receipt
         ident = data.get('id')
         if not isinstance(ident, str) or len(ident) != 32 or any(c not in '0123456789abcdef' for c in ident):
-            raise ValueError('Неверный идентификатор Music')
+            raise ValueError(ui_text('music.delete_invalid_music_identifier'))
         with self.lock:
             # History is published only after the worker has closed its log and output handles.
             row = next((r for r in self.history if r['id'] == ident), None)
             if row is None or row.get('state') not in TERMINAL:
-                raise ValueError('Задача не найдена или ещё выполняется. Сначала остановите генерацию.')
+                raise ValueError(ui_text('music.delete_task_not_found_still_running_stop'))
             plan = DeletePlan()
             if row.get('output'):
                 output = Path(row['output'])
                 if not output.is_absolute():
                     output = confined_file(self.paths.root, row['output'])
                 if output.suffix.lower() != '.wav':
-                    raise ValueError('Некорректный файл результата Music')
+                    raise ValueError(ui_text('music.delete_invalid_music_output_file'))
                 plan.file(output)
                 plan.sidecar(output.with_suffix('.json'), 'id', ident)
             # Stable Audio owns a separate ComfyUI history entry and a temporary FLAC as well.
@@ -199,7 +200,7 @@ class MusicManager:
             prompt_id = row.get('comfy_prompt_id') or manifest.get('prompt_id') or (row.get('metadata') or {}).get('comfy_prompt_id')
             if prompt_id:
                 if str(uuid.UUID(prompt_id)) != prompt_id or self.comfy.client is None:
-                    raise ValueError('Не удалось проверить данные Stable Audio в ComfyUI')
+                    raise ValueError(ui_text('music.delete_verify_stable_audio_data_comfy_ui_failed'))
                 try:
                     entry = (self.comfy.client.get('/history/' + prompt_id, timeout=15) or {}).get(prompt_id) or {}
                     outputs = list(row.get('comfy_files') or manifest.get('outputs') or [])
@@ -208,11 +209,11 @@ class MusicManager:
                     for item in outputs:
                         area = item.get('type', 'temp')
                         if area not in ('output', 'temp'):
-                            raise ValueError('Некорректная область файла Stable Audio')
+                            raise ValueError(ui_text('music.delete_invalid_stable_audio_file_scope'))
                         relative = str(Path(item.get('subfolder', '')) / item['filename'])
                         plan.file(confined_file(getattr(self.paths, 'comfy_' + area), relative))
                 except ComfyError as error:
-                    raise ValueError('ComfyUI недоступен. Повторите удаление после его запуска: ' + str(error)[:300]) from None
+                    raise ValueError(ui_text('music.delete_comfy_ui_unavailable_retry_deletion_after') + str(error)[:300]) from None
             plan.file(self.logs / (ident + '.log'))
             plan.tree(self.state / ident)
             remaining = [r for r in self.history if r['id'] != ident]
@@ -225,7 +226,7 @@ class MusicManager:
                 try:
                     self.comfy.client.post('/history', {'delete': [prompt_id]}, timeout=15)
                 except ComfyError as error:
-                    raise ValueError('Файлы удалены, но история ComfyUI пока недоступна. Повторите удаление: ' + str(error)[:300]) from None
+                    raise ValueError(ui_text('music.delete_files_deleted_but_comfy_ui_history') + str(error)[:300]) from None
             # Keep the receipt on any failure, including persistence, so deletion can be retried.
             remove_event(row.get('generation'))
             write_receipt(self.history_file, remaining)
@@ -238,10 +239,10 @@ class MusicManager:
         with self.lock:
             row = self.active
             if not row or data.get('id') != row['id'] or not secrets.compare_digest(str(data.get('token', '')), row['token']):
-                raise ValueError('Неверная задача или ключ отмены Music')
+                raise ValueError(ui_text('music.cancel_invalid_music_task_cancellation_key'))
             if row['state'] not in TERMINAL:
                 row['cancel_requested'] = True
-                row['phase'] = 'Отмена Music'
+                row['phase'] = ui_text('music.wait_cancelling_music')
                 if self.owned:
                     self.owned.close()
                 elif self.process and self.process.poll() is None:
@@ -256,15 +257,15 @@ class MusicManager:
                 return self._missing()
             path = resolve_path(row['output'], self.paths.root)
             if path.suffix.lower() != '.wav' or not path.is_file():
-                raise ValueError('Аудиофайл Music недоступен')
+                raise ValueError(ui_text('music.file_music_audio_unavailable'))
             return path
 
     def log(self, ident):
         if not isinstance(ident, str) or len(ident) != 32 or any(c not in '0123456789abcdef' for c in ident):
-            raise ValueError('Неверный идентификатор Music')
+            raise ValueError(ui_text('music.delete_invalid_music_identifier'))
         path = self.logs / (ident + '.log')
         if not path.exists():
-            return {'text': 'Журнал пока пуст.'}
+            return {'text': ui_text('music.task_log_empty_state_label')}
         with path.open('rb') as stream:
             stream.seek(max(0, path.stat().st_size - 16000))
             return {'text': stream.read().decode('utf-8', errors='replace')}
@@ -294,7 +295,7 @@ class MusicManager:
             self.logs.mkdir(parents=True, exist_ok=True)
             with self.lock:
                 if row.get('cancel_requested'):
-                    row.update(state='cancelled', phase='Отменено')
+                    row.update(state='cancelled', phase=ui_text('music.generation_cancelled_status_label'))
                     return
                 root,_,worker=self.engine_paths(row['engine'])
                 self.process = subprocess.Popen([str(root / 'python/python.exe'), '-u', str(Path(__file__).with_name(worker)), str(directory / 'request.json')],
@@ -306,7 +307,7 @@ class MusicManager:
                     self.process.terminate()
                     self.process.wait(timeout=10)
                     raise
-                row.update(state='running', phase='Загрузка Music')
+                row.update(state='running', phase=ui_text('music.run_loading_music'))
             tail = deque(maxlen=160)
             total = 0
             path = self.logs / (row['id'] + '.log')
@@ -326,22 +327,22 @@ class MusicManager:
             code = self.process.wait()
             with self.lock:
                 if row.get('cancel_requested'):
-                    row.update(state='cancelled', phase='Отменено')
+                    row.update(state='cancelled', phase=ui_text('music.generation_cancelled_status_label'))
                 elif code != 0:
                     error = read_json(directory / 'error.json', {})
-                    raise RuntimeError(error.get('error') or f'Music завершился с кодом {code}. Откройте журнал задачи.')
+                    raise RuntimeError(error.get('error') or ui_text('music.run_music_exited_code_open_task_log', f'{code}'))
                 else:
                     result = read_json(directory / 'result.json', {})
                     source = Path(result.get('path', '')).resolve()
                     if not source.is_relative_to(directory.resolve()) or source.suffix.lower() != '.wav' or not source.is_file():
-                        raise RuntimeError('Music не создал готовый WAV')
-                    row.update(state='done', phase='Готово', metadata=result['metadata'], finished=time.time())
+                        raise RuntimeError(ui_text('music.run_music_did_not_create_finished_wav'))
+                    row.update(state='done', phase=ui_text('music.generation_completed_status_label'), metadata=result['metadata'], finished=time.time())
                     generation_finish(row.get('generation'))
                     target = publish(source, resolve_path(row['save_dir'], self.paths.root), self.public(row), self.paths.root)
                     row.update(filename=target.name, output=stored_path(target, self.paths.root))
         except Exception as exc:
             with self.lock:
-                row.update(state='error', phase='Ошибка Music', error=str(exc)[:2000])
+                row.update(state='error', phase=ui_text('music.run_music_error'), error=str(exc)[:2000])
             try:
                 self.logs.mkdir(parents=True, exist_ok=True)
                 with (self.logs / (row['id'] + '.log')).open('a', encoding='utf-8') as log:
@@ -365,7 +366,7 @@ class MusicManager:
                 try:
                     write_json(self.history_file, self.history)
                 except OSError as exc:
-                    row['error'] = 'Не удалось сохранить историю Music: ' + str(exc)[:300]
+                    row['error'] = ui_text('music.run_save_music_history_failed') + str(exc)[:300]
                 # Only the current job's reproducible generated audio and tensors, after publication.
                 # Keep the small request, progress and error metadata for diagnosis.
                 if row['state'] == 'done':
@@ -389,24 +390,24 @@ class MusicManager:
 
         with self.lock:
             if row.get('cancel_requested'):
-                row.update(state='cancelled', phase='Отменено')
+                row.update(state='cancelled', phase=ui_text('music.generation_cancelled_status_label'))
                 return
-            row.update(state='running', phase='Подготовка Stable Audio')
+            row.update(state='running', phase=ui_text('music.run_comfy_preparing_stable_audio'))
             self.backend_active = True
         try:
             result = self.comfy.run(row, directory, progress=progress, log=log, cancelled=lambda: bool(row.get('cancel_requested')))
         except Cancelled:
             with self.lock:
-                row.update(state='cancelled', phase='Отменено')
+                row.update(state='cancelled', phase=ui_text('music.generation_cancelled_status_label'))
             return
         with self.lock:
             if row.get('cancel_requested'):
-                row.update(state='cancelled', phase='Отменено')
+                row.update(state='cancelled', phase=ui_text('music.generation_cancelled_status_label'))
                 return
             source = Path(result.get('path', '')).resolve()
             if not source.is_relative_to(directory.resolve()) or source.suffix.lower() != '.wav' or not source.is_file():
-                raise RuntimeError('Music не создал готовый WAV')
-            row.update(state='done', phase='Готово', metadata=result['metadata'], finished=time.time())
+                raise RuntimeError(ui_text('music.run_music_did_not_create_finished_wav'))
+            row.update(state='done', phase=ui_text('music.generation_completed_status_label'), metadata=result['metadata'], finished=time.time())
             generation_finish(row.get('generation'))
             target = publish(source, resolve_path(row['save_dir'], self.paths.root), self.public(row), self.paths.root)
             row.update(filename=target.name, output=stored_path(target, self.paths.root))

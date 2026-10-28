@@ -8,6 +8,7 @@ agent keeps its own working conversation across tasks and studio restarts.
 The shipped profile talks to DeepSeek's cloud (models, web search, telemetry). A config patch written for every task disables
 those plugins, routes the only provider to the studio gateway, keeps dsh's own sandbox off and inserts the studio's
 permission plugin (dsh_policy.mjs); dsh_net_guard.cjs, preloaded into Node, refuses every other network connection."""
+from ui_strings import source as ui_text
 import difflib
 import json
 from pathlib import Path
@@ -32,8 +33,8 @@ DISABLED = ('otel', 'session-telemetry-otel', 'deepseek-account', 'llm-deepseek'
 SANDBOX = 'danger-full-access'
 TOOLS = {'pwsh': 'bash', 'bash': 'bash'}  # the page labels shell tools as «Команда»
 MAX_OUTPUT = 4000
-REFUSED = 'Запрещено правами агента в этом чате.'
-REJECTED = 'Вы отклонили это действие.'
+REFUSED = ui_text('agent.step_from_blocked_agent_permissions_chat')
+REJECTED = ui_text('agent.step_from_you_rejected_action')
 
 
 class DshError(ValueError):
@@ -42,7 +43,7 @@ class DshError(ValueError):
 
 def clip(text, limit=MAX_OUTPUT):
     text = str(text or '')
-    return text if len(text) <= limit else text[:limit] + '\n… (обрезано: ещё %d симв.)' % (len(text) - limit)
+    return text if len(text) <= limit else text[:limit] + ui_text('agent.clip_truncated_more_characters') % (len(text) - limit)
 
 
 def _text(blocks):
@@ -148,7 +149,7 @@ class DshRunner:
     def run(self, start, on_event, cancel, disconnected):
         """Run one task; `on_event` gets the page events. Returns the result, or None when the task was stopped."""
         if not self.installed():
-            raise DshError('DeepSeek Harness не установлен: нет Runtime/Agents/dsh. Установите его в «Настройки → Компоненты», раздел Text.')
+            raise DshError(ui_text('agent.run_deep_seek_harness_not_installed_runtime'))
         folder = self.state / 'task'
         folder.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(Path(__file__).with_name('dsh_policy.mjs'), folder / 'dsh_policy.mjs')  # the patch names it relative to itself
@@ -203,20 +204,20 @@ class DshRunner:
         with self.lock:
             process = self.process
             if process is None or process.poll() is not None:
-                raise DshError('DeepSeek Harness уже не выполняет задачу')
+                raise DshError(ui_text('agent.send_deep_seek_harness_no_longer_running'))
             try:
                 process.stdin.write((json.dumps(message, ensure_ascii=False) + '\n').encode('utf-8'))
                 process.stdin.flush()
             except OSError:
-                raise DshError('DeepSeek Harness уже не выполняет задачу') from None
+                raise DshError(ui_text('agent.send_deep_seek_harness_no_longer_running')) from None
 
     def reply(self, request_id, answer):
         if answer not in ('once', 'always', 'reject'):
-            raise ValueError('Ответ на запрос: разрешить один раз, разрешать всегда или отклонить')
+            raise ValueError(ui_text('agent.reply_permission_allow_once_always_reject'))
         with self.lock:
             asked = self.pending.pop(request_id, None)
         if asked is None:
-            raise DshError('Этот запрос агента уже не ждёт ответа')
+            raise DshError(ui_text('agent.reply_agent_request_no_longer_waiting_response'))
         rpc_id, key, emit = asked
         if answer == 'always':
             self.always.add(key)  # dsh offers one-shot answers only; the studio repeats "allow" for the rest of this task
@@ -264,7 +265,7 @@ class _Task:
         if result is None:
             return None
         reason = result.get('stopReason')
-        error = {'max_tokens': 'Модель упёрлась в лимит длины ответа', 'refusal': 'Модель отказалась отвечать'}.get(reason, '')
+        error = {'max_tokens': ui_text('agent.run_model_reached_response_length_limit'), 'refusal': ui_text('agent.run_model_refused_answer')}.get(reason, '')
         stats = dict(model_calls=self.model_calls, context_tokens=self.used, context=self.size or int(start['context'])) if self.model_calls else None
         done = dict(content=self.answer(), thinking=''.join(self.thinking).strip(), stats=stats, error=error, session=session, handoff='')
         if start.get('handoff') and not self.cancel.is_set():
@@ -298,7 +299,7 @@ class _Task:
             if stopping is None and (self.cancel.is_set() or self.disconnected()):
                 self.cancel.set()
                 if not session:
-                    raise DshError('Задача агента остановлена')
+                    raise DshError(ui_text('agent.admit_agent_task_stopped'))
                 try:
                     self.runner.send(dict(jsonrpc='2.0', method='session/cancel', params=dict(sessionId=session)))
                 except DshError:
@@ -313,7 +314,7 @@ class _Task:
             if message is None:
                 if stopping is not None:
                     return None
-                raise DshError('DeepSeek Harness неожиданно завершился. Подробности — в журнале agent-dsh.log.')
+                raise DshError(ui_text('agent.dsh_deep_seek_harness_exited_unexpectedly_see'))
             if message.get('id') == ident and ('result' in message or 'error' in message):
                 if 'error' in message:
                     error = message['error'] or {}
@@ -355,7 +356,7 @@ class _Task:
             # One per committed model answer, carrying the context it filled.
             self.model_calls += 1
             self.used, self.size = int(update.get('used') or 0), int(update.get('size') or 0)
-            self.on_event(dict(type='status', phase='Модель обдумывает следующий шаг…'))
+            self.on_event(dict(type='status', phase=ui_text('agent.admit_model_thinking_about_next_step')))
 
     def permission(self, message):
         params = message.get('params') or {}

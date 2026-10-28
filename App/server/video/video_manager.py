@@ -1,4 +1,5 @@
 """Stdlib-only bridge client. The private backend starts only on Video use."""
+from ui_strings import source as ui_text
 import atexit
 import json
 import os
@@ -39,7 +40,7 @@ class VideoManager:
         for engine in ENGINES.values():
             missing = engine_missing(self.root,self.models,engine['id'])
             info = dict(engine,available=not missing,missing=missing,
-                reason='Файлы движка не установлены или недоступны. Модели можно скачать во вкладке «Компоненты».' if missing else '')
+                reason=ui_text('video.availability_engine_files_not_installed_unavailable_download') if missing else '')
             if engine['id'] in ('wan22-ti2v-5b','wan22-s2v-14b'):
                 is_s2v=engine['id']=='wan22-s2v-14b'
                 evidence = Path(os.environ.get('VISUALFORGE_S2V_VERIFICATION' if is_s2v else 'VISUALFORGE_WAN_VERIFICATION',self.root/('s2v-verification.json' if is_s2v else 'wan-verification.json')))
@@ -47,7 +48,7 @@ class VideoManager:
                     try:
                         info['verification'] = json.loads(evidence.read_text(encoding='utf-8-sig'))
                     except (OSError,ValueError):
-                        info['verification'] = {'summary_ru':'Не удалось прочитать сведения о проверке Wan.'}
+                        info['verification'] = {'summary_ru':ui_text('video.availability_read_wan_verification_data_failed')}
             if engine['id']=='ltx25-distilled':
                 evidence=Path(os.environ.get('VISUALFORGE_LTX_VERIFICATION',self.paths.settings.parent/'Settings/ltx25-verification.json'))
                 if evidence.is_file() and evidence.stat().st_size<32768:
@@ -61,7 +62,7 @@ class VideoManager:
         available = any(engine['available'] for engine in engines)
         return {'available': available, 'engines': engines, 'delivery': public_presets(), 'missing': [path for engine in engines for path in engine['missing']],
                 'voice_available': (self.root / 'voice-packages/qwen_tts/__init__.py').is_file() and (self.models.parent / 'Qwen3TTS/config.json').is_file(),
-                'reason': 'Video-runtime не установлен или повреждён (его докачает Setup-VisualForge.cmd). Image остаётся доступен.' if not available else '',
+                'reason': ui_text('video.availability_video_runtime_missing_damaged_setup_visual') if not available else '',
                 'running': bool(self.process and self.process.poll() is None)}
 
     def call(self, route, data=None, timeout=15):
@@ -85,7 +86,7 @@ class VideoManager:
                 try:
                     probe.bind(('127.0.0.1', self.port))
                 except OSError:
-                    raise ValueError('Порт Video занят другой программой. Измените порт в настройке запуска.')
+                    raise ValueError(ui_text('video.start_video_port_occupied_another_application_change'))
             from .runtime import environment
             state = Path(os.environ.get('VISUALFORGE_VIDEO_STATE_ROOT', self.paths.cache / 'Video/State'))
             env = environment(self.root, self.models, state)
@@ -105,13 +106,13 @@ class VideoManager:
                 raise
             for _ in range(60):
                 if self.process.poll() is not None:
-                    raise ValueError('Video-backend не запустился. Проверьте журнал Video.')
+                    raise ValueError(ui_text('video.start_video_backend_did_not_check_log'))
                 try:
                     if self.call('/health').get('ready'):
                         return
                 except OSError:
                     time.sleep(.1)
-            raise ValueError('Video-backend не ответил при запуске')
+            raise ValueError(ui_text('video.start_video_backend_did_not_respond_during'))
 
     def busy(self):
         if not self.process or self.process.poll() is not None:

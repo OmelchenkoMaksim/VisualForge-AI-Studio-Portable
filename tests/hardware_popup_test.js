@@ -33,12 +33,12 @@ function boot({stored, storageFails = false, response} = {}) {
     models[module + ':' + select.value] = {status: 'green', title: 'Compatible', reasons: [], profile: {name: 'Model', note: 'Note', recommended_vram_gb: 16, recommended_ram_gb: 32}, actual_vram_gb: 16, actual_ram_gb: 64, caveat: 'Estimate', gpu_name: 'GPU'};
   }
   let now = 0, nextTimer = 0;
-  const context = {document, window: {}, Event: function(type) {this.type = type;},
+  const context = {document, window: {addEventListener() {}}, Event: function(type) {this.type = type;},
     localStorage: {getItem: name => {if (storageFails) throw new Error('storage');return storage.get(name) || null;}, setItem: (name, value) => {if (storageFails) throw new Error('storage');storage.set(name, value);}},
     MutationObserver: class {constructor(fn) {this.fn = fn;} observe(target, options) {observers.push({target, options, fn: this.fn});}},
     fetch: async () => ({ok: true, json: async () => response ? await response : {hardware, models}}),
     setTimeout: (fn, delay) => {const id = ++nextTimer;timers.set(id, {fn, at: now + delay});return id;}, clearTimeout: id => timers.delete(id)};
-  vm.createContext(context);vm.runInContext(source, context);
+  vm.createContext(context);require('./i18n_fixture.cjs')(context);vm.runInContext(source, context);
   function advance(ms) {
     const target = now + ms;
     for (;;) {

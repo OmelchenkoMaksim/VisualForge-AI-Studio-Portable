@@ -3,6 +3,7 @@
 No inference, network, identifiers, disk scan or persisted machine report. Memory is GiB.
 Red means a known runtime/launch requirement is unmet, not an estimated speed verdict.
 """
+from ui_strings import source as ui_text
 import copy
 import csv
 import ctypes
@@ -42,7 +43,7 @@ def parse_nvidia(text):
 
 
 def scan():
-    result = dict(os=platform.system(), architecture=platform.machine(), cpu=platform.processor() or 'Не определён',
+    result = dict(os=platform.system(), architecture=platform.machine(), cpu=platform.processor() or ui_text('hardware.hardware_scan_not_detected'),
         logical_cores=os.cpu_count(), ram_gb=None, gpus=[], gpu_detection='unknown')
     if os.name == 'nt':
         try:
@@ -95,18 +96,18 @@ def profiles(text_models=()):
     from video.registry import ENGINES as video
     from music.registry import ENGINES as music
     rows = {}
-    def add(module, ident, name, vram, ram, minimum=0, minimum_ram=0, note='Стартовый профиль студии; уменьшение памяти отдельно не проверялось.'):
+    def add(module, ident, name, vram, ram, minimum=0, minimum_ram=0, note=ui_text('hardware.hardware_add_studio_startup_profile_memory_reduction_has')):
         rows[module + ':' + ident] = dict(module=module, id=ident, name=name, recommended_vram_gb=vram,
             recommended_ram_gb=ram, minimum_free_vram_gb=minimum / 1024, minimum_ram_gb=minimum_ram, cuda=True, note=note)
     add('image', 'qwen-edit-2511', 'Qwen Image Edit 2511', 16, 64)
     add('image', 'qwen-image-21-uc-fp8', 'Qwen Image 2.1 Uncensored FP8', 16, 64)
     add('image', 'flux3-klein-int8', 'FLUX.3 Klein INT8', 16, 64,
-        note='Стартовый профиль студии. Prompt с upsampler проверен один раз: пик 15,5 из 16,3 ГБ видеопамяти, запас очень мал. Single и Reference не измерены.')
+        note=ui_text('hardware.hardware_profiles_studio_startup_profile_prompt_upsampler_tested'))
     add('image', 'z-image-turbo-int8', 'Z-Image Turbo INT8', 16, 32,
-        note='Стартовый профиль студии; работа на этой видеокарте ещё не проверена, потребление памяти не измерено.')
+        note=ui_text('hardware.hardware_profiles_studio_startup_profile_gpu_has_not'))
     for ident, engine in video.items():
         add('video', ident, engine['name'], 16, 32 if ident == 'wan22-ti2v-5b' else 64,
-            engine.get('minimum_free_vram_mb', 12000), note=engine.get('requirements', 'Профиль студии: 512×288, 16 ГБ VRAM и 64 ГБ ОЗУ.'))
+            engine.get('minimum_free_vram_mb', 12000), note=engine.get('requirements', ui_text('hardware.hardware_profiles_studio_profile_512_288_16_gb')))
     for ident, engine in music.items():
         add('music', ident, engine['name'], 16, 32 if ident in ('ace-step-15-turbo', 'stable-audio-3-medium') else 64, engine.get('claim_vram_mb', 8000),
             minimum_ram=16 if ident == 'ace-step-15-turbo' else 0, note=engine['requirements'])
@@ -119,7 +120,7 @@ def profiles(text_models=()):
             recommended_vram_gb=next((tier for tier in (8, 12, 16, 24, 32, 48, 64) if tier >= size + 1), math.ceil((size + 1) / 8) * 8) if size > 0 else None,
             recommended_ram_gb=max(16, 2 ** math.ceil(math.log2(size * 1.2 + 4))) if size > 0 else None,
             minimum_free_vram_gb=0, minimum_ram_gb=0, cuda=False,
-            note='Оценка по объёму установленной сборки с запасом памяти. Длинный контекст требует больше памяти; Ollama может использовать ОЗУ и CPU.')
+            note=ui_text('hardware.hardware_profiles_estimate_based_installed_build_size_memory'))
     return rows
 
 
@@ -131,31 +132,31 @@ def assess(hardware, profile):
     vram = gpu.get('vram_gb') if gpu else (0 if hardware['gpu_detection'] != 'unknown' else None)
     ram = hardware.get('ram_gb')
     if hardware['os'] != 'Windows' or hardware['architecture'].lower() not in ('amd64', 'x86_64'):
-        blocked.append('Эта portable-сборка требует Windows x64.')
+        blocked.append(ui_text('hardware.hardware_compatibility_assessment_portable_build_requires_windows_x64'))
     if profile['cuda']:
         if not cuda_cards:
             if hardware['gpu_detection'] == 'unknown' or gpu is not None:
-                reasons.append('Не удалось подтвердить NVIDIA CUDA и объём видеопамяти. Проверьте драйвер и обновите данные ПК.')
+                reasons.append(ui_text('hardware.hardware_compatibility_assessment_confirm_nvidia_cuda_video_memory_check_failed'))
             else:
-                blocked.append('Этот движок требует NVIDIA CUDA; совместимая видеокарта не обнаружена.')
+                blocked.append(ui_text('hardware.hardware_compatibility_assessment_engine_requires_nvidia_cuda_no_compatible'))
         if vram is not None and cuda_cards and vram < profile['minimum_free_vram_gb']:
             needed = ('%.1f' % profile['minimum_free_vram_gb']).replace('.', ',')
-            blocked.append('Объём видеопамяти меньше обязательного порога запуска движка: нужно не менее %s ГБ свободной VRAM.' % needed)
+            blocked.append(ui_text('hardware.hardware_compatibility_assessment_video_memory_below_mandatory_engine_startup') % needed)
     elif not cuda_cards:
-        reasons.append('Текстовая модель может работать на процессоре и ОЗУ, но ответы будут медленнее.')
-    for actual, recommended, label in ((vram, profile['recommended_vram_gb'], 'видеопамяти'), (ram, profile['recommended_ram_gb'], 'ОЗУ')):
+        reasons.append(ui_text('hardware.hardware_compatibility_assessment_text_model_run_cpu_ram_but'))
+    for actual, recommended, label in ((vram, profile['recommended_vram_gb'], ui_text('hardware.hardware_compatibility_assessment_video_memory')), (ram, profile['recommended_ram_gb'], ui_text('hardware.hardware_ram_specification_label'))):
         if actual is None or recommended is None:
-            reasons.append('Недостаточно данных для оценки %s.' % label)
+            reasons.append(ui_text('hardware.hardware_compatibility_assessment_insufficient_data_estimate') % label)
         elif actual + .25 < recommended:
-            reasons.append(('Объём видеопамяти ниже рекомендуемого. Возможны выгрузка в ОЗУ / CPU, замедление или ошибка нехватки памяти.' if label == 'видеопамяти' else
-                'Объём ОЗУ ниже рекомендуемого. Может потребоваться файл подкачки; вероятны замедление или ошибка нехватки памяти.'))
+            reasons.append((ui_text('hardware.hardware_compatibility_assessment_vram_below_recommendation_ram_cpu_offloading') if label == ui_text('hardware.hardware_compatibility_assessment_video_memory') else
+                ui_text('hardware.hardware_compatibility_assessment_ram_below_recommendation_page_file_may')))
     if ram is not None and ram < profile['minimum_ram_gb']:
-        blocked.append('ОЗУ ниже заявленного минимума этого профиля: %g ГБ.' % profile['minimum_ram_gb'])
+        blocked.append(ui_text('hardware.hardware_compatibility_assessment_ram_below_profile_s_stated_minimum') % profile['minimum_ram_gb'])
     status = 'red' if blocked else 'yellow' if reasons else 'green'
-    return dict(status=status, title={'red':'Модель не запустится в этой конфигурации', 'yellow':'С ограничениями / медленнее', 'green':'Система подходит по основным требованиям'}[status],
-        reasons=blocked or reasons or ['Память соответствует рекомендуемому стартовому профилю.'],
+    return dict(status=status, title={'red':ui_text('hardware.hardware_compatibility_assessment_model_not_start_configuration'), 'yellow':ui_text('hardware.hardware_compatibility_assessment_limitations_slower'), 'green':ui_text('hardware.hardware_compatibility_assessment_system_meets_main_requirements')}[status],
+        reasons=blocked or reasons or [ui_text('hardware.hardware_compatibility_assessment_memory_meets_recommended_startup_profile')],
         actual_vram_gb=vram, actual_ram_gb=ram, gpu_name=gpu['name'] if gpu else None,
-        profile=profile, caveat='Оценка для стартового профиля. Размер кадра, контекст и занятая другими программами память влияют на запуск и скорость.')
+        profile=profile, caveat=ui_text('hardware.hardware_compatibility_assessment_estimate_startup_profile_frame_size_context'))
 
 
 def report(text_models=(), refresh=False, root=None):

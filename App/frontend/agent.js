@@ -7,28 +7,28 @@ window.StudioAgent = (() => {
   const api = async (route, data) => {
     let response;
     try {response = await fetch('/api/agents/' + route, data === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)});}
-    catch {throw new Error('Нет связи со студией. Проверьте, запущено ли приложение.');}
+    catch {throw new Error(StudioI18n.t("agent.api_request_studio_connection_failed"));}
     let value;
-    try {value = await response.json();} catch {throw new Error('Некорректный ответ режима «Агент».');}
-    if (!response.ok) throw new Error(value.error || 'Режим «Агент» недоступен');
+    try {value = await response.json();} catch {throw new Error(StudioI18n.t("agent.api_request_invalid_response_error"));}
+    if (!response.ok) throw new Error(StudioI18n.remote(value.error) || StudioI18n.t("agent.api_request_agent_mode_unavailable"));
     return value;
   };
-  const STATUS = {pending: 'готовится', running: 'выполняется', completed: 'готово', error: 'ошибка'};
-  const TOOLS = {bash: 'Команда', edit: 'Правка файла', write: 'Новый файл', read: 'Чтение файла', glob: 'Поиск файлов', grep: 'Поиск в файлах',
-    list: 'Список файлов', todowrite: 'План', task: 'Подзадача', patch: 'Изменения', webfetch: 'Загрузка из сети',
+  const STATUS = {pending: StudioI18n.t("agent.agent_step_preparing_status"), running: StudioI18n.t("agent.agent_step_running_status"), completed: StudioI18n.t("agent.agent_step_completed_status"), error: StudioI18n.t("agent.agent_step_failed_status")};
+  const TOOLS = {bash: StudioI18n.t("agent.tools_bash_command"), edit: StudioI18n.t("agent.tools_edit_file"), write: StudioI18n.t("agent.tools_write_new_file"), read: StudioI18n.t("agent.tools_read_file"), glob: StudioI18n.t("agent.tools_glob_find_files"), grep: StudioI18n.t("agent.tools_grep_search_files"),
+    list: StudioI18n.t("agent.tools_list_files"), todowrite: StudioI18n.t("agent.tools_todowrite_plan"), task: StudioI18n.t("agent.tools_task_subtask"), patch: StudioI18n.t("agent.tools_patch_changes"), webfetch: StudioI18n.t("agent.tools_webfetch_network_download"),
     // DeepSeek Harness tool names
-    todo_write: 'План', create_goal: 'Цель', get_goal: 'Цель', update_goal: 'Цель', job_list: 'Фоновые задачи', job_output: 'Фоновая задача',
-    job_kill: 'Остановка фоновой задачи', skill: 'Навык', working_directory: 'Рабочая папка', read_image: 'Просмотр картинки', exit_plan_mode: 'План'};
-  const PERMISSIONS = {bash: 'выполнить команду', edit: 'изменить файл', external_directory: 'выйти за папку проекта', doom_loop: 'повторить одно и то же действие ещё раз'};
+    todo_write: StudioI18n.t("agent.tools_todowrite_plan"), create_goal: StudioI18n.t("agent.tools_create_goal"), get_goal: StudioI18n.t("agent.tools_create_goal"), update_goal: StudioI18n.t("agent.tools_create_goal"), job_list: StudioI18n.t("agent.tools_job_list_background_tasks"), job_output: StudioI18n.t("agent.tools_job_output_background_task"),
+    job_kill: StudioI18n.t("agent.tools_job_kill_stop_background_task"), skill: StudioI18n.t("agent.tool_step_skill_execution_label"), working_directory: StudioI18n.t("agent.tools_working_directory_folder"), read_image: StudioI18n.t("agent.tools_read_image_view"), exit_plan_mode: StudioI18n.t("agent.tools_todowrite_plan")};
+  const PERMISSIONS = {bash: StudioI18n.t("agent.permissions_bash_run_command"), edit: StudioI18n.t("agent.permissions_edit_file"), external_directory: StudioI18n.t("agent.permissions_external_directory_access_outside_project_folder"), doom_loop: StudioI18n.t("agent.permissions_doom_loop_repeat_same_action")};
 
   async function load() {
     info = await api('availability');
     const agents = el('agentKind'), modes = el('agentPermission');
     agents.replaceChildren(...info.agents.map(agent => {
-      const option = new Option(agent.ready ? agent.name : `${agent.name} — ${agent.planned ? 'скоро' : 'не установлен'}`, agent.id);
-      option.disabled = !agent.ready;option.title = agent.description;return option;
+      const option = StudioI18n.option(() => (agent.ready ? agent.name : `${agent.name} — ${agent.planned ? StudioI18n.t("agent.option_coming_soon") : StudioI18n.t("agent.component_installation_missing_label")}`), agent.id);
+      option.disabled = !agent.ready;StudioI18n.bind(option, "title", () => (StudioI18n.remote(agent.description)), true);return option;
     }));
-    modes.replaceChildren(...Object.entries(info.modes).map(([id, label]) => {const option = new Option(label, id);option.title = info.hints?.[id] || label;return option;}));
+    modes.replaceChildren(...Object.entries(info.modes).map(([id, label]) => {const option = StudioI18n.option(() => (label), id);StudioI18n.bind(option, "title", () => (info.hints?.[id] || label), true);return option;}));
     return info;
   }
   function show(chat) {
@@ -50,13 +50,13 @@ window.StudioAgent = (() => {
   function context(event) {
     const box = el('agentContext'), percent = Math.round(100 * event.used / Math.max(event.size, 1));
     box.hidden = false;
-    box.textContent = `Контекст модели: ${event.measured ? '' : '≈'}${event.used.toLocaleString('ru-RU')} из ${event.size.toLocaleString('ru-RU')} токенов (${percent}%)`;
+    StudioI18n.bind(box, "textContent", () => (StudioI18n.t("agent.box_model_context_tokens", [event.measured ? '' : '≈', event.used.toLocaleString(StudioI18n.locale), event.size.toLocaleString(StudioI18n.locale), percent])), true);
   }
   function describe() {
     const agent = info?.agents.find(a => a.id === el('agentKind').value), hint = info?.hints?.[el('agentPermission').value] || '';
-    el('agentPermission').title = hint;
-    const missing = agent && !agent.ready && !agent.planned ? ' Не установлен: поставьте его в «Настройки → Компоненты», раздел Text.' : '';
-    el('agentInfo').textContent = agent ? `${agent.name}${agent.version ? ' ' + agent.version : ''} · ${agent.license} · ${agent.description}${missing} ${hint} Работает без интернета через локальную модель; git push запрещён.` : '';
+    StudioI18n.bind(el('agentPermission'), "title", () => (hint), true);
+    const missing = agent && !agent.ready && !agent.planned ? StudioI18n.t("agent.describe_not_installed_install_under_settings_components") : '';
+    StudioI18n.bind(el('agentInfo'), "textContent", () => (agent ? StudioI18n.t("agent.info_runs_offline_through_local_model_git", [agent.name, agent.version ? ' ' + agent.version : '', agent.license, StudioI18n.remote(agent.description), StudioI18n.remote(missing), StudioI18n.remote(hint)]) : ''), true);
   }
   const values = () => ({agent: el('agentKind').value, workspace: el('agentWorkspace').value.trim(), permission: el('agentPermission').value});
   const ready = () => !!info && info.agents.some(a => a.id === el('agentKind').value && a.ready);
@@ -69,7 +69,7 @@ window.StudioAgent = (() => {
     el('agentPermission').onchange = () => {describe();onChange('permission', el('agentPermission').value);};
     el('agentWorkspace').onchange = () => onChange('workspace', el('agentWorkspace').value.trim());
     el('agentKind').onchange = () => {describe();onChange('agent', el('agentKind').value);};
-    el('agentChoose').onclick = () => choose().catch(error => onChange('error', error.message));
+    el('agentChoose').onclick = () => choose().catch(error => onChange('error', StudioI18n.remote(error.message)));
     el('agentLoop').onchange = () => {el('agentLoopOptions').hidden = !el('agentLoop').checked;onChange('loop', el('agentLoop').checked);};
     el('agentLoopThreshold').onchange = () => onChange('loop_threshold', Number(el('agentLoopThreshold').value));
     el('agentLoopIterations').onchange = () => onChange('loop_iterations', Number(el('agentLoopIterations').value));
@@ -78,18 +78,18 @@ window.StudioAgent = (() => {
 
   // ---- rendering: everything from the agent goes in with textContent ----------------------------------------------
   function pre(className, text) {
-    const block = document.createElement('pre');block.className = className;block.textContent = text;return block;
+    const block = document.createElement('pre');block.className = className;StudioI18n.bind(block, "textContent", () => (text), false);return block;
   }
   function step(item) {
     const box = document.createElement('details'), summary = document.createElement('summary'), kind = document.createElement('strong'), title = document.createElement('span'), state = document.createElement('span');
     box.className = 'agent-step agent-' + (item.status || 'pending');box.dataset.step = item.id;
-    kind.textContent = TOOLS[item.tool] || item.tool;title.textContent = item.title || '';state.className = 'agent-state';state.textContent = STATUS[item.status] || item.status;
+    StudioI18n.bind(kind, "textContent", () => (TOOLS[item.tool] || item.tool), true);StudioI18n.bind(title, "textContent", () => (item.title || ''), false);state.className = 'agent-state';StudioI18n.bind(state, "textContent", () => (STATUS[item.status] || item.status), true);
     summary.append(kind, title, state);box.append(summary);
     if (item.command) box.append(pre('agent-command', '$ ' + item.command));
     else if (item.file) box.append(pre('agent-command', item.file));
     if (item.diff) box.append(pre('agent-output agent-diff', item.diff));
     else if (item.output) box.append(pre('agent-output', item.output));
-    if (item.error) box.append(pre('agent-output agent-error-text', item.error));
+    if (StudioI18n.remote(item.error)) box.append(pre('agent-output agent-error-text', StudioI18n.remote(item.error)));
     box.open = item.status === 'error';
     return box;
   }
@@ -109,24 +109,24 @@ window.StudioAgent = (() => {
   }
   function permissionCard(request, chatId, onDone) {
     const card = document.createElement('div'), text = document.createElement('p'), actions = document.createElement('div');
-    card.className = 'agent-ask';card.dataset.request = request.id;card.setAttribute('role', 'group');card.setAttribute('aria-label', 'Запрос разрешения агента');
-    text.textContent = `Агент просит разрешения ${PERMISSIONS[request.permission] || request.permission}:`;
+    card.className = 'agent-ask';card.dataset.request = request.id;card.setAttribute('role', 'group');StudioI18n.bind(card, "@aria-label", () => (StudioI18n.t("agent.card_agent_permission_request")), true);
+    StudioI18n.bind(text, "textContent", () => (StudioI18n.t("agent.permission_card_agent_requests", [StudioI18n.remote(PERMISSIONS[request.permission] || request.permission)])), true);
     card.append(text);
     if (request.command) card.append(pre('agent-command', '$ ' + request.command));
     else if (request.patterns.length) card.append(pre('agent-command', request.patterns.join('\n')));
     if (request.file) card.append(pre('agent-command', request.file));
     if (request.diff) card.append(pre('agent-output agent-diff', request.diff));
     actions.className = 'actions';
-    const answers = [['once', 'Разрешить один раз', ''], ['always', 'Разрешать такое', 'secondary'], ['reject', 'Отклонить', 'secondary']];
+    const answers = [['once', StudioI18n.t("agent.permission_card_allow_once"), ''], ['always', StudioI18n.t("agent.permission_card_allow_action"), 'secondary'], ['reject', StudioI18n.t("agent.permission_card_reject"), 'secondary']];
     for (const [reply, label, style] of answers) {
       if (reply === 'always' && !request.always.length) continue;
-      const button = document.createElement('button');button.type = 'button';button.textContent = label;if (style) button.className = style;
+      const button = document.createElement('button');button.type = 'button';StudioI18n.bind(button, "textContent", () => (label), true);if (style) button.className = style;
       button.dataset.allowBusy = '1';  // answering is the point while the task runs: the shared busy lock must not disable it
-      if (reply === 'always') button.title = 'Без вопросов: ' + request.always.join(', ');
+      if (reply === 'always') StudioI18n.bind(button, "title", () => (StudioI18n.t("agent.button_allowed_without_asking") + request.always.join(', ')), true);
       button.onclick = async () => {
         for (const other of actions.querySelectorAll('button')) other.disabled = true;
         try {await api('permission', {chat_id: chatId, request_id: request.id, reply});resolve(card, reply);}
-        catch (error) {for (const other of actions.querySelectorAll('button')) other.disabled = false;onDone?.(error.message);}
+        catch (error) {for (const other of actions.querySelectorAll('button')) other.disabled = false;onDone?.(StudioI18n.remote(error.message));}
       };
       actions.append(button);
     }
@@ -138,7 +138,7 @@ window.StudioAgent = (() => {
     card.dataset.answered = '1';
     for (const button of card.querySelectorAll('button')) button.disabled = true;
     const note = document.createElement('p');note.className = 'muted';
-    note.textContent = reply === 'reject' ? 'Вы отклонили запрос.' : reply === 'always' ? 'Разрешение запомнено агентом для текущей сессии выполнения.' : 'Разрешено один раз.';
+    StudioI18n.bind(note, "textContent", () => (reply === 'reject' ? StudioI18n.t("agent.note_you_rejected_request") : reply === 'always' ? StudioI18n.t("agent.note_permission_saved_current_agent_session") : StudioI18n.t("agent.note_allowed_once")), true);
     card.append(note);
   }
   return {api, load, show, values, loop, context, ready, bind, renderSteps, permissionCard, resolve, get info() {return info;}};

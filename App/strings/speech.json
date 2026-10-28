@@ -1,0 +1,302 @@
+{
+  "speech.speech_language_auto_option_label": {
+    "ru": "Авто",
+    "en": "Auto"
+  },
+  "speech.button_voice_input": {
+    "ru": "Голосовой ввод",
+    "en": "Voice input"
+  },
+  "speech.button_voice_input_f9": {
+    "ru": "Голосовой ввод (F9)",
+    "en": "Voice input (F9)"
+  },
+  "speech.select_speech_language": {
+    "ru": "Язык речи",
+    "en": "Speech language"
+  },
+  "speech.enhance_box_enhanced_recognition_gemma_ai": {
+    "ru": "Улучшенное распознавание с Gemma AI",
+    "en": "Enhanced recognition with Gemma AI"
+  },
+  "speech.button_stop_recording_transcribe_f9": {
+    "ru": "Остановить запись и распознать (F9)",
+    "en": "Stop recording and transcribe (F9)"
+  },
+  "speech.microphone_recording_listening_status": {
+    "ru": "слушаю…",
+    "en": "listening…"
+  },
+  "speech.recording_speak_now": {
+    "ru": "говорите",
+    "en": "speak now"
+  },
+  "speech.microphone_recording_elapsed_seconds_separator": {
+    "ru": " с · ",
+    "en": " s · "
+  },
+  "speech.recording_pause_text_inserted": {
+    "ru": " · пауза — и я вставлю текст",
+    "en": " · pause and the text will be inserted"
+  },
+  "speech.voice_enhance_reason_gemma_ai_unavailable_model_required_text": {
+    "ru": "Gemma AI сейчас недоступна: нужна модель в разделе Text.",
+    "en": "Gemma AI is unavailable: a model is required in Text."
+  },
+  "speech.enhance_gemma_ai_local_after_whisper_model": {
+    "ru": "Gemma AI — локальный ИИ: после Whisper модель (",
+    "en": "Gemma AI is a local AI: after Whisper, the model ("
+  },
+  "speech.enhance_add_punctuation_capitalization_correct_errors_first": {
+    "ru": ") расставит знаки и заглавные и исправит ошибки. Первый запуск требует загрузки модели в видеопамять.",
+    "en": ") will add punctuation and capitalization and correct errors. First use requires loading the model into video memory."
+  },
+  "speech.enhance_enhanced_recognition_unavailable": {
+    "ru": "Улучшенное распознавание недоступно: ",
+    "en": "Enhanced recognition unavailable: "
+  },
+  "speech.prepare_enhance_gemma_ai_loading_first_launch_may": {
+    "ru": "Gemma AI загружается… Первый запуск может занять несколько минут.",
+    "en": "Gemma AI is loading… First launch may take a few minutes."
+  },
+  "speech.prepare_enhance_gemma_ai_waiting_gpu": {
+    "ru": "Gemma AI ждёт освобождения видеокарты…",
+    "en": "Gemma AI is waiting for the GPU…"
+  },
+  "speech.poll_check_gemma_ai_loading_try_enabling_failed": {
+    "ru": "Не удалось проверить загрузку Gemma AI. Попробуйте включить её снова.",
+    "en": "Could not check Gemma AI loading. Try enabling it again."
+  },
+  "speech.poll_gemma_ai_could_not_start_check": {
+    "ru": "Gemma AI не удалось запустить. Проверьте доступность модели в Text.",
+    "en": "Gemma AI could not start. Check model availability in Text."
+  },
+  "speech.poll_gemma_ai_not_ready_yet_check": {
+    "ru": "Gemma AI пока не готова. Проверьте состояние Text и видеокарты.",
+    "en": "Gemma AI is not ready yet. Check Text and GPU status."
+  },
+  "speech.poll_connect_studio_check_application_running_unavailable": {
+    "ru": "Нет связи со студией. Проверьте, запущено ли приложение.",
+    "en": "Cannot connect to the studio. Check that the application is running."
+  },
+  "speech.voice_reason_input_unavailable": {
+    "ru": "Голосовой ввод недоступен.",
+    "en": "Voice input unavailable."
+  },
+  "speech.voice_reason_connect_studio_unavailable": {
+    "ru": "Нет связи со студией.",
+    "en": "Cannot connect to the studio."
+  },
+  "speech.start_allow_microphone_access_if_browser_asks": {
+    "ru": "Разрешите доступ к микрофону, если браузер спросит…",
+    "en": "Allow microphone access if the browser asks…"
+  },
+  "speech.start_click_open_components": {
+    "ru": " Нажмите, чтобы открыть «Компоненты».",
+    "en": " Click to open Components."
+  },
+  "speech.start_browser_does_not_provide_microphone_access": {
+    "ru": "Браузер не даёт доступ к микрофону.",
+    "en": "The browser does not provide microphone access."
+  },
+  "speech.start_microphone_access_blocked_allow_window_edge": {
+    "ru": "Микрофон запрещён. Разрешите его для этого окна (Edge: Параметры → Разрешения сайтов → Микрофон) и проверьте Параметры Windows → Конфиденциальность → Микрофон.",
+    "en": "Microphone access is blocked. Allow it for this window (Edge: Settings → Site permissions → Microphone) and check Windows Settings → Privacy → Microphone."
+  },
+  "speech.start_microphone_not_found_use": {
+    "ru": "Микрофон не найден или занят.",
+    "en": "Microphone not found or in use."
+  },
+  "speech.start_recording_failed": {
+    "ru": "Не удалось начать запись: ",
+    "en": "Could not start recording: "
+  },
+  "speech.stop_no_speech_detected_check_microphone_speak": {
+    "ru": "Не услышал речь. Проверьте микрофон и говорите ближе.",
+    "en": "No speech detected. Check your microphone and speak closer."
+  },
+  "speech.stop_recording_too_short": {
+    "ru": "Слишком короткая запись.",
+    "en": "Recording is too short."
+  },
+  "speech.finish_transcribing_improving_gemma_ai": {
+    "ru": "Распознаю и улучшаю с Gemma AI…",
+    "en": "Transcribing and improving with Gemma AI…"
+  },
+  "speech.transcription_in_progress_status": {
+    "ru": "Распознаю…",
+    "en": "Transcribing…"
+  },
+  "speech.transcription_completed_status_prefix": {
+    "ru": "Готово. ",
+    "en": "Done. "
+  },
+  "speech.finish_done_generation_running_gemma_ai_skipped": {
+    "ru": "Готово. Идёт генерация: Gemma AI пропущена, текст без её правки.",
+    "en": "Done. Generation is running: Gemma AI skipped; text has not been edited by it."
+  },
+  "speech.finish_done_gemma_ai": {
+    "ru": "Готово (Gemma AI)",
+    "en": "Done (Gemma AI)"
+  },
+  "speech.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "speech.finish_speech_not_recognized_speak_closer_microphone": {
+    "ru": "Речь не распознана. Говорите ближе к микрофону.",
+    "en": "Speech not recognized. Speak closer to the microphone."
+  },
+  "speech.finish_recognition_failed": {
+    "ru": "Не удалось распознать.",
+    "en": "Recognition failed."
+  },
+  "speech.transcribe_invalid_recognition_service_response": {
+    "ru": "Некорректный ответ службы распознавания.",
+    "en": "Invalid recognition service response."
+  },
+  "speech.transcribe_recognition_unavailable": {
+    "ru": "Распознавание недоступно",
+    "en": "Recognition unavailable"
+  },
+  "speech.enhance_generation_running_gemma_ai_load_when": {
+    "ru": "Идёт генерация: Gemma AI загрузится после её окончания. Ваш выбор сохранён.",
+    "en": "Generation is running: Gemma AI will load when it finishes. Your preference is saved."
+  },
+  "speech.polish_text_too_long_gemma_standard_transcription": {
+    "ru": "Текст слишком длинный для Gemma: вставлено обычное распознавание.",
+    "en": "Text too long for Gemma: standard transcription inserted."
+  },
+  "speech.polish_stopped_standard_transcription_inserted": {
+    "ru": "Остановлено. Вставлено обычное распознавание.",
+    "en": "Stopped. Standard transcription inserted."
+  },
+  "speech.polish_gemma_changed_text_too_much_standard": {
+    "ru": "Gemma изменила текст слишком сильно, вставлено обычное распознавание.",
+    "en": "Gemma changed the text too much; standard transcription inserted."
+  },
+  "speech.polish_text_section_unavailable": {
+    "ru": "Раздел Text недоступен.",
+    "en": "Text section unavailable."
+  },
+  "speech.polish_text_unavailable": {
+    "ru": "Text недоступен.",
+    "en": "Text unavailable."
+  },
+  "speech.polish_standard_transcription_inserted": {
+    "ru": "%s Вставлено обычное распознавание.",
+    "en": "%s Standard transcription inserted."
+  },
+  "speech.polish_gemma_did_not_respond_standard_transcription": {
+    "ru": "Gemma не ответила (%s). Вставлено обычное распознавание.",
+    "en": "Gemma did not respond (%s). Standard transcription inserted."
+  },
+  "speech.polish_text_not_responding": {
+    "ru": "Text не отвечает: %s",
+    "en": "Text is not responding: %s"
+  },
+  "speech.routes_error_voice_input_unavailable_check_startup_log": {
+    "ru": "Голосовой ввод недоступен. Проверьте журнал запуска.",
+    "en": "Voice input unavailable. Check the startup log."
+  },
+  "speech.transcribe_recording_empty_too_long_maximum_two": {
+    "ru": "Запись пустая или слишком длинная: до двух минут",
+    "en": "Recording empty or too long: maximum two minutes"
+  },
+  "speech.transcribe_expected_audio_wav": {
+    "ru": "Ожидается audio/wav",
+    "en": "Expected audio/wav"
+  },
+  "speech.transcribe_invalid_microphone_recording_identifier": {
+    "ru": "Некорректный идентификатор записи микрофона",
+    "en": "Invalid microphone recording identifier"
+  },
+  "speech.availability_music_runtime_python_required_recognition_not": {
+    "ru": "Не найдено окружение Music (Runtime/Music/python), на котором работает распознавание.",
+    "en": "Music runtime (Runtime/Music/python), required for recognition, was not found."
+  },
+  "speech.availability_speech_recognition_model_missing_download_components": {
+    "ru": "Нет модели распознавания речи. Скачайте её во вкладке «Компоненты» (раздел «Voice input»).",
+    "en": "Speech recognition model missing. Download it in Components under Voice input."
+  },
+  "speech.settings_voice_input_contain_unsupported_parameters": {
+    "ru": "Настройки голосового ввода содержат неподдерживаемые параметры",
+    "en": "Voice input settings contain unsupported parameters"
+  },
+  "speech.start_speech_recognition_did_not_details_user": {
+    "ru": "Распознавание речи не запустилось. Подробности: UserData/Logs/speech-worker.log",
+    "en": "Speech recognition did not start. Details: UserData/Logs/speech-worker.log"
+  },
+  "speech.release_gpu_busy_recognizing_speech_wait_few_seconds": {
+    "ru": "GPU занят распознаванием речи: подождите пару секунд.",
+    "en": "GPU is busy recognizing speech: wait a few seconds."
+  },
+  "speech.recognize_expected_wav_recording": {
+    "ru": "Ожидается запись в формате WAV",
+    "en": "Expected a WAV recording"
+  },
+  "speech.recognize_recording_too_long_maximum_two_minutes": {
+    "ru": "Запись слишком длинная: до двух минут",
+    "en": "Recording too long: maximum two minutes"
+  },
+  "speech.settings_unknown_recognition_language": {
+    "ru": "Неизвестный язык распознавания",
+    "en": "Unknown recognition language"
+  },
+  "speech.recognize_recognition_taking_longer_than_usual_record": {
+    "ru": "Распознавание занято дольше обычного. Повторите запись.",
+    "en": "Recognition is taking longer than usual. Record again."
+  },
+  "speech.availability_gemma_unavailable": {
+    "ru": "Gemma недоступна.",
+    "en": "Gemma unavailable."
+  },
+  "speech.settings_recognition_model_not_installed": {
+    "ru": "Эта модель распознавания не установлена",
+    "en": "This recognition model is not installed"
+  },
+  "speech.settings_device_auto_cpu_cuda": {
+    "ru": "Устройство: auto, cpu или cuda",
+    "en": "Device: auto, cpu or cuda"
+  },
+  "speech.settings_keep_model_memory_1_5_15": {
+    "ru": "Держать модель в памяти: 1, 5, 15 или 60 минут",
+    "en": "Keep model in memory: 1, 5, 15 or 60 minutes"
+  },
+  "speech.settings_punctuation_enable_disable": {
+    "ru": "Расстановка знаков: включить или выключить",
+    "en": "Punctuation: enable or disable"
+  },
+  "speech.start_speech_recognition_failed": {
+    "ru": "Не удалось запустить распознавание речи",
+    "en": "Could not start speech recognition"
+  },
+  "speech.start_recognition_model_did_not_load_within": {
+    "ru": "Модель распознавания не загрузилась за %d секунд. Подробности: UserData/Logs/speech-worker.log",
+    "en": "Recognition model did not load within %d seconds. Details: UserData/Logs/speech-worker.log"
+  },
+  "speech.recognize_speech_recognition_interrupted_record_again": {
+    "ru": "Распознавание речи прервано. Повторите запись.",
+    "en": "Speech recognition interrupted. Record again."
+  },
+  "speech.recognize_speech_recognition_interrupted_e_g_starting": {
+    "ru": "Распознавание речи прервано (например, запуском генерации). Повторите запись.",
+    "en": "Speech recognition interrupted (e.g. by starting generation). Record again."
+  },
+  "speech.recognize_recognition_error": {
+    "ru": "Ошибка распознавания",
+    "en": "Recognition error"
+  },
+  "speech.recognize_recognition_took_too_long_stopped": {
+    "ru": "Распознавание заняло слишком много времени и было остановлено.",
+    "en": "Recognition took too long and was stopped."
+  },
+  "speech.read_wav_16_bit_required": {
+    "ru": "Нужен WAV 16 бит",
+    "en": "16-bit WAV required"
+  },
+  "speech.read_wav_recording_empty_longer_than_two_minutes": {
+    "ru": "Запись пустая или длиннее двух минут",
+    "en": "Recording empty or longer than two minutes"
+  }
+}

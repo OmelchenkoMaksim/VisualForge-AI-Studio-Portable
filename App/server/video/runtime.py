@@ -1,4 +1,5 @@
 """Portable private-process environment; never modify the Image environment."""
+from ui_strings import source as ui_text
 import os
 import hashlib
 from pathlib import Path
@@ -13,7 +14,7 @@ def environment(root, models, state):
         identity = hashlib.sha256(str(state.resolve()).encode('utf-8')).hexdigest()[:16]
         compiler = Path(os.environ.get('LOCALAPPDATA', str(Path.home() / 'AppData/Local'))) / 'Temp/VisualForgeVideo/Compiler' / identity
         if not str(compiler).isascii():
-            raise ValueError('Для кеша CUDA нужен доступный временный путь без кириллицы.')
+            raise ValueError(ui_text('video.environment_cuda_cache_requires_accessible_temporary_path'))
     for parent, names in ((state, ('hf', 'pip', 'torch')), (compiler, ('tmp', 'triton', 'inductor', 'cuda', 'numba'))):
         for name in names:
             (parent / name).mkdir(parents=True, exist_ok=True)

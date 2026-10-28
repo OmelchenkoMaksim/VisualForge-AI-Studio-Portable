@@ -15,8 +15,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 import generation
 from job_history import JobHistory
 from text.store import ChatStore
-from agents.manager import AgentManager
-from speech.manager import SpeechManager
+from agents.agent_manager import AgentManager
+from speech.speech_manager import SpeechManager
 
 FIELDS = {'type', 'id', 'started_at', 'duration_sec'}
 

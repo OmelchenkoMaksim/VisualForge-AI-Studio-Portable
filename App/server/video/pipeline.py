@@ -1,4 +1,5 @@
 """Sequential video scenes and optional local voice cloning; no resident model overlap."""
+from ui_strings import source as ui_text
 import argparse
 import copy
 import json
@@ -50,7 +51,7 @@ def main():
             info = json.loads(subprocess.check_output([probe, '-v', 'error', '-show_format', '-of', 'json', str(voice)]))
             total += float(info['format']['duration'])
         if total > duration + 0.04:
-            raise ValueError('Реплики занимают %.1f с, а ролик %.1f с. Сократите текст или выберите более длинный ролик.' % (total, duration))
+            raise ValueError(ui_text('video.pipeline_dialogue_takes_s_but_clip_shorten') % (total, duration))
     scenes = []
     for index in range(count):
         event('scene_start', scene=index + 1, scenes=count)

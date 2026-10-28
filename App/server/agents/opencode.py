@@ -3,6 +3,7 @@
 OpenCode is started with a scrubbed environment and an inline config, so it sees only the studio's model gateway: no API keys
 inherited from the user's environment (it exposes provider keys it finds through its own API), no other providers, no project
 config that could loosen permissions, no update checks, model-catalog fetches or LSP downloads (the studio works offline)."""
+from ui_strings import source as ui_text
 import atexit
 import base64
 import json
@@ -130,12 +131,12 @@ class OpenCodeServer:
                     return  # a task is running: keep the old model list until it ends
                 self.close()
             if not self.installed():
-                raise OpenCodeError('OpenCode не установлен: нет Runtime/Agents/opencode/opencode.exe. Установите его в «Настройки → Компоненты», раздел Text.')
+                raise OpenCodeError(ui_text('agent.start_open_code_not_installed_runtime_agents'))
             with socket.socket() as probe:
                 try:
                     probe.bind(('127.0.0.1', self.port))
                 except OSError:
-                    raise OpenCodeError('Порт OpenCode %d занят другой программой. Измените OpenCodePort в настройке запуска.' % self.port) from None
+                    raise OpenCodeError(ui_text('agent.start_open_code_port_occupied_another_application') % self.port) from None
             log = self.paths.logs / 'agent-opencode.log'
             log.parent.mkdir(parents=True, exist_ok=True)
             if log.is_file() and log.stat().st_size > 4 * 1024 * 1024:
@@ -153,14 +154,14 @@ class OpenCodeServer:
             deadline = time.monotonic() + 60
             while time.monotonic() < deadline:
                 if self.process.poll() is not None:
-                    raise OpenCodeError('OpenCode не запустился. Проверьте журнал agent-opencode.log.')
+                    raise OpenCodeError(ui_text('agent.start_open_code_did_not_check_agent'))
                 try:
                     self.call('GET', '/global/health', timeout=2)
                     break
                 except (OSError, ValueError):
                     time.sleep(0.3)
             else:
-                raise OpenCodeError('OpenCode не ответил при запуске')
+                raise OpenCodeError(ui_text('agent.start_open_code_did_not_respond_during'))
             self.config_key = key
             threading.Thread(target=self._listen, args=(self.process,), name='opencode-events', daemon=True).start()
 
@@ -200,7 +201,7 @@ class OpenCodeServer:
             message = value.get('message') or value.get('error') or value.get('data', {}).get('message')
             return 'OpenCode: ' + str(message or status)[:500]
         except (ValueError, AttributeError):
-            return 'OpenCode: ошибка %s' % status
+            return ui_text('agent.error_open_code') % status
 
     def create_session(self, directory, title, mode):
         return self.call('POST', '/session', dict(title=title[:200], permission=permission_rules(mode)), directory=directory)
@@ -226,7 +227,7 @@ class OpenCodeServer:
 
     def reply(self, request_id, answer, directory):
         if answer not in ('once', 'always', 'reject'):
-            raise ValueError('Ответ на запрос: разрешить один раз, разрешать всегда или отклонить')
+            raise ValueError(ui_text('agent.reply_permission_allow_once_always_reject'))
         self.call('POST', '/permission/%s/reply' % quote(request_id, safe=''), dict(reply=answer), directory=directory)
 
     def abort(self, session_id, directory):

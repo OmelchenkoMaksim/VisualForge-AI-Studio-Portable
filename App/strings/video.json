@@ -1,0 +1,1674 @@
+{
+  "video.configure_engine_frame": {
+    "ru": "кадр",
+    "en": "frame"
+  },
+  "video.duration_frame_count_few_plural_label": {
+    "ru": "кадра",
+    "en": "frames"
+  },
+  "video.duration_frame_count_many_plural_label": {
+    "ru": "кадров",
+    "en": "frames"
+  },
+  "video.configure_engine_1_minute_6_scenes_1440_frames": {
+    "ru": "1 минута · 6 сцен · 1440 кадров",
+    "en": "1 minute · 6 scenes · 1440 frames"
+  },
+  "video.configure_engine_s": {
+    "ru": "{0} с · {1} {2}",
+    "en": "{0} s · {1} {2}"
+  },
+  "video.generation_preview_quality_option": {
+    "ru": "Предпросмотр",
+    "en": "Preview"
+  },
+  "video.generation_standard_quality_option": {
+    "ru": "Стандартное",
+    "en": "Standard"
+  },
+  "video.generation_high_quality_option": {
+    "ru": "Высокое",
+    "en": "High"
+  },
+  "video.configure_engine_8_steps": {
+    "ru": "8 шагов",
+    "en": "8 steps"
+  },
+  "video.configure_engine_8_3_steps": {
+    "ru": "8 + 3 шага",
+    "en": "8 + 3 steps"
+  },
+  "video.configure_engine_16_steps": {
+    "ru": "16 шагов",
+    "en": "16 steps"
+  },
+  "video.configure_engine_steps": {
+    "ru": " шагов",
+    "en": " steps"
+  },
+  "video.quality_previous_element_sibling_step_one_model_refinement_result_more": {
+    "ru": "Шаг — одно уточнение результата моделью. Больше шагов требует больше времени.",
+    "en": "A step is one model refinement of the result. More steps take more time."
+  },
+  "video.quality_previous_element_sibling_step_one_model_refinement_8_3": {
+    "ru": "Шаг — одно уточнение результата моделью. 8 + 3 — основной проход и дополнительное уточнение.",
+    "en": "A step is one model refinement. 8 + 3 means a main pass followed by extra refinement."
+  },
+  "video.quality_help_fast_8_steps_one_pass_lightweight": {
+    "ru": "Быстрое: 8 шагов, один проход, облегчённое декодирование. Два прохода: 8 шагов в половинном размере, обученное увеличение и 3 шага уточнения; затем более детальное декодирование. Для длинного ролика выбранные шаги выполняются для каждого фрагмента.",
+    "en": "Fast: 8 steps, one pass, lightweight decoding. Two passes: 8 steps at half size, learned upscaling and 3 refinement steps, then more detailed decoding. For long clips, the selected steps run for every segment."
+  },
+  "video.quality_help_20_consecutive_model_refinements_scene_one": {
+    "ru": "20 последовательных уточнений сцены моделью. Пока доступен один профиль качества.",
+    "en": "20 consecutive model refinements of the scene. Only one quality profile is currently available."
+  },
+  "video.quality_help_step_one_scene_refinement_start_standard": {
+    "ru": "Шаг — одно уточнение сцены. Начните со стандартных 20 шагов; 12 быстрее, 30 требует больше времени.",
+    "en": "A step is one scene refinement. Start with the standard 20 steps; 12 is faster, 30 takes more time."
+  },
+  "video.profile_hint_24_fps_start_768_512_49": {
+    "ru": "24 FPS. Начните с 768 × 512 и 49 кадров (2,0417 с). Видео и звук создаются совместно. 15/30/60 с — продолжение одной сцены; на стыках возможны изменения деталей и звука. Доступны горизонтальные и вертикальные профили. Экспорт MP4 / H.264 + AAC.",
+    "en": "24 FPS. Start with 768 × 512 and 49 frames (2.0417 s). Video and audio are generated together. 15/30/60 s continues one scene; details and sound may change at joins. Landscape and portrait profiles are available. MP4 / H.264 + AAC export."
+  },
+  "video.profile_hint_16_fps_frames_per_second_short": {
+    "ru": "16 FPS — 16 кадров за секунду. Короткий профиль: 512 × 512, 77 кадров (4,8125 с), 20 шагов. Экспорт MP4 / H.264 со звуком речи.",
+    "en": "16 FPS — 16 frames per second. Short profile: 512 × 512, 77 frames (4.8125 s), 20 steps. MP4 / H.264 export with speech audio."
+  },
+  "video.profile_hint_24_fps_frames_per_second_start": {
+    "ru": "24 FPS — 24 кадра за секунду. Начните с 832 × 480, 81 кадр (3,375 с), 20 шагов. На 512 × 288 в пробе были сильные искажения формы. 121 кадр проверен на сцене с движением; остальные сочетания отдельно не проверены. Экспорт MP4 / H.264, без звука.",
+    "en": "24 FPS — 24 frames per second. Start with 832 × 480, 81 frames (3.375 s), 20 steps. A 512 × 288 trial showed severe shape distortion. 121 frames was tested with a moving scene; other combinations have not been individually tested. MP4 / H.264 export without audio."
+  },
+  "video.prompt_guide_describe_scene_camera_movement_desired_sound": {
+    "ru": "Опишите сцену, движение камеры и желаемый звук одним связным текстом. Например: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. Реплики пишите в кавычках; правильность произношения не гарантируется.",
+    "en": "Describe the scene, camera movement and desired sound in connected prose. Example: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. Put dialogue in quotes; correct pronunciation is not guaranteed."
+  },
+  "video.prompt_guide_describe_character_expression_gentle_movement_enter": {
+    "ru": "Опишите персонажа, выражение лица и спокойное движение. Слова реплики вводятся отдельно. Пример описания: The person speaks naturally to the camera, subtle head movement, clear face, stable lighting, fixed camera.",
+    "en": "Describe the character, expression and gentle movement. Enter dialogue separately. Example: The person speaks naturally to the camera, subtle head movement, clear face, stable lighting, fixed camera."
+  },
+  "video.prompt_guide_wan_start_simple_english_scene_description": {
+    "ru": "Для Wan начните с простого английского описания сцены, одного движения и камеры. При исходном изображении опишите желаемое движение. Для заметного действия: A small yellow toy robot raises its right arm and waves its hand. Locked camera, one continuous shot.",
+    "en": "For Wan, start with a simple English scene description, one movement and the camera. With a source image, describe the desired movement. For visible action: A small yellow toy robot raises its right arm and waves its hand. Locked camera, one continuous shot."
+  },
+  "video.availability_local_generation_has_not_been_tested": {
+    "ru": "Локальная генерация ещё не проверена.",
+    "en": "Local generation has not been tested yet."
+  },
+  "video.availability_tested_rtx_5070_ti_16_gb": {
+    "ru": "Проверено на RTX 5070 Ti 16 ГБ.",
+    "en": "Tested on RTX 5070 Ti 16 GB."
+  },
+  "video.model_details_release": {
+    "ru": "Выпуск модели: {0}.",
+    "en": "Model release: {0}."
+  },
+  "video.add_character_name": {
+    "ru": "Имя персонажа",
+    "en": "Character name"
+  },
+  "video.name_example_alice": {
+    "ru": "Например: Алиса",
+    "en": "For example: Alice"
+  },
+  "video.photo_image_paste_ctrl_v": {
+    "ru": "Изображение · можно вставить Ctrl+V",
+    "en": "Image · paste with Ctrl+V"
+  },
+  "video.preview_character_image": {
+    "ru": "Изображение персонажа",
+    "en": "Character image"
+  },
+  "video.voice_sample_optional": {
+    "ru": "Образец голоса · необязательно",
+    "en": "Voice sample · optional"
+  },
+  "video.add_character_voice_sample_exceeds_8_mi_b": {
+    "ru": "Образец голоса больше 8 МиБ",
+    "en": "Voice sample exceeds 8 MiB"
+  },
+  "video.add_character_dialogue_voice": {
+    "ru": "Текст реплики этим голосом",
+    "en": "Dialogue in this voice"
+  },
+  "video.add_character_enter_what_should_say": {
+    "ru": "Введите то, что должен сказать персонаж",
+    "en": "Enter what the character should say"
+  },
+  "video.character_dialogue_language_field_label": {
+    "ru": "Язык реплики",
+    "en": "Dialogue language"
+  },
+  "video.speech_language_russian_option_label": {
+    "ru": "Русский",
+    "en": "Russian"
+  },
+  "video.add_character_detect_language": {
+    "ru": "Определить язык",
+    "en": "Detect language"
+  },
+  "video.character_card_remove_button_label": {
+    "ru": "Удалить персонажа",
+    "en": "Remove character"
+  },
+  "video.api_request_connect_studio_check_application_running_unavailable": {
+    "ru": "Нет связи со студией. Проверьте, запущено ли приложение.",
+    "en": "Cannot connect to the studio. Check that the application is running."
+  },
+  "video.api_request_invalid_video_service_response_open_logs": {
+    "ru": "Некорректный ответ Video-сервиса. Откройте логи Video.",
+    "en": "Invalid Video service response. Open the Video logs."
+  },
+  "video.api_request_video_unavailable": {
+    "ru": "Video недоступен",
+    "en": "Video unavailable"
+  },
+  "video.header_generate_video_text_description": {
+    "ru": "Генерация видео по текстовому описанию",
+    "en": "Generate video from a text description"
+  },
+  "video.header_animate_source_image": {
+    "ru": "Оживление исходного изображения",
+    "en": "Animate a source image"
+  },
+  "video.header_generate_video_between_first_last_frames": {
+    "ru": "Генерация видео между первым и последним кадром",
+    "en": "Generate video between first and last frames"
+  },
+  "video.header_generate_video_reference_characters": {
+    "ru": "Генерация видео с персонажами по референсам",
+    "en": "Generate video with reference characters"
+  },
+  "video.header_talking_character_image_speech": {
+    "ru": "Говорящий персонаж по изображению и речи",
+    "en": "Talking character from an image and speech"
+  },
+  "video.header_local_video_generation": {
+    "ru": "Локальная генерация видео",
+    "en": "Local video generation"
+  },
+  "video.header_video_engine_model_files_available_gpu": {
+    "ru": "Video: файлы движка и модели доступны. GPU-проверка выполняется при генерации.",
+    "en": "Video: engine and model files are available. GPU validation runs during generation."
+  },
+  "video.header_selected_model_unavailable": {
+    "ru": "Выбранная модель недоступна.",
+    "en": "The selected model is unavailable."
+  },
+  "video.header_checking_video_models": {
+    "ru": "Проверка моделей Video…",
+    "en": "Checking Video models…"
+  },
+  "video.to_frame_source_exceeds_36_mi_b": {
+    "ru": "Исходный кадр больше 36 МиБ",
+    "en": "Source frame exceeds 36 MiB"
+  },
+  "video.to_frame_exceeds_8192_pixels_one_side": {
+    "ru": "Кадр больше 8192 пикселей по стороне",
+    "en": "Frame exceeds 8192 pixels on one side"
+  },
+  "video.history_text_to_video_mode_label": {
+    "ru": "По тексту",
+    "en": "From text"
+  },
+  "video.history_image_to_video_mode_label": {
+    "ru": "По изображению",
+    "en": "From image"
+  },
+  "video.history_between_frames": {
+    "ru": "Между кадрами",
+    "en": "Between frames"
+  },
+  "video.history_character_reference_mode_label": {
+    "ru": "Персонажи",
+    "en": "Characters"
+  },
+  "video.history_talking_character": {
+    "ru": "Говорящий персонаж",
+    "en": "Talking character"
+  },
+  "video.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "video.generation_cancelled_status_label": {
+    "ru": "Отменено",
+    "en": "Cancelled"
+  },
+  "video.generation_failed_status_label": {
+    "ru": "Ошибка",
+    "en": "Error"
+  },
+  "video.reuse_restore_prompt_seed": {
+    "ru": "Вернуть промпт и seed",
+    "en": "Restore prompt and seed"
+  },
+  "video.play_open_video": {
+    "ru": "Открыть видео",
+    "en": "Open video"
+  },
+  "video.logs_generation_deleted": {
+    "ru": "Генерация удалена.",
+    "en": "Generation deleted."
+  },
+  "video.meta_frames_s_seed": {
+    "ru": "{0} · {1}×{2} · Кадры: {3} · {4} с · {5} · Seed {6}",
+    "en": "{0} · {1}×{2} · Frames: {3} · {4} s · {5} · Seed {6}"
+  },
+  "video.meta_audio_stream_present": {
+    "ru": "Есть аудиопоток",
+    "en": "Audio stream present"
+  },
+  "video.meta_no_audio_stream": {
+    "ru": "Без аудиопотока",
+    "en": "No audio stream"
+  },
+  "video.output_saved_path_information_prefix": {
+    "ru": "Сохранено: ",
+    "en": "Saved: "
+  },
+  "video.logs_task_has_not_started_yet_error": {
+    "ru": "Задача ещё не была запущена. Подробности ошибки показаны в уведомлении.",
+    "en": "The task has not started yet. Error details are shown in the notification."
+  },
+  "video.poll_elapsed_s": {
+    "ru": "{0} · {1}{2}{3} · прошло {4} с",
+    "en": "{0} · {1}{2}{3} · elapsed {4} s"
+  },
+  "video.generation_continuation_segment_prefix": {
+    "ru": "Продолжение ",
+    "en": "Continuation "
+  },
+  "video.generation_scene_index_prefix": {
+    "ru": "Сцена ",
+    "en": "Scene "
+  },
+  "video.poll_generation_assembly_completed_video_saved": {
+    "ru": "Генерация и монтаж завершены. Видео сохранено.",
+    "en": "Generation and assembly completed. Video saved."
+  },
+  "video.voice_availability_local_cloning_qwen3_tts_ready": {
+    "ru": "Локальная озвучка по образцу: Qwen3-TTS, готова.",
+    "en": "Local voice cloning: Qwen3-TTS, ready."
+  },
+  "video.voice_availability_cloning_module_not_installed_yet": {
+    "ru": "Модуль голоса по образцу пока не установлен.",
+    "en": "The voice cloning module is not installed yet."
+  },
+  "video.use_append_prompt": {
+    "ru": "Добавить к промпту",
+    "en": "Append to prompt"
+  },
+  "video.generation_delete_button_label": {
+    "ru": "Удалить",
+    "en": "Delete"
+  },
+  "video.export_facts_px_top_bottom": {
+    "ru": "{0} пикс. сверху и снизу",
+    "en": "{0} px at top and bottom"
+  },
+  "video.export_facts_px_left_right": {
+    "ru": "{0} пикс. слева и справа",
+    "en": "{0} px at left and right"
+  },
+  "video.export_facts_source_fps_s": {
+    "ru": "Исходник: {0} × {1}, {2} fps, {3} с",
+    "en": "Source: {0} × {1}, {2} fps, {3} s"
+  },
+  "video.export_facts_output_fps_mp4_h_264": {
+    "ru": "Результат: {0} × {1} ({2}), {3} fps, MP4 H.264",
+    "en": "Output: {0} × {1} ({2}), {3} fps, MP4 H.264"
+  },
+  "video.export_facts_picture_within_canvas": {
+    "ru": "Кадр в поле: {0} × {1}",
+    "en": "Picture within canvas: {0} × {1}"
+  },
+  "video.export_facts_black_bars": {
+    "ru": ", чёрные поля: {0}",
+    "en": ", black bars: {0}"
+  },
+  "video.export_facts_no_bars": {
+    "ru": ", без полей",
+    "en": ", no bars"
+  },
+  "video.export_facts_scale_image_enlarged_without_adding_detail": {
+    "ru": "Масштаб ×{0}: кадр увеличивается, деталей не прибавляется",
+    "en": "Scale ×{0}: image enlarged without adding detail"
+  },
+  "video.export_facts_scale_image_reduced": {
+    "ru": "Масштаб ×{0}: кадр уменьшается",
+    "en": "Scale ×{0}: image reduced"
+  },
+  "video.export_facts_scale_unchanged": {
+    "ru": "Масштаб без изменения",
+    "en": "Scale unchanged"
+  },
+  "video.export_facts_frame_rate_unchanged": {
+    "ru": "Частота кадров не меняется",
+    "en": "Frame rate unchanged"
+  },
+  "video.export_facts_frame_rate_fps_frames_duplicated_skipped": {
+    "ru": "Частота кадров: {0} → {1} fps; кадры повторяются или пропускаются, нового движения нет",
+    "en": "Frame rate: {0} → {1} fps; frames are duplicated or skipped, no new motion is created"
+  },
+  "video.export_facts_audio_clip": {
+    "ru": "Звук: из ролика",
+    "en": "Audio: from the clip"
+  },
+  "video.export_facts_audio_silent_track_added": {
+    "ru": "Звук: добавится тихая дорожка",
+    "en": "Audio: a silent track will be added"
+  },
+  "video.export_facts_output_have_no_audio": {
+    "ru": "Звука в результате не будет",
+    "en": "Output will have no audio"
+  },
+  "video.export_elapsed_s": {
+    "ru": "{0} · {1} · прошло {2} с",
+    "en": "{0} · {1} · elapsed {2} s"
+  },
+  "video.export_completed_saved_path_template": {
+    "ru": "Готово: {0}",
+    "en": "Done: {0}"
+  },
+  "video.export_cancelled_partial_file_deleted": {
+    "ru": "Экспорт отменён. Частичный файл удалён.",
+    "en": "Export cancelled. Partial file deleted."
+  },
+  "video.export_execution_failed_error": {
+    "ru": "Экспорт не удался",
+    "en": "Export failed"
+  },
+  "video.poll_export_completed": {
+    "ru": "Экспорт «{0}» завершён: {1}",
+    "en": "Export “{0}” completed: {1}"
+  },
+  "video.export_execution_starting_status": {
+    "ru": "Запуск экспорта…",
+    "en": "Starting export…"
+  },
+  "video.music_library_track_duration_template": {
+    "ru": "{0} · {1} с",
+    "en": "{0} · {1} s"
+  },
+  "video.music_track_section": {
+    "ru": "Дорожка {0}: музыка из раздела Music",
+    "en": "Track {0}: music from the Music section"
+  },
+  "video.add_mix_track_start_s": {
+    "ru": "Старт, с",
+    "en": "Start, s"
+  },
+  "video.add_mix_track_volume_d_b": {
+    "ru": "Громкость, дБ",
+    "en": "Volume, dB"
+  },
+  "video.add_mix_track_fade_s": {
+    "ru": "Нарастание, с",
+    "en": "Fade in, s"
+  },
+  "video.add_mix_track_fade_out_s": {
+    "ru": "Затухание, с",
+    "en": "Fade out, s"
+  },
+  "video.add_mix_track_loop_until_video_ends": {
+    "ru": "Повторять, пока не кончится ролик",
+    "en": "Loop until the video ends"
+  },
+  "video.mixer_remove_music_track_button_label": {
+    "ru": "Убрать дорожку",
+    "en": "Remove track"
+  },
+  "video.add_mix_track_select_music": {
+    "ru": "Выберите музыку…",
+    "en": "Select music…"
+  },
+  "video.add_mix_track_no_music_available_create": {
+    "ru": "Нет готовой музыки: создайте её в разделе Music",
+    "en": "No music available: create it in Music"
+  },
+  "video.draw_mix_d_b": {
+    "ru": "{0} · {1} дБ",
+    "en": "{0} · {1} dB"
+  },
+  "video.duration_seconds_template": {
+    "ru": "{0} с",
+    "en": "{0} s"
+  },
+  "video.update_mix_preview_select_music_every_track": {
+    "ru": "Выберите музыку для каждой дорожки",
+    "en": "Select music for every track"
+  },
+  "video.update_mix_preview_add_least_one_music_track": {
+    "ru": "Добавьте хотя бы одну дорожку музыки",
+    "en": "Add at least one music track"
+  },
+  "video.update_mix_preview_clip_duration_s": {
+    "ru": "Длительность ролика: {0} с; {1}",
+    "en": "Clip duration: {0} s; {1}"
+  },
+  "video.update_mix_preview_clip_audio_preserved": {
+    "ru": "звук ролика сохраняется",
+    "en": "clip audio preserved"
+  },
+  "video.update_mix_preview_clip_audio_removed": {
+    "ru": "звука ролика в итоге не будет",
+    "en": "clip audio will be removed"
+  },
+  "video.mix_ducking_clip_has_no_original_audio_duck": {
+    "ru": "В этом ролике нет собственного звука: приглушать нечего",
+    "en": "This clip has no original audio to duck"
+  },
+  "video.mix_elapsed_s": {
+    "ru": "{0} · прошло {1} с",
+    "en": "{0} · elapsed {1} s"
+  },
+  "video.mix_mixing_cancelled_partial_file_deleted": {
+    "ru": "Микширование отменено. Частичный файл удалён.",
+    "en": "Mixing cancelled. Partial file deleted."
+  },
+  "video.mix_mixing_failed": {
+    "ru": "Микширование не удалось",
+    "en": "Mixing failed"
+  },
+  "video.poll_mix_music_added": {
+    "ru": "Музыка добавлена: {0}",
+    "en": "Music added: {0}"
+  },
+  "video.mix_starting_mixing": {
+    "ru": "Запуск микширования…",
+    "en": "Starting mixing…"
+  },
+  "video.read_speech_audio_file_exceeds_8_mi_b": {
+    "ru": "Аудиофайл больше 8 МиБ",
+    "en": "Audio file exceeds 8 MiB"
+  },
+  "video.reader_read_audio_file_failed": {
+    "ru": "Не удалось прочитать аудиофайл",
+    "en": "Could not read the audio file"
+  },
+  "video.generation_add_source_frame": {
+    "ru": "Добавьте исходный кадр",
+    "en": "Add a source frame"
+  },
+  "video.generation_add_voice_sample": {
+    "ru": "Добавьте образец голоса",
+    "en": "Add a voice sample"
+  },
+  "video.generation_enter_short_line_dialogue": {
+    "ru": "Введите короткую реплику",
+    "en": "Enter a short line of dialogue"
+  },
+  "video.generation_add_speech_recording": {
+    "ru": "Добавьте готовую запись речи",
+    "en": "Add a speech recording"
+  },
+  "video.generation_add_ending_frame": {
+    "ru": "Добавьте конечный кадр",
+    "en": "Add an ending frame"
+  },
+  "video.generation_add_image_each_character": {
+    "ru": "Добавьте изображение каждого персонажа",
+    "en": "Add an image for each character"
+  },
+  "video.generation_add_voice_sample_each_line_dialogue": {
+    "ru": "Добавьте образец голоса для каждой реплики",
+    "en": "Add a voice sample for each line of dialogue"
+  },
+  "video.generation_input_and_gpu_validation_status": {
+    "ru": "Проверка входных данных и свободной GPU…",
+    "en": "Checking input data and GPU availability…"
+  },
+  "video.save_folder_video_saved": {
+    "ru": "Папка Video сохранена.",
+    "en": "Video folder saved."
+  },
+  "video.fetch_image_source_unavailable": {
+    "ru": "Исходное изображение недоступно",
+    "en": "Source image unavailable"
+  },
+  "video.button_use_video": {
+    "ru": "Использовать в Video",
+    "en": "Use in Video"
+  },
+  "video.availability_checking_video_when_section_opens": {
+    "ru": "Проверка Video при открытии раздела…",
+    "en": "Checking Video when the section opens…"
+  },
+  "video.engine_software_model_create_videos_locally_computer": {
+    "ru": "Программа и модель, которые создают видео локально на вашем компьютере",
+    "en": "Software and model that create videos locally on your computer"
+  },
+  "video.engine_video_model": {
+    "ru": "Движок — модель для видео",
+    "en": "Engine — video model"
+  },
+  "video.generation_mode_selection_label": {
+    "ru": "Режим",
+    "en": "Mode"
+  },
+  "video.mode_video_text": {
+    "ru": "Видео по тексту",
+    "en": "Video from text"
+  },
+  "video.mode_animate_image": {
+    "ru": "Оживить изображение",
+    "en": "Animate image"
+  },
+  "video.mode_first_last_frames": {
+    "ru": "Первый и последний кадр",
+    "en": "First and last frames"
+  },
+  "video.mode_characters_images_experimental": {
+    "ru": "Персонажи по изображениям · экспериментально",
+    "en": "Characters from images · experimental"
+  },
+  "video.mode_talking_character_wan_s2_v": {
+    "ru": "Говорящий персонаж · Wan S2V",
+    "en": "Talking character · Wan S2V"
+  },
+  "video.prompt_text_instruction_who_frame_what_happens": {
+    "ru": "Текстовая инструкция модели: кто в кадре, что происходит и как движется камера",
+    "en": "Text instruction: who is in the frame, what happens and how the camera moves"
+  },
+  "video.prompt_desired_video_description": {
+    "ru": "Промпт — описание желаемого видео",
+    "en": "Prompt — desired video description"
+  },
+  "video.prompt_describe_scene_action_camera_movement": {
+    "ru": "Опишите сцену, действие и движение камеры",
+    "en": "Describe the scene, action and camera movement"
+  },
+  "video.source_frame_motion_start_tooltip": {
+    "ru": "Картинка, с которой начинается движение в ролике",
+    "en": "Image where motion begins"
+  },
+  "video.source_frame_input_field_label": {
+    "ru": "Исходный кадр — начало видео",
+    "en": "Source frame — video start"
+  },
+  "video.preview_video_source_frame": {
+    "ru": "Исходный кадр Video",
+    "en": "Video source frame"
+  },
+  "video.speech_block_wan_s2_v": {
+    "ru": "Речь для Wan S2V",
+    "en": "Speech for Wan S2V"
+  },
+  "video.speech_block_drives_facial_body_motion_clear_front": {
+    "ru": "Речь управляет генерацией движений лица и тела. Чёткое лицо анфас и чистая речь помогают модели; точность губ не гарантируется.",
+    "en": "Speech drives facial and body motion. A clear front-facing face and clean speech help the model; lip accuracy is not guaranteed."
+  },
+  "video.speech_mode_preparation_method": {
+    "ru": "Способ подготовки речи",
+    "en": "Speech preparation method"
+  },
+  "video.speech_mode_voice_sample_text": {
+    "ru": "Образец голоса + текст",
+    "en": "Voice sample + text"
+  },
+  "video.speech_mode_recorded": {
+    "ru": "Готовая запись речи",
+    "en": "Recorded speech"
+  },
+  "video.voice_sample_2_30_s_up_8_mi": {
+    "ru": "Образец голоса · 2–30 с, до 8 МиБ",
+    "en": "Voice sample · 2–30 s, up to 8 MiB"
+  },
+  "video.speech_short_dialogue": {
+    "ru": "Короткая реплика",
+    "en": "Short dialogue"
+  },
+  "video.speech_example_hello_how_you": {
+    "ru": "Например: Привет! Как дела?",
+    "en": "For example: Hello! How are you?"
+  },
+  "video.ready_speech_recorded_0_1_4_8125_s": {
+    "ru": "Готовая речь · 0,1–4,8125 с, до 8 МиБ",
+    "en": "Recorded speech · 0.1–4.8125 s, up to 8 MiB"
+  },
+  "video.speech_block_currently_one_short_4_8125_s": {
+    "ru": "Пока один короткий фрагмент на 4,8125 с. Длинная речь отклоняется без обрезки; короткая дополняется тишиной. Образец голоса служит только образцом: произносится введённая реплика.",
+    "en": "Currently one short 4.8125 s segment. Longer speech is rejected without truncation; shorter speech is padded with silence. The voice sample is only a reference: the entered line is spoken."
+  },
+  "video.end_image_scene_should_reach": {
+    "ru": "Картинка, к которой должна прийти сцена в конце ролика",
+    "en": "Image the scene should reach at the end"
+  },
+  "video.end_ending_frame_video_finish": {
+    "ru": "Конечный кадр — завершение видео",
+    "en": "Ending frame — video finish"
+  },
+  "video.end_preview_video_ending_frame": {
+    "ru": "Конечный кадр Video",
+    "en": "Video ending frame"
+  },
+  "video.character_block_characters_dialogue": {
+    "ru": "Персонажи и реплики",
+    "en": "Characters and dialogue"
+  },
+  "video.character_block_up_three_characters_upload_image_paste": {
+    "ru": "До трёх персонажей. Загрузите картинку или вставьте её из буфера в карточку. Укажите имена в описании сцены. Референс — картинка-образец внешности персонажа. Внешность по таким образцам может меняться.",
+    "en": "Up to three characters. Upload an image or paste it into the card. Mention names in the scene description. A reference is an example of the character's appearance, which may still vary."
+  },
+  "video.character_reference_add_button_label": {
+    "ru": "Добавить персонажа",
+    "en": "Add character"
+  },
+  "video.character_block_speech_2_30_s_voice_sample": {
+    "ru": "Для речи: образец голоса 2–30 с (до 8 МиБ) и текст. Реплики звучат последовательно, по порядку карточек. Короткие записи без шума дают лучший результат. Движение губ с речью не синхронизируется.",
+    "en": "For speech: a 2–30 s voice sample (up to 8 MiB) and text. Lines play consecutively in card order. Short, clean recordings work best. Lip movement is not synchronized with speech."
+  },
+  "video.quality_step_one_model_refinement_8_3": {
+    "ru": "Шаг — одно уточнение результата моделью. 8 + 3 означает основной проход из 8 шагов и дополнительное уточнение из 3",
+    "en": "A step is one model refinement. 8 + 3 means 8 main steps followed by 3 refinement steps"
+  },
+  "video.quality_step_count": {
+    "ru": "Качество — число шагов",
+    "en": "Quality — step count"
+  },
+  "video.quality_preview_8_steps": {
+    "ru": "Предпросмотр · 8 шагов",
+    "en": "Preview · 8 steps"
+  },
+  "video.quality_standard_8_3_steps": {
+    "ru": "Стандартное · 8 + 3 шага",
+    "en": "Standard · 8 + 3 steps"
+  },
+  "video.quality_high_16_steps": {
+    "ru": "Высокое · 16 шагов",
+    "en": "High · 16 steps"
+  },
+  "video.quality_help_step_one_scene_refinement_8_3": {
+    "ru": "Шаг — одно уточнение сцены моделью. «8 + 3» — основной проход и дополнительное уточнение. Предпросмотр быстрее; больше шагов требует больше времени.",
+    "en": "A step is one scene refinement. 8 + 3 is a main pass followed by extra refinement. Preview is faster; more steps take more time."
+  },
+  "video.seed_randomness_value": {
+    "ru": "Seed — число случайности",
+    "en": "Seed — randomness value"
+  },
+  "video.seed_leave_empty_new_variation": {
+    "ru": "Оставьте пустым для нового варианта",
+    "en": "Leave empty for a new variation"
+  },
+  "video.seed_help_helps_reproduce_result_same_description_model": {
+    "ru": "Seed («сид») помогает повторить результат при тех же описании, модели и настройках. Пустое поле — случайный вариант. Это не показатель качества.",
+    "en": "Seed helps reproduce a result with the same description, model and settings. Empty means random. It is not a quality indicator."
+  },
+  "video.generation_identity_duration_field_label": {
+    "ru": "Длительность",
+    "en": "Duration"
+  },
+  "video.duration_1_625_s_39_frames": {
+    "ru": "1,625 с · 39 кадров",
+    "en": "1.625 s · 39 frames"
+  },
+  "video.duration_10_125_s_243_frames": {
+    "ru": "10,125 с · 243 кадра",
+    "en": "10.125 s · 243 frames"
+  },
+  "video.resolution_frame_size": {
+    "ru": "Размер кадра",
+    "en": "Frame size"
+  },
+  "video.profile_hint_16_9_aspect_ratio_512_288": {
+    "ru": "16:9 — форма кадра. 512 × 288 — ширина и высота в пикселях. 24 FPS — 24 кадра за секунду. MP4 — формат файла, H.264 — способ сжатия для обычных видеоплееров. Минута собирается из шести новых сцен; на стыках возможны изменения. Длинные ролики: по тексту или персонажам, 8 шагов.",
+    "en": "16:9 is the aspect ratio. 512 × 288 is width and height in pixels. 24 FPS means 24 frames per second. MP4 is the file format; H.264 is compression for standard players. A minute is assembled from six new scenes; joins may introduce changes. Long clips: text or characters, 8 steps."
+  },
+  "video.generate_create_video": {
+    "ru": "Создать видео",
+    "en": "Create video"
+  },
+  "video.task_cancel_button_label": {
+    "ru": "Отменить",
+    "en": "Cancel"
+  },
+  "video.p_ready_check_video": {
+    "ru": "Готово к проверке Video",
+    "en": "Ready to check Video"
+  },
+  "video.workspace_how_describe_video": {
+    "ru": "Как описать видео",
+    "en": "How to describe a video"
+  },
+  "video.workspace_specify_scene_main_subject_one_clear": {
+    "ru": "Укажите сцену и главного героя, затем одно понятное движение. Опишите положение и движение камеры, освещение, последовательность действия и детали, которые должны оставаться постоянными. Для короткого ролика достаточно одного непрерывного действия. При заданных кадрах промпт описывает переход между ними.",
+    "en": "Specify the scene and main subject, then one clear movement. Describe camera position and motion, lighting, action sequence and details to preserve. One continuous action is enough for a short clip. With supplied frames, describe the transition between them."
+  },
+  "video.prompt_guide_h3_start_simple_english_description_example": {
+    "ru": "Для H3 начните с простого английского описания. Например: A red ball rolls slowly across a matte gray floor. Locked camera, soft studio lighting, stable background. One continuous shot.",
+    "en": "For H3, start with a simple English description. Example: A red ball rolls slowly across a matte gray floor. Locked camera, soft studio lighting, stable background. One continuous shot."
+  },
+  "video.workspace_video_autosave_folder": {
+    "ru": "Папка автосохранения Video",
+    "en": "Video autosave folder"
+  },
+  "video.workspace_finished_mp4_saved_folder_automatically": {
+    "ru": "Готовый MP4 сохраняется автоматически в эту папку.",
+    "en": "The finished MP4 is saved to this folder automatically."
+  },
+  "video.save_dir_full_path": {
+    "ru": "Полный путь",
+    "en": "Full path"
+  },
+  "video.choose_save_dir": {
+    "ru": "Выбрать…",
+    "en": "Choose…"
+  },
+  "video.open_save_dir_folder": {
+    "ru": "Открыть папку",
+    "en": "Open folder"
+  },
+  "video.save_settings_folder": {
+    "ru": "Сохранить папку",
+    "en": "Save folder"
+  },
+  "video.copy_save_dir_path": {
+    "ru": "Скопировать путь",
+    "en": "Copy path"
+  },
+  "video.workspace_video_prompt_archive": {
+    "ru": "Архив промптов Video",
+    "en": "Video prompt archive"
+  },
+  "video.save_prompt_current": {
+    "ru": "Сохранить текущий промпт",
+    "en": "Save current prompt"
+  },
+  "video.generation_output_region_label": {
+    "ru": "Результат",
+    "en": "Result"
+  },
+  "video.download_mp4_copy": {
+    "ru": "Скачать копию MP4",
+    "en": "Download MP4 copy"
+  },
+  "video.mix_block_music_sound": {
+    "ru": "Музыка и звук",
+    "en": "Music and sound"
+  },
+  "video.mix_block_adds_music_under_finished_clip_saves": {
+    "ru": "Кладёт музыку из раздела Music под готовый ролик и сохраняет новый MP4 рядом с ним. Исходный файл не меняется, картинка копируется без пережатия, а звук пересобирается заново. Работает на процессоре и не занимает видеокарту. Музыку сначала создайте в разделе Music.",
+    "en": "Adds music from Music under the finished clip and saves a new MP4 beside it. The source is unchanged; video is copied without re-encoding and audio is rebuilt. Runs on CPU without occupying the GPU. Create the music in Music first."
+  },
+  "video.mix_native_original_clip_audio": {
+    "ru": "Собственный звук ролика",
+    "en": "Original clip audio"
+  },
+  "video.mix_native_keep": {
+    "ru": "Оставить",
+    "en": "Keep"
+  },
+  "video.mix_native_remove": {
+    "ru": "Убрать",
+    "en": "Remove"
+  },
+  "video.mix_native_gain_0_keeps_original_level_negative_quieter": {
+    "ru": "0 — как в ролике; минус — тише, плюс — громче",
+    "en": "0 keeps the original level; negative is quieter, positive is louder"
+  },
+  "video.mix_native_gain_clip_audio_volume_d_b": {
+    "ru": "Громкость звука ролика, дБ",
+    "en": "Clip audio volume, dB"
+  },
+  "video.mix_add_music_track": {
+    "ru": "Добавить дорожку музыки",
+    "en": "Add music track"
+  },
+  "video.mix_refresh_music_list": {
+    "ru": "Обновить список музыки",
+    "en": "Refresh music list"
+  },
+  "video.mix_ducking_duck_music_while_clip_s_original": {
+    "ru": "Приглушать музыку, пока в ролике звучит собственный звук (речь)",
+    "en": "Duck music while the clip's original audio (speech) is playing"
+  },
+  "video.mix_canvas_timeline_video_original_audio_music_tracks": {
+    "ru": "Схема по времени: видео, звук ролика и дорожки музыки",
+    "en": "Timeline: video, original audio and music tracks"
+  },
+  "video.mix_start_save": {
+    "ru": "Свести и сохранить",
+    "en": "Mix and save"
+  },
+  "video.export_block_social_media": {
+    "ru": "Экспорт для соцсетей",
+    "en": "Export for social media"
+  },
+  "video.export_block_saves_finished_clip_selected_frame_format": {
+    "ru": "Пересохраняет готовый ролик в выбранный формат кадра: исходный файл не меняется, новый MP4 появляется рядом, в папке автосохранения Video. Нейросетевого улучшения здесь нет: маленький кадр только увеличивается, деталей от этого не прибавляется. Работает на процессоре и не занимает видеокарту.",
+    "en": "Saves the finished clip in the selected frame format: the source stays unchanged and a new MP4 appears beside it in the Video autosave folder. No AI enhancement: a small image is only enlarged without adding detail. Runs on CPU without occupying the GPU."
+  },
+  "video.export_preset_format_frame_dimensions_aspect_ratio": {
+    "ru": "Формат — размер и пропорции кадра",
+    "en": "Format — frame dimensions and aspect ratio"
+  },
+  "video.export_audio_instagram_other_platforms_handle_clips_track": {
+    "ru": "Instagram и другие площадки лучше принимают ролики со звуковой дорожкой, даже тихой",
+    "en": "Instagram and other platforms handle clips with an audio track better, even if silent"
+  },
+  "video.export_audio_mode_field_label": {
+    "ru": "Звук",
+    "en": "Audio"
+  },
+  "video.export_audio_keep_original": {
+    "ru": "Оставить как в ролике",
+    "en": "Keep original audio"
+  },
+  "video.export_audio_add_silent_track_if_no_exists": {
+    "ru": "Добавить тихую дорожку, если звука нет",
+    "en": "Add a silent track if no audio exists"
+  },
+  "video.export_audio_require_clip": {
+    "ru": "Требовать звук в ролике",
+    "en": "Require clip audio"
+  },
+  "video.export_canvas_preview_frame_placement_selected_format_black": {
+    "ru": "Предпросмотр: как кадр ляжет в выбранный формат, чёрные поля — пустое место",
+    "en": "Preview: frame placement in the selected format; black bars are empty space"
+  },
+  "video.export_start_button_label": {
+    "ru": "Экспортировать",
+    "en": "Export"
+  },
+  "video.export_cancel_button_label": {
+    "ru": "Отменить экспорт",
+    "en": "Cancel export"
+  },
+  "video.workspace_video_history": {
+    "ru": "История Video",
+    "en": "Video history"
+  },
+  "video.workspace_video_logs": {
+    "ru": "Логи Video",
+    "en": "Video logs"
+  },
+  "video.data_refresh_button_label": {
+    "ru": "Обновить",
+    "en": "Refresh"
+  },
+  "video.clipboard_copy_button_label": {
+    "ru": "Скопировать",
+    "en": "Copy"
+  },
+  "video.delivery_presets_vertical_video_hd_9_16": {
+    "ru": "Вертикальное видео · HD 9:16",
+    "en": "Vertical video · HD 9:16"
+  },
+  "video.delivery_presets_instagram_feed_portrait_4_5": {
+    "ru": "Instagram лента · портрет 4:5",
+    "en": "Instagram feed · portrait 4:5"
+  },
+  "video.delivery_presets_landscape_video_full_hd_16_9": {
+    "ru": "Горизонтальное видео · Full HD 16:9",
+    "en": "Landscape video · Full HD 16:9"
+  },
+  "video.probe_file_has_no_video_stream": {
+    "ru": "В файле нет видеопотока",
+    "en": "File has no video stream"
+  },
+  "video.probe_determine_frame_dimensions_failed": {
+    "ru": "Не удалось определить размер кадра",
+    "en": "Could not determine frame dimensions"
+  },
+  "video.probe_determine_duration_frame_rate_failed": {
+    "ru": "Не удалось определить длительность или частоту кадров",
+    "en": "Could not determine duration or frame rate"
+  },
+  "video.verify_non_square_pixel": {
+    "ru": "неквадратный пиксель",
+    "en": "non-square pixel"
+  },
+  "video.verify_audio_track_does_not_match_expectations": {
+    "ru": "звуковая дорожка не соответствует ожиданию",
+    "en": "audio track does not match expectations"
+  },
+  "video.plan_export_unknown_preset": {
+    "ru": "Неизвестный пресет экспорта",
+    "en": "Unknown export preset"
+  },
+  "video.plan_export_audio_keep_require_fill": {
+    "ru": "Звук: keep, require или fill",
+    "en": "Audio: keep, require or fill"
+  },
+  "video.export_clip_invalid_encoding_parameters": {
+    "ru": "Недопустимые параметры кодирования",
+    "en": "Invalid encoding parameters"
+  },
+  "video.export_clip_source_file_not_found": {
+    "ru": "Исходный файл не найден",
+    "en": "Source file not found"
+  },
+  "video.run_f_fmpeg_failed": {
+    "ru": "FFmpeg завершился с ошибкой",
+    "en": "FFmpeg failed"
+  },
+  "video.verify_dimensions_x": {
+    "ru": "размер %dx%d",
+    "en": "dimensions %dx%d"
+  },
+  "video.verify_frame_rate": {
+    "ru": "частота кадров %s",
+    "en": "frame rate %s"
+  },
+  "video.export_validation_unexpected_codec_template": {
+    "ru": "кодек %s/%s",
+    "en": "codec %s/%s"
+  },
+  "video.verify_duration_s_instead": {
+    "ru": "длительность %.3f с вместо %.3f с",
+    "en": "duration %.3f s instead of %.3f s"
+  },
+  "video.verify_frames_instead_about": {
+    "ru": "кадров %d вместо около %d",
+    "en": "%d frames instead of about %d"
+  },
+  "video.verify_export_validation_failed": {
+    "ru": "Экспорт не прошёл проверку: ",
+    "en": "Export validation failed: "
+  },
+  "video.plan_export_source_clip_has_no_audio_but": {
+    "ru": "В исходном ролике нет звука, а выбран режим «звук обязателен»",
+    "en": "The source clip has no audio, but audio is required"
+  },
+  "video.run_start_failed": {
+    "ru": "Не удалось запустить %s: %s",
+    "en": "Could not start %s: %s"
+  },
+  "video.run_export_cancelled": {
+    "ru": "Экспорт отменён",
+    "en": "Export cancelled"
+  },
+  "video.run_f_fmpeg_did_not_finish_within": {
+    "ru": "FFmpeg не завершился за %d с и был остановлен",
+    "en": "FFmpeg did not finish within %d s and was stopped"
+  },
+  "video.validate_audio_ltx_2_5_did_not_save": {
+    "ru": "LTX 2.5 не сохранил сгенерированный звук",
+    "en": "LTX 2.5 did not save generated audio"
+  },
+  "video.validate_audio_ltx_2_5_does_not_match": {
+    "ru": "Аудиопоток LTX 2.5 не соответствует длительности видео или формату 48 кГц, стерео",
+    "en": "LTX 2.5 audio does not match video duration or 48 kHz stereo format"
+  },
+  "video.export_media_ltx_2_5_returned_damaged_audio": {
+    "ru": "LTX 2.5 вернул повреждённый звук",
+    "en": "LTX 2.5 returned damaged audio"
+  },
+  "video.export_media_ltx_2_5_generated_audio_duration": {
+    "ru": "Длительность сгенерированного звука LTX 2.5 не соответствует видео",
+    "en": "LTX 2.5 generated audio duration does not match the video"
+  },
+  "video.run_ltx_2_5_requires_nvidia_cuda": {
+    "ru": "Для LTX 2.5 требуется NVIDIA CUDA GPU",
+    "en": "LTX 2.5 requires an NVIDIA CUDA GPU"
+  },
+  "video.export_media_save_ltx_2_5_audio_failed": {
+    "ru": "Не удалось сохранить звук LTX 2.5: ",
+    "en": "Could not save LTX 2.5 audio: "
+  },
+  "video.run_ltx_2_5_returned_invalid_dimensions": {
+    "ru": "LTX 2.5 вернул неверный размер или число кадров",
+    "en": "LTX 2.5 returned invalid dimensions or frame count"
+  },
+  "video.run_ltx_2_5_returned_damaged_solid": {
+    "ru": "LTX 2.5 вернул повреждённые или однотонные кадры",
+    "en": "LTX 2.5 returned damaged or solid-color frames"
+  },
+  "video.run_ltx_2_5_file_missing_invalid": {
+    "ru": "LTX 2.5: файл отсутствует или имеет неверный размер: ",
+    "en": "LTX 2.5: file missing or invalid size: "
+  },
+  "video.run_ltx_2_5_text_encoder_process": {
+    "ru": "LTX 2.5: процесс текстового энкодера завершился с кодом ",
+    "en": "LTX 2.5: text encoder process exited with code "
+  },
+  "video.run_source_frame_outside_ltx_2_5": {
+    "ru": "Исходный кадр вне папки задачи LTX 2.5",
+    "en": "Source frame outside the LTX 2.5 task folder"
+  },
+  "video.validate_mixer_request_contains_unsupported_parameters": {
+    "ru": "Запрос микшера содержит неподдерживаемые параметры",
+    "en": "Mixer request contains unsupported parameters"
+  },
+  "video.validate_original_clip_audio_keep_remove": {
+    "ru": "Собственный звук ролика: оставить или убрать",
+    "en": "Original clip audio: keep or remove"
+  },
+  "video.validate_ducking_yes_no": {
+    "ru": "Приглушение: да или нет",
+    "en": "Ducking: yes or no"
+  },
+  "video.probe_audio_track_file_has_no_duration_unknown": {
+    "ru": "В файле дорожки нет звука или не определена длительность",
+    "en": "Track file has no audio or its duration is unknown"
+  },
+  "video.plan_mix_ducking_does_not_apply_output_clip": {
+    "ru": "Приглушение не применяется: в итоговом ролике не будет собственного звука",
+    "en": "Ducking does not apply: the output clip will have no original audio"
+  },
+  "video.plan_mix_music_automatically_drop_about_10_d": {
+    "ru": "Музыка автоматически стихнет примерно на 10 дБ, пока звучит собственный звук ролика",
+    "en": "Music will automatically drop by about 10 dB while the clip's original audio plays"
+  },
+  "video.verify_audio_not_aac_48_k_hz": {
+    "ru": "звук не AAC 48 кГц стерео",
+    "en": "audio is not AAC 48 kHz stereo"
+  },
+  "video.verify_video_stream_changed": {
+    "ru": "видеопоток изменился",
+    "en": "video stream changed"
+  },
+  "video.verify_output_audio_silent": {
+    "ru": "звук получился беззвучным",
+    "en": "output audio is silent"
+  },
+  "video.verify_peak_above_0_d_b": {
+    "ru": "пик выше 0 дБ",
+    "en": "peak above 0 dB"
+  },
+  "video.mixer_parameter_validation_number_bounds_template": {
+    "ru": "%s: число от %g до %g",
+    "en": "%s: number from %g to %g"
+  },
+  "video.validate_add_1_music_tracks": {
+    "ru": "Добавьте от 1 до %d дорожек музыки",
+    "en": "Add 1 to %d music tracks"
+  },
+  "video.validate_invalid_track": {
+    "ru": "Некорректная дорожка",
+    "en": "Invalid track"
+  },
+  "video.validate_track_audio_file_unavailable": {
+    "ru": "Аудиофайл дорожки недоступен",
+    "en": "Track audio file unavailable"
+  },
+  "video.validate_loop_track_yes_no": {
+    "ru": "Повтор дорожки: да или нет",
+    "en": "Loop track: yes or no"
+  },
+  "video.video_section_title_label": {
+    "ru": "Видео",
+    "en": "Video"
+  },
+  "video.plan_mix_clip_audio_amplified_distortion_possible_output": {
+    "ru": "Звук ролика усиливается: возможны искажения, итог ограничивается по пику",
+    "en": "Clip audio is amplified: distortion is possible; output peaks are limited"
+  },
+  "video.plan_mix_original_clip_audio_removed": {
+    "ru": "Собственный звук ролика будет убран",
+    "en": "Original clip audio will be removed"
+  },
+  "video.verify_mixer_result_validation_failed": {
+    "ru": "Результат микшера не прошёл проверку: ",
+    "en": "Mixer result validation failed: "
+  },
+  "video.plan_mix_clip_audio": {
+    "ru": "Звук ролика",
+    "en": "Clip audio"
+  },
+  "video.plan_mix_clip_has_no_original_audio_output": {
+    "ru": "В ролике нет собственного звука: будет только музыка",
+    "en": "The clip has no original audio: output will contain music only"
+  },
+  "video.plan_mix_track_starts_after_clip_ends_s": {
+    "ru": "Дорожка %d начинается после конца ролика (%.1f с)",
+    "en": "Track %d starts after the clip ends (%.1f s)"
+  },
+  "video.plan_mix_track_combined_fade_out_s_exceed": {
+    "ru": "Дорожка %d: нарастание и затухание вместе (%.1f с) длиннее самой дорожки (%.1f с)",
+    "en": "Track %d: combined fade in and out (%.1f s) exceed track length (%.1f s)"
+  },
+  "video.track_start_time_field_label": {
+    "ru": "Старт",
+    "en": "Start"
+  },
+  "video.validate_track_volume_d_b": {
+    "ru": "Громкость дорожки, дБ",
+    "en": "Track volume, dB"
+  },
+  "video.plan_mix_track_loops_until_clip_ends": {
+    "ru": "Дорожка %d повторяется до конца ролика",
+    "en": "Track %d loops until the clip ends"
+  },
+  "video.plan_mix_track_ends_s_followed_silence_enable": {
+    "ru": "Дорожка %d закончится на %.1f с, дальше будет тишина: включите повтор или сдвиньте старт",
+    "en": "Track %d ends at %.1f s, followed by silence: enable looping or move the start"
+  },
+  "video.plan_mix_track_exceeds_clip_length_truncated_s": {
+    "ru": "Дорожка %d длиннее ролика: обрежется на %.1f с",
+    "en": "Track %d exceeds clip length: truncated at %.1f s"
+  },
+  "video.pipeline_dialogue_takes_s_but_clip_shorten": {
+    "ru": "Реплики занимают %.1f с, а ролик %.1f с. Сократите текст или выберите более длинный ролик.",
+    "en": "Dialogue takes %.1f s but the clip is %.1f s. Shorten the text or select a longer clip."
+  },
+  "video.registry_runtime_isolated_video_stock_comfy_ui_0": {
+    "ru": "Изолированная Video-среда · штатный ComfyUI 0.34.0 · выгрузка в RAM",
+    "en": "Isolated Video runtime · stock ComfyUI 0.34.0 · RAM offloading"
+  },
+  "video.registry_requirements_windows_10_11_x64_nvidia_cuda": {
+    "ru": "Windows 10/11 x64, NVIDIA CUDA; для начала рекомендуется 16 ГБ VRAM и 32 ГБ RAM. Поддержка 8 ГБ заявлена ComfyUI, но на такой видеокарте здесь не проверялась.",
+    "en": "Windows 10/11 x64, NVIDIA CUDA; 16 GB VRAM and 32 GB RAM recommended initially. ComfyUI claims 8 GB support, but that GPU size has not been tested here."
+  },
+  "video.registry_limitations_silent_video_text_one_starting_image": {
+    "ru": "Видео без звука, по тексту или одному начальному изображению. Первый/последний кадр, карточки персонажей и синхронизация губ этим движком не реализованы. Рекомендуемый начальный профиль: 832×480, 81 кадр, 20 шагов. По тексту также проверены 121 кадр и движение руки. На 512×288 возможны сильные искажения; остальные сочетания отдельно не проверены.",
+    "en": "Silent video from text or one starting image. First/last frames, character cards and lip sync are not implemented by this engine. Recommended initial profile: 832×480, 81 frames, 20 steps. Text generation with 121 frames and hand movement was also tested. 512×288 can cause severe distortion; other combinations have not been individually tested."
+  },
+  "video.registry_name_wan_2_s2_v_14_b": {
+    "ru": "Wan 2.2 S2V-14B · речь → видео",
+    "en": "Wan 2.2 S2V-14B · speech → video"
+  },
+  "video.registry_requirements_windows_10_11_x64_nvidia_cuda_short_generation_tested_rtx": {
+    "ru": "Windows 10/11 x64, NVIDIA CUDA. Проверена короткая генерация на RTX 5070 Ti 16 ГБ VRAM и компьютере с 64 ГБ RAM, с выгрузкой в RAM. Минимальная конфигурация отдельно не проверялась.",
+    "en": "Windows 10/11 x64, NVIDIA CUDA. Short generation tested on RTX 5070 Ti 16 GB VRAM and a 64 GB RAM PC with RAM offloading. Minimum configuration has not been tested separately."
+  },
+  "video.registry_limitations_experimental_short_profile_512_77_frames": {
+    "ru": "Экспериментальный короткий профиль: 512×512, 77 кадров, 16 FPS (4,8125 с). Один персонаж по изображению и речь: образец голоса + текст либо готовая запись. Длинные реплики отклоняются, а короткие дополняются тишиной. Точность губ зависит от записи и лица; это не гарантирует идеальную синхронизацию.",
+    "en": "Experimental short profile: 512×512, 77 frames, 16 FPS (4.8125 s). One image-based character and speech: voice sample + text or recorded speech. Long lines are rejected; short ones are padded with silence. Lip accuracy depends on the recording and face; perfect synchronization is not guaranteed."
+  },
+  "video.registry_requirements_windows_x64_nvidia_cuda_16_gb": {
+    "ru": "Windows x64, NVIDIA CUDA, 16 ГБ VRAM и 64 ГБ RAM рекомендуются для начального профиля. Текстовый энкодер и видеомодель загружаются по очереди.",
+    "en": "Windows x64, NVIDIA CUDA, 16 GB VRAM and 64 GB RAM recommended for the initial profile. Text encoder and video model load sequentially."
+  },
+  "video.registry_limitations_synchronized_video_audio_generation_text_first": {
+    "ru": "Синхронная генерация видео и звука по тексту или первому кадру. Быстрое: один проход и облегчённый декодер. Два прохода: базовая генерация, обученное увеличение и уточнение с более детальным декодером. Стартовый профиль — 768×512, 49 кадров. Длительности 15/30/60 с — продолжение с перекрытием видеоконтекста и звука; на стыках возможны изменения деталей и звучания. Точность речи и синхронизация губ не гарантируются.",
+    "en": "Synchronized video and audio generation from text or a first frame. Fast: one pass and lightweight decoder. Two passes: base generation, learned upscaling and refinement with a more detailed decoder. Initial profile: 768×512, 49 frames. 15/30/60 s uses overlapping video and audio continuation; details and sound may change at joins. Speech accuracy and lip synchronization are not guaranteed."
+  },
+  "video.registry_engines_limitations_512_288_24_fps_one_minute": {
+    "ru": "512×288, 24 FPS. Минута — сборка из шести сцен, возможны стыки. Персонажи по референсам — экспериментально. Озвучка по образцу отдельно, без синхронизации губ.",
+    "en": "512×288, 24 FPS. One minute is assembled from six scenes; joins may be visible. Reference characters are experimental. Voice cloning is separate, without lip sync."
+  },
+  "video.registry_15_s_continuation": {
+    "ru": "15 с · продолжение",
+    "en": "15 s · continuation"
+  },
+  "video.registry_30_s_continuation": {
+    "ru": "30 с · продолжение",
+    "en": "30 s · continuation"
+  },
+  "video.registry_60_s_continuation": {
+    "ru": "60 с · продолжение",
+    "en": "60 s · continuation"
+  },
+  "video.registry_preview_fast_8_steps": {
+    "ru": "Быстрое · 8 шагов",
+    "en": "Fast · 8 steps"
+  },
+  "video.registry_standard_two_passes_8_3_steps": {
+    "ru": "Два прохода · 8 + 3 шага",
+    "en": "Two passes · 8 + 3 steps"
+  },
+  "video.registry_summary_ru_experimental_profiles_require_gpu_verification": {
+    "ru": "Экспериментально: профили требуют проверки на GPU.",
+    "en": "Experimental: profiles require GPU verification."
+  },
+  "video.validation_expected_video_request_object": {
+    "ru": "Ожидается объект запроса Video",
+    "en": "Expected a Video request object"
+  },
+  "video.validation_request_contains_unsupported_video_parameters": {
+    "ru": "Запрос содержит неподдерживаемые параметры Video",
+    "en": "Request contains unsupported Video parameters"
+  },
+  "video.validation_invalid_video_engine": {
+    "ru": "Некорректный движок Video",
+    "en": "Invalid Video engine"
+  },
+  "video.validation_unknown_video_engine": {
+    "ru": "Неизвестный движок Video",
+    "en": "Unknown Video engine"
+  },
+  "video.validation_speech_fields_intended_wan_s2_v": {
+    "ru": "Поля речи предназначены для Wan S2V",
+    "en": "Speech fields are intended for Wan S2V"
+  },
+  "video.validation_video_mode_not_supported_yet": {
+    "ru": "Этот режим Video пока не поддерживается",
+    "en": "This Video mode is not supported yet"
+  },
+  "video.validation_enter_video_description_up_5000_characters": {
+    "ru": "Введите описание видео длиной до 5000 символов",
+    "en": "Enter a video description up to 5000 characters"
+  },
+  "video.validation_unknown_video_quality": {
+    "ru": "Неизвестное качество Video",
+    "en": "Unknown Video quality"
+  },
+  "video.validation_preview_8_steps_verified_supplied_frames": {
+    "ru": "Для заданных кадров пока проверен только предпросмотр · 8 шагов",
+    "en": "Only Preview · 8 steps is verified for supplied frames"
+  },
+  "video.validation_select_resolution_duration_fps_engine_s": {
+    "ru": "Выберите разрешение, длительность и FPS из профилей выбранного движка",
+    "en": "Select resolution, duration and FPS from the engine's profiles"
+  },
+  "video.validation_long_clips_support_text_characters_preview": {
+    "ru": "Длинные ролики доступны по тексту или персонажам в качестве «Предпросмотр»",
+    "en": "Long clips support text or characters at Preview quality"
+  },
+  "video.validation_seed_must_integer_0_18446744073709551615": {
+    "ru": "Seed должен быть целым числом от 0 до 18446744073709551615",
+    "en": "Seed must be an integer from 0 to 18446744073709551615"
+  },
+  "video.validation_up_three_characters_added": {
+    "ru": "Можно добавить до трёх персонажей",
+    "en": "Up to three characters can be added"
+  },
+  "video.validation_add_least_one_character": {
+    "ru": "Добавьте хотя бы одного персонажа",
+    "en": "Add at least one character"
+  },
+  "video.validation_select_characters_images_mode_character_cards": {
+    "ru": "Для персонажей выберите режим «Персонажи по изображениям»",
+    "en": "Select Characters from images mode for character cards"
+  },
+  "video.validation_add_source_frame_if_required_ending": {
+    "ru": "Добавьте исходный и, при необходимости, конечный кадр",
+    "en": "Add a source frame and, if required, an ending frame"
+  },
+  "video.validation_invalid_character_card": {
+    "ru": "Некорректная карточка персонажа",
+    "en": "Invalid character card"
+  },
+  "video.validation_add_image_short_character_name": {
+    "ru": "Добавьте изображение и короткое имя персонажа",
+    "en": "Add an image and a short character name"
+  },
+  "video.validation_dialogue_up_1000_characters_per_character": {
+    "ru": "Текст реплики: до 1000 символов на персонажа",
+    "en": "Dialogue: up to 1000 characters per character"
+  },
+  "video.validation_add_voice_sample_dialogue": {
+    "ru": "Для реплики добавьте образец голоса",
+    "en": "Add a voice sample for dialogue"
+  },
+  "video.validation_unsupported_synthesis_language": {
+    "ru": "Неподдерживаемый язык озвучки",
+    "en": "Unsupported synthesis language"
+  },
+  "video.validation_choose_voice_sample_text_recorded_speech": {
+    "ru": "Выберите образец голоса с текстом или готовую речь",
+    "en": "Choose a voice sample with text or recorded speech"
+  },
+  "video.validation_use_selected_speech_preparation_method": {
+    "ru": "Используйте только один выбранный способ подготовки речи",
+    "en": "Use only the selected speech preparation method"
+  },
+  "video.validation_add_voice_sample_short_line_up": {
+    "ru": "Добавьте образец голоса и короткую реплику до 160 символов; она должна поместиться в 4,8125 с",
+    "en": "Add a voice sample and a short line up to 160 characters; it must fit within 4.8125 s"
+  },
+  "video.validation_unsupported_speech_language": {
+    "ru": "Неподдерживаемый язык речи",
+    "en": "Unsupported speech language"
+  },
+  "video.validation_add_recorded_speech_up_4_8125": {
+    "ru": "Добавьте готовую запись речи до 4,8125 с",
+    "en": "Add recorded speech up to 4.8125 s"
+  },
+  "video.environment_cuda_cache_requires_accessible_temporary_path": {
+    "ru": "Для кеша CUDA нужен доступный временный путь без кириллицы.",
+    "en": "CUDA cache requires an accessible temporary path without Cyrillic characters."
+  },
+  "video.prepare_readable_2_30_s_voice_sample": {
+    "ru": "Нужен читаемый образец голоса на 2–30 с.",
+    "en": "A readable 2–30 s voice sample is required."
+  },
+  "video.prepare_readable_0_1_4_8125_s": {
+    "ru": "Нужна читаемая запись речи от 0,1 до 4,8125 с; длинная запись не обрезается автоматически.",
+    "en": "A readable 0.1–4.8125 s speech recording is required; long recordings are not automatically trimmed."
+  },
+  "video.confined_s2_v_input_file_outside_task": {
+    "ru": "Входной файл S2V вне папки задачи",
+    "en": "S2V input file outside the task folder"
+  },
+  "video.run_s2_v_requires_cuda_gpu": {
+    "ru": "S2V требует CUDA GPU",
+    "en": "S2V requires a CUDA GPU"
+  },
+  "video.prepare_speech_takes_s_short_s2_v_profile": {
+    "ru": "Речь занимает %.2f с; короткий профиль S2V вмещает %.4f с. Сократите реплику или запись. Автоматическая обрезка отключена.",
+    "en": "Speech takes %.2f s; the short S2V profile holds %.4f s. Shorten the line or recording. Automatic trimming is disabled."
+  },
+  "video.run_s2_v_returned_damaged_solid_color": {
+    "ru": "S2V вернул повреждённые или однотонные кадры",
+    "en": "S2V returned damaged or solid-color frames"
+  },
+  "video.run_expected_prepared_mono_pcm16_speech": {
+    "ru": "Ожидалась подготовленная моно PCM16 речь",
+    "en": "Expected prepared mono PCM16 speech"
+  },
+  "video.cancel_export_stopping": {
+    "ru": "Остановка экспорта",
+    "en": "Stopping export"
+  },
+  "video.event_preparing_request_source_frames": {
+    "ru": "Подготовка запроса и исходных кадров",
+    "en": "Preparing request and source frames"
+  },
+  "video.init_read_video_history_original_file_preserved_failed": {
+    "ru": "Историю Video не удалось прочитать; исходный файл сохранён.",
+    "en": "Could not read Video history; original file preserved."
+  },
+  "video.save_settings_specify_full_video_folder_path": {
+    "ru": "Укажите полный путь к папке Video",
+    "en": "Specify a full Video folder path"
+  },
+  "video.delete_invalid_video_identifier": {
+    "ru": "Неверный идентификатор Video",
+    "en": "Invalid Video identifier"
+  },
+  "video.image_video_requires_png_frame_up_36": {
+    "ru": "Для Video нужен PNG-кадр размером до 36 МиБ",
+    "en": "Video requires a PNG frame up to 36 MiB"
+  },
+  "video.image_damaged_png_frame": {
+    "ru": "Повреждённый PNG-кадр",
+    "en": "Damaged PNG frame"
+  },
+  "video.image_unsupported_source_frame_dimensions": {
+    "ru": "Неподдерживаемый размер исходного кадра",
+    "en": "Unsupported source frame dimensions"
+  },
+  "video.audio_bytes_voice_sample_file_up_8_mi": {
+    "ru": "Образец голоса: аудиофайл до 8 МиБ, 2–30 секунд",
+    "en": "Voice sample: audio file up to 8 MiB, 2–30 seconds"
+  },
+  "video.audio_bytes_voice_sample_empty_exceeds_8_mi": {
+    "ru": "Образец голоса пустой или больше 8 МиБ",
+    "en": "Voice sample empty or exceeds 8 MiB"
+  },
+  "video.export_finished_video_not_found_open_clip": {
+    "ru": "Готовое видео не найдено. Откройте ролик из истории Video.",
+    "en": "Finished video not found. Open a clip from Video history."
+  },
+  "video.start_export_request_contains_unsupported_parameters": {
+    "ru": "Запрос экспорта содержит неподдерживаемые параметры",
+    "en": "Export request contains unsupported parameters"
+  },
+  "video.start_export_select_preset": {
+    "ru": "Выберите пресет экспорта",
+    "en": "Select an export preset"
+  },
+  "video.start_export_select_audio_mode": {
+    "ru": "Выберите режим звука",
+    "en": "Select an audio mode"
+  },
+  "video.event_voice_cloning": {
+    "ru": "Озвучка по образцу: ",
+    "en": "Voice cloning: "
+  },
+  "video.event_assembling_video_audio_continuation_into_mp4": {
+    "ru": "Сборка продолжения видео и звука в MP4",
+    "en": "Assembling video and audio continuation into MP4"
+  },
+  "video.event_assembling_scenes_dialogue_into_mp4": {
+    "ru": "Сборка сцен и озвучки в MP4",
+    "en": "Assembling scenes and dialogue into MP4"
+  },
+  "video.event_loading_video_model": {
+    "ru": "Загрузка видеомодели",
+    "en": "Loading video model"
+  },
+  "video.run_validating_saving_mp4": {
+    "ru": "Проверка и сохранение MP4",
+    "en": "Validating and saving MP4"
+  },
+  "video.cancel_stopping_video": {
+    "ru": "Остановка Video",
+    "en": "Stopping Video"
+  },
+  "video.settings_invalid_video_folder": {
+    "ru": "Некорректная папка Video в настройках",
+    "en": "Invalid Video folder in settings"
+  },
+  "video.delete_task_not_found_still_running_stop": {
+    "ru": "Задача не найдена или ещё выполняется. Сначала остановите генерацию.",
+    "en": "Task not found or still running. Stop generation first."
+  },
+  "video.delete_video_history_not_writable": {
+    "ru": "История Video недоступна для записи.",
+    "en": "Video history is not writable."
+  },
+  "video.delete_wait_export_mixing_finish_before_deleting": {
+    "ru": "Дождитесь завершения экспорта или микширования перед удалением Video.",
+    "en": "Wait for export or mixing to finish before deleting Video."
+  },
+  "video.delete_invalid_video_log_path": {
+    "ru": "Некорректный путь журнала Video",
+    "en": "Invalid Video log path"
+  },
+  "video.submit_gpu_busy_video_task": {
+    "ru": "GPU занят задачей Video",
+    "en": "GPU is busy with a Video task"
+  },
+  "video.submit_preparing_video": {
+    "ru": "Подготовка Video",
+    "en": "Preparing Video"
+  },
+  "video.check_runtime_models_not_installed_download_them": {
+    "ru": ": среда или модели не установлены. Скачайте их во вкладке «Компоненты».",
+    "en": ": runtime or models are not installed. Download them in Components."
+  },
+  "video.check_voice_cloning_requires_installed_qwen3_tts": {
+    "ru": "Для речи по образцу нужен установленный модуль Qwen3-TTS",
+    "en": "Voice cloning requires the installed Qwen3-TTS module"
+  },
+  "video.prompts_video_archive_exceeds_size_limit_file": {
+    "ru": "Архив Video превышает допустимый размер; файл сохранён.",
+    "en": "Video archive exceeds the size limit; file preserved."
+  },
+  "video.prompts_video_archive_corrupted_file_preserved": {
+    "ru": "Архив Video повреждён; файл сохранён.",
+    "en": "Video archive is corrupted; file preserved."
+  },
+  "video.start_export_already_running_wait_completion_cancel": {
+    "ru": "Экспорт уже выполняется. Дождитесь завершения или отмените его.",
+    "en": "Export is already running. Wait for completion or cancel it."
+  },
+  "video.start_export_preparation": {
+    "ru": "Подготовка",
+    "en": "Preparation"
+  },
+  "video.export_encoding_progress_percentage_template": {
+    "ru": "Кодирование: %d%%",
+    "en": "Encoding: %d%%"
+  },
+  "video.export_identity_result_saved_but_identifier_could_not": {
+    "ru": "Результат сохранён, но идентификатор в метаданные записать не удалось.",
+    "en": "Result saved, but its identifier could not be written to metadata."
+  },
+  "video.start_mix_export_mixing_already_running_wait_completion": {
+    "ru": "Экспорт или микширование уже выполняется. Дождитесь завершения или отмените его.",
+    "en": "Export or mixing is already running. Wait for completion or cancel it."
+  },
+  "video.progress_mixing_audio": {
+    "ru": "Сведение звука: %d%%",
+    "en": "Mixing audio: %d%%"
+  },
+  "video.register_mix_video_audio_saved_but_history_could": {
+    "ru": "Ролик со звуком сохранён, но запись истории не удалась.",
+    "en": "Video with audio saved, but history could not be recorded."
+  },
+  "video.cancel_export_no_permission": {
+    "ru": "Нет права отменять этот экспорт",
+    "en": "No permission to cancel this export"
+  },
+  "video.run_mp4_parameters_differ_requested_profile": {
+    "ru": "Параметры MP4 отличаются от запрошенного профиля",
+    "en": "MP4 parameters differ from the requested profile"
+  },
+  "video.run_s2_v_must_preserve_16_fps": {
+    "ru": "S2V должен сохранить 16 FPS и аудиопоток речи",
+    "en": "S2V must preserve 16 FPS and a speech audio stream"
+  },
+  "video.run_video_error": {
+    "ru": "Ошибка Video",
+    "en": "Video error"
+  },
+  "video.cancel_no_permission_video_task": {
+    "ru": "Нет права отменять эту задачу Video",
+    "en": "No permission to cancel this Video task"
+  },
+  "video.delete_invalid_video_output_file": {
+    "ru": "Некорректный файл результата Video",
+    "en": "Invalid Video output file"
+  },
+  "video.delete_invalid_video_technical_folder": {
+    "ru": "Некорректная техническая папка Video",
+    "en": "Invalid Video technical folder"
+  },
+  "video.delete_invalid_video_export_file": {
+    "ru": "Некорректный файл экспорта Video",
+    "en": "Invalid Video export file"
+  },
+  "video.people_2_30_second_voice_sample_required": {
+    "ru": "Нужен образец голоса длительностью от 2 до 30 секунд",
+    "en": "A 2 to 30 second voice sample is required"
+  },
+  "video.prompts_enter_prompt_up_5000_characters": {
+    "ru": "Введите промпт длиной до 5000 символов",
+    "en": "Enter a prompt up to 5000 characters"
+  },
+  "video.prompts_unknown_video_archive_operation": {
+    "ru": "Неизвестная операция с архивом Video",
+    "en": "Unknown Video archive operation"
+  },
+  "video.export_not_found": {
+    "ru": "Экспорт не найден",
+    "en": "Export not found"
+  },
+  "video.run_export_error": {
+    "ru": "Ошибка экспорта",
+    "en": "Export error"
+  },
+  "video.run_mix_mixing_error": {
+    "ru": "Ошибка микширования",
+    "en": "Mixing error"
+  },
+  "video.register_mix_music": {
+    "ru": "Музыка: %s",
+    "en": "Music: %s"
+  },
+  "video.event_continuation_preparing": {
+    "ru": "Продолжение %s / %s: подготовка",
+    "en": "Continuation %s / %s: preparing"
+  },
+  "video.event_scene_preparing": {
+    "ru": "Сцена %s / %s: подготовка",
+    "en": "Scene %s / %s: preparing"
+  },
+  "video.event_generating_video": {
+    "ru": "Генерация видео",
+    "en": "Generating video"
+  },
+  "video.run_video_engine_failed": {
+    "ru": "Движок Video завершился с ошибкой. ",
+    "en": "Video engine failed. "
+  },
+  "video.run_mp4_saved_but_separate_metadata_file": {
+    "ru": "MP4 сохранён, но отдельный файл метаданных записать не удалось: ",
+    "en": "MP4 saved, but its separate metadata file could not be written: "
+  },
+  "video.run_video_saved_but_history_could_not": {
+    "ru": "Видео сохранено, но запись истории не удалась.",
+    "en": "Video saved, but history could not be recorded."
+  },
+  "video.check_local_voice_cloning_module_not_installed": {
+    "ru": "Локальный модуль голоса по образцу не установлен",
+    "en": "Local voice cloning module is not installed"
+  },
+  "video.people_read_voice_sample_use_wav_mp3_failed": {
+    "ru": "Не удалось прочитать образец голоса. Используйте WAV, MP3, FLAC или M4A.",
+    "en": "Could not read the voice sample. Use WAV, MP3, FLAC or M4A."
+  },
+  "video.run_export_unexpected_error": {
+    "ru": "Непредвиденная ошибка экспорта: ",
+    "en": "Unexpected export error: "
+  },
+  "video.run_export_saved_but_history_could_not_recorded": {
+    "ru": "Экспорт сохранён, но запись истории не удалась.",
+    "en": "Export saved, but history could not be recorded."
+  },
+  "video.run_mix_unexpected_mixing_error": {
+    "ru": "Непредвиденная ошибка микширования: ",
+    "en": "Unexpected mixing error: "
+  },
+  "video.event_generation_step": {
+    "ru": "Генерация: шаг %s / %s",
+    "en": "Generation: step %s / %s"
+  },
+  "video.run_save_short_video_log_failed": {
+    "ru": "Не удалось сохранить короткий журнал Video.",
+    "en": "Could not save the short Video log."
+  },
+  "video.dispatch_task_log_unavailable": {
+    "ru": "Журнал задачи недоступен.",
+    "en": "Task log unavailable."
+  },
+  "video.generation_sampling_pass_prefix_template": {
+    "ru": "Проход %s · ",
+    "en": "Pass %s · "
+  },
+  "video.event_decoding_frames": {
+    "ru": "Декодирование: %s / %s кадров",
+    "en": "Decoding: %s / %s frames"
+  },
+  "video.event_decoding_encoding_mp4": {
+    "ru": "Декодирование и кодирование MP4",
+    "en": "Decoding and encoding MP4"
+  },
+  "video.dispatch_video_task_not_found": {
+    "ru": "Задача Video не найдена",
+    "en": "Video task not found"
+  },
+  "video.availability_video_runtime_missing_damaged_setup_visual": {
+    "ru": "Video-runtime не установлен или повреждён (его докачает Setup-VisualForge.cmd). Image остаётся доступен.",
+    "en": "Video runtime is missing or damaged (Setup-VisualForge.cmd will download it). Image remains available."
+  },
+  "video.start_video_backend_did_not_respond_during": {
+    "ru": "Video-backend не ответил при запуске",
+    "en": "Video backend did not respond during startup"
+  },
+  "video.availability_engine_files_not_installed_unavailable_download": {
+    "ru": "Файлы движка не установлены или недоступны. Модели можно скачать во вкладке «Компоненты».",
+    "en": "Engine files are not installed or unavailable. Download models in Components."
+  },
+  "video.start_video_backend_did_not_check_log": {
+    "ru": "Video-backend не запустился. Проверьте журнал Video.",
+    "en": "Video backend did not start. Check the Video log."
+  },
+  "video.start_video_port_occupied_another_application_change": {
+    "ru": "Порт Video занят другой программой. Измените порт в настройке запуска.",
+    "en": "Video port is occupied by another application. Change the port in launch settings."
+  },
+  "video.availability_read_wan_verification_data_failed": {
+    "ru": "Не удалось прочитать сведения о проверке Wan.",
+    "en": "Could not read Wan verification data."
+  },
+  "video.run_wan_requires_nvidia_cuda_gpu": {
+    "ru": "Wan требует NVIDIA CUDA GPU",
+    "en": "Wan requires an NVIDIA CUDA GPU"
+  },
+  "video.run_wan_returned_invalid_frame_count": {
+    "ru": "Wan вернул неверное число кадров",
+    "en": "Wan returned an invalid frame count"
+  },
+  "video.run_wan_returned_damaged_frames": {
+    "ru": "Wan вернул повреждённые кадры",
+    "en": "Wan returned damaged frames"
+  },
+  "video.run_wan_returned_solid_color_frames": {
+    "ru": "Wan вернул однотонные кадры",
+    "en": "Wan returned solid-color frames"
+  },
+  "video.run_source_frame_outside_wan_task_folder": {
+    "ru": "Исходный кадр вне папки задачи Wan",
+    "en": "Source frame outside the Wan task folder"
+  },
+  "video.speech_language_english_option_label": {
+    "ru": "English",
+    "en": "English"
+  }
+}

@@ -19,24 +19,24 @@
     const saved=engineDrafts[selectedEngine] || {};
     for(const option of el('videoMode').options)option.disabled=!profile.modes.includes(option.value);
     el('videoMode').value=profile.modes.includes(saved.mode)?saved.mode:profile.modes[0];
-    const plural=n=>n%10===1 && n%100!==11?'кадр':n%10>=2 && n%10<=4 && !(n%100>=12 && n%100<=14)?'кадра':'кадров';
-    el('videoDuration').replaceChildren(...profile.frames.map(n=>new Option(profile.duration_labels?.[n] || (n===1440?'1 минута · 6 сцен · 1440 кадров':`${(n/profile.fps).toLocaleString('ru-RU',{maximumFractionDigits:4})} с · ${n} ${plural(n)}`),String(n))));
+    const plural=n=>n%10===1 && n%100!==11?StudioI18n.t("video.configure_engine_frame"):n%10>=2 && n%10<=4 && !(n%100>=12 && n%100<=14)?StudioI18n.t("video.duration_frame_count_few_plural_label"):StudioI18n.t("video.duration_frame_count_many_plural_label");
+    el('videoDuration').replaceChildren(...profile.frames.map(n=>StudioI18n.option(() => (profile.duration_labels?.[n] || (n===1440?StudioI18n.t("video.configure_engine_1_minute_6_scenes_1440_frames"):StudioI18n.t("video.configure_engine_s", [(n/profile.fps).toLocaleString(StudioI18n.locale,{maximumFractionDigits:4}), n, plural(n)]))), String(n))));
     if(profile.frames.includes(Number(saved.frames)))el('videoDuration').value=saved.frames;
     else if(isWan() && !isS2V())el('videoDuration').value='81';
-    el('videoResolution').replaceChildren(...profile.resolutions.map(([w,h])=>new Option(`${w} × ${h}`,`${w}x${h}`)));
+    el('videoResolution').replaceChildren(...profile.resolutions.map(([w,h])=>StudioI18n.option(() => (`${w} × ${h}`), `${w}x${h}`)));
     if([...el('videoResolution').options].some(o=>o.value===saved.resolution))el('videoResolution').value=saved.resolution;
     else if(isWan() && !isS2V())el('videoResolution').value='832x480';
-    const names={preview:'Предпросмотр',standard:'Стандартное',high:'Высокое'};
-    const h3={preview:'8 шагов',standard:'8 + 3 шага',high:'16 шагов'};
-    el('videoQuality').replaceChildren(...profile.qualities.map(q=>new Option(profile.quality_labels?.[q] || `${names[q]} · ${profile.steps?profile.steps[q]+' шагов':h3[q]}`,q)));
+    const names={preview:StudioI18n.t("video.generation_preview_quality_option"),standard:StudioI18n.t("video.generation_standard_quality_option"),high:StudioI18n.t("video.generation_high_quality_option")};
+    const h3={preview:StudioI18n.t("video.configure_engine_8_steps"),standard:StudioI18n.t("video.configure_engine_8_3_steps"),high:StudioI18n.t("video.configure_engine_16_steps")};
+    el('videoQuality').replaceChildren(...profile.qualities.map(q=>StudioI18n.option(() => (profile.quality_labels?.[q] || `${names[q]} · ${profile.steps?profile.steps[q]+StudioI18n.t("video.configure_engine_steps"):h3[q]}`), q)));
     el('videoQuality').value=profile.qualities.includes(saved.quality)?saved.quality:(isProfiled()?'standard':'preview');
-    el('videoQuality').previousElementSibling.title=isProfiled()?'Шаг — одно уточнение результата моделью. Больше шагов требует больше времени.':'Шаг — одно уточнение результата моделью. 8 + 3 — основной проход и дополнительное уточнение.';
-    el('videoQualityHelp').textContent=isLtx()?'Быстрое: 8 шагов, один проход, облегчённое декодирование. Два прохода: 8 шагов в половинном размере, обученное увеличение и 3 шага уточнения; затем более детальное декодирование. Для длинного ролика выбранные шаги выполняются для каждого фрагмента.':isS2V()?'20 последовательных уточнений сцены моделью. Пока доступен один профиль качества.':isWan()?'Шаг — одно уточнение сцены. Начните со стандартных 20 шагов; 12 быстрее, 30 требует больше времени.':originalHints.videoQualityHelp;
-    el('videoProfileHint').textContent=isLtx()?'24 FPS. Начните с 768 × 512 и 49 кадров (2,0417 с). Видео и звук создаются совместно. 15/30/60 с — продолжение одной сцены; на стыках возможны изменения деталей и звука. Доступны горизонтальные и вертикальные профили. Экспорт MP4 / H.264 + AAC.':isS2V()?'16 FPS — 16 кадров за секунду. Короткий профиль: 512 × 512, 77 кадров (4,8125 с), 20 шагов. Экспорт MP4 / H.264 со звуком речи.':isWan()?'24 FPS — 24 кадра за секунду. Начните с 832 × 480, 81 кадр (3,375 с), 20 шагов. На 512 × 288 в пробе были сильные искажения формы. 121 кадр проверен на сцене с движением; остальные сочетания отдельно не проверены. Экспорт MP4 / H.264, без звука.':originalHints.videoProfileHint;
-    el('videoPromptGuide').textContent=isLtx()?'Опишите сцену, движение камеры и желаемый звук одним связным текстом. Например: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. Реплики пишите в кавычках; правильность произношения не гарантируется.':isS2V()?'Опишите персонажа, выражение лица и спокойное движение. Слова реплики вводятся отдельно. Пример описания: The person speaks naturally to the camera, subtle head movement, clear face, stable lighting, fixed camera.':isWan()?'Для Wan начните с простого английского описания сцены, одного движения и камеры. При исходном изображении опишите желаемое движение. Для заметного действия: A small yellow toy robot raises its right arm and waves its hand. Locked camera, one continuous shot.':originalHints.videoPromptGuide;
+    StudioI18n.bind(el('videoQuality').previousElementSibling, "title", () => (isProfiled()?StudioI18n.t("video.quality_previous_element_sibling_step_one_model_refinement_result_more"):StudioI18n.t("video.quality_previous_element_sibling_step_one_model_refinement_8_3")), true);
+    StudioI18n.bind(el('videoQualityHelp'), "textContent", () => (isLtx()?StudioI18n.t("video.quality_help_fast_8_steps_one_pass_lightweight"):isS2V()?StudioI18n.t("video.quality_help_20_consecutive_model_refinements_scene_one"):isWan()?StudioI18n.t("video.quality_help_step_one_scene_refinement_start_standard"):originalHints.videoQualityHelp), true);
+    StudioI18n.bind(el('videoProfileHint'), "textContent", () => (isLtx()?StudioI18n.t("video.profile_hint_24_fps_start_768_512_49"):isS2V()?StudioI18n.t("video.profile_hint_16_fps_frames_per_second_short"):isWan()?StudioI18n.t("video.profile_hint_24_fps_frames_per_second_start"):originalHints.videoProfileHint), true);
+    StudioI18n.bind(el('videoPromptGuide'), "textContent", () => (isLtx()?StudioI18n.t("video.prompt_guide_describe_scene_camera_movement_desired_sound"):isS2V()?StudioI18n.t("video.prompt_guide_describe_character_expression_gentle_movement_enter"):isWan()?StudioI18n.t("video.prompt_guide_wan_start_simple_english_scene_description"):originalHints.videoPromptGuide), true);
     available=profile.available;
-    el('videoAvailability').textContent=profile.available?`${profile.name} · ${profile.verification?.summary_ru || (isProfiled()?'Локальная генерация ещё не проверена.':'Проверено на RTX 5070 Ti 16 ГБ.')}`:profile.reason;
-    el('videoModelDetails').textContent=[profile.release_date?`Выпуск модели: ${profile.release_date}.`:'',profile.requirements,profile.limitations].filter(Boolean).join(' ');
+    StudioI18n.bind(el('videoAvailability'), "textContent", () => (profile.available?`${profile.name} · ${StudioI18n.remote(profile.verification?.summary_ru) || (isProfiled()?StudioI18n.t("video.availability_local_generation_has_not_been_tested"):StudioI18n.t("video.availability_tested_rtx_5070_ti_16_gb"))}`:StudioI18n.remote(profile.reason)), true);
+    StudioI18n.bind(el('videoModelDetails'), "textContent", () => ([profile.release_date?StudioI18n.t("video.model_details_release", [profile.release_date]):'',profile.requirements,profile.limitations].filter(Boolean).join(' ')), true);
     el('videoGenerate').disabled=!available || !!active;
     modes();
   }
@@ -44,21 +44,21 @@
     if(characters.length>=3)return;
     const person={name:'',image:null,voice_audio:null,speech_text:'',language:'Russian'};
     const card=document.createElement('div');card.className='video-character';card.tabIndex=0;
-    const title=document.createElement('label');title.textContent='Имя персонажа';
-    const name=document.createElement('input');name.type='text';name.maxLength=60;name.placeholder='Например: Алиса';name.oninput=()=>person.name=name.value;
-    const photoLabel=document.createElement('label');photoLabel.textContent='Изображение · можно вставить Ctrl+V';
+    const title=document.createElement('label');StudioI18n.bind(title, "textContent", () => (StudioI18n.t("video.add_character_name")), true);
+    const name=document.createElement('input');name.type='text';name.maxLength=60;StudioI18n.bind(name, "placeholder", () => (StudioI18n.t("video.name_example_alice")), true);name.oninput=()=>person.name=name.value;
+    const photoLabel=document.createElement('label');StudioI18n.bind(photoLabel, "textContent", () => (StudioI18n.t("video.photo_image_paste_ctrl_v")), true);
     const photo=document.createElement('input');photo.type='file';photo.accept='image/*';
-    const preview=document.createElement('img');preview.className='video-frame';preview.hidden=true;preview.alt='Изображение персонажа';
-    const load=async file=>{try{person.image=await toFrame(file,1024);preview.src=person.image;preview.hidden=false;}catch(e){el('videoStatus').textContent=e.message;}};
+    const preview=document.createElement('img');preview.className='video-frame';preview.hidden=true;StudioI18n.bind(preview, "alt", () => (StudioI18n.t("video.preview_character_image")), true);
+    const load=async file=>{try{person.image=await toFrame(file,1024);preview.src=person.image;preview.hidden=false;}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
     photo.onchange=()=>{if(photo.files[0])load(photo.files[0]);};
     card.addEventListener('paste',event=>{const file=[...(event.clipboardData?.files || [])].find(f=>f.type.startsWith('image/'));if(file){event.preventDefault();load(file);}});
-    const voiceLabel=document.createElement('label');voiceLabel.textContent='Образец голоса · необязательно';
+    const voiceLabel=document.createElement('label');StudioI18n.bind(voiceLabel, "textContent", () => (StudioI18n.t("video.voice_sample_optional")), true);
     const voice=document.createElement('input');voice.type='file';voice.accept='audio/*,.wav,.mp3,.flac,.m4a,.ogg';
-    voice.onchange=()=>{const file=voice.files[0];person.voice_audio=null;if(!file)return;if(file.size>8*1024*1024){el('videoStatus').textContent='Образец голоса больше 8 МиБ';return;}const reader=new FileReader();reader.onload=()=>{person.voice_audio=String(reader.result).replace(/^data:[^;]*;/,'data:audio/wav;');};reader.readAsDataURL(file);};
-    const textLabel=document.createElement('label');textLabel.textContent='Текст реплики этим голосом';
-    const text=document.createElement('textarea');text.rows=3;text.maxLength=1000;text.placeholder='Введите то, что должен сказать персонаж';text.oninput=()=>person.speech_text=text.value;
-    const language=document.createElement('select');language.setAttribute('aria-label','Язык реплики');for(const [value,label] of [['Russian','Русский'],['English','English'],['Auto','Определить язык']]){const option=new Option(label,value);language.add(option);}language.onchange=()=>person.language=language.value;
-    const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Удалить персонажа';remove.onclick=()=>{characters.splice(characters.indexOf(person),1);card.remove();el('videoAddCharacter').disabled=false;};
+    voice.onchange=()=>{const file=voice.files[0];person.voice_audio=null;if(!file)return;if(file.size>8*1024*1024){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.t("video.add_character_voice_sample_exceeds_8_mi_b")), true);return;}const reader=new FileReader();reader.onload=()=>{person.voice_audio=String(reader.result).replace(/^data:[^;]*;/,'data:audio/wav;');};reader.readAsDataURL(file);};
+    const textLabel=document.createElement('label');StudioI18n.bind(textLabel, "textContent", () => (StudioI18n.t("video.add_character_dialogue_voice")), true);
+    const text=document.createElement('textarea');text.rows=3;text.maxLength=1000;StudioI18n.bind(text, "placeholder", () => (StudioI18n.t("video.add_character_enter_what_should_say")), true);text.oninput=()=>person.speech_text=text.value;
+    const language=document.createElement('select');StudioI18n.bind(language, "@aria-label", () => (StudioI18n.t("video.character_dialogue_language_field_label")), true);for(const [value,label] of [['Russian',StudioI18n.t("video.speech_language_russian_option_label")],['English','English'],['Auto',StudioI18n.t("video.add_character_detect_language")]]){const option=StudioI18n.option(() => (label), value);language.add(option);}language.onchange=()=>person.language=language.value;
+    const remove=document.createElement('button');remove.type='button';remove.className='secondary';StudioI18n.bind(remove, "textContent", () => (StudioI18n.t("video.character_card_remove_button_label")), true);remove.onclick=()=>{characters.splice(characters.indexOf(person),1);card.remove();el('videoAddCharacter').disabled=false;};
     const prefix='videoCharacter-'+crypto.randomUUID();
     for(const [label,input,suffix] of [[title,name,'name'],[photoLabel,photo,'image'],[voiceLabel,voice,'voice'],[textLabel,text,'text']]){input.id=prefix+'-'+suffix;label.htmlFor=input.id;}
     card.append(title,name,photoLabel,photo,preview,voiceLabel,voice,textLabel,text,language,remove);
@@ -67,10 +67,10 @@
   const api = async (route, data) => {
     let response;
     try {response = await fetch('/api/video/' + route, data === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});}
-    catch {throw new Error('Нет связи со студией. Проверьте, запущено ли приложение.');}
+    catch {throw new Error(StudioI18n.t("video.api_request_connect_studio_check_application_running_unavailable"));}
     let value;
-    try {value = await response.json();} catch {throw new Error('Некорректный ответ Video-сервиса. Откройте логи Video.');}
-    if (!response.ok) throw new Error(value.error || value.reason || 'Video недоступен');
+    try {value = await response.json();} catch {throw new Error(StudioI18n.t("video.api_request_invalid_video_service_response_open_logs"));}
+    if (!response.ok) throw new Error(StudioI18n.remote(value.error) || StudioI18n.remote(value.reason) || StudioI18n.t("video.api_request_video_unavailable"));
     return value;
   };
   function module(name) {
@@ -86,13 +86,13 @@
   }
   function header() {
     const profile = profiles.find(row => row.id === el('videoEngine').value);
-    const descriptions = {t2v:'Генерация видео по текстовому описанию', i2v:'Оживление исходного изображения',
-      first_last:'Генерация видео между первым и последним кадром', characters:'Генерация видео с персонажами по референсам',
-      s2v:'Говорящий персонаж по изображению и речи'};
+    const descriptions = {t2v:StudioI18n.t("video.header_generate_video_text_description"), i2v:StudioI18n.t("video.header_animate_source_image"),
+      first_last:StudioI18n.t("video.header_generate_video_between_first_last_frames"), characters:StudioI18n.t("video.header_generate_video_reference_characters"),
+      s2v:StudioI18n.t("video.header_talking_character_image_speech")};
     StudioUI.setHeader('video', {model:profile?.name || 'Video',
-      description:descriptions[el('videoMode').value] || 'Локальная генерация видео',
+      description:descriptions[el('videoMode').value] || StudioI18n.t("video.header_local_video_generation"),
       tone:profile ? (available ? 'good' : 'bad') : 'muted',
-      status:profile ? (available ? 'Video: файлы движка и модели доступны. GPU-проверка выполняется при генерации.' : profile.reason || 'Выбранная модель недоступна.') : 'Проверка моделей Video…'});
+      status:profile ? (available ? StudioI18n.t("video.header_video_engine_model_files_available_gpu") : StudioI18n.remote(profile.reason) || StudioI18n.t("video.header_selected_model_unavailable")) : StudioI18n.t("video.header_checking_video_models")});
   }
   function modes() {
     header();
@@ -116,11 +116,11 @@
     try {localStorage.setItem('visualforge.video.draft.v1',JSON.stringify({speech:{mode:el('videoSpeechMode').value,text:el('videoSpeechText').value,language:el('videoSpeechLanguage').value},engine:selectedEngine,engineDrafts,prompt:el('videoPrompt').value,seed:el('videoSeed').value,mode:el('videoMode').value,quality:el('videoQuality').value,frames:el('videoDuration').value}));} catch {}
   }
   async function toFrame(blob,maxSide=8192) {
-    if (blob.size > 36*1024*1024) throw new Error('Исходный кадр больше 36 МиБ');
+    if (blob.size > 36*1024*1024) throw new Error(StudioI18n.t("video.to_frame_source_exceeds_36_mi_b"));
     const url = URL.createObjectURL(blob);
     try {
       const image = new Image(); image.src=url; await image.decode();
-      if (image.naturalWidth > 8192 || image.naturalHeight > 8192) throw new Error('Кадр больше 8192 пикселей по стороне');
+      if (image.naturalWidth > 8192 || image.naturalHeight > 8192) throw new Error(StudioI18n.t("video.to_frame_exceeds_8192_pixels_one_side"));
       const scale=Math.min(1,maxSide/Math.max(image.naturalWidth,image.naturalHeight));
       const canvas = document.createElement('canvas'); canvas.width=Math.max(1,Math.round(image.naturalWidth*scale)); canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
       const context=canvas.getContext('2d'); context.fillStyle='#eee'; context.fillRect(0,0,canvas.width,canvas.height); context.drawImage(image,0,0,canvas.width,canvas.height);
@@ -137,19 +137,19 @@
     const data=await api('history'); el('videoHistory').replaceChildren();
     for (const row of data.entries.slice(0,20)) {
       const card=document.createElement('div');card.className='video-history-card';
-      const title=document.createElement('p');title.textContent=`${engineName(row.engine)} · ${({t2v:'По тексту',i2v:'По изображению',first_last:'Между кадрами',characters:'Персонажи',s2v:'Говорящий персонаж'})[row.mode] || row.mode} · ${({preview:'Предпросмотр',standard:'Стандартное',high:'Высокое'})[row.quality] || row.quality} · Seed ${row.seed} · ${row.state === 'done' ? 'Готово' : row.state === 'cancelled' ? 'Отменено' : 'Ошибка'}`;
-      const prompt=document.createElement('p');prompt.textContent=(row.mix_summary?row.mix_summary+' · ':'')+row.original_prompt;
-      const reuse=document.createElement('button');reuse.type='button';reuse.className='secondary';reuse.textContent='Вернуть промпт и seed';reuse.onclick=()=>{el('videoPrompt').value=row.original_prompt;el('videoSeed').value=row.seed;draft();};
+      const title=document.createElement('p');StudioI18n.bind(title, "textContent", () => (`${engineName(row.engine)} · ${({t2v:StudioI18n.t("video.history_text_to_video_mode_label"),i2v:StudioI18n.t("video.history_image_to_video_mode_label"),first_last:StudioI18n.t("video.history_between_frames"),characters:StudioI18n.t("video.history_character_reference_mode_label"),s2v:StudioI18n.t("video.history_talking_character")})[row.mode] || row.mode} · ${({preview:StudioI18n.t("video.generation_preview_quality_option"),standard:StudioI18n.t("video.generation_standard_quality_option"),high:StudioI18n.t("video.generation_high_quality_option")})[row.quality] || row.quality} · Seed ${row.seed} · ${row.state === 'done' ? StudioI18n.t("video.generation_completed_status_label") : row.state === 'cancelled' ? StudioI18n.t("video.generation_cancelled_status_label") : StudioI18n.t("video.generation_failed_status_label")}`), true);
+      const prompt=document.createElement('p');StudioI18n.bind(prompt, "textContent", () => ((row.mix_summary?StudioI18n.remote(row.mix_summary)+' · ':'')+row.original_prompt), false);
+      const reuse=document.createElement('button');reuse.type='button';reuse.className='secondary';StudioI18n.bind(reuse, "textContent", () => (StudioI18n.t("video.reuse_restore_prompt_seed")), true);reuse.onclick=()=>{el('videoPrompt').value=row.original_prompt;el('videoSeed').value=row.seed;draft();};
       card.append(title,prompt,reuse);
-      if(row.state==='done') {const play=document.createElement('button');play.type='button';play.className='secondary';play.textContent='Открыть видео';play.onclick=()=>show(row);card.append(play);}
+      if(row.state==='done') {const play=document.createElement('button');play.type='button';play.className='secondary';StudioI18n.bind(play, "textContent", () => (StudioI18n.t("video.play_open_video")), true);play.onclick=()=>show(row);card.append(play);}
       card.append(StudioUI.deleteGenerationButton('Video', row.id, async () => {
         if (last?.id === row.id) {
           last=null; el('videoPlayer').pause(); el('videoPlayer').removeAttribute('src'); el('videoPlayer').load(); el('videoPlayer').hidden=true;
           el('videoDownload').removeAttribute('href'); el('videoDownload').hidden=true;
-          el('videoResultMeta').textContent=''; el('videoSavedPath').textContent='';
+          StudioI18n.bind(el('videoResultMeta'), "textContent", () => (''), true); StudioI18n.bind(el('videoSavedPath'), "textContent", () => (''), true);
           exportSourceId=''; ++previewSeq; ++mixSeq; el('videoExportBlock').hidden=true; el('videoMixBlock').hidden=true;
         }
-        el('videoLogs').textContent='Генерация удалена.';
+        StudioI18n.bind(el('videoLogs'), "textContent", () => (StudioI18n.t("video.logs_generation_deleted")), false);
         await history();
       }, () => {
         if (last?.id === row.id) {el('videoPlayer').pause(); el('videoPlayer').removeAttribute('src'); el('videoPlayer').load();}
@@ -162,17 +162,17 @@
     last=row;const url='/api/video/result?id='+encodeURIComponent(row.id);
     el('videoPlayer').src=url;el('videoPlayer').hidden=false;
     el('videoDownload').href=url;el('videoDownload').download=row.filename || 'Generated Video.mp4';el('videoDownload').hidden=false;
-    el('videoResultMeta').textContent=row.metadata ? `${engineName(row.engine)} · ${row.metadata.width}×${row.metadata.height} · Кадры: ${row.metadata.frames} · ${row.metadata.duration} с · ${row.metadata.has_audio ? 'Есть аудиопоток' : 'Без аудиопотока'} · Seed ${row.seed}` : '';
-    el('videoSavedPath').textContent=row.saved_path ? 'Сохранено: '+row.saved_path : '';
+    StudioI18n.bind(el('videoResultMeta'), "textContent", () => (row.metadata ? StudioI18n.t("video.meta_frames_s_seed", [engineName(row.engine), row.metadata.width, row.metadata.height, row.metadata.frames, row.metadata.duration, row.metadata.has_audio ? StudioI18n.t("video.meta_audio_stream_present") : StudioI18n.t("video.meta_no_audio_stream"), row.seed]) : ''), true);
+    StudioI18n.bind(el('videoSavedPath'), "textContent", () => (row.saved_path ? StudioI18n.t("video.output_saved_path_information_prefix")+row.saved_path : ''), true);
     exportOpen(row);mixOpen(row);
   }
-  async function logs(id) {if(!id){el('videoLogs').textContent='Задача ещё не была запущена. Подробности ошибки показаны в уведомлении.';return;}try {el('videoLogs').textContent=(await api('logs?id='+encodeURIComponent(id))).text;} catch(error) {el('videoLogs').textContent=error.message;}}
+  async function logs(id) {if(!id){StudioI18n.bind(el('videoLogs'), "textContent", () => (StudioI18n.t("video.logs_task_has_not_started_yet_error")), false);return;}try {StudioI18n.value(el('videoLogs'), "textContent", ((await api('logs?id='+encodeURIComponent(id))).text), false);} catch(error) {StudioI18n.bind(el('videoLogs'), "textContent", () => (StudioI18n.remote(error.message)), false);}}
   async function poll() {
     if(!active || polling)return;
     polling=true;
     try {
       const row=await api('status?id='+encodeURIComponent(active.id));
-      el('videoStatus').textContent=`${engineName(row.engine)} · ${row.continuation_part ? 'Продолжение '+row.continuation_part+' / '+row.continuation_parts+' · ' : ''}${row.scene ? 'Сцена '+row.scene+' / '+row.scenes+' · ' : ''}${row.phase} · прошло ${row.elapsed_sec} с`;
+      StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.t("video.poll_elapsed_s", [engineName(row.engine), row.continuation_part ? StudioI18n.t("video.generation_continuation_segment_prefix")+row.continuation_part+' / '+row.continuation_parts+' · ' : '', row.scene ? StudioI18n.t("video.generation_scene_index_prefix")+row.scene+' / '+row.scenes+' · ' : '', StudioI18n.remote(row.phase), row.elapsed_sec])), true);
       if (['done','error','cancelled'].includes(row.state)) {
         clearInterval(timer);timer=null;
         active=null;
@@ -180,12 +180,12 @@
         if(typeof engineReady==='function')el('generate').disabled=!engineReady();
         if(row.state==='done')show(row);
         if(row.state!=='cancelled')StudioUI.notify({module:'Video',id:row.id,error:row.state==='error',
-          message:row.error || 'Генерация и монтаж завершены. Видео сохранено.',folder:row.state==='done'?StudioUI.parentFolder(row.saved_path):'',
+          message:StudioI18n.remote(row.error) || StudioI18n.t("video.poll_generation_assembly_completed_video_saved"),folder:row.state==='done'?StudioUI.parentFolder(row.saved_path):'',
           onLogs:() => StudioUI.showLogs('Video',row.id,logs)});
-        if(row.error)el('videoStatus').textContent=row.error;
+        if(StudioI18n.remote(row.error))StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(row.error)), true);
         await Promise.all([history(),logs(row.id)]);
       }
-    } catch(error) {el('videoStatus').textContent=error.message;}
+    } catch(error) {StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);}
     finally {polling=false;}
   }
   async function refresh() {
@@ -193,10 +193,10 @@
       const status=await api('availability');
       if(profiles.length)rememberEngine();
       profiles=status.engines || [];exportInit(status.delivery);
-      el('videoEngine').replaceChildren(...profiles.map(p=>new Option(StudioUI.modelLabel(p.id,p.name),p.id)));
+      el('videoEngine').replaceChildren(...profiles.map(p=>StudioI18n.option(() => (StudioUI.modelLabel(p.id,p.name)), p.id)));
       el('videoEngine').value=profiles.some(p=>p.id===selectedEngine)?selectedEngine:profiles[0]?.id;
       el('videoEngine').disabled=false;configureEngine();
-      el('videoVoiceAvailability').textContent=status.voice_available ? 'Локальная озвучка по образцу: Qwen3-TTS, готова.' : 'Модуль голоса по образцу пока не установлен.';
+      StudioI18n.bind(el('videoVoiceAvailability'), "textContent", () => (status.voice_available ? StudioI18n.t("video.voice_availability_local_cloning_qwen3_tts_ready") : StudioI18n.t("video.voice_availability_cloning_module_not_installed_yet")), true);
       el('videoGenerate').disabled=!available || !!active;
       if(status.available) {
         el('videoSaveDir').value=(await api('settings')).save_dir;await history();await prompts();
@@ -208,27 +208,27 @@
           if(!timer)timer=setInterval(poll,1000);poll();
         }
       }
-    } catch(error) {el('videoAvailability').textContent=error.message;available=false;el('videoGenerate').disabled=true;StudioUI.setHeader('video', {tone:'bad',status:error.message});}
+    } catch(error) {StudioI18n.bind(el('videoAvailability'), "textContent", () => (StudioI18n.remote(error.message)), true);available=false;el('videoGenerate').disabled=true;StudioUI.setHeader('video', {tone:'bad',status:StudioI18n.remote(error.message)});}
   }
   async function prompts() {
     const data=await api('prompts');el('videoPrompts').replaceChildren();
     for(const entry of data.entries) {
-      const card=document.createElement('div');card.className='video-history-card';const text=document.createElement('p');text.textContent=entry.prompt;
-      const use=document.createElement('button');use.type='button';use.className='secondary';use.textContent='Добавить к промпту';use.onclick=()=>{el('videoPrompt').value=[el('videoPrompt').value,entry.prompt].filter(Boolean).join('\n\n');draft();};
-      const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Удалить';remove.onclick=async()=>{await api('prompts',{action:'delete',id:entry.id});await prompts();};card.append(text,use,remove);el('videoPrompts').append(card);
+      const card=document.createElement('div');card.className='video-history-card';const text=document.createElement('p');StudioI18n.bind(text, "textContent", () => (entry.prompt), false);
+      const use=document.createElement('button');use.type='button';use.className='secondary';StudioI18n.bind(use, "textContent", () => (StudioI18n.t("video.use_append_prompt")), true);use.onclick=()=>{el('videoPrompt').value=[el('videoPrompt').value,entry.prompt].filter(Boolean).join('\n\n');draft();};
+      const remove=document.createElement('button');remove.type='button';remove.className='secondary';StudioI18n.bind(remove, "textContent", () => (StudioI18n.t("video.generation_delete_button_label")), true);remove.onclick=async()=>{await api('prompts',{action:'delete',id:entry.id});await prompts();};card.append(text,use,remove);el('videoPrompts').append(card);
     }
   }
   // Export for social networks. The plan (frame placement, notes) is always computed by the server with the same code the export uses.
   let exportJob=null, exportTimer=null, exportPolling=false, exportSourceId=null, exportPlan=null, previewSeq=0, thumb=null;
   const EXPORT_KEY='visualforge.video.export.v1';
-  const fmtNum=(n,digits=2)=>Number(n).toLocaleString('ru-RU',{maximumFractionDigits:digits});
+  const fmtNum=(n,digits=2)=>Number(n).toLocaleString(StudioI18n.locale,{maximumFractionDigits:digits});
   const fmtFps=value=>{const [a,b=1]=String(value).split('/').map(Number);return fmtNum(a/b);};
-  const listItem=(text,className)=>{const item=document.createElement('li');item.textContent=text;if(className)item.className=className;return item;};
+  const listItem=(text,className)=>{const item=document.createElement('li');StudioI18n.bind(item, "textContent", () => (text), false);if(className)item.className=className;return item;};
   function exportDraft(){try{localStorage.setItem(EXPORT_KEY,JSON.stringify({preset:el('videoExportPreset').value,audio:el('videoExportAudio').value}));}catch{}}
   function exportInit(info){
     let saved={};try{saved=JSON.parse(localStorage.getItem(EXPORT_KEY) || '{}');}catch{}
     const keep=el('videoExportPreset').value || saved.preset;
-    el('videoExportPreset').replaceChildren(...(info?.presets || []).map(p=>new Option(`${p.label} · ${p.width} × ${p.height}`,p.id)));
+    el('videoExportPreset').replaceChildren(...(info?.presets || []).map(p=>StudioI18n.option(() => (`${p.label} · ${p.width} × ${p.height}`), p.id)));
     if([...el('videoExportPreset').options].some(o=>o.value===keep))el('videoExportPreset').value=keep;
     if(!el('videoExportAudio').dataset.restored){if(['keep','fill','require'].includes(saved.audio))el('videoExportAudio').value=saved.audio;el('videoExportAudio').dataset.restored='1';}
   }
@@ -244,14 +244,14 @@
   }
   function exportFacts(plan){
     const p=plan.picture,s=plan.source,t=plan.target;
-    const bars=[p.y>0?`${p.y} пикс. сверху и снизу`:'',p.x>0?`${p.x} пикс. слева и справа`:''].filter(Boolean);
+    const bars=[p.y>0?StudioI18n.t("video.export_facts_px_top_bottom", [p.y]):'',p.x>0?StudioI18n.t("video.export_facts_px_left_right", [p.x]):''].filter(Boolean);
     return [
-      `Исходник: ${s.width} × ${s.height}, ${fmtFps(s.fps)} fps, ${fmtNum(s.duration,3)} с`,
-      `Результат: ${t.width} × ${t.height} (${plan.aspect}), ${t.fps} fps, MP4 H.264`,
-      `Кадр в поле: ${p.width} × ${p.height}` + (bars.length?`, чёрные поля: ${bars.join(', ')}`:', без полей'),
-      p.scaled_up?`Масштаб ×${fmtNum(p.scale_factor)}: кадр увеличивается, деталей не прибавляется`:p.scale_factor<1?`Масштаб ×${fmtNum(p.scale_factor)}: кадр уменьшается`:'Масштаб без изменения',
-      plan.frame_rate_conversion==='none'?'Частота кадров не меняется':`Частота кадров: ${fmtFps(s.fps)} → ${t.fps} fps; кадры повторяются или пропускаются, нового движения нет`,
-      ({source:'Звук: из ролика',silence:'Звук: добавится тихая дорожка',none:'Звука в результате не будет'})[plan.audio_origin]
+      StudioI18n.t("video.export_facts_source_fps_s", [s.width, s.height, fmtFps(s.fps), fmtNum(s.duration,3)]),
+      StudioI18n.t("video.export_facts_output_fps_mp4_h_264", [t.width, t.height, plan.aspect, t.fps]),
+      StudioI18n.t("video.export_facts_picture_within_canvas", [p.width, p.height]) + (bars.length?StudioI18n.t("video.export_facts_black_bars", [bars.join(', ')]):StudioI18n.t("video.export_facts_no_bars")),
+      p.scaled_up?StudioI18n.t("video.export_facts_scale_image_enlarged_without_adding_detail", [fmtNum(p.scale_factor)]):p.scale_factor<1?StudioI18n.t("video.export_facts_scale_image_reduced", [fmtNum(p.scale_factor)]):StudioI18n.t("video.export_facts_scale_unchanged"),
+      plan.frame_rate_conversion==='none'?StudioI18n.t("video.export_facts_frame_rate_unchanged"):StudioI18n.t("video.export_facts_frame_rate_fps_frames_duplicated_skipped", [fmtFps(s.fps), t.fps]),
+      ({source:StudioI18n.t("video.export_facts_audio_clip"),silence:StudioI18n.t("video.export_facts_audio_silent_track_added"),none:StudioI18n.t("video.export_facts_output_have_no_audio")})[plan.audio_origin]
     ];
   }
   async function updateExportPreview(){
@@ -265,7 +265,7 @@
       el('videoExportStart').disabled=!!plan.blocked || !!exportJob || !!mixJob;
     }catch(error){
       if(seq!==previewSeq)return;
-      exportPlan=null;el('videoExportFacts').replaceChildren(listItem(error.message,'export-blocked'));
+      exportPlan=null;el('videoExportFacts').replaceChildren(listItem(StudioI18n.remote(error.message),'export-blocked'));
     }
   }
   function loadThumb(id){
@@ -285,29 +285,29 @@
     try{
       const row=await api('export-status?id='+encodeURIComponent(exportJob.id));
       exportJob=row;el('videoExportProgress').value=row.progress || 0;
-      el('videoExportStatus').textContent=`${row.label} · ${row.phase} · прошло ${row.elapsed_sec} с`;
+      StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.t("video.export_elapsed_s", [StudioI18n.remote(row.label), StudioI18n.remote(row.phase), row.elapsed_sec])), true);
       if(row.state!=='running'){
         clearInterval(exportTimer);exportTimer=null;exportJob=null;
         el('videoExportCancel').disabled=true;el('videoExportProgress').hidden=true;
-        if(row.state==='done')el('videoExportStatus').textContent=`Готово: ${row.saved_path}`;
-        else if(row.state==='cancelled')el('videoExportStatus').textContent='Экспорт отменён. Частичный файл удалён.';
-        else el('videoExportStatus').textContent=row.error || 'Экспорт не удался';
+        if(row.state==='done')StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.t("video.export_completed_saved_path_template", [row.saved_path])), true);
+        else if(row.state==='cancelled')StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.t("video.export_cancelled_partial_file_deleted")), true);
+        else StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.remote(row.error) || StudioI18n.t("video.export_execution_failed_error")), true);
         if(row.state!=='cancelled')StudioUI.notify({module:'Video',id:row.id,error:row.state==='error',
-          message:row.state==='error'?row.error:`Экспорт «${row.label}» завершён: ${row.filename}`,folder:row.state==='done'?StudioUI.parentFolder(row.saved_path):''});
+          message:row.state==='error'?StudioI18n.remote(row.error):StudioI18n.t("video.poll_export_completed", [StudioI18n.remote(row.label), row.filename]),folder:row.state==='done'?StudioUI.parentFolder(row.saved_path):''});
         updateExportPreview();updateMixPreview();
       }
-    }catch(error){el('videoExportStatus').textContent=error.message;}
+    }catch(error){StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);}
     finally{exportPolling=false;}
   }
   el('videoExportStart').onclick=async()=>{
     if(!exportSourceId || exportJob || mixJob)return;
-    el('videoExportStart').disabled=true;el('videoMixStart').disabled=true;el('videoExportStatus').textContent='Запуск экспорта…';el('videoExportProgress').value=0;
+    el('videoExportStart').disabled=true;el('videoMixStart').disabled=true;StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.t("video.export_execution_starting_status")), true);el('videoExportProgress').value=0;
     try{attachExport(await api('export',{id:exportSourceId,preset:el('videoExportPreset').value,audio:el('videoExportAudio').value}));}
-    catch(error){el('videoExportStatus').textContent=error.message;StudioUI.notify({module:'Video',error:true,message:error.message});updateExportPreview();}
+    catch(error){StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);StudioUI.notify({module:'Video',error:true,message:StudioI18n.remote(error.message)});updateExportPreview();}
   };
   el('videoExportCancel').onclick=async()=>{
     if(!exportJob)return;el('videoExportCancel').disabled=true;
-    try{await api('export-cancel',{id:exportJob.id,cancel_token:exportJob.cancel_token});}catch(error){el('videoExportStatus').textContent=error.message;el('videoExportCancel').disabled=false;}
+    try{await api('export-cancel',{id:exportJob.id,cancel_token:exportJob.cancel_token});}catch(error){StudioI18n.bind(el('videoExportStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);el('videoExportCancel').disabled=false;}
   };
   el('videoExportPreset').onchange=()=>{exportDraft();updateExportPreview();};
   el('videoExportAudio').onchange=()=>{exportDraft();updateExportPreview();};
@@ -319,7 +319,7 @@
   async function loadMusic(){
     try{
       const data=await (await fetch('/api/music/history')).json();
-      musicList=(data.entries || []).filter(e=>e.state==='done' && e.saved_path).map(e=>({id:e.id,label:`${String(e.caption || 'Music').slice(0,45)} · ${fmtNum(e.metadata?.duration || e.duration || 0,1)} с`}));
+      musicList=(data.entries || []).filter(e=>e.state==='done' && e.saved_path).map(e=>({id:e.id,label:StudioI18n.t("video.music_library_track_duration_template", [String(e.caption || 'Music').slice(0,45), fmtNum(e.metadata?.duration || e.duration || 0,1)])}));
     }catch{musicList=[];}
     for(const track of mixTracks)track.fill();
     scheduleMix();
@@ -327,18 +327,18 @@
   function addMixTrack(){
     if(mixTracks.length>=3)return;
     const uid='mix-'+crypto.randomUUID(),card=document.createElement('div');card.className='video-character mix-track';
-    const field=(text,id,attrs)=>{const label=document.createElement('label');label.htmlFor=uid+'-'+id;label.textContent=text;const input=document.createElement('input');input.id=uid+'-'+id;Object.assign(input,attrs);input.oninput=input.onchange=scheduleMix;return {label,input};};
-    const musicLabel=document.createElement('label');musicLabel.htmlFor=uid+'-music';musicLabel.textContent=`Дорожка ${mixTracks.length+1}: музыка из раздела Music`;
+    const field=(text,id,attrs)=>{const label=document.createElement('label');label.htmlFor=uid+'-'+id;StudioI18n.bind(label, "textContent", () => (text), false);const input=document.createElement('input');input.id=uid+'-'+id;Object.assign(input,attrs);input.oninput=input.onchange=scheduleMix;return {label,input};};
+    const musicLabel=document.createElement('label');musicLabel.htmlFor=uid+'-music';StudioI18n.bind(musicLabel, "textContent", () => (StudioI18n.t("video.music_track_section", [mixTracks.length+1])), true);
     const select=document.createElement('select');select.id=uid+'-music';select.onchange=scheduleMix;
-    const start=field('Старт, с','start',{type:'number',min:'0',max:'3600',step:'0.1',value:'0'});
-    const gain=field('Громкость, дБ','gain',{type:'number',min:'-40',max:'12',step:'1',value:clipHasAudio?'-12':'-6'});
-    const fadeIn=field('Нарастание, с','fadein',{type:'number',min:'0',max:'30',step:'0.1',value:'0.3'});
-    const fadeOut=field('Затухание, с','fadeout',{type:'number',min:'0',max:'30',step:'0.1',value:'1.2'});
-    const loop=field('Повторять, пока не кончится ролик','loop',{type:'checkbox'});loop.label.className='mix-check';loop.label.prepend(loop.input);
-    const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='Убрать дорожку';
+    const start=field(StudioI18n.t("video.add_mix_track_start_s"),'start',{type:'number',min:'0',max:'3600',step:'0.1',value:'0'});
+    const gain=field(StudioI18n.t("video.add_mix_track_volume_d_b"),'gain',{type:'number',min:'-40',max:'12',step:'1',value:clipHasAudio?'-12':'-6'});
+    const fadeIn=field(StudioI18n.t("video.add_mix_track_fade_s"),'fadein',{type:'number',min:'0',max:'30',step:'0.1',value:'0.3'});
+    const fadeOut=field(StudioI18n.t("video.add_mix_track_fade_out_s"),'fadeout',{type:'number',min:'0',max:'30',step:'0.1',value:'1.2'});
+    const loop=field(StudioI18n.t("video.add_mix_track_loop_until_video_ends"),'loop',{type:'checkbox'});loop.label.className='mix-check';loop.label.prepend(loop.input);
+    const remove=document.createElement('button');remove.type='button';remove.className='secondary';StudioI18n.bind(remove, "textContent", () => (StudioI18n.t("video.mixer_remove_music_track_button_label")), true);
     const row=document.createElement('div');row.className='mix-row';row.append(...[start,gain,fadeIn,fadeOut].flatMap(f=>[f.label,f.input]));
     const track={
-      fill(){const keep=select.value;select.replaceChildren(new Option(musicList.length?'Выберите музыку…':'Нет готовой музыки: создайте её в разделе Music',''),...musicList.map(m=>new Option(m.label,m.id)));if(musicList.some(m=>m.id===keep))select.value=keep;},
+      fill(){const keep=select.value;select.replaceChildren(StudioI18n.option(() => (musicList.length?StudioI18n.t("video.add_mix_track_select_music"):StudioI18n.t("video.add_mix_track_no_music_available_create")), ''),...musicList.map(m=>StudioI18n.option(() => (m.label), m.id)));if(musicList.some(m=>m.id===keep))select.value=keep;},
       read(){return {music_id:select.value,label:select.selectedOptions[0]?.textContent.slice(0,60) || 'Music',start:mixNumber(start.input,0),gain_db:mixNumber(gain.input,-12),fade_in:mixNumber(fadeIn.input,0),fade_out:mixNumber(fadeOut.input,0),loop:loop.input.checked};}
     };
     remove.onclick=()=>{mixTracks.splice(mixTracks.indexOf(track),1);card.remove();el('videoMixAdd').disabled=false;scheduleMix();};
@@ -365,31 +365,31 @@
         if(lane.fade_in){g.beginPath();g.moveTo(x0,y);g.lineTo(x0+lane.fade_in*scale,y);g.lineTo(x0,y+h);g.fill();}
         if(lane.fade_out){g.beginPath();g.moveTo(x0+w,y);g.lineTo(x0+w-lane.fade_out*scale,y);g.lineTo(x0+w,y+h);g.fill();}
       }
-      g.fillStyle='#fff';g.fillText(lane.gain_db===null?lane.label:`${lane.label} · ${fmtNum(lane.gain_db,1)} дБ`,x0+6,y+h/2,Math.max(20,w-10));
+      g.fillStyle='#fff';g.fillText(lane.gain_db===null?lane.label:StudioI18n.t("video.draw_mix_d_b", [lane.label, fmtNum(lane.gain_db,1)]),x0+6,y+h/2,Math.max(20,w-10));
     });
     const step=plan.duration<=12?1:plan.duration<=40?5:10,axis=top+lanes.length*rowH;
     g.fillStyle='#9fb0c8';g.strokeStyle='#526077';g.textBaseline='top';
-    for(let t=0;t<=plan.duration+1e-6;t+=step){g.beginPath();g.moveTo(x(t),axis-4);g.lineTo(x(t),axis+2);g.stroke();g.fillText(`${t} с`,x(t)-8,axis+4);}
+    for(let t=0;t<=plan.duration+1e-6;t+=step){g.beginPath();g.moveTo(x(t),axis-4);g.lineTo(x(t),axis+2);g.stroke();g.fillText(StudioI18n.t("video.duration_seconds_template", [t]),x(t)-8,axis+4);}
   }
   async function updateMixPreview(){
     const seq=++mixSeq,body=mixRequest();el('videoMixStart').disabled=true;
     if(!body){
-      mixPlan=null;el('videoMixFacts').replaceChildren(listItem(mixTracks.length?'Выберите музыку для каждой дорожки':'Добавьте хотя бы одну дорожку музыки'));
+      mixPlan=null;el('videoMixFacts').replaceChildren(listItem(mixTracks.length?StudioI18n.t("video.update_mix_preview_select_music_every_track"):StudioI18n.t("video.update_mix_preview_add_least_one_music_track")));
       el('videoMixCanvas').width=1;el('videoMixCanvas').height=1;return;
     }
     try{
       const plan=await api('mix-preview',body);
       if(seq!==mixSeq)return;
       mixPlan=plan;drawMix(plan);
-      el('videoMixFacts').replaceChildren(listItem(`Длительность ролика: ${fmtNum(plan.duration,2)} с; ${plan.native_in?'звук ролика сохраняется':'звука ролика в итоге не будет'}`),...plan.notes.map(t=>listItem(t)),...(plan.blocked?[listItem(plan.blocked,'export-blocked')]:[]));
+      el('videoMixFacts').replaceChildren(listItem(StudioI18n.t("video.update_mix_preview_clip_duration_s", [fmtNum(plan.duration,2), plan.native_in?StudioI18n.t("video.update_mix_preview_clip_audio_preserved"):StudioI18n.t("video.update_mix_preview_clip_audio_removed")])),...plan.notes.map(t=>listItem(t)),...(plan.blocked?[listItem(plan.blocked,'export-blocked')]:[]));
       el('videoMixStart').disabled=!!plan.blocked || !!mixJob || !!exportJob;
-    }catch(error){if(seq!==mixSeq)return;mixPlan=null;el('videoMixFacts').replaceChildren(listItem(error.message,'export-blocked'));}
+    }catch(error){if(seq!==mixSeq)return;mixPlan=null;el('videoMixFacts').replaceChildren(listItem(StudioI18n.remote(error.message),'export-blocked'));}
   }
   function mixOpen(row){
     clipHasAudio=!!row.metadata?.has_audio;
     el('videoMixBlock').hidden=false;el('videoMixNativeBlock').hidden=!clipHasAudio;
     el('videoMixDucking').disabled=!clipHasAudio;if(!clipHasAudio)el('videoMixDucking').checked=false;
-    el('videoMixDucking').title=clipHasAudio?'':'В этом ролике нет собственного звука: приглушать нечего';
+    StudioI18n.bind(el('videoMixDucking'), "title", () => (clipHasAudio?'':StudioI18n.t("video.mix_ducking_clip_has_no_original_audio_duck")), true);
     loadMusic();
   }
   function attachMix(row){
@@ -402,30 +402,30 @@
     try{
       const row=await api('export-status?id='+encodeURIComponent(mixJob.id));
       mixJob=row;el('videoMixProgress').value=row.progress || 0;
-      el('videoMixStatus').textContent=`${row.phase} · прошло ${row.elapsed_sec} с`;
+      StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.t("video.mix_elapsed_s", [StudioI18n.remote(row.phase), row.elapsed_sec])), true);
       if(row.state!=='running'){
         clearInterval(mixTimer);mixTimer=null;mixJob=null;el('videoMixCancel').disabled=true;el('videoMixProgress').hidden=true;
-        if(row.state==='done')el('videoMixStatus').textContent=`Готово: ${row.saved_path}`;
-        else if(row.state==='cancelled')el('videoMixStatus').textContent='Микширование отменено. Частичный файл удалён.';
-        else el('videoMixStatus').textContent=row.error || 'Микширование не удалось';
+        if(row.state==='done')StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.t("video.export_completed_saved_path_template", [row.saved_path])), true);
+        else if(row.state==='cancelled')StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.t("video.mix_mixing_cancelled_partial_file_deleted")), true);
+        else StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.remote(row.error) || StudioI18n.t("video.mix_mixing_failed")), true);
         if(row.state!=='cancelled')StudioUI.notify({module:'Video',id:row.id,error:row.state==='error',
-          message:row.state==='error'?row.error:`Музыка добавлена: ${row.filename}`,folder:row.state==='done'?StudioUI.parentFolder(row.saved_path):''});
+          message:row.state==='error'?StudioI18n.remote(row.error):StudioI18n.t("video.poll_mix_music_added", [row.filename]),folder:row.state==='done'?StudioUI.parentFolder(row.saved_path):''});
         if(row.state==='done' && row.result_id){await history();show(await api('status?id='+encodeURIComponent(row.result_id)));}
         else updateMixPreview();
         updateExportPreview();
       }
-    }catch(error){el('videoMixStatus').textContent=error.message;}
+    }catch(error){StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);}
     finally{mixPolling=false;}
   }
   el('videoMixStart').onclick=async()=>{
     const body=mixRequest();if(!body || mixJob || exportJob)return;
-    el('videoMixStart').disabled=true;el('videoMixStatus').textContent='Запуск микширования…';el('videoMixProgress').value=0;
+    el('videoMixStart').disabled=true;StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.t("video.mix_starting_mixing")), true);el('videoMixProgress').value=0;
     try{attachMix(await api('mix',body));}
-    catch(error){el('videoMixStatus').textContent=error.message;StudioUI.notify({module:'Video',error:true,message:error.message});updateMixPreview();}
+    catch(error){StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);StudioUI.notify({module:'Video',error:true,message:StudioI18n.remote(error.message)});updateMixPreview();}
   };
   el('videoMixCancel').onclick=async()=>{
     if(!mixJob)return;el('videoMixCancel').disabled=true;
-    try{await api('export-cancel',{id:mixJob.id,cancel_token:mixJob.cancel_token});}catch(error){el('videoMixStatus').textContent=error.message;el('videoMixCancel').disabled=false;}
+    try{await api('export-cancel',{id:mixJob.id,cancel_token:mixJob.cancel_token});}catch(error){StudioI18n.bind(el('videoMixStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);el('videoMixCancel').disabled=false;}
   };
   el('videoMixAdd').onclick=addMixTrack;el('videoMixRefresh').onclick=loadMusic;
   el('videoMixNative').onchange=el('videoMixNativeGain').oninput=el('videoMixDucking').onchange=scheduleMix;
@@ -437,82 +437,82 @@
   el('videoDuration').onchange=()=>{modes();draft();};
   el('videoPrompt').oninput=draft;el('videoSeed').oninput=draft;el('videoQuality').onchange=draft;
   async function readSpeech(file){
-    if(!file)return null;if(file.size>8*1024*1024)throw new Error('Аудиофайл больше 8 МиБ');
-    return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).replace(/^data:[^;]*;/,'data:audio/wav;'));reader.onerror=()=>reject(new Error('Не удалось прочитать аудиофайл'));reader.readAsDataURL(file);});
+    if(!file)return null;if(file.size>8*1024*1024)throw new Error(StudioI18n.t("video.read_speech_audio_file_exceeds_8_mi_b"));
+    return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).replace(/^data:[^;]*;/,'data:audio/wav;'));reader.onerror=()=>reject(new Error(StudioI18n.t("video.reader_read_audio_file_failed")));reader.readAsDataURL(file);});
   }
-  el('videoVoiceSample').onchange=async()=>{speechReference=null;try{speechReference=await readSpeech(el('videoVoiceSample').files[0]);}catch(e){el('videoStatus').textContent=e.message;}};
-  el('videoReadySpeech').onchange=async()=>{speechAudio=null;try{speechAudio=await readSpeech(el('videoReadySpeech').files[0]);}catch(e){el('videoStatus').textContent=e.message;}};
+  el('videoVoiceSample').onchange=async()=>{speechReference=null;try{speechReference=await readSpeech(el('videoVoiceSample').files[0]);}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
+  el('videoReadySpeech').onchange=async()=>{speechAudio=null;try{speechAudio=await readSpeech(el('videoReadySpeech').files[0]);}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
   el('videoSpeechMode').onchange=()=>{modes();draft();};el('videoSpeechText').oninput=draft;el('videoSpeechLanguage').onchange=draft;
-  el('videoSource').onchange=async()=>{try{await inputFrame(el('videoSource').files[0],'source');}catch(e){el('videoStatus').textContent=e.message;}};
-  el('videoEnd').onchange=async()=>{try{await inputFrame(el('videoEnd').files[0],'end');}catch(e){el('videoStatus').textContent=e.message;}};
+  el('videoSource').onchange=async()=>{try{await inputFrame(el('videoSource').files[0],'source');}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
+  el('videoEnd').onchange=async()=>{try{await inputFrame(el('videoEnd').files[0],'end');}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
   function generationRequest() {
     const data={engine:el('videoEngine').value,mode:el('videoMode').value,prompt:el('videoPrompt').value,quality:el('videoQuality').value,seed:el('videoSeed').value,width:Number(el('videoResolution').value.split('x')[0]),height:Number(el('videoResolution').value.split('x')[1]),frames:Number(el('videoDuration').value),fps:profiles.find(p=>p.id===el('videoEngine').value)?.fps || 24};
     if (['i2v','first_last','s2v'].includes(data.mode)) {
-      if (!source) throw new Error('Добавьте исходный кадр');
+      if (!source) throw new Error(StudioI18n.t("video.generation_add_source_frame"));
       data.source_image=source;
     }
     if (data.mode==='s2v') {
       data.speech_mode=el('videoSpeechMode').value;
       if (data.speech_mode==='clone') {
-        if (!speechReference) throw new Error('Добавьте образец голоса');
-        if (!el('videoSpeechText').value.trim()) throw new Error('Введите короткую реплику');
+        if (!speechReference) throw new Error(StudioI18n.t("video.generation_add_voice_sample"));
+        if (!el('videoSpeechText').value.trim()) throw new Error(StudioI18n.t("video.generation_enter_short_line_dialogue"));
         data.voice_audio=speechReference;
         data.speech_text=el('videoSpeechText').value;
         data.language=el('videoSpeechLanguage').value;
       } else {
-        if (!speechAudio) throw new Error('Добавьте готовую запись речи');
+        if (!speechAudio) throw new Error(StudioI18n.t("video.generation_add_speech_recording"));
         data.source_audio=speechAudio;
       }
     }
     if (data.mode==='first_last') {
-      if (!end) throw new Error('Добавьте конечный кадр');
+      if (!end) throw new Error(StudioI18n.t("video.generation_add_ending_frame"));
       data.end_image=end;
     }
     if (data.mode==='characters') {
-      if (!characters.length || characters.some(p=>!p.image)) throw new Error('Добавьте изображение каждого персонажа');
-      if (characters.some(p=>p.speech_text.trim() && !p.voice_audio)) throw new Error('Добавьте образец голоса для каждой реплики');
+      if (!characters.length || characters.some(p=>!p.image)) throw new Error(StudioI18n.t("video.generation_add_image_each_character"));
+      if (characters.some(p=>p.speech_text.trim() && !p.voice_audio)) throw new Error(StudioI18n.t("video.generation_add_voice_sample_each_line_dialogue"));
       data.characters=characters;
     }
     return data;
   }
   el('videoForm').onsubmit=async event=>{
     event.preventDefault();if(active)return;
-    el('videoGenerate').disabled=true;el('videoStatus').textContent='Проверка входных данных и свободной GPU…';
+    el('videoGenerate').disabled=true;StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.t("video.generation_input_and_gpu_validation_status")), true);
     try {
       const data=generationRequest();
       active=await api('generate',data);el('videoSeed').value=active.seed;draft();el('videoCancel').disabled=false;el('generate').disabled=true;
       timer=setInterval(poll,1000);poll();
-    } catch(error) {el('videoStatus').textContent=error.message;el('videoGenerate').disabled=!available;StudioUI.notify({module:'Video',error:true,message:error.message,onLogs:()=>StudioUI.showLogs('Video','',logs)});}
+    } catch(error) {StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);el('videoGenerate').disabled=!available;StudioUI.notify({module:'Video',error:true,message:StudioI18n.remote(error.message),onLogs:()=>StudioUI.showLogs('Video','',logs)});}
   };
-  el('videoCancel').onclick=async()=>{if(!active)return;el('videoCancel').disabled=true;try{await api('cancel',{id:active.id,cancel_token:active.cancel_token});}catch(e){el('videoStatus').textContent=e.message;el('videoCancel').disabled=false;}};
+  el('videoCancel').onclick=async()=>{if(!active)return;el('videoCancel').disabled=true;try{await api('cancel',{id:active.id,cancel_token:active.cancel_token});}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);el('videoCancel').disabled=false;}};
   async function saveFolder(path) {
     const result=await api('settings',{save_dir:path});
     el('videoSaveDir').value=result.save_dir;
-    el('videoStatus').textContent='Папка Video сохранена.';
+    StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.t("video.save_folder_video_saved")), true);
   }
-  el('videoSaveSettings').onclick=async()=>{try{await saveFolder(el('videoSaveDir').value);}catch(e){el('videoStatus').textContent=e.message;}};
+  el('videoSaveSettings').onclick=async()=>{try{await saveFolder(el('videoSaveDir').value);}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
   el('videoChooseSaveDir').onclick=()=>window.chooseStudioFolder(el('videoSaveDir').value,saveFolder,el('videoChooseSaveDir'));
-  el('videoOpenSaveDir').onclick=async()=>{try{await StudioUI.openFolder(el('videoSaveDir').value);}catch(e){el('videoStatus').textContent=e.message;}};
+  el('videoOpenSaveDir').onclick=async()=>{try{await StudioUI.openFolder(el('videoSaveDir').value);}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
   el('videoCopySaveDir').onclick=()=>navigator.clipboard.writeText(el('videoSaveDir').value);
-  el('videoSavePrompt').onclick=async()=>{try{await api('prompts',{action:'add',prompt:el('videoPrompt').value});await prompts();}catch(e){el('videoStatus').textContent=e.message;}};
+  el('videoSavePrompt').onclick=async()=>{try{await api('prompts',{action:'add',prompt:el('videoPrompt').value});await prompts();}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
   el('videoRefreshLogs').onclick=()=>logs(active?.id || last?.id || '');
   el('videoCopyLogs').onclick=()=>navigator.clipboard.writeText(el('videoLogs').textContent);
   window.addEventListener('beforeunload',event=>{if(active || exportJob || mixJob){event.preventDefault();event.returnValue='';}});
   async function fetchSourceImage(url) {
     const response=await fetch(url);
-    if (!response.ok) throw new Error('Исходное изображение недоступно');
+    if (!response.ok) throw new Error(StudioI18n.t("video.fetch_image_source_unavailable"));
     return response.blob();
   }
   window.addEventListener('visualforge:use-image-in-video',async event=>{
-    try{await inputFrame(await fetchSourceImage(event.detail.url),'source');if(!el('videoPrompt').value)el('videoPrompt').value=event.detail.prompt || '';el('videoMode').value='i2v';modes();draft();module('video');}catch(error){el('videoStatus').textContent=error.message;module('video');}
+    try{await inputFrame(await fetchSourceImage(event.detail.url),'source');if(!el('videoPrompt').value)el('videoPrompt').value=event.detail.prompt || '';el('videoMode').value='i2v';modes();draft();module('video');}catch(error){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);module('video');}
   });
   function imageActions() {
     for(const container of [el('images'),el('historyCards')])if(container)for(const link of container.querySelectorAll('a[href^="/api/result"]')){
-      if(link.dataset.videoAction)continue;link.dataset.videoAction='1';const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Использовать в Video';button.onclick=()=>window.dispatchEvent(new CustomEvent('visualforge:use-image-in-video',{detail:{url:link.href}}));link.parentElement.append(button);
+      if(link.dataset.videoAction)continue;link.dataset.videoAction='1';const button=document.createElement('button');button.type='button';button.className='secondary';StudioI18n.bind(button, "textContent", () => (StudioI18n.t("video.button_use_video")), true);button.onclick=()=>window.dispatchEvent(new CustomEvent('visualforge:use-image-in-video',{detail:{url:link.href}}));link.parentElement.append(button);
     }
   }
   for(const id of ['images','historyCards'])if(el(id))new MutationObserver(imageActions).observe(el(id),{childList:true,subtree:true});
-  try{const value=JSON.parse(localStorage.getItem('visualforge.video.draft.v1') || '{}');engineDrafts=value.engineDrafts || {};if(value.speech){el('videoSpeechText').value=value.speech.text || '';if(['clone','audio'].includes(value.speech.mode))el('videoSpeechMode').value=value.speech.mode;if(['Russian','English','Auto'].includes(value.speech.language))el('videoSpeechLanguage').value=value.speech.language;}selectedEngine=value.engine || 'freevideo-h3-int8';el('videoEngine').add(new Option('Wan 2.2 TI2V-5B','wan22-ti2v-5b'));el('videoEngine').add(new Option('Wan 2.2 S2V-14B','wan22-s2v-14b'));el('videoEngine').value=selectedEngine;el('videoPrompt').value=value.prompt || '';el('videoSeed').value=value.seed || '';if(['t2v','i2v','first_last','characters','s2v'].includes(value.mode))el('videoMode').value=value.mode;if(['preview','standard','high'].includes(value.quality))el('videoQuality').value=value.quality;if(['39','243','1440'].includes(value.frames))el('videoDuration').value=value.frames;}catch{}
+  try{const value=JSON.parse(localStorage.getItem('visualforge.video.draft.v1') || '{}');engineDrafts=value.engineDrafts || {};if(value.speech){el('videoSpeechText').value=value.speech.text || '';if(['clone','audio'].includes(value.speech.mode))el('videoSpeechMode').value=value.speech.mode;if(['Russian','English','Auto'].includes(value.speech.language))el('videoSpeechLanguage').value=value.speech.language;}selectedEngine=value.engine || 'freevideo-h3-int8';el('videoEngine').add(StudioI18n.option(() => ('Wan 2.2 TI2V-5B'), 'wan22-ti2v-5b'));el('videoEngine').add(StudioI18n.option(() => ('Wan 2.2 S2V-14B'), 'wan22-s2v-14b'));el('videoEngine').value=selectedEngine;el('videoPrompt').value=value.prompt || '';el('videoSeed').value=value.seed || '';if(['t2v','i2v','first_last','characters','s2v'].includes(value.mode))el('videoMode').value=value.mode;if(['preview','standard','high'].includes(value.quality))el('videoQuality').value=value.quality;if(['39','243','1440'].includes(value.frames))el('videoDuration').value=value.frames;}catch{}
   if(!engineDrafts[selectedEngine])rememberEngine();
   modes();imageActions();
 })();

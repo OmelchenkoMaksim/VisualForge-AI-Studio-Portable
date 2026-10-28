@@ -14,6 +14,7 @@ class Element {
 async function main() {
   let copied;
   const context = vm.createContext({document:{createElement:tag=>new Element(tag)}, navigator:{clipboard:{writeText:async value=>{copied=value;}}}});
+  require('./i18n_fixture.cjs')(context);
   vm.runInContext(block, context);
   const record = {type:'Image', id:'a'.repeat(64), started_at:'2026-10-28T09:00:00.000Z', duration_sec:0};
   const card = context.generationInfo(record);

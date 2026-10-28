@@ -1,4 +1,5 @@
 """Build independent API prompts without changing the stored templates."""
+from ui_strings import source as ui_text
 import hashlib
 import json
 from .registry import CANVASES, UPSCALE_MODEL
@@ -7,22 +8,22 @@ from .registry import CANVASES, UPSCALE_MODEL
 def validate_request(engine, data):
     mode = data.get('mode', 'single')
     if not isinstance(mode, str) or mode not in engine.modes:
-        raise ValueError('Режим не поддерживается движком')
+        raise ValueError(ui_text('image.validate_mode_not_supported_engine'))
     quality = data.get('quality', 'low')
     if not isinstance(quality, str) or quality not in engine.quality_steps:
-        raise ValueError('Quality должен быть Low, Good или High')
+        raise ValueError(ui_text('image.validate_quality_must_low_good_high'))
     upscale = data.get('upscale', 1)
     if type(upscale) is not int or upscale not in (1, 2, 4):
-        raise ValueError('Upscale должен быть Off, 2x или 4x')
+        raise ValueError(ui_text('image.validate_upscale_must_off_2_x_4'))
     prompt = data.get('prompt')
     if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 5000:
-        raise ValueError('Промпт должен содержать от 1 до 5000 символов')
+        raise ValueError(ui_text('image.validate_prompt_must_contain_1_5000_characters'))
     seed = data.get('seed')
     if seed is not None and (type(seed) is not int or not 0 <= seed < (1 << 48)):
-        raise ValueError('Seed должен быть целым числом от 0 до 2^48-1')
+        raise ValueError(ui_text('image.validate_seed_must_integer_0_2_48'))
     canvas = data.get('canvas', 'square')
     if mode == 'prompt' and (not isinstance(canvas, str) or canvas not in CANVASES):
-        raise ValueError('Неизвестный формат холста')
+        raise ValueError(ui_text('image.validate_unknown_canvas_format'))
     return mode, quality, upscale, prompt.strip(), seed, canvas
 
 
@@ -32,24 +33,24 @@ def resolve_expansion(engine, data):
     if value is None:
         return bool(engine.expand_nodes)
     if type(value) is not bool:
-        raise ValueError('Расширение промпта: да или нет')
+        raise ValueError(ui_text('image.resolve_expansion_prompt_yes_no'))
     if value and not engine.expand_nodes:
-        raise ValueError('Эта модель не расширяет промпт')
+        raise ValueError(ui_text('image.resolve_expansion_model_does_not_expand_prompts'))
     return value
 
 
 def resolve_workflow_mode(engine, selected_mode, operation='generate'):
     if not isinstance(operation, str) or operation not in ('generate', 'variation'):
-        raise ValueError('Неизвестная операция генерации')
+        raise ValueError(ui_text('image.resolve_workflow_mode_unknown_generation_operation'))
     workflow_mode = 'single' if operation == 'variation' and selected_mode == 'prompt' else selected_mode
     if workflow_mode not in engine.modes:
-        raise ValueError('Операция не поддерживается движком')
+        raise ValueError(ui_text('image.resolve_workflow_mode_operation_not_supported_engine'))
     return workflow_mode
 
 
 def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed, canvas='square', expand=None):
     if mode not in engine.modes:
-        raise ValueError('Режим не поддерживается движком')
+        raise ValueError(ui_text('image.validate_mode_not_supported_engine'))
     expand = bool(engine.expand_nodes) if expand is None else expand
     graph = engine.template(mode)
     if mode != 'prompt' or not engine.native_prompt:
@@ -91,7 +92,7 @@ def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed,
         'seed':seed, 'steps':sampler['steps'],
         'sampler_parameters':{k:sampler[k] for k in ('steps','cfg','sampler_name','scheduler','denoise')},
         'sampler_node_ids':[engine.sampler_node],
-        'node_names':{**engine.node_names, '200':'Загрузка Real-ESRGAN', '201':'AI Upscale 2x', '202':'AI Upscale 4x'}
+        'node_names':{**engine.node_names, '200':ui_text('image.build_workflow_loading_real_esrgan'), '201':'AI Upscale 2x', '202':'AI Upscale 4x'}
     }
     if engine.expand_nodes:
         metadata.update(expansion='upsampler' if expand else 'off', expansion_preview_node=engine.expansion_preview if expand else None)

@@ -17,7 +17,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from job_delete import DeletePlan, confined_file, write_receipt
 from job_history import JobHistory
-from music.manager import MusicManager
+from music.music_manager import MusicManager
 from video.service import Jobs
 import server
 

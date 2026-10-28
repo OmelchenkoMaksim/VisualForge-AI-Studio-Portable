@@ -55,8 +55,9 @@ function boot({stored, unavailable = false, storageFails = false} = {}) {
     }
     throw Error('Unexpected endpoint ' + url);
   };
-  vm.runInNewContext(source, {document, window, localStorage, fetch, HTMLElement:Element, HTMLTextAreaElement:TextArea,
-    HTMLInputElement:Input, setTimeout:schedule, clearTimeout:cancel, setInterval:schedule, clearInterval:cancel, Date:{now:()=>now}});
+  const context={document, window, localStorage, fetch, HTMLElement:Element, HTMLTextAreaElement:TextArea,
+    HTMLInputElement:Input, setTimeout:schedule, clearTimeout:cancel, setInterval:schedule, clearInterval:cancel, Date:{now:()=>now}};
+  require('./i18n_fixture.cjs')(context);vm.runInContext(source,context);
   const bar = document.body.children[0];
   const find = className => bar.children.find(child => child.className === className);
   const enhance = find('voice-enhance'), checkbox = enhance.children[0], hint = find('voice-hint'), label = find('voice-label');

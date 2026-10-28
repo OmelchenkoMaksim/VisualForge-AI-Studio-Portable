@@ -4,6 +4,7 @@ OpenCode keeps the working conversation itself (a session per chat); Aider is st
 the chat; dsh is started per task and resumes its own persisted session. The studio's chat file stores what the user saw: the request, the answer, the steps (commands, edits) and their outcome.
 The model is reached only through `ModelGateway`, so each model request of the agent waits for the video card like a chat answer
 and Image/Video/Music wait for it."""
+from ui_strings import source as ui_text
 import hashlib
 import json
 import os
@@ -45,24 +46,24 @@ def _port(paths, key, env, default):
 def workspace_path(value):
     """An existing absolute folder that is not a drive root (an agent confined to C:\\ is not confined at all)."""
     if not isinstance(value, str) or not value.strip() or len(value) > 1024:
-        raise ValueError('Выберите папку проекта для агента')
+        raise ValueError(ui_text('agent.workspace_path_select_project_folder_agent'))
     path = Path(value.strip()).expanduser()
     if not path.is_absolute():
-        raise ValueError('Папка проекта: нужен полный путь')
+        raise ValueError(ui_text('agent.workspace_path_project_folder_full_required'))
     try:
         path = path.resolve(strict=True)
     except OSError:
-        raise ValueError('Папка проекта не найдена') from None
+        raise ValueError(ui_text('agent.workspace_path_project_folder_not_found')) from None
     if not path.is_dir():
-        raise ValueError('Папка проекта: путь указывает не на папку')
+        raise ValueError(ui_text('agent.workspace_path_project_folder_not'))
     if path.parent == path:
-        raise ValueError('Корень диска нельзя отдать агенту: выберите папку проекта')
+        raise ValueError(ui_text('agent.workspace_path_drive_root_cannot_assigned_agent_select'))
     return str(path)
 
 
 def _clip(text, limit):
     text = str(text or '')
-    return text if len(text) <= limit else text[:limit] + '\n… (обрезано: ещё %d симв.)' % (len(text) - limit)
+    return text if len(text) <= limit else text[:limit] + ui_text('agent.clip_truncated_more_characters') % (len(text) - limit)
 
 
 def step_from(part):
@@ -84,22 +85,22 @@ def step_from(part):
         message = str(state.get('error') or '')
         # OpenCode's own wording when a rule or the user refused the call; the page shows Russian.
         if message.startswith('The user rejected permission'):
-            message = 'Вы отклонили это действие.'
+            message = ui_text('agent.step_from_you_rejected_action')
         elif 'prevents you from using this specific tool call' in message or message.startswith('The user has specified a rule'):
-            message = 'Запрещено правами агента в этом чате.'
+            message = ui_text('agent.step_from_blocked_agent_permissions_chat')
         step['error'] = _clip(message, 1000)
     return step
 
 
 def error_text(error):
     if not isinstance(error, dict):
-        return 'Агент завершился с ошибкой'
+        return ui_text('agent.error_agent_exited')
     name, message = error.get('name', ''), (error.get('data') or {}).get('message', '')
     if name == 'MessageAbortedError':
         return ''
     if name == 'ContextOverflowError':
-        return 'Разговор не помещается в контекст модели: начните новый чат агента или увеличьте контекст'
-    return _clip(message or name or 'Агент завершился с ошибкой', 500)
+        return ui_text('agent.error_conversation_exceeds_model_context_start_new')
+    return _clip(message or name or ui_text('agent.error_agent_exited'), 500)
 
 
 class AgentManager:
@@ -135,7 +136,7 @@ class AgentManager:
         for alias, info in self._models().items():
             if info['name'] == name:
                 return alias
-        raise ValueError('Модель этого чата не установлена или отключена')
+        raise ValueError(ui_text('agent.alias_of_chat_s_model_not_installed_disabled'))
 
     def settings(self, data=None):
         with self.settings_lock:
@@ -154,15 +155,15 @@ class AgentManager:
         if data is None:
             return current
         if not isinstance(data, dict) or set(data) - set(current):
-            raise ValueError('Настройки агента содержат неподдерживаемые параметры')
+            raise ValueError(ui_text('agent.settings_agent_contain_unsupported_parameters'))
         if 'agent' in data:
             get_agent(data['agent'])
         if 'permission' in data and data['permission'] not in PERMISSION_MODES:
-            raise ValueError('Неизвестный уровень прав агента')
+            raise ValueError(ui_text('agent.settings_unknown_agent_permission_level'))
         if data.get('workspace'):
             data = dict(data, workspace=workspace_path(data['workspace']))
         if 'loop' in data and not isinstance(data['loop'], bool):
-            raise ValueError('Настройка цикла: да или нет')
+            raise ValueError(ui_text('agent.settings_loop_setting_yes_no'))
         loop = {key[5:]: data[key] for key in ('loop_threshold', 'loop_iterations', 'loop_check') if key in data}
         if loop:
             checked = loop_module.options(loop)
@@ -201,15 +202,15 @@ class AgentManager:
             generation = run.get('generation') if run else None
         while True:
             if run is None or self.run is not run or run.get('generation') is not generation:
-                raise Busy('Агент сейчас не выполняет задачу')
+                raise Busy(ui_text('agent.admit_agent_not_running_task'))
             if run['cancel'].is_set():
-                raise ValueError('Задача агента остановлена')
+                raise ValueError(ui_text('agent.admit_agent_task_stopped'))
             try:
                 with self.gpu_lock:
                     self.gpu.claim('text')
                     with self.lock:
                         if self.run is not run or run.get('generation') is not generation or run['cancel'].is_set():
-                            raise ValueError('Задача агента остановлена')
+                            raise ValueError(ui_text('agent.admit_agent_task_stopped'))
                         event = self.text.begin(self._key(run))
                 # HTTP completion may arrive after the task/iteration has changed.
                 self.requests.ticket = (run, generation, event, run['phase'])
@@ -221,15 +222,15 @@ class AgentManager:
                     loaded = False
                 if self.run is not run or run['cancel'].is_set():
                     event.set()
-                run['emit'](dict(type='status', phase='Модель обдумывает следующий шаг…' if loaded else
-                                 'Загрузка модели в видеопамять: первая загрузка с диска может занять несколько минут…'))
+                run['emit'](dict(type='status', phase=ui_text('agent.admit_model_thinking_about_next_step') if loaded else
+                                 ui_text('agent.admit_loading_model_into_video_memory_first')))
                 return event
             except Busy as error:
                 if time.monotonic() > deadline:
                     raise
                 if run.get('waiting') != str(error):
                     run['waiting'] = str(error)
-                    run['emit'](dict(type='status', phase='Агент ждёт видеокарту: ' + str(error)))
+                    run['emit'](dict(type='status', phase=ui_text('agent.admit_agent_waiting_gpu') + str(error)))
                 run['cancel'].wait(2)
 
     def _event_activity(self):
@@ -249,13 +250,13 @@ class AgentManager:
     # ---- chats --------------------------------------------------------------------------------------------------
     def create_chat(self, data):
         if not isinstance(data, dict) or set(data) - {'agent', 'workspace', 'permission', 'model', 'system'}:
-            raise ValueError('Запрос содержит неподдерживаемые параметры')
+            raise ValueError(ui_text('agent.create_chat_request_contains_unsupported_parameters'))
         agent = get_agent(data.get('agent') or DEFAULT_AGENT)
         if agent['planned']:
-            raise ValueError('%s пока не подключён' % agent['name'])
+            raise ValueError(ui_text('agent.create_chat_not_connected_yet') % agent['name'])
         permission = data.get('permission') or DEFAULT_PERMISSION
         if permission not in PERMISSION_MODES:
-            raise ValueError('Неизвестный уровень прав агента')
+            raise ValueError(ui_text('agent.settings_unknown_agent_permission_level'))
         workspace = workspace_path(data.get('workspace'))
         model = data.get('model') or self.text.default_model()
         self.settings(dict(agent=agent['id'], workspace=workspace, permission=permission))
@@ -267,17 +268,17 @@ class AgentManager:
 
     def _update_chat(self, data):
         if not isinstance(data, dict) or set(data) - {'id', 'workspace', 'permission'}:
-            raise ValueError('Запрос содержит неподдерживаемые параметры')
+            raise ValueError(ui_text('agent.create_chat_request_contains_unsupported_parameters'))
         chat = self.store.get(data.get('id'))
         if chat.get('kind') != 'agent':
-            raise ValueError('Это обычный чат, а не чат агента')
+            raise ValueError(ui_text('agent.update_chat_regular_not_agent'))
         with self.lock:
             if self.run and self.run['chat'] == chat['id']:
-                raise Busy('Агент работает в этом чате: сначала дождитесь окончания или остановите его')
+                raise Busy(ui_text('agent.update_chat_agent_working_wait_completion_stop_first'))
         changes = {}
         if 'permission' in data:
             if data['permission'] not in PERMISSION_MODES:
-                raise ValueError('Неизвестный уровень прав агента')
+                raise ValueError(ui_text('agent.settings_unknown_agent_permission_level'))
             changes['permission'] = data['permission']
             # dsh reads the level from the config patch of every task, so its session simply continues.
             if chat['agent'].get('session') and chat['agent']['id'] == 'opencode' and self.opencode.alive():
@@ -300,11 +301,11 @@ class AgentManager:
     def send(self, chat_id, content, emit, disconnected, loop=None):
         """Run one agent task (or, with `loop` settings, a loop of iterations) and stream its events through `emit`."""
         if not isinstance(content, str) or not content.strip() or len(content) > 100_000:
-            raise ValueError('Задание агенту: текст до 100 000 символов')
+            raise ValueError(ui_text('agent.send_agent_task_text_up_100_000'))
         options = loop_module.options(loop) if loop is not None else None
         chat = self.store.get(chat_id)
         if chat.get('kind') != 'agent':
-            raise ValueError('Это обычный чат: включите режим «Агент» и создайте чат агента')
+            raise ValueError(ui_text('agent.send_regular_chat_enable_agent_mode_create'))
         agent, directory = chat['agent'], chat['agent']['workspace']
         workspace_path(directory)
         alias = self.alias_of(chat.get('model') or self.text.default_model())
@@ -327,7 +328,7 @@ class AgentManager:
         info = self._models()[alias]
         with self.lock:
             if self.run is not None:
-                raise Busy('Агент уже выполняет задачу. Дождитесь окончания или остановите её.')
+                raise Busy(ui_text('agent.send_agent_already_running_task_wait_completion'))
             with self.store.lock:
                 chat = self.store.get(chat_id)
                 agent, directory = chat['agent'], chat['agent']['workspace']
@@ -341,7 +342,7 @@ class AgentManager:
             # The existing 'generation' object guards iteration callbacks; 'record' is the public identity of the whole task.
             generation_info = self.run['record'] = generation_begin('Agent')
         try:
-            emit(dict(type='status', phase='Агент начинает задачу…', generation=generation_info))
+            emit(dict(type='status', phase=ui_text('agent.send_agent_starting_task'), generation=generation_info))
             if options:
                 chat, message, error = self._loop(chat, content, alias, emit, cancel, disconnected, options)
                 generation_finish(generation_info, state='error' if error else 'cancelled' if message.get('stopped') else 'done')
@@ -357,7 +358,7 @@ class AgentManager:
                                                      turn['stopped'], turn['error'], steps=turn['steps'], generation=generation_info)
             return chat, message, turn['error']
         except (OSError, OpenCodeError, ValueError) as failure:
-            message = str(failure)[:500] or 'Агент не смог выполнить задание'
+            message = str(failure)[:500] or ui_text('agent.send_agent_could_not_complete_task')
             generation_finish(generation_info, state='error')
             self.store.update_generation(chat_id, generation_info)
             self.store.add_assistant(chat_id, '', '', chat.get('model', ''), None, False, message, generation=generation_info)
@@ -381,7 +382,7 @@ class AgentManager:
         if chat['agent']['id'] in ('aider', 'dsh'):
             return self._turn_process(chat['agent']['id'], chat, content, alias, history, emit, cancel, disconnected, handoff, fresh)
         agent, directory, model = chat['agent'], chat['agent']['workspace'], chat.get('model', '')
-        emit(dict(type='status', phase='Запуск OpenCode…' if not self.opencode.alive() else 'Агент получил задание'))
+        emit(dict(type='status', phase=ui_text('agent.turn_starting_open_code') if not self.opencode.alive() else ui_text('agent.turn_agent_received_task')))
         self.gateway.start()
         self.opencode.start(self.gateway.base_url, self.gateway.token, self._models())
         system = chat.get('system', '').strip() or DEFAULT_SYSTEM
@@ -409,7 +410,7 @@ class AgentManager:
         """The handoff request in the iteration's session, with the read-only rules so the note is a plain answer."""
         with self.lock:
             self.run['phase'] = 'handoff'
-        emit(dict(type='status', phase='Агент пишет итог итерации…'))
+        emit(dict(type='status', phase=ui_text('agent.opencode_handoff_agent_writing_iteration')))
         self.opencode.set_mode(session, directory, 'read')
         try:
             events = self.opencode.subscribe(session)
@@ -444,7 +445,7 @@ class AgentManager:
             if kind == 'phase' and event.get('phase') == 'handoff':
                 with self.lock:
                     self.run['phase'] = 'handoff'
-                emit(dict(type='status', phase='Агент пишет итог итерации…'))
+                emit(dict(type='status', phase=ui_text('agent.opencode_handoff_agent_writing_iteration')))
                 return
             if self.run['phase'] == 'handoff' and kind in ('delta', 'step'):
                 return  # the note is returned with the result, not streamed into the iteration's answer
@@ -466,7 +467,7 @@ class AgentManager:
                 return
             emit(event)
 
-        emit(dict(type='status', phase='Запуск Aider…' if kind == 'aider' else 'Запуск DeepSeek Harness…'))
+        emit(dict(type='status', phase=ui_text('agent.turn_process_starting_aider') if kind == 'aider' else ui_text('agent.turn_process_starting_deep_seek_harness')))
         self.gateway.start()
         info = self._models()[alias]
         start = dict(workspace=chat['agent']['workspace'], task=content, mode=chat['agent']['permission'], alias=alias, label=info['label'],
@@ -504,7 +505,7 @@ class AgentManager:
                 run['wrap'].set()
         run['emit'](dict(type='context', used=tokens, size=run['size'], measured=measured))
         if wrap:
-            run['emit'](dict(type='status', phase='Контекст заполнен на %d%%: агент заканчивает итерацию…' % round(100 * tokens / max(run['size'], 1))))
+            run['emit'](dict(type='status', phase=ui_text('agent.observe_context_full_agent_finishing_iteration') % round(100 * tokens / max(run['size'], 1))))
             threading.Thread(target=self._wrap, args=(run, generation), name='agent-wrap', daemon=True).start()
 
     def _wrap(self, run, generation):
@@ -538,12 +539,12 @@ class AgentManager:
                 run['generation'] = object()
                 run['wrap'].clear()
                 run['phase'], run['used'] = 'work', 0
-            emit(dict(type='status', phase='Итерация %d из %d…' % (number, total)))
+            emit(dict(type='status', phase=ui_text('agent.task_loop_iteration_progress_template') % (number, total)))
             prompt = loop_module.iteration_prompt(goal, number, total, previous)
             try:
                 turn = self._turn(chat, prompt, alias, [], emit, cancel, disconnected, handoff=loop_module.HANDOFF, fresh=True)
             except (OSError, OpenCodeError, ValueError) as failure:
-                turn = dict(content='', thinking='', steps=[], stats=None, error=str(failure)[:500] or 'Агент не смог выполнить задание',
+                turn = dict(content='', thinking='', steps=[], stats=None, error=str(failure)[:500] or ui_text('agent.send_agent_could_not_complete_task'),
                             stopped=False, handoff='')
             with self.lock:
                 run['phase'] = 'check'
@@ -552,7 +553,7 @@ class AgentManager:
             fact = loop_module.facts(workspace, start)
             verification = None
             if options['check'] and ended != 'user':
-                emit(dict(type='status', phase='Проверка: %s' % options['check']))
+                emit(dict(type='status', phase=ui_text('agent.task_loop_check_command_label_template') % options['check']))
                 verification = dict(loop_module.check(options['check'], workspace, cancel), command=options['check'])
             if cancel.is_set() or disconnected():
                 cancel.set()
@@ -562,7 +563,7 @@ class AgentManager:
             step = loop_module.next_step_of(turn['handoff'])
             verdict, stop = self._verdict(ended, status, verification, fact['fingerprint'] == fingerprint and fact['git'] and step == last_step,
                                           number, total)
-            footer = '**Итерация %d из %d** · %s · итог: `%s`' % (number, total, verdict, rel)
+            footer = ui_text('agent.loop_iteration_handoff') % (number, total, verdict, rel)
             content = (turn['content'].rstrip() + '\n\n---\n' if turn['content'].strip() else '') + footer
             chat, message = self.store.add_assistant(chat['id'], content, turn['thinking'], model, turn['stats'], ended == 'user',
                                                      turn['error'] if ended == 'error' else '', steps=turn['steps'], generation=run['record'])
@@ -578,23 +579,23 @@ class AgentManager:
         """(the iteration's line for the page, whether the loop stops)."""
         failed = verification is not None and verification['code'] != 0
         if ended == 'user':
-            return 'цикл остановлен вами', True
+            return ui_text('agent.verdict_loop_stopped_you'), True
         if ended == 'error':
-            return 'агент завершился с ошибкой — цикл остановлен', True
+            return ui_text('agent.verdict_agent_exited_error_loop_stopped'), True
         if status == 'BLOCKED':
-            return 'агент упёрся в препятствие (BLOCKED) — цикл остановлен', True
+            return ui_text('agent.verdict_agent_encountered_blocker_blocked_loop_stopped'), True
         if status == 'DONE' and not failed:
-            return 'задача выполнена (DONE)' + (', проверка прошла' if verification else ''), True
+            return ui_text('agent.verdict_task_completed_done') + (ui_text('agent.verdict_check_passed') if verification else ''), True
         if stalled:
-            return 'без изменений и с тем же следующим шагом — цикл остановлен, чтобы не ходить по кругу', True
-        reason = 'заполнен контекст' if ended == 'context' else 'агент закончил ход'
+            return ui_text('agent.verdict_no_changes_same_next_step_loop'), True
+        reason = ui_text('agent.verdict_context_filled') if ended == 'context' else ui_text('agent.verdict_agent_finished_turn')
         if status == 'DONE':
-            reason += ', агент считает задачу выполненной, но проверка не прошла'
+            reason += ui_text('agent.verdict_agent_considers_task_complete_but_check')
         elif failed:
-            reason += ', проверка не прошла'
+            reason += ui_text('agent.verdict_check_failed')
         if number >= total:
-            return reason + ' — достигнут лимит итераций', True
-        return reason + ' — продолжаю', False
+            return reason + ui_text('agent.verdict_iteration_limit_reached'), True
+        return reason + ui_text('agent.task_loop_continuing_verdict_suffix'), False
 
     def _follow(self, events, emit: Callable[[dict], None], cancel, disconnected: Callable[[], bool]):
         """Translate OpenCode events until the session is idle; returns an error text ('' when it finished or was stopped)."""
@@ -616,11 +617,11 @@ class AgentManager:
                 event = events.get(timeout=0.5)
             except queue.Empty:
                 if not self.opencode.alive():
-                    return 'OpenCode неожиданно завершился. Подробности — в журнале agent-opencode.log.'
+                    return ui_text('agent.follow_open_code_exited_unexpectedly_see_agent')
                 continue
             kind, props = event.get('type'), event.get('properties') or {}
             if kind == 'server.closed':
-                return 'OpenCode неожиданно завершился. Подробности — в журнале agent-opencode.log.'
+                return ui_text('agent.follow_open_code_exited_unexpectedly_see_agent')
             if kind == 'message.updated':
                 info = props.get('info') or {}
                 if info.get('role') == 'assistant':
@@ -651,7 +652,7 @@ class AgentManager:
             elif kind == 'session.status':
                 status = props.get('status') or {}
                 if status.get('type') == 'retry':
-                    emit(dict(type='status', phase='Повтор запроса к модели: ' + _clip(status.get('message'), 300)))
+                    emit(dict(type='status', phase=ui_text('agent.follow_retrying_model_request') + _clip(status.get('message'), 300)))
             elif kind == 'session.error':
                 error = error_text(props.get('error')) or error
             elif kind == 'session.idle':
@@ -692,11 +693,11 @@ class AgentManager:
 
     def reply(self, data):
         if not isinstance(data, dict) or set(data) - {'chat_id', 'request_id', 'reply'}:
-            raise ValueError('Запрос содержит неподдерживаемые параметры')
+            raise ValueError(ui_text('agent.create_chat_request_contains_unsupported_parameters'))
         with self.lock:
             run = self.run
             if run is None or run['chat'] != data.get('chat_id') or data.get('request_id') not in run['pending']:
-                raise ValueError('Этот запрос агента уже не ждёт ответа')
+                raise ValueError(ui_text('agent.reply_agent_request_no_longer_waiting_response'))
         if run['agent'] == 'aider':
             self.aider.reply(data['request_id'], data.get('reply'))
         elif run['agent'] == 'dsh':

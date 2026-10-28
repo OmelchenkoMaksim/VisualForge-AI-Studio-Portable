@@ -7,8 +7,8 @@
   // The card is a popover under the top-bar chip (shell.js), so its parent must not grow to the card's height.
   let data, pending, selection = '', failed = false;
   const el = id => document.getElementById(id);
-  const node = (tag, text, className) => {const item = document.createElement(tag);item.textContent = text;if (className) item.className = className;return item;};
-  const gb = value => Number.isFinite(value) ? `${(Math.abs(value - Math.round(value)) < .15 ? Math.round(value) : value).toLocaleString('ru-RU', {maximumFractionDigits:1})} ГБ` : 'Нет данных';
+  const node = (tag, text, className) => {const item = document.createElement(tag);StudioI18n.bind(item, "textContent", () => (text), true);if (className) item.className = className;return item;};
+  const gb = value => Number.isFinite(value) ? StudioI18n.t("hardware.memory_size_gigabytes_template", [(Math.abs(value - Math.round(value)) < .15 ? Math.round(value) : value).toLocaleString(StudioI18n.locale, {maximumFractionDigits:1})]) : StudioI18n.t("hardware.specifications_missing_value_label_machine_no_data");
   const popupKey = 'vf-compatibility-popup';
   let preferences = readPreferences(), hideTimer = null, openRequest = 0, automatic = false, closingAnimation = null;
   function readPreferences() {
@@ -50,7 +50,7 @@
     el('compatibilityPopupEnabled').checked = preferences.enabled;
     el('compatibilityPopupSeconds').value = String(preferences.seconds);
     el('compatibilityPopupSeconds').disabled = !preferences.enabled;
-    el('compatibilityPopupSecondsValue').textContent = `${preferences.seconds} с`;
+    StudioI18n.bind(el('compatibilityPopupSecondsValue'), "textContent", () => (StudioI18n.t("hardware.duration_seconds_template", [preferences.seconds])), true);
   }
   function savePopupSettings() {
     try { localStorage.setItem(popupKey, JSON.stringify(preferences)); } catch {}
@@ -76,12 +76,12 @@
   function machine() {
     const hw = data.hardware, list = el('hardwareSpecs');
     list.replaceChildren();
-    const row = (label, value) => {list.append(node('dt', label), node('dd', value));};
-    row('Процессор', hw.cpu);
-    row('Видеокарта', hw.gpus.map(g => g.name).join(' · ') || 'Не определена');
-    row('Видеопамять', hw.gpus.length ? hw.gpus.map(g => gb(g.vram_gb)).join(' · ') : 'Нет данных');
-    row('ОЗУ', gb(hw.ram_gb));
-    el('hardwareFootnote').textContent = hw.gpus.length > 1 ? 'Память разных видеокарт не суммируется.' : 'Данные этого ПК · только локально';
+    const row = (field, label, value) => {const term=node('dt',label);term.dataset.hardwareField=field;list.append(term,node('dd',value));};
+    row('cpu', StudioI18n.t("hardware.hardware_cpu_specification_label"), hw.cpu);
+    row('gpu', StudioI18n.t("hardware.hardware_gpu_specification_label"), hw.gpus.map(g => g.name).join(' · ') || StudioI18n.t("hardware.machine_not_detected"));
+    row('vram', StudioI18n.t("hardware.hardware_vram_specification_label"), hw.gpus.length ? hw.gpus.map(g => gb(g.vram_gb)).join(' · ') : StudioI18n.t("hardware.specifications_missing_value_label_machine_no_data"));
+    row('ram', StudioI18n.t("hardware.hardware_ram_specification_label_machine"), gb(hw.ram_gb));
+    StudioI18n.bind(el('hardwareFootnote'), "textContent", () => (hw.gpus.length > 1 ? StudioI18n.t("hardware.footnote_memory_different_graphics_cards_not_combined") : StudioI18n.t("hardware.footnote_pc_s_data_local")), true);
     aside.setAttribute('aria-busy', 'false');
   }
   function show(open = false, manual = false) {
@@ -89,28 +89,28 @@
     if (!chosen) {el('hardwareCompatibility').hidden = true;closePopup();return;}
     el('hardwareCompatibility').hidden = false;
     const result = data?.models[chosen.key] || (data ? {
-      status:'yellow', title:'Недостаточно данных о модели', reasons:['Для этой сборки ещё нет профиля требований.'],
-      profile:{name:chosen.select.value, note:'Обновите данные после установки новой модели.', recommended_vram_gb:null, recommended_ram_gb:null},
-      actual_vram_gb:data.hardware.gpus.find(g => g.cuda)?.vram_gb ?? null, actual_ram_gb:data.hardware.ram_gb, caveat:'Совместимость не подтверждена.'
+      status:'yellow', title:StudioI18n.t("hardware.compatibility_missing_model_profile_title"), reasons:[StudioI18n.t("hardware.reasons_build_has_no_requirements_profile_yet")],
+      profile:{name:chosen.select.value, note:StudioI18n.t("hardware.note_refresh_data_after_installing_new_model"), recommended_vram_gb:null, recommended_ram_gb:null},
+      actual_vram_gb:data.hardware.gpus.find(g => g.cuda)?.vram_gb ?? null, actual_ram_gb:data.hardware.ram_gb, caveat:StudioI18n.t("hardware.caveat_compatibility_not_confirmed")
     } : null);
     const summary = el('hardwareCompatibility');
     selection = chosen.key;
     summary.dataset.status = result?.status || 'yellow';
-    summary.textContent = result ? `${{green:'✓',yellow:'!',red:'×'}[result.status]} ${result.title}` : failed ? 'Не удалось проверить · обновить данные' : 'Проверяем совместимость…';
+    StudioI18n.bind(summary, "textContent", () => (result ? `${{green:'✓',yellow:'!',red:'×'}[result.status]} ${result.title}` : failed ? StudioI18n.t("hardware.summary_check_failed_refresh_data") : StudioI18n.t("hardware.summary_checking_compatibility")), true);
     if (!result) return;
     if (!open && popup.hidden) return;
     popup.dataset.status = result.status;
-    el('compatibilityTitle').textContent = result.title;
-    el('compatibilityModel').textContent = chosen.select.selectedOptions[0]?.textContent.split(/ · (?:выпуск|публикация)/)[0] || result.profile.name;
+    StudioI18n.bind(el('compatibilityTitle'), "textContent", () => (result.title), true);
+    StudioI18n.bind(el('compatibilityModel'), "textContent", () => (chosen.select.selectedOptions[0]?.textContent.split(/ · (?:выпуск|публикация)/)[0] || result.profile.name), true);
     el('compatibilityReasons').replaceChildren(...result.reasons.map(reason => node('li', reason)));
     const body = el('compatibilityMetrics');
     body.replaceChildren();
-    for (const [label, recommended, actual] of [['Видеопамять', result.profile.recommended_vram_gb, result.actual_vram_gb], ['ОЗУ', result.profile.recommended_ram_gb, result.actual_ram_gb]]) {
+    for (const [label, recommended, actual] of [[StudioI18n.t("hardware.hardware_vram_specification_label"), result.profile.recommended_vram_gb, result.actual_vram_gb], [StudioI18n.t("hardware.hardware_ram_specification_label_machine"), result.profile.recommended_ram_gb, result.actual_ram_gb]]) {
       const tr = document.createElement('tr');tr.append(node('th', label), node('td', gb(recommended)), node('td', gb(actual)));body.append(tr);
     }
-    el('compatibilityProfile').textContent = result.profile.note;
-    el('compatibilityCaveat').textContent = result.caveat;
-    el('compatibilityGpu').textContent = result.gpu_name ? `Оценка для ${result.gpu_name}` : 'Ускоритель CUDA не подтверждён';
+    StudioI18n.bind(el('compatibilityProfile'), "textContent", () => (StudioI18n.remote(result.profile.note)), true);
+    StudioI18n.bind(el('compatibilityCaveat'), "textContent", () => (StudioI18n.remote(result.caveat)), true);
+    StudioI18n.bind(el('compatibilityGpu'), "textContent", () => (result.gpu_name ? StudioI18n.t("hardware.compatibility_gpu_estimate", [result.gpu_name]) : StudioI18n.t("hardware.compatibility_gpu_cuda_accelerator_not_confirmed")), true);
     if (open && closingAnimation) {
       // Reopening mid-close reverses direction from the current frame without a jump.
       const animation = closingAnimation;closingAnimation = null;animation.reverse();
@@ -131,7 +131,7 @@
       })
       .catch(error => {
         failed = true;data = null;closePopup();aside.setAttribute('aria-busy','false');
-        el('hardwareFootnote').textContent = 'Не удалось получить данные. Нажмите «Обновить».';
+        StudioI18n.bind(el('hardwareFootnote'), "textContent", () => (StudioI18n.t("hardware.footnote_retrieve_data_click_refresh_failed")), true);
         show();document.dispatchEvent(new Event('studio:hardware'));throw error;
       })
       .finally(() => {el('hardwareRefresh').disabled = false;pending = null;});
@@ -147,5 +147,6 @@
   // Modules fill their selectors asynchronously; refresh the current summary, never open a card by itself.
   for (const id of Object.keys(selectors)) new MutationObserver(() => {if (current()?.key !== selection) show();}).observe(el(id), {childList:true});
   window.StudioHardware = {snapshot: () => data};
+  window.addEventListener('studio-languagechange', () => {if(data){machine();show();}});
   load().catch(() => {});
 })();

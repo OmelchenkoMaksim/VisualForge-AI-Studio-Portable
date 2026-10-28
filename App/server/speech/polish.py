@@ -5,6 +5,7 @@ rewriting. The result is accepted only if it stays close to the recognized words
 a normal Text model, so it takes the video card like a chat answer does: the GPU coordinator refuses while another module works, frees
 what idle modules hold (including the voice worker), and the Stop banner can stop it.
 """
+from ui_strings import source as ui_text
 import difflib
 import re
 import threading
@@ -56,13 +57,13 @@ class Polisher:
 
     def status(self):
         if self.text is None:
-            return dict(available=False, reason='Раздел Text недоступен.', model='')
+            return dict(available=False, reason=ui_text('speech.polish_text_section_unavailable'), model='')
         try:
             info = self.text.availability()
         except Exception as error:
-            return dict(available=False, reason='Text не отвечает: %s' % error, model='')
+            return dict(available=False, reason=ui_text('speech.polish_text_not_responding') % error, model='')
         if not info['available']:
-            return dict(available=False, reason=info['reason'] or 'Text недоступен.', model='')
+            return dict(available=False, reason=info['reason'] or ui_text('speech.polish_text_unavailable'), model='')
         return dict(available=True, reason='', model=self.text.default_model())
 
     def _run(self, messages, cancel, limit, kind='SpeechTextPolish'):
@@ -86,11 +87,11 @@ class Polisher:
         if not status['available']:
             return raw, status['reason']
         if len(raw) > MAX_CHARS:
-            return raw, 'Текст слишком длинный для Gemma: вставлено обычное распознавание.'
+            return raw, ui_text('speech.polish_text_too_long_gemma_standard_transcription')
         try:
             cancel = self._claim()
         except (Busy, GpuUnavailable) as error:
-            return raw, '%s Вставлено обычное распознавание.' % error
+            return raw, ui_text('speech.polish_standard_transcription_inserted') % error
         except ValueError as error:
             return raw, str(error)
         try:
@@ -101,13 +102,13 @@ class Polisher:
             messages.append(dict(role='user', content=raw))
             answer = clean(self._run(messages, cancel, max(256, len(raw))))
         except (ValueError, OSError) as error:
-            return raw, 'Gemma не ответила (%s). Вставлено обычное распознавание.' % str(error)[:160]
+            return raw, ui_text('speech.polish_gemma_did_not_respond_standard_transcription') % str(error)[:160]
         finally:
             self.text.end(OWNER)
         if cancel.is_set():
-            return raw, 'Остановлено. Вставлено обычное распознавание.'
+            return raw, ui_text('speech.polish_stopped_standard_transcription_inserted')
         if not acceptable(raw, answer):
-            return raw, 'Gemma изменила текст слишком сильно, вставлено обычное распознавание.'
+            return raw, ui_text('speech.polish_gemma_changed_text_too_much_standard')
         return answer, ''
 
     def warm(self):

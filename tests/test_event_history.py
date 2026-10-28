@@ -180,7 +180,7 @@ class EventHistoryTests(unittest.TestCase):
         self.assertTrue(has_images({'messages': [{'images': ['fixture']}]}))
 
     def test_speech_parent_is_forwarded_in_a_header_without_url_logging(self):
-        from speech.manager import SpeechManager
+        from speech.speech_manager import SpeechManager
         from speech.routes import transcribe
         parent = generation.begin('MicrophoneSession')
         manager = SpeechManager.__new__(SpeechManager)

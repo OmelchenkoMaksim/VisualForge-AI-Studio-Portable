@@ -1,5 +1,6 @@
 """HTTP endpoints of the Components panel (served through the loopback bridge):
 GET /api/components, POST /api/components/install {models, text_models, preset}, POST /api/components/cancel."""
+from ui_strings import source as ui_text
 from .engine import Busy, NotEnoughSpace, ProvisionError
 
 
@@ -7,13 +8,13 @@ def _strings(value, limit=64):
     if value is None:
         return []
     if not isinstance(value, list) or len(value) > limit or not all(isinstance(item, str) and 0 < len(item) <= 120 for item in value):
-        raise ValueError('Ожидается список идентификаторов')
+        raise ValueError(ui_text('components.strings_expected_list_identifiers'))
     return value
 
 
 def handle(handler, manager, route, data):
     if manager is None:
-        return handler.response_json(503, {'error': 'Установщик компонентов недоступен: нет App/config/components.json.'})
+        return handler.response_json(503, {'error': ui_text('components.routes_error_component_installer_unavailable_app_config_components')})
     try:
         if route == '' and data is None:
             return handler.response_json(200, manager.describe())
@@ -26,14 +27,14 @@ def handle(handler, manager, route, data):
         if route == 'recovery-file' and data is not None:
             pending = manager.recovery.snapshot()
             if not pending or pending['token'] != data.get('token'):
-                raise ValueError('Запрос уже закрыт')
+                raise ValueError(ui_text('components.routes_request_already_closed'))
             from .recovery_picker import choose_file
             chosen = choose_file(pending['remaining_seconds'])
             return handler.response_json(200, dict(path=chosen))
         if route == 'install' and data is not None:
             preset = data.get('preset')
             if preset is not None and not isinstance(preset, str):
-                raise ValueError('Некорректный набор')
+                raise ValueError(ui_text('components.routes_invalid_preset'))
             plan = manager.start(_strings(data.get('models')), _strings(data.get('text_models'), 4), preset)
             return handler.response_json(202, dict(plan, **manager.snapshot()))
         if route == 'cancel' and data is not None:

@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 from gpu import Busy, GpuCoordinator
 from speech import routes
-from speech.manager import SpeechError, SpeechManager
+from speech.speech_manager import SpeechError, SpeechManager
 from speech import worker
 
 FAKE = ROOT / 'tests/fake_speech_worker.py'
@@ -145,7 +145,7 @@ class TranscribeTests(SpeechCase):
         self.assertIn('first', results)
 
     def test_a_final_that_waits_too_long_is_refused_politely(self):
-        import speech.manager as module
+        import speech.speech_manager as module
         original = module.FINAL_WAIT
         module.FINAL_WAIT = 0.2
         try:

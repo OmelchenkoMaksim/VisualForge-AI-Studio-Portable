@@ -16,9 +16,9 @@ import types
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from agents import manager as manager_module
+from agents import agent_manager as manager_module
 from agents.gateway import ModelGateway
-from agents.manager import AgentManager, workspace_path
+from agents.agent_manager import AgentManager, workspace_path
 from agents.opencode import OpenCodeServer, permission_rules
 from gpu import Busy
 from text import routes as text_routes

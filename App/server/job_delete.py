@@ -1,4 +1,5 @@
 """Delete explicitly owned job artifacts, without traversing directory links."""
+from ui_strings import source as ui_text
 import json
 import os
 from pathlib import Path
@@ -26,7 +27,7 @@ def plain_path(path):
         except FileNotFoundError:
             continue
         if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
-            raise ValueError('Удаление через символическую ссылку или junction запрещено: ' + str(item))
+            raise ValueError(ui_text('common.job_delete_plain_path_deletion_through_symbolic_link_junction_prohibited') + str(item))
     return path
 
 
@@ -38,7 +39,7 @@ class DeletePlan:
     def file(self, path):
         path = plain_path(path)
         if path.exists() and not path.is_file():
-            raise ValueError('Вместо файла задачи найдена папка: ' + str(path))
+            raise ValueError(ui_text('common.job_delete_file_folder_found_instead_task') + str(path))
         self.files.add(path)
 
     def tree(self, path):
@@ -46,7 +47,7 @@ class DeletePlan:
         if not path.exists():
             return
         if not path.is_dir():
-            raise ValueError('Вместо папки задачи найден файл: ' + str(path))
+            raise ValueError(ui_text('common.job_delete_tree_file_found_instead_task_folder') + str(path))
         # Inventory first; a link anywhere rejects the entire plan before the first unlink.
         for folder, directories, files in os.walk(path, followlinks=False):
             self.directories.add(plain_path(folder))
@@ -60,11 +61,11 @@ class DeletePlan:
         if not path.exists():
             return
         if path.stat().st_size > 5 * 1024 * 1024:
-            raise ValueError('Файл метаданных слишком большой: ' + str(path))
+            raise ValueError(ui_text('common.job_delete_sidecar_metadata_file_too_large') + str(path))
         try:
             document = json.loads(path.read_text(encoding='utf-8-sig'))
         except (ValueError, UnicodeError):
-            raise ValueError('Не удалось проверить принадлежность метаданных: ' + str(path)) from None
+            raise ValueError(ui_text('common.job_delete_sidecar_verify_metadata_ownership_failed') + str(path)) from None
         # A neighbouring JSON may predate this generation. Never delete it by stem alone.
         if isinstance(document, dict) and document.get(key) == value:
             self.file(path)
@@ -83,8 +84,8 @@ class DeletePlan:
 def confined_file(root, relative):
     root = plain_path(root)
     if not isinstance(relative, str) or not relative or ':' in relative or Path(relative).is_absolute():
-        raise ValueError('Некорректный путь файла задачи')
+        raise ValueError(ui_text('common.job_delete_confined_file_invalid_task_path'))
     path = plain_path(root / relative)
     if path == root or not path.is_relative_to(root):
-        raise ValueError('Файл задачи выходит за пределы своей папки')
+        raise ValueError(ui_text('common.job_delete_confined_file_task_outside_folder'))
     return path

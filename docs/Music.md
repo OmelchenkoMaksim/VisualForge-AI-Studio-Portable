@@ -22,7 +22,7 @@ The checkpoint is found through the `checkpoints` entry of `App/config/extra_mod
 ## Portable layout
 
 - `App/server/music/registry.py`: input limits and installed engine descriptor.
-- `App/server/music/manager.py`: bridge jobs, exact-process ownership and cancellation.
+- `App/server/music/music_manager.py`: bridge jobs, exact-process ownership and cancellation.
 - `App/server/music/worker.py`: real upstream inference, offline model initialization,
   CPU offload, batch 1, 8 steps, native PyTorch SDPA, no compilation/FlashAttention.
 - `App/server/music/routes.py`: existing-origin HTTP routes and shared GPU admission.

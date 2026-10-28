@@ -6,7 +6,7 @@
   const LANG_KEY = 'visualforge.voice.lang.v1';
   const ENHANCE_KEY = 'visualforge.voice.enhance.v1';
   const NO_VOICE_IDS = new Set(['saveDir', 'videoSaveDir', 'musicSaveDir', 'componentsTextTag', 'folderPickerPath']); // paths and tags: dictation makes no sense
-  const LANGUAGES = [['ru', 'RU'], ['en', 'EN'], ['uk', 'UK'], ['de', 'DE'], ['fr', 'FR'], ['es', 'ES'], ['auto', 'Авто']];
+  const LANGUAGES = [['ru', 'RU'], ['en', 'EN'], ['uk', 'UK'], ['de', 'DE'], ['fr', 'FR'], ['es', 'ES'], ['auto', StudioI18n.t("speech.speech_language_auto_option_label")]];
   const RATE = 16000, PARTIAL_EVERY_MS = 1400, PARTIAL_WINDOW_S = 25, MIN_SAMPLES = RATE * 0.4;
   const Gate = window.VoiceGate;
   let target = null, state = 'idle', availability = null, hideTimer = null, warmedAt = 0;
@@ -14,7 +14,7 @@
   let bar, button, select, label, meter, meterFill, enhanceBox, enhanceLabel, hint;
   let hintTimer = null, enhanceTimer = null, enhanceRequest = 0, enhanceTask = null, busyKind = '';
 
-  const make = (tag, className, text) => {const node = document.createElement(tag);if (className) node.className = className;if (text !== undefined) node.textContent = text;return node;};
+  const make = (tag, className, text) => {const node = document.createElement(tag);if (className) node.className = className;if (text !== undefined) StudioI18n.bind(node, "textContent", () => (text), true);return node;};
   const remember = value => {try {localStorage.setItem(LANG_KEY, value);} catch {}};
   const recall = () => {try {return localStorage.getItem(LANG_KEY) || 'ru';} catch {return 'ru';}};
   const enhanceWanted = () => {try {return localStorage.getItem(ENHANCE_KEY) === '1';} catch {return false;}};
@@ -30,13 +30,13 @@
   function build() {
     bar = make('div', 'voice-bar');bar.id = 'voiceBar';bar.hidden = true;bar.dataset.allowBusy = '1';
     button = make('button', 'voice-mic', '🎙');button.type = 'button';button.dataset.allowBusy = '1';
-    button.setAttribute('aria-label', 'Голосовой ввод');button.title = 'Голосовой ввод (F9)';
-    select = document.createElement('select');select.className = 'voice-lang';select.dataset.allowBusy = '1';select.setAttribute('aria-label', 'Язык речи');
+    StudioI18n.bind(button, "@aria-label", () => (StudioI18n.t("speech.button_voice_input")), true);StudioI18n.bind(button, "title", () => (StudioI18n.t("speech.button_voice_input_f9")), true);
+    select = document.createElement('select');select.className = 'voice-lang';select.dataset.allowBusy = '1';StudioI18n.bind(select, "@aria-label", () => (StudioI18n.t("speech.select_speech_language")), true);
     for (const [value, text] of LANGUAGES) {const option = make('option', '', text);option.value = value;select.append(option);}
     select.value = recall();select.onchange = () => remember(select.value);
     enhanceLabel = make('label', 'voice-enhance');enhanceLabel.dataset.allowBusy = '1';
     enhanceBox = document.createElement('input');enhanceBox.type = 'checkbox';enhanceBox.dataset.allowBusy = '1';enhanceBox.checked = enhanceWanted();
-    enhanceBox.setAttribute('aria-label', 'Улучшенное распознавание с Gemma AI');
+    StudioI18n.bind(enhanceBox, "@aria-label", () => (StudioI18n.t("speech.enhance_box_enhanced_recognition_gemma_ai")), true);
     enhanceLabel.append(enhanceBox, make('span', 'voice-switch'), make('span', 'voice-enhance-text', 'Gemma AI'));
     enhanceBox.onchange = () => {
       try {localStorage.setItem(ENHANCE_KEY, enhanceBox.checked ? '1' : '0');} catch {}
@@ -89,22 +89,22 @@
     state = next;
     bar.dataset.state = next;
     if (next !== 'idle') {clearTimeout(hideTimer);bar.hidden = false;}   // the permission dialog takes the focus away from the field: the bar must stay
-    label.textContent = text || '';
+    StudioI18n.bind(label, "textContent", () => (text || ''), true);
     meter.hidden = next !== 'recording';
-    button.textContent = next === 'recording' ? '⏹' : next === 'processing' || next === 'starting' ? '…' : '🎙';
+    StudioI18n.bind(button, "textContent", () => (next === 'recording' ? '⏹' : next === 'processing' || next === 'starting' ? '…' : '🎙'), true);
     button.disabled = next === 'processing';
-    button.title = next === 'recording' ? 'Остановить запись и распознать (F9)' : 'Голосовой ввод (F9)';
+    StudioI18n.bind(button, "title", () => (next === 'recording' ? StudioI18n.t("speech.button_stop_recording_transcribe_f9") : StudioI18n.t("speech.button_voice_input_f9")), true);
     place();
   }
   function flash(text, ms = 4000) {
-    label.textContent = text;
-    setTimeout(() => {if (state === 'idle' && label.textContent === text) label.textContent = '';}, ms);
+    StudioI18n.bind(label, "textContent", () => (text), true);
+    setTimeout(() => {if (state === 'idle' && label.textContent === text) StudioI18n.bind(label, "textContent", () => (''), true);}, ms);
   }
   function showRecording() {
     if (state !== 'recording') return;
     const seconds = Math.floor((Date.now() - startedAt) / 1000);
-    const words = preview ? '«…' + preview.slice(-70) + '»' : speaking ? 'слушаю…' : 'говорите';
-    label.textContent = seconds + ' с · ' + words + (speaking ? ' · пауза — и я вставлю текст' : '');
+    const words = preview ? '«…' + preview.slice(-70) + '»' : speaking ? StudioI18n.t("speech.microphone_recording_listening_status") : StudioI18n.t("speech.recording_speak_now");
+    StudioI18n.bind(label, "textContent", () => (seconds + StudioI18n.t("speech.microphone_recording_elapsed_seconds_separator") + words + (speaking ? StudioI18n.t("speech.recording_pause_text_inserted") : '')), true);
     meterFill.style.width = Math.round((gate ? gate.level : 0) * 100) + '%';
     place();
   }
@@ -112,19 +112,19 @@
   // ---- the Gemma switch ---------------------------------------------------------------------------------------------
   const generating = () => !!(window.StudioUI && window.StudioUI.isBusy());
   const enhanceReady = () => !!(availability && availability.enhance && availability.enhance.available);
-  const enhanceReason = () => (availability && availability.enhance && availability.enhance.reason) || 'Gemma AI сейчас недоступна: нужна модель в разделе Text.';
+  const enhanceReason = () => (availability && availability.enhance && StudioI18n.remote(availability.enhance.reason)) || StudioI18n.t("speech.voice_enhance_reason_gemma_ai_unavailable_model_required_text");
   function updateEnhance() {
     const ready = enhanceReady();
     enhanceLabel.classList.toggle('unavailable', !ready);
-    enhanceLabel.title = ready
-      ? 'Gemma AI — локальный ИИ: после Whisper модель (' + availability.enhance.model + ') расставит знаки и заглавные и исправит ошибки. Первый запуск требует загрузки модели в видеопамять.'
-      : 'Улучшенное распознавание недоступно: ' + enhanceReason();
+    StudioI18n.bind(enhanceLabel, "title", () => (ready
+      ? StudioI18n.t("speech.enhance_gemma_ai_local_after_whisper_model") + availability.enhance.model + StudioI18n.t("speech.enhance_add_punctuation_capitalization_correct_errors_first")
+      : StudioI18n.t("speech.enhance_enhanced_recognition_unavailable") + enhanceReason()), true);
     // Availability may change while the GPU is busy; it must not overwrite the user's saved choice.
   }
 
   function showHint(text, ms = 0) {
     clearTimeout(hintTimer);hintTimer = null;
-    if (hint.textContent !== text) hint.textContent = text;
+    if (hint.textContent !== text) StudioI18n.bind(hint, "textContent", () => (text), true);
     // Establish the hidden frame even when the whole bar was just shown.
     if (!hint.classList.contains('visible')) hint.getBoundingClientRect();
     hint.classList.add('visible');hint.setAttribute('aria-hidden', 'false');
@@ -147,13 +147,13 @@
       if (!current()) return;
       enhanceTask = null;showHint(message, 8000);
     };
-    const loading = 'Gemma AI загружается… Первый запуск может занять несколько минут.';
-    const waiting = 'Gemma AI ждёт освобождения видеокарты…';
+    const loading = StudioI18n.t("speech.prepare_enhance_gemma_ai_loading_first_launch_may");
+    const waiting = StudioI18n.t("speech.prepare_enhance_gemma_ai_waiting_gpu");
     showHint(generating() && busyKind !== 'voice' ? waiting : loading);
     async function poll() {
       try {
         const response = await fetch('/api/text/status', {cache: 'no-store'});
-        if (!response.ok) {fail('Не удалось проверить загрузку Gemma AI. Попробуйте включить её снова.');return;}
+        if (!response.ok) {fail(StudioI18n.t("speech.poll_check_gemma_ai_loading_try_enabling_failed"));return;}
         const status = await response.json();
         if (!current()) return;
         const jobs = Array.isArray(status.generating) ? status.generating : [];
@@ -168,16 +168,16 @@
           if (!sent && !jobs.includes('voice-polish')) {
             const prepare = await fetch('/api/speech/prepare', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({enhance: true})});
             if (!current()) return;
-            if (!prepare.ok || !(await prepare.json()).preparing) {fail('Gemma AI не удалось запустить. Проверьте доступность модели в Text.');return;}
+            if (!prepare.ok || !(await prepare.json()).preparing) {fail(StudioI18n.t("speech.poll_gemma_ai_could_not_start_check"));return;}
             if (!current()) return;
             sent = true;
           }
         }
         // Loaded models, not elapsed UI timers, decide when the hint disappears.
-        if (Date.now() - started > 300000) {fail('Gemma AI пока не готова. Проверьте состояние Text и видеокарты.');return;}
+        if (Date.now() - started > 300000) {fail(StudioI18n.t("speech.poll_gemma_ai_not_ready_yet_check"));return;}
         if (current()) enhanceTimer = setTimeout(poll, 1000);
       } catch {
-        fail('Нет связи со студией. Проверьте, запущено ли приложение.');
+        fail(StudioI18n.t("speech.poll_connect_studio_check_application_running_unavailable"));
       }
     }
     poll();
@@ -187,8 +187,8 @@
   async function load() {
     try {
       const response = await fetch('/api/speech/availability', {cache: 'no-store'});
-      availability = response.ok ? await response.json() : {available: false, reason: 'Голосовой ввод недоступен.'};
-    } catch {availability = {available: false, reason: 'Нет связи со студией.'};}
+      availability = response.ok ? await response.json() : {available: false, reason: StudioI18n.t("speech.voice_reason_input_unavailable")};
+    } catch {availability = {available: false, reason: StudioI18n.t("speech.voice_reason_connect_studio_unavailable")};}
     updateEnhance();
     return availability;
   }
@@ -198,12 +198,12 @@
   async function start() {
     if (!target || state !== 'idle') return;
     microphoneEvent=window.StudioEvents?.microphoneStart();recognitionEvent=microphoneEvent;
-    setState('starting', 'Разрешите доступ к микрофону, если браузер спросит…');
+    setState('starting', StudioI18n.t("speech.start_allow_microphone_access_if_browser_asks"));
     if (!availability || !availability.available) await load();
-    if (!availability.available) {setState('idle', '');flash(availability.reason + ' Нажмите, чтобы открыть «Компоненты».', 8000);label.onclick = () => window.showComponents && window.showComponents();return;}
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !Gate) {setState('idle', '');flash('Браузер не даёт доступ к микрофону.');return;}
+    if (!availability.available) {setState('idle', '');flash(StudioI18n.remote(availability.reason) + StudioI18n.t("speech.start_click_open_components"), 8000);label.onclick = () => window.showComponents && window.showComponents();return;}
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !Gate) {setState('idle', '');flash(StudioI18n.t("speech.start_browser_does_not_provide_microphone_access"));return;}
     try {stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true}});}
-    catch (error) {setState('idle', '');flash(error && error.name === 'NotAllowedError' ? 'Микрофон запрещён. Разрешите его для этого окна (Edge: Параметры → Разрешения сайтов → Микрофон) и проверьте Параметры Windows → Конфиденциальность → Микрофон.' : 'Микрофон не найден или занят.', 8000);return;}
+    catch (error) {setState('idle', '');flash(error && error.name === 'NotAllowedError' ? StudioI18n.t("speech.start_microphone_access_blocked_allow_window_edge") : StudioI18n.t("speech.start_microphone_not_found_use"), 8000);return;}
     try {
       try {context = new (window.AudioContext || window.webkitAudioContext)({sampleRate: RATE});} catch {context = new (window.AudioContext || window.webkitAudioContext)();}
       if (context.state === 'suspended') await context.resume();
@@ -220,13 +220,13 @@
       }
       source.connect(capture);capture.connect(mute);
       nodes = [source, capture, mute];
-    } catch (error) {release('error');setState('idle', '');flash('Не удалось начать запись: ' + (error.message || error), 8000);return;}
+    } catch (error) {release('error');setState('idle', '');flash(StudioI18n.t("speech.start_recording_failed") + (StudioI18n.remote(error.message) || error), 8000);return;}
     chunks = [];preview = '';speaking = false;inFlight = false;startedAt = Date.now();
     gate = new Gate.SpeechGate(context.sampleRate);
     warmedAt = 0;warm();    // the model must be loading while the person speaks
     tick = setInterval(showRecording, 100);
     partialTimer = setInterval(partial, PARTIAL_EVERY_MS);
-    setState('recording', 'говорите');
+    setState('recording', StudioI18n.t("speech.recording_speak_now"));
     showRecording();
   }
 
@@ -262,21 +262,21 @@
     if (partialController) partialController.abort();   // the final recording must not queue behind a preview
     release(reason === 'cancel' ? 'cancelled' : 'done');
     if (reason === 'cancel') {setState('idle', '');return;}
-    if (reason === 'no-speech' && !preview) {setState('idle', '');flash('Не услышал речь. Проверьте микрофон и говорите ближе.');return;}
-    if (audio.length < MIN_SAMPLES) {setState('idle', '');flash('Слишком короткая запись.');return;}
+    if (reason === 'no-speech' && !preview) {setState('idle', '');flash(StudioI18n.t("speech.stop_no_speech_detected_check_microphone_speak"));return;}
+    if (audio.length < MIN_SAMPLES) {setState('idle', '');flash(StudioI18n.t("speech.stop_recording_too_short"));return;}
     finish(audio);
   }
 
   async function finish(audio) {
     const wanted = enhanceBox.checked && enhanceReady();
     const enhance = wanted && !generating();   // the video card belongs to the running generation
-    setState('processing', enhance ? 'Распознаю и улучшаю с Gemma AI…' : 'Распознаю…');
+    setState('processing', enhance ? StudioI18n.t("speech.finish_transcribing_improving_gemma_ai") : StudioI18n.t("speech.transcription_in_progress_status"));
     try {
       const answer = await transcribe(new Blob([Gate.wavBuffer(audio, RATE)], {type: 'audio/wav'}), false, undefined, enhance);
       setState('idle', '');
-      if (answer.text) {insert(target, answer.text);flash(answer.note ? 'Готово. ' + answer.note : wanted && !enhance ? 'Готово. Идёт генерация: Gemma AI пропущена, текст без её правки.' : enhance ? 'Готово (Gemma AI)' : 'Готово', answer.note || (wanted && !enhance) ? 9000 : 4000);}
-      else flash('Речь не распознана. Говорите ближе к микрофону.');
-    } catch (error) {setState('idle', '');flash(error.message || 'Не удалось распознать.', 8000);}
+      if (answer.text) {insert(target, answer.text);flash(StudioI18n.remote(answer.note) ? StudioI18n.t("speech.transcription_completed_status_prefix") + StudioI18n.remote(answer.note) : wanted && !enhance ? StudioI18n.t("speech.finish_done_generation_running_gemma_ai_skipped") : enhance ? StudioI18n.t("speech.finish_done_gemma_ai") : StudioI18n.t("speech.generation_completed_status_label"), StudioI18n.remote(answer.note) || (wanted && !enhance) ? 9000 : 4000);}
+      else flash(StudioI18n.t("speech.finish_speech_not_recognized_speak_closer_microphone"));
+    } catch (error) {setState('idle', '');flash(StudioI18n.remote(error.message) || StudioI18n.t("speech.finish_recognition_failed"), 8000);}
   }
 
   // Live preview: the recording so far is recognized again and again while the person speaks (only when the model is on the video card).
@@ -297,10 +297,10 @@
     if(microphone)headers['X-VisualForge-Session']=microphone.id;
     let response;
     try {response = await fetch('/api/speech/transcribe?lang=' + encodeURIComponent(select.value) + (isPartial ? '&partial=1' : '') + (enhance ? '&enhance=1' : ''), {method: 'POST', headers, body: wav, signal});}
-    catch {throw new Error('Нет связи со студией. Проверьте, запущено ли приложение.');}
+    catch {throw new Error(StudioI18n.t("speech.poll_connect_studio_check_application_running_unavailable"));}
     let value;
-    try {value = await response.json();} catch {throw new Error('Некорректный ответ службы распознавания.');}
-    if (!response.ok) throw new Error(value.error || 'Распознавание недоступно');
+    try {value = await response.json();} catch {throw new Error(StudioI18n.t("speech.transcribe_invalid_recognition_service_response"));}
+    if (!response.ok) throw new Error(StudioI18n.remote(value.error) || StudioI18n.t("speech.transcribe_recognition_unavailable"));
     return {text: value.skipped ? '' : String(value.text || '').trim(), note: value.enhance_note || ''};
   }
 
@@ -346,7 +346,7 @@
   window.addEventListener('studio:busy', event => {
     busyKind = event.detail?.kind || '';
     enhanceLabel.classList.toggle('blocked', busyKind !== 'voice');
-    if (busyKind !== 'voice') enhanceLabel.title = 'Идёт генерация: Gemma AI загрузится после её окончания. Ваш выбор сохранён.';
+    if (busyKind !== 'voice') StudioI18n.bind(enhanceLabel, "title", () => (StudioI18n.t("speech.enhance_generation_running_gemma_ai_load_when")), true);
   });
   window.addEventListener('studio:idle', event => {
     busyKind = '';enhanceLabel.classList.remove('blocked');updateEnhance();

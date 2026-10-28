@@ -96,7 +96,7 @@ agent --OpenAI chat API--> ModelGateway (port 8293) --GPU.claim('text') + Text b
     «Разрешать всегда» is repeated by the studio for the rest of the task.
   - `dsh_net_guard.cjs` (preloaded) lets Node connect only to the gateway and its own loopback listeners, binds any listener to
     127.0.0.1 and logs every refused connection or name lookup.
-- `App/server/agents/manager.py`: one agent task at a time; translates OpenCode events (`message.part.*`, `permission.*`,
+- `App/server/agents/agent_manager.py`: one agent task at a time; translates OpenCode events (`message.part.*`, `permission.*`,
   `session.*`) into page events, relays the bridge's events; stores the request, answer, steps and errors in the chat file
   (`kind: "agent"`). A chat belongs to one agent; choosing another agent starts a new chat with the next task.
 - Permission levels (per chat): `read` (no edits or commands), `ask` (default: every edit and command asks), `auto` (edits and

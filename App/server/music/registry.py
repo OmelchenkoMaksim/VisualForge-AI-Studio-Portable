@@ -3,6 +3,7 @@
 `backend` says where a job runs: "worker" is an isolated Python subprocess (ACE-Step, MiniMax), "comfy" is the Image ComfyUI
 reached over HTTP (Stable Audio 3). `capabilities` lists the form fields an engine really uses; the page hides the rest.
 """
+from ui_strings import source as ui_text
 WORKER_CAPABILITIES = dict(mode=True, lyrics=True, bpm=True, language=True, planner=True)
 
 ENGINE = {
@@ -12,7 +13,7 @@ ENGINE = {
     'backend': 'worker', 'capabilities': WORKER_CAPABILITIES,
     'modes': ['instrumental', 'song'], 'min_duration': 10, 'max_duration': 180,
     'sample_rate': 48000, 'format': 'wav', 'planner': 'acestep-5Hz-lm-0.6B',
-    'requirements': 'Windows 10/11 x64 · NVIDIA CUDA · не менее 8 ГБ свободной видеопамяти и 16 ГБ RAM с выгрузкой в RAM; рекомендуется видеокарта с 16 ГБ VRAM и 32 ГБ RAM.',
+    'requirements': ui_text('music.registry_engine_requirements_windows_10_11_x64_nvidia_cuda'),
 }
 
 MINIMAX = {
@@ -22,13 +23,13 @@ MINIMAX = {
     'backend':'worker', 'capabilities':dict(WORKER_CAPABILITIES, planner=False),
     'modes':['instrumental','song'], 'min_duration':10, 'max_duration':60,
     'sample_rate':32000, 'format':'wav', 'planner':None,
-    'requirements':'Экспериментально: Windows 10/11 x64, NVIDIA CUDA, 16 ГБ VRAM, 32 ГБ RAM; рекомендуется 64 ГБ RAM. INT8 и выгрузка в RAM. Начните с 10–30 секунд.',
-    'limitations':'Длительность задаёт верхний предел: модель может закончить раньше. Начальные профили: 10–60 секунд; длинные песни пока не включены. Темп и язык задаются в описании, их соблюдение не гарантируется.',
-    'prompt_guide':'Опишите жанр, настроение, инструменты и голос. Для точного замысла используйте три части: Global Metadata (стиль и темп), Vocal Details (голос), Arrangement (развитие инструментов). В тексте песни разделяйте части тегами [Verse], [Chorus], [Bridge], [Outro]. Для инструментала текст песни не нужен.',
+    'requirements':ui_text('music.registry_minimax_requirements_experimental_windows_10_11_x64_nvidia'),
+    'limitations':ui_text('music.registry_minimax_limitations_duration_upper_limit_model_may_finish'),
+    'prompt_guide':ui_text('music.registry_minimax_prompt_guide_describe_genre_mood_instruments_voice_precision'),
 }
 STABLE_AUDIO = {
     'id':'stable-audio-3-medium', 'name':'Stable Audio 3 Medium',
-    'license':'Stability AI Community License и Gemma Terms of Use',
+    'license':ui_text('music.registry_stable_audio_license_stability_ai_community_gemma_terms_use'),
     'source':'https://huggingface.co/stabilityai/stable-audio-3-medium', 'package':'https://huggingface.co/Comfy-Org/stable-audio-3',
     'upstream_revision':'75aad8836271cb5a5123fb58304fae5d3bb4b0f9', 'release_date':'2026-09-23',
     'backend':'comfy', 'capabilities':dict(mode=False, lyrics=False, bpm=False, language=False, planner=False),
@@ -38,9 +39,9 @@ STABLE_AUDIO = {
     # Starting claim for the GPU wait; the real peak is measured at acceptance, so this is an estimate.
     # Measured on the RTX 5070 Ti with nvidia-smi: about 5 GB above idle for 10-20 s clips and about 12.5 GB for 120 s, because the VAE decode grows with length.
     'claim_vram_mb':8000, 'claim_vram_by_duration':((30, 8000), (60, 10000), (120, 14000)), 'workflow_version':'sa3-medium-v1',
-    'requirements':'Экспериментально: Windows 10/11 x64, NVIDIA CUDA, 16 ГБ VRAM, 32 ГБ RAM (оценка, не измерение). Работает через ComfyUI раздела Image; модель около 9,2 ГБ и текстовый энкодер около 1,2 ГБ. Начните с 10–30 секунд.',
-    'limitations':'Музыка и звуки по описанию на английском, стерео WAV. Нет текста песни, вокала, темпа, языка, продолжения и редактирования. Длительность 10–120 секунд: длиннее пока не проверялось. Категории и автоматическое расширение описания (reprompt) не включены.',
-    'prompt_guide':'Опишите на английском жанр, инструменты, настроение и энергию; для звуков назовите источник, материал и окружение. Темп можно указать словами, например «124 BPM». Текст песни и вокал не поддерживаются.',
+    'requirements':ui_text('music.registry_stable_audio_requirements_experimental_windows_10_11_x64_nvidia'),
+    'limitations':ui_text('music.registry_stable_audio_limitations_music_sounds_english_descriptions_stereo_wav'),
+    'prompt_guide':ui_text('music.registry_stable_audio_prompt_guide_describe_genre_instruments_mood_energy_english'),
 }
 ENGINES = {ENGINE['id']:ENGINE, MINIMAX['id']:MINIMAX, STABLE_AUDIO['id']:STABLE_AUDIO}
 
@@ -48,26 +49,26 @@ def get_engine(ident=None):
     try:
         return ENGINES[ident or ENGINE['id']]
     except (KeyError, TypeError):
-        raise ValueError('Неизвестный движок Music') from None
+        raise ValueError(ui_text('music.get_engine_unknown_music')) from None
 
 def _seed(value):
     import secrets
     seed = secrets.randbelow(2**32) if value in ('', None, -1, '-1') else int(value)
     if not 0 <= seed < 2**32:
-        raise ValueError('Seed: целое число от 0 до 4294967295 или пустое поле')
+        raise ValueError(ui_text('music.seed_integer_0_4294967295_empty'))
     return seed
 
 def _validate_audio(engine, data):
     """Stable Audio takes a prompt, a duration and a seed; fields of the song engines are ignored, never stored."""
     caption = data.get('caption', '')
     if not isinstance(caption, str) or not 1 <= len(caption.strip()) <= 2000:
-        raise ValueError('Опишите звук или музыку: от 1 до 2000 символов')
+        raise ValueError(ui_text('music.validate_audio_describe_sound_music_1_2000_characters'))
     try:
         duration = int(data.get('duration', 30))
     except (TypeError, ValueError):
-        raise ValueError('Длительность: целое число секунд') from None
+        raise ValueError(ui_text('music.validate_audio_duration_must_whole_number_seconds')) from None
     if type(data.get('duration', 30)) is bool or not engine['min_duration'] <= duration <= engine['max_duration']:
-        raise ValueError(f"Длительность {engine['name']}: от {engine['min_duration']} до {engine['max_duration']} секунд")
+        raise ValueError(ui_text('music.validate_audio_duration_seconds', f"{engine['name']}", f"{engine['min_duration']}", f"{engine['max_duration']}"))
     return dict(engine=engine['id'], caption=caption.strip(), lyrics='', mode='audio', duration=duration,
                 seed=_seed(data.get('seed', '')), bpm=None, language='unknown', planner=False)
 
@@ -87,31 +88,31 @@ def validate(data):
     caption = data.get('caption', '')
     lyrics = data.get('lyrics', '')
     if not isinstance(caption, str) or not 1 <= len(caption.strip()) <= 2000:
-        raise ValueError('Опишите музыку: от 1 до 2000 символов')
+        raise ValueError(ui_text('music.validation_describe_music_1_2000_characters'))
     if not isinstance(lyrics, str) or len(lyrics) > 6000:
-        raise ValueError('Текст песни: не более 6000 символов')
+        raise ValueError(ui_text('music.validation_lyrics_no_more_than_6000_characters'))
     mode = data.get('mode', 'instrumental')
     if mode not in ENGINE['modes']:
-        raise ValueError('Неизвестный режим Music')
+        raise ValueError(ui_text('music.validation_unknown_music_mode'))
     if mode == 'song' and not lyrics.strip():
-        raise ValueError('Добавьте текст песни')
+        raise ValueError(ui_text('music.validation_add_lyrics'))
     duration = int(data.get('duration', 30))
     if not engine['min_duration'] <= duration <= engine['max_duration']:
-        raise ValueError(f"Длительность {engine['name']}: от {engine['min_duration']} до {engine['max_duration']} секунд")
+        raise ValueError(ui_text('music.validate_audio_duration_seconds', f"{engine['name']}", f"{engine['min_duration']}", f"{engine['max_duration']}"))
     seed = data.get('seed', '')
     seed = secrets.randbelow(2**32) if seed in ('', None, -1, '-1') else int(seed)
     if not 0 <= seed < 2**32:
-        raise ValueError('Seed: целое число от 0 до 4294967295 или пустое поле')
+        raise ValueError(ui_text('music.seed_integer_0_4294967295_empty'))
     bpm = data.get('bpm', '')
     bpm = None if bpm in ('', None) else int(bpm)
     if bpm is not None and not 30 <= bpm <= 300:
-        raise ValueError('Темп: от 30 до 300 ударов в минуту')
+        raise ValueError(ui_text('music.validation_tempo_30_300_beats_per_minute'))
     language = data.get('language', 'unknown')
     if language not in ('unknown', 'ru', 'en', 'zh', 'ja', 'ko', 'es', 'fr', 'de', 'it', 'pt'):
-        raise ValueError('Неизвестный язык вокала')
+        raise ValueError(ui_text('music.validation_unknown_vocal_language'))
     planner = data.get('planner', True)
     if not isinstance(planner, bool):
-        raise ValueError('Неверная настройка музыкального планировщика')
+        raise ValueError(ui_text('music.validation_invalid_music_planner_setting'))
     if engine['id'] == MINIMAX['id']:
         planner = False
     return dict(engine=engine['id'], caption=caption.strip(), lyrics=lyrics.strip(), mode=mode,

@@ -1,4 +1,5 @@
 """Local cross-process event history; payloads never contain prompts, audio or images."""
+from ui_strings import source as ui_text
 import json
 import math
 from pathlib import Path
@@ -9,27 +10,27 @@ from urllib.parse import parse_qs
 
 ID = re.compile(r'[0-9a-f]{64}\Z')
 STATES = ('running', 'done', 'error', 'cancelled', 'interrupted')
-MAIN_TYPES = {'Image': 'Изображение', 'Video': 'Видео', 'Music': 'Музыка', 'Text': 'Ответ в чате', 'Agent': 'Задача агента',
-              'VideoExport': 'Экспорт видео', 'VideoMix': 'Микширование видео и музыки'}
+MAIN_TYPES = {'Image': ui_text('events.operation_type_image_label'), 'Video': ui_text('events.operation_type_video_label'), 'Music': ui_text('events.operation_type_music_label'), 'Text': ui_text('events.operation_type_text_label'), 'Agent': ui_text('events.operation_type_agent_label'),
+              'VideoExport': ui_text('events.operation_type_video_export_label'), 'VideoMix': ui_text('events.operation_type_video_mix_label')}
 TECHNICAL_TYPES = {
-    'Speech': 'Распознавание речи (прежний тип)',
-    'MicrophoneSession': 'Включение микрофона',
-    'SpeechRecognition': 'Распознавание речи',
-    'SpeechRecognitionPreview': 'Промежуточное распознавание речи',
-    'SpeechModelLoad': 'Загрузка модели распознавания речи',
-    'SpeechModelWarmup': 'Прогрев распознавания речи',
-    'SpeechPunctuation': 'Восстановление пунктуации',
-    'SpeechTextPolish': 'Обработка распознанного текста Gemma AI',
-    'SpeechTextPolishWarmup': 'Прогрев Gemma AI для голосового ввода',
-    'ImageRecognition': 'Распознавание изображения',
-    'ImagePromptExpansion': 'Расширение промпта изображения',
-    'ImageUpscale': 'Увеличение изображения нейросетью',
-    'AgentModelCall': 'Обращение агента к модели',
-    'AgentHandoff': 'Подготовка передачи задачи агента',
-    'SpeechSynthesis': 'Синтез речи',
-    'VideoModelGeneration': 'Генерация кадров видеомоделью',
-    'MusicModelGeneration': 'Генерация аудио музыкальной моделью',
-    'MusicPlanning': 'Генерация музыкального плана',
+    'Speech': ui_text('events.operation_type_speech_label'),
+    'MicrophoneSession': ui_text('events.operation_type_microphone_session_label'),
+    'SpeechRecognition': ui_text('events.operation_type_speech_recognition_label'),
+    'SpeechRecognitionPreview': ui_text('events.operation_type_speech_recognition_preview_label'),
+    'SpeechModelLoad': ui_text('events.operation_type_speech_model_load_label'),
+    'SpeechModelWarmup': ui_text('events.operation_type_speech_model_warmup_label'),
+    'SpeechPunctuation': ui_text('events.operation_type_speech_punctuation_label'),
+    'SpeechTextPolish': ui_text('events.operation_type_speech_text_polish_label'),
+    'SpeechTextPolishWarmup': ui_text('events.operation_type_speech_text_polish_warmup_label'),
+    'ImageRecognition': ui_text('events.operation_type_image_recognition_label'),
+    'ImagePromptExpansion': ui_text('events.operation_type_image_prompt_expansion_label'),
+    'ImageUpscale': ui_text('events.operation_type_image_upscale_label'),
+    'AgentModelCall': ui_text('events.operation_type_agent_model_call_label'),
+    'AgentHandoff': ui_text('events.operation_type_agent_handoff_label'),
+    'SpeechSynthesis': ui_text('events.operation_type_speech_synthesis_label'),
+    'VideoModelGeneration': ui_text('events.operation_type_video_model_generation_label'),
+    'MusicModelGeneration': ui_text('events.operation_type_music_model_generation_label'),
+    'MusicPlanning': ui_text('events.operation_type_music_planning_label'),
 }
 TYPES = {**MAIN_TYPES, **TECHNICAL_TYPES}
 
@@ -77,26 +78,26 @@ class EventHistory:
         try:
             self.connect().close()
         except (sqlite3.Error, OSError):
-            self.warning = 'История событий пока недоступна. Проверьте доступ к папке UserData и свободное место.'
+            self.warning = ui_text('events.event_history_prepare_currently_unavailable_check_user_data_folder')
 
     @staticmethod
     def validate(record):
         if not isinstance(record, dict) or set(record) != {'type', 'id', 'started_at', 'duration_sec'}:
-            raise ValueError('Некорректные данные события')
+            raise ValueError(ui_text('events.event_history_validation_invalid_data'))
         if not isinstance(record['type'], str) or record['type'] not in TYPES or not isinstance(record['id'], str) or not ID.fullmatch(record['id']):
-            raise ValueError('Некорректный тип или идентификатор события')
+            raise ValueError(ui_text('events.event_history_validation_invalid_type_identifier'))
         date = record['started_at']
         if not isinstance(date, str) or not re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z', date):
-            raise ValueError('Некорректная дата события')
+            raise ValueError(ui_text('events.event_history_validation_invalid_date'))
         duration = record['duration_sec']
         if duration is not None and (type(duration) not in (int, float) or not math.isfinite(duration) or duration < 0):
-            raise ValueError('Некорректная длительность события')
+            raise ValueError(ui_text('events.event_history_validation_invalid_duration'))
 
     def record(self, record, state, parent_id=None):
         """Short transactions work across the bridge, Video and owned inference workers."""
         self.validate(record)
         if state not in STATES or (parent_id is not None and (not isinstance(parent_id, str) or not ID.fullmatch(parent_id))):
-            raise ValueError('Некорректное состояние события')
+            raise ValueError(ui_text('events.event_history_record_invalid_state'))
         connection = self.connect()
         try:
             with connection:
@@ -115,7 +116,7 @@ class EventHistory:
             # Recording diagnostics is independent of GPU admission and model completion.
             with self.lock:
                 self.failed_writes += 1
-                self.warning = 'Часть событий не удалось сохранить. Проверьте доступ к папке UserData и свободное место.'
+                self.warning = ui_text('events.event_history_safe_record_some_events_could_not_saved_check')
 
     def page(self, query=''):
         options = parse_qs(query.lstrip('?'), keep_blank_values=True)
@@ -123,10 +124,10 @@ class EventHistory:
         try:
             limit = int(options.get('limit', ['100'])[0])
         except ValueError:
-            raise ValueError('Некорректный размер страницы истории событий') from None
+            raise ValueError(ui_text('events.event_history_page_invalid_size')) from None
         before = options.get('before', [''])[0]
         if not 1 <= limit <= 200 or kind and kind not in TYPES or scope not in ('', 'main', 'technical') or state and state not in STATES:
-            raise ValueError('Некорректный фильтр истории событий')
+            raise ValueError(ui_text('events.event_history_page_invalid_filter'))
         where, values = [], []
         if kind:
             where.append('type=?'); values.append(kind)
@@ -137,7 +138,7 @@ class EventHistory:
             where.append('type IN (' + ','.join('?' for _ in names) + ')'); values.extend(names)
         if before:
             if len(before) > 100 or '|' not in before:
-                raise ValueError('Некорректная страница истории событий')
+                raise ValueError(ui_text('events.event_history_page_invalid'))
             date, ident = before.split('|', 1)
             self.validate(dict(type='Image', id=ident, started_at=date, duration_sec=None))
             where.append('(started_at < ? OR (started_at = ? AND id < ?))'); values.extend((date, date, ident))
@@ -159,7 +160,7 @@ class EventHistory:
     def remove_generation(self, ident):
         """Deleting a generation also removes its centrally recorded technical descendants."""
         if not ID.fullmatch(ident):
-            raise ValueError('Некорректный идентификатор события')
+            raise ValueError(ui_text('events.event_history_remove_generation_invalid_identifier'))
         connection = self.connect()
         try:
             with connection:
@@ -171,12 +172,12 @@ class EventHistory:
 
     def microphone(self, ident):
         if not isinstance(ident, str) or not ID.fullmatch(ident):
-            raise ValueError('Некорректный идентификатор микрофона')
+            raise ValueError(ui_text('events.event_history_microphone_invalid_identifier'))
         connection = self.connect()
         try:
             row = connection.execute('SELECT type,started_at,duration_sec FROM events WHERE id=? AND type=?', (ident, 'MicrophoneSession')).fetchone()
         finally:
             connection.close()
         if not row:
-            raise ValueError('Событие микрофона не найдено')
+            raise ValueError(ui_text('events.event_history_microphone_not_found'))
         return dict(type=row[0], id=ident, started_at=row[1], duration_sec=row[2])

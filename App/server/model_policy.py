@@ -1,4 +1,5 @@
 """Local model switches; downloaded files and public source configuration remain separate."""
+from ui_strings import source as ui_text
 import json
 import os
 from pathlib import Path
@@ -18,7 +19,7 @@ class ModelPolicy:
         data = json.loads(self.path.read_text('utf-8-sig'))
         rows = data.get('disabled')
         if data.get('schema_version') != 1 or not isinstance(rows, list) or not all(isinstance(row, str) for row in rows):
-            raise ValueError('Не удалось прочитать переключатели моделей. Исходный файл сохранён.')
+            raise ValueError(ui_text('common.model_policy_disabled_read_switches_original_file_preserved_failed'))
         return set(rows)
 
     def set_enabled(self, ident, enabled):
@@ -58,7 +59,7 @@ def apply_profiles(root, module, profiles, field='available'):
         row['enabled'] = policy.enabled(module, row['id'])
         if not row['enabled']:
             row[field] = False
-            message = 'Модель отключена. Включите её в «Настройки → Компоненты».'
+            message = ui_text('common.model_policy_apply_profiles_disabled_enable_settings_components')
             row['reason'] = message
             if field == 'ready':
                 row['status'] = 'disabled'

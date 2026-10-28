@@ -31,6 +31,7 @@ async function main(){
     const rows=query.get('before')?[{...image,generation:record('Image','d')}]:query.get('scope')==='technical'?[technical]:[image,technical];
     return{ok:true,json:async()=>({entries:rows,next:query.get('before')?null:cursor,types:catalog})};
   }});
+  require('./i18n_fixture.cjs')(context);
   vm.runInContext(fs.readFileSync(path.join(__dirname,'../App/frontend/event-history.js'),'utf8'),context);
   elements.openEventHistory.handlers.click();await tick();
   assert.equal(elements.eventHistoryDialog.open,true);

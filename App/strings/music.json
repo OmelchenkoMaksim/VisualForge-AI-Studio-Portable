@@ -1,0 +1,758 @@
+{
+  "music.default_guide_start_genre_mood_add_2_3": {
+    "ru": "Начните с жанра и настроения, добавьте 2–3 главных инструмента, темп и характер звучания. Лучше использовать конкретное английское описание стиля; слова песни можно написать по-русски. Для инструментала не просите вокал в описании.",
+    "en": "Start with genre and mood, then add 2–3 main instruments, tempo and sound character. A specific English style description works best; lyrics may be in Russian. For instrumental music, do not request vocals in the description."
+  },
+  "music.engine_availability_local_execution_suffix": {
+    "ru": " · локально · ",
+    "en": " · local · "
+  },
+  "music.evidence_gpu_has_not_been_tested_yet": {
+    "ru": "Работа на этой GPU ещё не проверена.",
+    "en": "This GPU has not been tested yet."
+  },
+  "music.duration_maximum_seconds": {
+    "ru": "Максимальная длительность, секунды",
+    "en": "Maximum duration, seconds"
+  },
+  "music.generation_duration_seconds_field_label": {
+    "ru": "Длительность, секунды",
+    "en": "Duration, seconds"
+  },
+  "music.duration_hint_mini_max_may_end_track_before": {
+    "ru": "MiniMax может завершить композицию раньше указанного предела. Начальный диапазон: 10–60 секунд.",
+    "en": "MiniMax may end the track before the limit. Initial range: 10–60 seconds."
+  },
+  "music.duration_hint_stable_audio_10_120_seconds_longer": {
+    "ru": "Stable Audio: 10–120 секунд. Более длинные клипы пока не проверялись на этой видеокарте.",
+    "en": "Stable Audio: 10–120 seconds. Longer clips have not been tested on this GPU."
+  },
+  "music.planner_hint_ace_step_helps_structure_track_takes": {
+    "ru": "Планировщик ACE-Step помогает выстроить композицию и требует дополнительного времени.",
+    "en": "The ACE-Step planner helps structure the track and takes extra time."
+  },
+  "music.planner_hint_mini_max_music3_uses_own_musical": {
+    "ru": "MiniMax Music3 использует собственную музыкальную структуру; отдельный планировщик ACE-Step здесь не применяется.",
+    "en": "MiniMax Music3 uses its own musical structure; the separate ACE-Step planner does not apply."
+  },
+  "music.engine_header_service_unavailable_status": {
+    "ru": "Music недоступен",
+    "en": "Music unavailable"
+  },
+  "music.header_music_sounds_description": {
+    "ru": "Музыка и звуки по описанию",
+    "en": "Music and sounds from a description"
+  },
+  "music.header_create_song_vocals_lyrics": {
+    "ru": "Создание песни с вокалом по вашему тексту",
+    "en": "Create a song with vocals from your lyrics"
+  },
+  "music.header_generate_instrumental_music_description": {
+    "ru": "Генерация инструментальной музыки по описанию",
+    "en": "Generate instrumental music from a description"
+  },
+  "music.header_music_engine_model_files_available_gpu": {
+    "ru": "Music: файлы движка и модели доступны. GPU-проверка выполняется при генерации.",
+    "en": "Music: engine and model files are available. GPU validation runs during generation."
+  },
+  "music.header_selected_model_unavailable": {
+    "ru": "Выбранная модель недоступна.",
+    "en": "The selected model is unavailable."
+  },
+  "music.header_checking_music_models": {
+    "ru": "Проверка моделей Music…",
+    "en": "Checking Music models…"
+  },
+  "music.meta_s_k_hz_seed": {
+    "ru": "{0} с · {1} кГц · {2} · Seed {3}",
+    "en": "{0} s · {1} kHz · {2} · Seed {3}"
+  },
+  "music.output_audio_stereo_channel_label": {
+    "ru": "стерео",
+    "en": "stereo"
+  },
+  "music.output_audio_channel_count_suffix": {
+    "ru": " каналов",
+    "en": " channels"
+  },
+  "music.output_saved_file_path_prefix": {
+    "ru": "Сохранено: ",
+    "en": "Saved: "
+  },
+  "music.logs_task_has_not_started_yet_error": {
+    "ru": "Задача ещё не была запущена. Подробности ошибки показаны в уведомлении.",
+    "en": "The task has not started yet. Error details are shown in the notification."
+  },
+  "music.history_generated_tracks_appear_here": {
+    "ru": "Здесь появятся созданные композиции.",
+    "en": "Generated tracks will appear here."
+  },
+  "music.history_s_seed": {
+    "ru": "{0} · {1} · {2} с · Seed {3} · {4}",
+    "en": "{0} · {1} · {2} s · Seed {3} · {4}"
+  },
+  "music.generation_song_mode_label": {
+    "ru": "Песня",
+    "en": "Song"
+  },
+  "music.history_sound_music": {
+    "ru": "Звук / музыка",
+    "en": "Sound / music"
+  },
+  "music.generation_instrumental_mode_label": {
+    "ru": "Инструментал",
+    "en": "Instrumental"
+  },
+  "music.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "music.generation_failed_status_label": {
+    "ru": "Ошибка",
+    "en": "Error"
+  },
+  "music.generation_cancelled_status_label": {
+    "ru": "Отменено",
+    "en": "Cancelled"
+  },
+  "music.reuse_restore_settings": {
+    "ru": "Вернуть настройки",
+    "en": "Restore settings"
+  },
+  "music.journal_task_log": {
+    "ru": "Лог задачи",
+    "en": "Task log"
+  },
+  "music.history_track_listen_button_label": {
+    "ru": "Прослушать",
+    "en": "Listen"
+  },
+  "music.logs_generation_deleted": {
+    "ru": "Генерация удалена.",
+    "en": "Generation deleted."
+  },
+  "music.poll_elapsed_s": {
+    "ru": "{0} · прошло {1} с",
+    "en": "{0} · elapsed {1} s"
+  },
+  "music.poll_track_created_saved": {
+    "ru": "Композиция создана и сохранена.",
+    "en": "Track created and saved."
+  },
+  "music.poll_no_response_music": {
+    "ru": "Нет ответа Music: ",
+    "en": "No response from Music: "
+  },
+  "music.poll_checks_continue": {
+    "ru": ". Проверка продолжится.",
+    "en": ". Checks will continue."
+  },
+  "music.engine_selector_unavailable_option_suffix": {
+    "ru": " · недоступна",
+    "en": " · unavailable"
+  },
+  "music.output_location_autosave": {
+    "ru": "Автосохранение: ",
+    "en": "Autosave: "
+  },
+  "music.refresh_ready_generate": {
+    "ru": "Готово к генерации.",
+    "en": "Ready to generate."
+  },
+  "music.generation_preparing_gpu_memory_status": {
+    "ru": "Подготовка Music и освобождение видеопамяти…",
+    "en": "Preparing Music and freeing video memory…"
+  },
+  "music.generation_cancellation_requested_status": {
+    "ru": "Отмена Music…",
+    "en": "Cancelling Music…"
+  },
+  "music.task_log_clipboard_copy_failed_hint": {
+    "ru": "Не удалось скопировать журнал. Выделите текст вручную.",
+    "en": "Could not copy the log. Select the text manually."
+  },
+  "music.workspace_local_music_studio": {
+    "ru": "ЛОКАЛЬНАЯ МУЗЫКАЛЬНАЯ МАСТЕРСКАЯ",
+    "en": "LOCAL MUSIC STUDIO"
+  },
+  "music.availability_checking_music": {
+    "ru": "Проверка Music…",
+    "en": "Checking Music…"
+  },
+  "music.chat_message_model_author_label": {
+    "ru": "Модель",
+    "en": "Model"
+  },
+  "music.mode_block_what_create": {
+    "ru": "Что создаём",
+    "en": "What to create"
+  },
+  "music.mode_instrumental_no_vocals": {
+    "ru": "Инструментал — без вокала",
+    "en": "Instrumental — no vocals"
+  },
+  "music.mode_song_my_lyrics": {
+    "ru": "Песня — по моему тексту",
+    "en": "Song — my lyrics"
+  },
+  "music.caption_music_description": {
+    "ru": "Описание музыки",
+    "en": "Music description"
+  },
+  "music.caption_genre_mood_instruments_rhythm_progression_example": {
+    "ru": "Жанр, настроение, инструменты, ритм и развитие композиции. Например: Warm cinematic ambient, gentle piano, soft strings, slow evolving melody, peaceful atmosphere.",
+    "en": "Genre, mood, instruments, rhythm and progression. Example: Warm cinematic ambient, gentle piano, soft strings, slow evolving melody, peaceful atmosphere."
+  },
+  "music.song_lyrics_input_field_label": {
+    "ru": "Текст песни",
+    "en": "Lyrics"
+  },
+  "music.lyrics_verse_chorus": {
+    "ru": "[Verse]\nВаш куплет\n\n[Chorus]\nВаш припев",
+    "en": "[Verse]\nYour verse\n\n[Chorus]\nYour chorus"
+  },
+  "music.lyrics_block_write_singing_language_verse_chorus_bridge": {
+    "ru": "Напишите слова на языке исполнения. Метки [Verse], [Chorus], [Bridge] помогают задать структуру. Music создаёт новый вокал; клонирование голоса здесь не предусмотрено.",
+    "en": "Write lyrics in the singing language. [Verse], [Chorus] and [Bridge] markers help define structure. Music creates new vocals; voice cloning is not available here."
+  },
+  "music.bpm_block_tempo_beats_per_minute": {
+    "ru": "Темп, ударов в минуту",
+    "en": "Tempo, beats per minute"
+  },
+  "music.generation_automatic_setting_label": {
+    "ru": "Автоматически",
+    "en": "Automatic"
+  },
+  "music.language_block_vocal": {
+    "ru": "Язык вокала",
+    "en": "Vocal language"
+  },
+  "music.language_detect_lyrics": {
+    "ru": "Определить по тексту",
+    "en": "Detect from lyrics"
+  },
+  "music.speech_language_russian_option_label": {
+    "ru": "Русский",
+    "en": "Russian"
+  },
+  "music.speech_language_english_option_label": {
+    "ru": "Английский",
+    "en": "English"
+  },
+  "music.vocal_language_chinese_option_label": {
+    "ru": "Китайский",
+    "en": "Chinese"
+  },
+  "music.vocal_language_japanese_option_label": {
+    "ru": "Японский",
+    "en": "Japanese"
+  },
+  "music.vocal_language_korean_option_label": {
+    "ru": "Корейский",
+    "en": "Korean"
+  },
+  "music.vocal_language_spanish_option_label": {
+    "ru": "Испанский",
+    "en": "Spanish"
+  },
+  "music.vocal_language_french_option_label": {
+    "ru": "Французский",
+    "en": "French"
+  },
+  "music.vocal_language_german_option_label": {
+    "ru": "Немецкий",
+    "en": "German"
+  },
+  "music.vocal_language_italian_option_label": {
+    "ru": "Итальянский",
+    "en": "Italian"
+  },
+  "music.vocal_language_portuguese_option_label": {
+    "ru": "Португальский",
+    "en": "Portuguese"
+  },
+  "music.form_seed_variation_number": {
+    "ru": "Seed — номер варианта",
+    "en": "Seed — variation number"
+  },
+  "music.seed_empty_new_variation": {
+    "ru": "Пусто — новый вариант",
+    "en": "Empty — new variation"
+  },
+  "music.planner_block_music_helps_structure_track": {
+    "ru": "Музыкальный планировщик — помогает выстроить композицию",
+    "en": "Music planner — helps structure the track"
+  },
+  "music.form_tempo_controls_rhythm_speed_seed_sets": {
+    "ru": "Темп определяет скорость ритма. Seed задаёт исходную случайность: сохраните его вместе с настройками для похожего повторного результата. Планировщик требует дополнительного времени; без него доступна прямая генерация.",
+    "en": "Tempo controls rhythm speed. Seed sets initial randomness: save it with settings for a similar repeat result. The planner takes extra time; direct generation is available without it."
+  },
+  "music.generate_create_music": {
+    "ru": "Создать музыку",
+    "en": "Create music"
+  },
+  "music.task_cancel_button_label": {
+    "ru": "Отменить",
+    "en": "Cancel"
+  },
+  "music.p_checking_readiness": {
+    "ru": "Готовность проверяется…",
+    "en": "Checking readiness…"
+  },
+  "music.form_image_video_music_share_gpu_sequentially": {
+    "ru": "Image, Video и Music используют видеокарту по очереди. Первая загрузка модели может занять несколько минут. Для начала выберите 30 секунд.",
+    "en": "Image, Video and Music share the GPU sequentially. First model load may take a few minutes. Start with 30 seconds."
+  },
+  "music.workspace_how_describe_music": {
+    "ru": "Как описывать музыку",
+    "en": "How to describe music"
+  },
+  "music.workspace_songs_match_lyric_length_duration_long": {
+    "ru": "Для песни согласуйте объём текста с длительностью. Длинный текст может не поместиться; точность слов и структуры зависит от модели.",
+    "en": "For songs, match lyric length to duration. Long lyrics may not fit; word and structure accuracy depends on the model."
+  },
+  "music.example_insert_description": {
+    "ru": "Вставить пример описания",
+    "en": "Insert example description"
+  },
+  "music.workspace_music_model_checks": {
+    "ru": "Проверки модели Music",
+    "en": "Music model checks"
+  },
+  "music.workspace_music_output_folder": {
+    "ru": "Папка результатов Music",
+    "en": "Music output folder"
+  },
+  "music.save_dir_absolute_path_within_portable_folder": {
+    "ru": "Абсолютный путь или путь внутри portable-папки",
+    "en": "Absolute path or a path within the portable folder"
+  },
+  "music.choose_save_dir": {
+    "ru": "Выбрать…",
+    "en": "Choose…"
+  },
+  "music.open_save_dir_folder": {
+    "ru": "Открыть папку",
+    "en": "Open folder"
+  },
+  "music.save_settings_apply_folder": {
+    "ru": "Применить папку",
+    "en": "Apply folder"
+  },
+  "music.workspace_every_result_saved_automatically_unique_name": {
+    "ru": "Каждый результат сохраняется автоматически под уникальным именем вместе с настройками генерации. Настройки папки Image не меняются.",
+    "en": "Every result is saved automatically with a unique name and generation settings. Image folder settings are unchanged."
+  },
+  "music.workspace_music_result": {
+    "ru": "Результат Music",
+    "en": "Music result"
+  },
+  "music.download_wav_copy": {
+    "ru": "Скачать копию WAV",
+    "en": "Download WAV copy"
+  },
+  "music.workspace_music_history": {
+    "ru": "История Music",
+    "en": "Music history"
+  },
+  "music.workspace_music_logs": {
+    "ru": "Логи Music",
+    "en": "Music logs"
+  },
+  "music.workspace_stages_errors_selected_task_without_detailed": {
+    "ru": "Только этапы и ошибки выбранной задачи, без подробного журнала каждого шага.",
+    "en": "Only stages and errors for the selected task, without a detailed per-step log."
+  },
+  "music.data_refresh_button_label": {
+    "ru": "Обновить",
+    "en": "Refresh"
+  },
+  "music.clipboard_copy_button_label": {
+    "ru": "Скопировать",
+    "en": "Copy"
+  },
+  "music.logs_select_task_history_start_generation": {
+    "ru": "Выберите задачу в истории или запустите генерацию.",
+    "en": "Select a task from history or start generation."
+  },
+  "music.inspect_wav_stable_audio_created_empty": {
+    "ru": "Stable Audio создал пустой WAV",
+    "en": "Stable Audio created an empty WAV"
+  },
+  "music.fetch_comfy_ui_returned_audio_file_too": {
+    "ru": "ComfyUI вернул слишком большой аудиофайл",
+    "en": "ComfyUI returned an audio file that is too large"
+  },
+  "music.preflight_image_comfy_ui_not_connected_restart": {
+    "ru": "ComfyUI раздела Image не подключён. Перезапустите студию.",
+    "en": "Image ComfyUI is not connected. Restart the studio."
+  },
+  "music.run_waiting_comfy_ui_queue": {
+    "ru": "Ожидание очереди ComfyUI",
+    "en": "Waiting in ComfyUI queue"
+  },
+  "music.run_converting_wav": {
+    "ru": "Преобразование в WAV",
+    "en": "Converting to WAV"
+  },
+  "music.wait_generating_audio": {
+    "ru": "Генерация звука",
+    "en": "Generating audio"
+  },
+  "music.free_comfy_ui_models_unloaded": {
+    "ru": "ComfyUI: модели выгружены",
+    "en": "ComfyUI: models unloaded"
+  },
+  "music.availability_stable_audio_3_medium_not_installed": {
+    "ru": "Stable Audio 3 Medium не установлена: нужны программа Image и модели. Скачайте их во вкладке «Компоненты».",
+    "en": "Stable Audio 3 Medium is not installed: Image software and models are required. Download them in Components."
+  },
+  "music.preflight_image_comfy_ui_not_responding_wait": {
+    "ru": "ComfyUI раздела Image не отвечает. Подождите запуска или перезапустите студию.",
+    "en": "Image ComfyUI is not responding. Wait for startup or restart the studio."
+  },
+  "music.preflight_missing_comfy_ui_nodes": {
+    "ru": "В ComfyUI нет узлов: ",
+    "en": "Missing ComfyUI nodes: "
+  },
+  "music.preflight_check_components": {
+    "ru": ". Проверьте вкладку «Компоненты».",
+    "en": ". Check Components."
+  },
+  "music.preflight_stable_audio_graph_incompatible_comfy_ui": {
+    "ru": "Граф Stable Audio несовместим с ComfyUI: ",
+    "en": "Stable Audio graph is incompatible with ComfyUI: "
+  },
+  "music.run_graph_submitted_comfy_ui_prompt_id": {
+    "ru": "Граф отправлен в ComfyUI, prompt_id=",
+    "en": "Graph submitted to ComfyUI, prompt_id="
+  },
+  "music.run_flac_received_bytes": {
+    "ru": "Получен FLAC: %d байт",
+    "en": "FLAC received: %d bytes"
+  },
+  "music.run_wav_hz_channels_bit_s": {
+    "ru": "WAV: %d Гц, %d канала, %d бит, %.2f с",
+    "en": "WAV: %d Hz, %d channels, %d bit, %.2f s"
+  },
+  "music.wait_cancelling_music": {
+    "ru": "Отмена Music",
+    "en": "Cancelling Music"
+  },
+  "music.wait_stable_audio_did_not_finish_within": {
+    "ru": "Stable Audio не завершился за час; задача снимается в ComfyUI",
+    "en": "Stable Audio did not finish within an hour; removing the ComfyUI task"
+  },
+  "music.remote_cancel_comfy_ui_cancellation": {
+    "ru": "Отмена в ComfyUI: ",
+    "en": "ComfyUI cancellation: "
+  },
+  "music.preflight_comfy_ui_cannot_find_models": {
+    "ru": "ComfyUI не видит модели: ",
+    "en": "ComfyUI cannot find models: "
+  },
+  "music.run_comfy_ui_rejected_graph": {
+    "ru": "ComfyUI отклонил граф: ",
+    "en": "ComfyUI rejected the graph: "
+  },
+  "music.wait_comfy_ui_finished_without_audio": {
+    "ru": "ComfyUI завершил задачу без аудио",
+    "en": "ComfyUI finished without audio"
+  },
+  "music.remote_cancel_comfy_ui_task_failed": {
+    "ru": "Не удалось отменить задачу в ComfyUI: ",
+    "en": "Could not cancel the ComfyUI task: "
+  },
+  "music.free_comfy_ui_did_not_unload_models": {
+    "ru": "ComfyUI не выгрузил модели: ",
+    "en": "ComfyUI did not unload models: "
+  },
+  "music.wait_comfy_ui_returned_unrecognized_audio_path": {
+    "ru": "ComfyUI вернул непонятный путь к аудио",
+    "en": "ComfyUI returned an unrecognized audio path"
+  },
+  "music.wait_task_failed": {
+    "ru": "задача завершилась ошибкой",
+    "en": "task failed"
+  },
+  "music.minimax_worker_mini_max_music3_requires_nvidia_cuda": {
+    "ru": "MiniMax Music3 требует NVIDIA CUDA GPU",
+    "en": "MiniMax Music3 requires an NVIDIA CUDA GPU"
+  },
+  "music.minimax_worker_loading_mini_max_music3": {
+    "ru": "Загрузка MiniMax Music3",
+    "en": "Loading MiniMax Music3"
+  },
+  "music.minimax_worker_creating_musical_structure_vocals": {
+    "ru": "Создание музыкальной структуры и вокала",
+    "en": "Creating musical structure and vocals"
+  },
+  "music.minimax_worker_synthesizing_sound": {
+    "ru": "Синтез звучания",
+    "en": "Synthesizing sound"
+  },
+  "music.minimax_worker_saving_stereo_wav": {
+    "ru": "Сохранение стерео WAV",
+    "en": "Saving stereo WAV"
+  },
+  "music.minimax_worker_audio_ready": {
+    "ru": "Аудио готово",
+    "en": "Audio ready"
+  },
+  "music.minimax_worker_mini_max_music3_returned_empty_silent": {
+    "ru": "MiniMax Music3 вернул пустое или беззвучное аудио",
+    "en": "MiniMax Music3 returned empty or silent audio"
+  },
+  "music.minimax_worker_mini_max_music3_returned_invalid_audio": {
+    "ru": "MiniMax Music3 вернул неверную длительность аудио",
+    "en": "MiniMax Music3 returned an invalid audio duration"
+  },
+  "music.minimax_worker_mini_max_music3_unexpected_audio_format": {
+    "ru": "MiniMax Music3: неожиданный формат аудио ",
+    "en": "MiniMax Music3: unexpected audio format "
+  },
+  "music.availability_mini_max_music3_has_not_been": {
+    "ru": "Работа MiniMax Music3 на этой GPU ещё не проверена.",
+    "en": "MiniMax Music3 has not been tested on this GPU yet."
+  },
+  "music.availability_stable_audio_3_medium_has_not": {
+    "ru": "Работа Stable Audio 3 Medium на этой GPU ещё не проверена.",
+    "en": "Stable Audio 3 Medium has not been tested on this GPU yet."
+  },
+  "music.ace_availability_build_has_not_been_tested_gpu": {
+    "ru": "Работа этой сборки на GPU ещё не проверена.",
+    "en": "This build has not been tested on GPU yet."
+  },
+  "music.missing_music_task_not_found": {
+    "ru": "Задача Music не найдена",
+    "en": "Music task not found"
+  },
+  "music.ace_availability_music_runtime_models_not_installed_yet": {
+    "ru": "Среда или модели Music ещё не установлены. Модели можно скачать во вкладке «Компоненты».",
+    "en": "Music runtime or models are not installed yet. Download models in Components."
+  },
+  "music.delete_invalid_music_identifier": {
+    "ru": "Неверный идентификатор Music",
+    "en": "Invalid Music identifier"
+  },
+  "music.task_log_empty_state_label": {
+    "ru": "Журнал пока пуст.",
+    "en": "Log is empty."
+  },
+  "music.read_history_music_unreadable_file_preserved_new_started": {
+    "ru": "История Music не читается; файл сохранён как %s, начата новая история.",
+    "en": "Music history is unreadable; file preserved as %s, new history started."
+  },
+  "music.availability_mini_max_music3_files_not_installed": {
+    "ru": "Файлы MiniMax Music3 не установлены или недоступны.",
+    "en": "MiniMax Music3 files are not installed or unavailable."
+  },
+  "music.submit_music_busy_studio_shutting_down": {
+    "ru": "Music уже занят или студия закрывается",
+    "en": "Music is busy or the studio is shutting down"
+  },
+  "music.submit_preparing_music": {
+    "ru": "Подготовка Music",
+    "en": "Preparing Music"
+  },
+  "music.delete_task_not_found_still_running_stop": {
+    "ru": "Задача не найдена или ещё выполняется. Сначала остановите генерацию.",
+    "en": "Task not found or still running. Stop generation first."
+  },
+  "music.cancel_invalid_music_task_cancellation_key": {
+    "ru": "Неверная задача или ключ отмены Music",
+    "en": "Invalid Music task or cancellation key"
+  },
+  "music.file_music_audio_unavailable": {
+    "ru": "Аудиофайл Music недоступен",
+    "en": "Music audio file unavailable"
+  },
+  "music.run_comfy_preparing_stable_audio": {
+    "ru": "Подготовка Stable Audio",
+    "en": "Preparing Stable Audio"
+  },
+  "music.run_music_did_not_create_finished_wav": {
+    "ru": "Music не создал готовый WAV",
+    "en": "Music did not create a finished WAV"
+  },
+  "music.read_history_music_unreadable_cannot_moved_aside": {
+    "ru": "История Music не читается и не может быть отложена: %s",
+    "en": "Music history is unreadable and cannot be moved aside: %s"
+  },
+  "music.availability_music_runtime_models_unavailable": {
+    "ru": "Среда или модели Music недоступны.",
+    "en": "Music runtime or models unavailable."
+  },
+  "music.settings_specify_music_output_folder": {
+    "ru": "Укажите папку результатов Music",
+    "en": "Specify a Music output folder"
+  },
+  "music.settings_music_path_not_folder": {
+    "ru": "Путь Music не является папкой",
+    "en": "Music path is not a folder"
+  },
+  "music.delete_invalid_music_output_file": {
+    "ru": "Некорректный файл результата Music",
+    "en": "Invalid Music output file"
+  },
+  "music.delete_verify_stable_audio_data_comfy_ui_failed": {
+    "ru": "Не удалось проверить данные Stable Audio в ComfyUI",
+    "en": "Could not verify Stable Audio data in ComfyUI"
+  },
+  "music.run_loading_music": {
+    "ru": "Загрузка Music",
+    "en": "Loading Music"
+  },
+  "music.run_music_error": {
+    "ru": "Ошибка Music",
+    "en": "Music error"
+  },
+  "music.run_save_music_history_failed": {
+    "ru": "Не удалось сохранить историю Music: ",
+    "en": "Could not save Music history: "
+  },
+  "music.delete_invalid_stable_audio_file_scope": {
+    "ru": "Некорректная область файла Stable Audio",
+    "en": "Invalid Stable Audio file scope"
+  },
+  "music.delete_comfy_ui_unavailable_retry_deletion_after": {
+    "ru": "ComfyUI недоступен. Повторите удаление после его запуска: ",
+    "en": "ComfyUI unavailable. Retry deletion after it starts: "
+  },
+  "music.delete_files_deleted_but_comfy_ui_history": {
+    "ru": "Файлы удалены, но история ComfyUI пока недоступна. Повторите удаление: ",
+    "en": "Files deleted, but ComfyUI history is currently unavailable. Retry deletion: "
+  },
+  "music.registry_engine_requirements_windows_10_11_x64_nvidia_cuda": {
+    "ru": "Windows 10/11 x64 · NVIDIA CUDA · не менее 8 ГБ свободной видеопамяти и 16 ГБ RAM с выгрузкой в RAM; рекомендуется видеокарта с 16 ГБ VRAM и 32 ГБ RAM.",
+    "en": "Windows 10/11 x64 · NVIDIA CUDA · at least 8 GB free VRAM and 16 GB RAM with RAM offloading; a 16 GB VRAM GPU and 32 GB RAM are recommended."
+  },
+  "music.registry_minimax_requirements_experimental_windows_10_11_x64_nvidia": {
+    "ru": "Экспериментально: Windows 10/11 x64, NVIDIA CUDA, 16 ГБ VRAM, 32 ГБ RAM; рекомендуется 64 ГБ RAM. INT8 и выгрузка в RAM. Начните с 10–30 секунд.",
+    "en": "Experimental: Windows 10/11 x64, NVIDIA CUDA, 16 GB VRAM, 32 GB RAM; 64 GB RAM recommended. INT8 and RAM offloading. Start with 10–30 seconds."
+  },
+  "music.registry_minimax_limitations_duration_upper_limit_model_may_finish": {
+    "ru": "Длительность задаёт верхний предел: модель может закончить раньше. Начальные профили: 10–60 секунд; длинные песни пока не включены. Темп и язык задаются в описании, их соблюдение не гарантируется.",
+    "en": "Duration is an upper limit: the model may finish earlier. Initial profiles: 10–60 seconds; long songs are not enabled yet. Tempo and language are specified in the description and are not guaranteed."
+  },
+  "music.registry_minimax_prompt_guide_describe_genre_mood_instruments_voice_precision": {
+    "ru": "Опишите жанр, настроение, инструменты и голос. Для точного замысла используйте три части: Global Metadata (стиль и темп), Vocal Details (голос), Arrangement (развитие инструментов). В тексте песни разделяйте части тегами [Verse], [Chorus], [Bridge], [Outro]. Для инструментала текст песни не нужен.",
+    "en": "Describe genre, mood, instruments and voice. For precision use three parts: Global Metadata (style and tempo), Vocal Details (voice), Arrangement (instrument progression). Use [Verse], [Chorus], [Bridge], [Outro] in lyrics. Instrumental tracks do not need lyrics."
+  },
+  "music.registry_stable_audio_license_stability_ai_community_gemma_terms_use": {
+    "ru": "Stability AI Community License и Gemma Terms of Use",
+    "en": "Stability AI Community License and Gemma Terms of Use"
+  },
+  "music.registry_stable_audio_requirements_experimental_windows_10_11_x64_nvidia": {
+    "ru": "Экспериментально: Windows 10/11 x64, NVIDIA CUDA, 16 ГБ VRAM, 32 ГБ RAM (оценка, не измерение). Работает через ComfyUI раздела Image; модель около 9,2 ГБ и текстовый энкодер около 1,2 ГБ. Начните с 10–30 секунд.",
+    "en": "Experimental: Windows 10/11 x64, NVIDIA CUDA, 16 GB VRAM, 32 GB RAM (estimate, not a measurement). Uses Image ComfyUI; model about 9.2 GB, text encoder about 1.2 GB. Start with 10–30 seconds."
+  },
+  "music.registry_stable_audio_limitations_music_sounds_english_descriptions_stereo_wav": {
+    "ru": "Музыка и звуки по описанию на английском, стерео WAV. Нет текста песни, вокала, темпа, языка, продолжения и редактирования. Длительность 10–120 секунд: длиннее пока не проверялось. Категории и автоматическое расширение описания (reprompt) не включены.",
+    "en": "Music and sounds from English descriptions, stereo WAV. No lyrics, vocals, tempo, language, continuation or editing. Duration 10–120 seconds; longer clips have not been tested. Categories and automatic reprompting are not enabled."
+  },
+  "music.registry_stable_audio_prompt_guide_describe_genre_instruments_mood_energy_english": {
+    "ru": "Опишите на английском жанр, инструменты, настроение и энергию; для звуков назовите источник, материал и окружение. Темп можно указать словами, например «124 BPM». Текст песни и вокал не поддерживаются.",
+    "en": "Describe genre, instruments, mood and energy in English; for sounds specify the source, material and environment. Tempo may be described in words, e.g. '124 BPM'. Lyrics and vocals are not supported."
+  },
+  "music.seed_integer_0_4294967295_empty": {
+    "ru": "Seed: целое число от 0 до 4294967295 или пустое поле",
+    "en": "Seed: integer from 0 to 4294967295 or empty"
+  },
+  "music.validate_audio_describe_sound_music_1_2000_characters": {
+    "ru": "Опишите звук или музыку: от 1 до 2000 символов",
+    "en": "Describe sound or music: 1 to 2000 characters"
+  },
+  "music.validation_describe_music_1_2000_characters": {
+    "ru": "Опишите музыку: от 1 до 2000 символов",
+    "en": "Describe music: 1 to 2000 characters"
+  },
+  "music.validation_lyrics_no_more_than_6000_characters": {
+    "ru": "Текст песни: не более 6000 символов",
+    "en": "Lyrics: no more than 6000 characters"
+  },
+  "music.validation_unknown_music_mode": {
+    "ru": "Неизвестный режим Music",
+    "en": "Unknown Music mode"
+  },
+  "music.validation_add_lyrics": {
+    "ru": "Добавьте текст песни",
+    "en": "Add lyrics"
+  },
+  "music.validation_tempo_30_300_beats_per_minute": {
+    "ru": "Темп: от 30 до 300 ударов в минуту",
+    "en": "Tempo: 30 to 300 beats per minute"
+  },
+  "music.validation_unknown_vocal_language": {
+    "ru": "Неизвестный язык вокала",
+    "en": "Unknown vocal language"
+  },
+  "music.validation_invalid_music_planner_setting": {
+    "ru": "Неверная настройка музыкального планировщика",
+    "en": "Invalid music planner setting"
+  },
+  "music.get_engine_unknown_music": {
+    "ru": "Неизвестный движок Music",
+    "en": "Unknown Music engine"
+  },
+  "music.validate_audio_duration_must_whole_number_seconds": {
+    "ru": "Длительность: целое число секунд",
+    "en": "Duration must be a whole number of seconds"
+  },
+  "music.routes_error_music_module_unavailable_check_startup_log": {
+    "ru": "Модуль Music недоступен. Проверьте журнал запуска.",
+    "en": "Music module unavailable. Check the startup log."
+  },
+  "music.routes_error_gpu_already_busy_music_task_wait": {
+    "ru": "GPU уже занят задачей Music. Дождитесь завершения или отмените её.",
+    "en": "GPU is already busy with a Music task. Wait for completion or cancel it."
+  },
+  "music.resolve_path_music_outside_portable_folder": {
+    "ru": "Путь Music выходит за пределы portable-папки",
+    "en": "Music path is outside the portable folder"
+  },
+  "music.worker_loading_music_model": {
+    "ru": "Загрузка музыкальной модели",
+    "en": "Loading music model"
+  },
+  "music.progress_generating_music": {
+    "ru": "Генерация музыки",
+    "en": "Generating music"
+  },
+  "music.worker_music_requires_available_nvidia_cuda_gpu": {
+    "ru": "Music требует доступную NVIDIA CUDA GPU",
+    "en": "Music requires an available NVIDIA CUDA GPU"
+  },
+  "music.worker_loading_music_planner": {
+    "ru": "Загрузка музыкального планировщика",
+    "en": "Loading music planner"
+  },
+  "music.worker_music_returned_invalid_audio_path": {
+    "ru": "Music вернул неверный путь аудио",
+    "en": "Music returned an invalid audio path"
+  },
+  "music.worker_music_returned_empty_damaged_silent_audio": {
+    "ru": "Music вернул пустое, повреждённое или беззвучное аудио",
+    "en": "Music returned empty, damaged or silent audio"
+  },
+  "music.worker_actual_music_duration_does_not_match": {
+    "ru": "Фактическая длительность Music не соответствует запросу",
+    "en": "Actual Music duration does not match the request"
+  },
+  "music.worker_music_returned_no_audio": {
+    "ru": "Music не вернул аудио",
+    "en": "Music returned no audio"
+  },
+  "music.ensure_models_present_music_files_missing_repair_installed_model": {
+    "ru": "Файлы Music отсутствуют; восстановите установленный пакет моделей.",
+    "en": "Music files are missing; repair the installed model package."
+  },
+  "music.run_music_exited_code_open_task_log": {
+    "ru": "Music завершился с кодом {0}. Откройте журнал задачи.",
+    "en": "Music exited with code {0}. Open the task log."
+  },
+  "music.validate_audio_duration_seconds": {
+    "ru": "Длительность {0}: от {1} до {2} секунд",
+    "en": "Duration {0}: from {1} to {2} seconds"
+  }
+}

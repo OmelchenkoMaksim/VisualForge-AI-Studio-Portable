@@ -18,8 +18,8 @@
   const themeButton = el('themeToggle');
   function labelTheme() {
     const light = root.dataset.theme === 'light';
-    themeButton.setAttribute('aria-label', light ? 'Включить тёмную тему' : 'Включить светлую тему');
-    themeButton.title = themeButton.getAttribute('aria-label');
+    StudioI18n.bind(themeButton, "@aria-label", () => (light ? StudioI18n.t("settings.theme_button_switch_dark") : StudioI18n.t("settings.theme_button_switch_light")), true);
+    StudioI18n.bind(themeButton, "title", () => (themeButton.getAttribute('aria-label')), true);
   }
   function applyTheme(theme) {
     root.dataset.theme = theme;
@@ -53,12 +53,13 @@
     const terms = specs.querySelectorAll('dt');
     for (const term of terms) {
       const value = term.nextElementSibling?.textContent.trim() || '';
-      if (/^Видеокарта/.test(term.textContent)) gpu = value.replace(/^NVIDIA\s+(GeForce\s+)?/i, '');
-      if (/^Видеопамять/.test(term.textContent)) vram = value;
+      // Hardware identity must not depend on the translated caption.
+      if (term.dataset.hardwareField === 'gpu') gpu = value.replace(/^NVIDIA\s+(GeForce\s+)?/i, '');
+      if (term.dataset.hardwareField === 'vram') vram = value;
     }
-    chipName.textContent = gpu ? (vram ? `${gpu} · ${vram}` : gpu) : 'Ваш компьютер';
+    StudioI18n.bind(chipName, "textContent", () => (gpu ? (vram ? `${gpu} · ${vram}` : gpu) : StudioI18n.t("settings.chip_name_computer")), true);
     chip.dataset.status = compat.dataset.status || '';
-    chip.title = (compat.textContent.trim() || 'Характеристики этого ПК') + ' · нажмите, чтобы открыть';
+    StudioI18n.bind(chip, "title", () => ((compat.textContent.trim() || StudioI18n.t("settings.chip_pc_s_specifications")) + StudioI18n.t("settings.chip_click_open")), true);
   }
   new MutationObserver(syncChip).observe(specs, {childList: true, subtree: true, characterData: true});
   new MutationObserver(syncChip).observe(compat, {attributes: true, attributeFilter: ['data-status'], childList: true, characterData: true, subtree: true});
@@ -92,7 +93,7 @@
 
   // ---- readiness pill: long texts are clipped in the top bar, so the full sentence is a tooltip ------------------------
   const preflight = el('preflight');
-  const syncTitle = () => { preflight.title = preflight.textContent.trim(); };
+  const syncTitle = () => { StudioI18n.bind(preflight, "title", () => (preflight.textContent.trim()), true); };
   new MutationObserver(syncTitle).observe(preflight, {childList: true, characterData: true, subtree: true});
   syncTitle();
 
@@ -101,18 +102,18 @@
   if (sounds && soundsDialog) {
     const fields = {success: el('soundSuccess'), error: el('soundError')};
     for (const [kind, select] of Object.entries(fields)) {
-      for (const preset of [...sounds.PRESETS[kind], {id: 'off', name: 'Без звука'}]) select.add(new Option(preset.name, preset.id));
+      for (const preset of [...sounds.PRESETS[kind], {id: 'off', name: StudioI18n.t("settings.completion_sound_disabled_option_label")}]) select.add(StudioI18n.option(() => (preset.name), preset.id));
       select.addEventListener('change', () => { sounds.save({[kind]: select.value}); sounds.play(kind, select.value, {force: true}); });
     }
     const range = el('soundVolume'), shown = el('soundVolumeValue');
-    const showVolume = () => { shown.textContent = range.value === '0' ? 'выкл.' : `${range.value}%`; };
+    const showVolume = () => { StudioI18n.bind(shown, "textContent", () => (range.value === '0' ? StudioI18n.t("settings.setting_disabled_value_label") : `${range.value}%`), true); };
     range.addEventListener('input', () => { sounds.save({volume: Number(range.value) / 100}); showVolume(); });
     range.addEventListener('change', () => sounds.play('success', null, {force: true}));
     el('soundSuccessPlay').addEventListener('click', () => sounds.play('success', fields.success.value, {force: true}));
-    el('soundErrorPlay').addEventListener('click', () => sounds.play('error', fields.error.value, {force: true}));
+    el('soundErrorPlay').addEventListener('click', () => sounds.play('error', StudioI18n.remote(fields.error).value, {force: true}));
     el('openSounds').addEventListener('click', () => {
       const current = sounds.prefs();
-      fields.success.value = current.success; fields.error.value = current.error;
+      fields.success.value = current.success; StudioI18n.remote(fields.error).value = StudioI18n.remote(current.error);
       range.value = String(Math.round(current.volume * 100)); showVolume();
       soundsDialog.showModal();
     });
@@ -129,7 +130,7 @@
       const wrap = document.createElement('details');
       wrap.className = 'hint-more';
       const summary = document.createElement('summary');
-      summary.textContent = 'Что это значит?';
+      StudioI18n.bind(summary, "textContent", () => (StudioI18n.t("settings.summary_what_does_mean")), true);
       node.before(wrap);
       wrap.append(summary, node);
     }

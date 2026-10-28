@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from video.registry import validate
 from video.service import Jobs
 from video.owned import OwnedJob
-from video.manager import VideoManager
+from video.video_manager import VideoManager
 from portable_paths import from_server
 from video.output import filename_base, copy_unique
 from video.runtime import environment

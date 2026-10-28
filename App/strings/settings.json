@@ -1,0 +1,562 @@
+{
+  "settings.theme_button_switch_dark": {
+    "ru": "Включить тёмную тему",
+    "en": "Switch to dark theme"
+  },
+  "settings.theme_button_switch_light": {
+    "ru": "Включить светлую тему",
+    "en": "Switch to light theme"
+  },
+  "settings.chip_name_computer": {
+    "ru": "Ваш компьютер",
+    "en": "Your computer"
+  },
+  "settings.chip_pc_s_specifications": {
+    "ru": "Характеристики этого ПК",
+    "en": "This PC's specifications"
+  },
+  "settings.chip_click_open": {
+    "ru": " · нажмите, чтобы открыть",
+    "en": " · click to open"
+  },
+  "settings.completion_sound_disabled_option_label": {
+    "ru": "Без звука",
+    "en": "Silent"
+  },
+  "settings.setting_disabled_value_label": {
+    "ru": "выкл.",
+    "en": "off"
+  },
+  "settings.summary_what_does_mean": {
+    "ru": "Что это значит?",
+    "en": "What does this mean?"
+  },
+  "settings.sounds_presets_name_classic_three_notes": {
+    "ru": "Классика — три ноты",
+    "en": "Classic — three notes"
+  },
+  "settings.sounds_presets_name_bell": {
+    "ru": "Колокольчик",
+    "en": "Bell"
+  },
+  "settings.sounds_presets_name_marimba": {
+    "ru": "Маримба",
+    "en": "Marimba"
+  },
+  "settings.sounds_presets_name_harp": {
+    "ru": "Арфа",
+    "en": "Harp"
+  },
+  "settings.sounds_presets_name_fanfare": {
+    "ru": "Фанфары",
+    "en": "Fanfare"
+  },
+  "settings.sounds_presets_name_soft_chord": {
+    "ru": "Мягкий аккорд",
+    "en": "Soft chord"
+  },
+  "settings.sounds_presets_name_victory_melody": {
+    "ru": "Мелодия победы",
+    "en": "Victory melody"
+  },
+  "settings.sounds_presets_name_classic_three_descending_notes": {
+    "ru": "Классика — три ноты вниз",
+    "en": "Classic — three descending notes"
+  },
+  "settings.sounds_presets_name_two_tones": {
+    "ru": "Два тона",
+    "en": "Two tones"
+  },
+  "settings.sounds_presets_name_low_gong": {
+    "ru": "Низкий гонг",
+    "en": "Low gong"
+  },
+  "settings.sounds_presets_name_gentle_warning": {
+    "ru": "Мягкое предупреждение",
+    "en": "Gentle warning"
+  },
+  "settings.studio_ui_releases_model_release": {
+    "ru": "выпуск модели",
+    "en": "model release"
+  },
+  "settings.studio_ui_releases_fp8_publication": {
+    "ru": "публикация FP8",
+    "en": "FP8 publication"
+  },
+  "settings.studio_ui_releases_comfy_package_update": {
+    "ru": "обновление пакета ComfyUI",
+    "en": "ComfyUI package update"
+  },
+  "settings.studio_ui_releases_comfy_package_publication": {
+    "ru": "публикация пакета ComfyUI",
+    "en": "ComfyUI package publication"
+  },
+  "settings.studio_ui_releases_weights_publication": {
+    "ru": "публикация весов",
+    "en": "weights publication"
+  },
+  "settings.studio_ui_releases_vdn_h3_edge_weights_publication": {
+    "ru": "публикация весов VDN-H3 Edge",
+    "en": "VDN-H3 Edge weights publication"
+  },
+  "settings.studio_ui_releases_base_model_release": {
+    "ru": "выпуск базы",
+    "en": "base model release"
+  },
+  "settings.studio_ui_headers_description_local_video_generation": {
+    "ru": "Локальная генерация видео",
+    "en": "Local video generation"
+  },
+  "settings.studio_ui_headers_checking_video_models": {
+    "ru": "Проверка моделей Video…",
+    "en": "Checking Video models…"
+  },
+  "settings.studio_ui_headers_description_local_music_song_generation": {
+    "ru": "Локальная генерация музыки и песен",
+    "en": "Local music and song generation"
+  },
+  "settings.studio_ui_headers_checking_music_models": {
+    "ru": "Проверка моделей Music…",
+    "en": "Checking Music models…"
+  },
+  "settings.studio_ui_headers_description_local_text_assistant": {
+    "ru": "Локальный текстовый ассистент",
+    "en": "Local text assistant"
+  },
+  "settings.studio_ui_headers_checking_text_models": {
+    "ru": "Проверка моделей Text…",
+    "en": "Checking Text models…"
+  },
+  "settings.open_folder_failed": {
+    "ru": "Не удалось открыть папку",
+    "en": "Could not open the folder"
+  },
+  "settings.host_studio_notifications": {
+    "ru": "Уведомления студии",
+    "en": "Studio notifications"
+  },
+  "settings.generation_notification_error_title_suffix": {
+    "ru": " · Ошибка",
+    "en": " · Error"
+  },
+  "settings.notify_completed_successfully": {
+    "ru": " · Завершено успешно",
+    "en": " · Completed successfully"
+  },
+  "settings.notify_details_available_log": {
+    "ru": "Подробности доступны в журнале.",
+    "en": "Details are available in the log."
+  },
+  "settings.notify_result_saved": {
+    "ru": "Результат сохранён.",
+    "en": "Result saved."
+  },
+  "settings.notify_open_folder": {
+    "ru": "Открыть папку",
+    "en": "Open folder"
+  },
+  "settings.notify_show_log": {
+    "ru": "Показать лог",
+    "en": "Show log"
+  },
+  "settings.dialog_close_button_label": {
+    "ru": "Закрыть",
+    "en": "Close"
+  },
+  "settings.summary_generation_data": {
+    "ru": "Данные генерации · ",
+    "en": "Generation data · "
+  },
+  "settings.metadata_unknown_value_label": {
+    "ru": "неизвестно",
+    "en": "unknown"
+  },
+  "settings.generation_info_not_finished_yet_duration_unknown": {
+    "ru": "ещё не завершена или время неизвестно",
+    "en": "not finished yet or duration unknown"
+  },
+  "settings.duration_seconds_unit_suffix": {
+    "ru": " с",
+    "en": " s"
+  },
+  "settings.generation_identity_type_field_label": {
+    "ru": "Тип",
+    "en": "Type"
+  },
+  "settings.generation_identity_started_field_label": {
+    "ru": "Начало",
+    "en": "Started"
+  },
+  "settings.generation_identity_duration_field_label": {
+    "ru": "Длительность",
+    "en": "Duration"
+  },
+  "settings.generation_identity_copy_button_label": {
+    "ru": "Скопировать объект",
+    "en": "Copy object"
+  },
+  "settings.clipboard_copy_success_feedback": {
+    "ru": "Скопировано",
+    "en": "Copied"
+  },
+  "settings.clipboard_copy_failed_feedback": {
+    "ru": "Не удалось скопировать",
+    "en": "Could not copy"
+  },
+  "settings.generation_delete_button_label": {
+    "ru": "Удалить",
+    "en": "Delete"
+  },
+  "settings.button_delete_generation_output_metadata_separate_task": {
+    "ru": "Удалить генерацию вместе с результатом, метаданными и отдельным логом задачи",
+    "en": "Delete the generation, output, metadata and separate task log"
+  },
+  "settings.delete_generation_button_complete_deletion_failed": {
+    "ru": "Не удалось завершить удаление: ",
+    "en": "Could not complete deletion: "
+  },
+  "settings.button_permanently_delete_generation_history_entry_output": {
+    "ru": "Удалить эту генерацию безвозвратно?\n\nБудут удалены запись истории, файлы результата, метаданные, временные файлы и отдельный лог задачи. Общие журналы студии и движков могут содержать сведения об этой генерации и сохранятся. Отдельные генерации и миксы останутся.",
+    "en": "Permanently delete this generation?\n\nThe history entry, output files, metadata, temporary files and separate task log will be deleted. Shared studio and engine logs may contain information about this generation and will be preserved. Separate generations and mixes will remain."
+  },
+  "settings.button_deletion_not_confirmed": {
+    "ru": "Удаление не подтверждено",
+    "en": "Deletion not confirmed"
+  },
+  "settings.banner_stop_generation": {
+    "ru": "Остановить генерацию",
+    "en": "Stop generation"
+  },
+  "settings.banner_stop_stopping": {
+    "ru": "Останавливаю…",
+    "en": "Stopping…"
+  },
+  "settings.banner_gemma_working_voice_input_loading_editing": {
+    "ru": "Gemma работает для голосового ввода (загрузка или правка текста). Запуск генерации подождёт несколько секунд, остальное можно делать.",
+    "en": "Gemma is working for voice input (loading or editing text). Starting a generation will wait a few seconds; other actions are available."
+  },
+  "settings.banner_generation_running_tabs_model_selection_text": {
+    "ru": "Идёт генерация: {0}. Вкладки, выбор нейросети и ввод текста доступны; запускать новое нельзя до конца.",
+    "en": "Generation running: {0}. Tabs, model selection and text input are available; starting a new task must wait until completion."
+  },
+  "settings.subtitle_edit_images_local_model": {
+    "ru": "Редактирование изображения с помощью локальной модели",
+    "en": "Edit images with a local model"
+  },
+  "settings.preflight_checking_local_comfy_ui": {
+    "ru": "Проверка локального ComfyUI…",
+    "en": "Checking local ComfyUI…"
+  },
+  "settings.data_refresh_button_label": {
+    "ru": "Обновить",
+    "en": "Refresh"
+  },
+  "settings.studio_settings_button_label": {
+    "ru": "Настройки",
+    "en": "Settings"
+  },
+  "settings.studio_menu_settings_sections": {
+    "ru": "Разделы настроек",
+    "en": "Settings sections"
+  },
+  "settings.open_event_history": {
+    "ru": "История событий",
+    "en": "Event history"
+  },
+  "settings.open_logs_view_local_startup_error": {
+    "ru": "Посмотреть локальные журналы запуска и ошибок",
+    "en": "View local startup and error logs"
+  },
+  "settings.diagnostic_logs_menu_button_label": {
+    "ru": "Логи",
+    "en": "Logs"
+  },
+  "settings.open_compatibility_show_cards_when_selecting_model": {
+    "ru": "Показ карточек совместимости при выборе модели",
+    "en": "Show compatibility cards when selecting a model"
+  },
+  "settings.open_compatibility_model_tips": {
+    "ru": "Подсказки моделей",
+    "en": "Model tips"
+  },
+  "settings.open_sounds_choose_played_when_generation_finishes": {
+    "ru": "Выбрать мелодии, которые звучат по окончании генерации",
+    "en": "Choose sounds played when generation finishes"
+  },
+  "settings.completion_sounds_settings_button_label": {
+    "ru": "Звуки",
+    "en": "Sounds"
+  },
+  "settings.aria_studio_section": {
+    "ru": "Раздел студии",
+    "en": "Studio section"
+  },
+  "settings.interface_language_setting_label": {
+    "ru": "Язык интерфейса",
+    "en": "Interface language"
+  },
+  "settings.interface_language_russian_option_label": {
+    "ru": "Русский",
+    "en": "Русский"
+  },
+  "settings.interface_language_english_option_label": {
+    "ru": "English",
+    "en": "English"
+  },
+  "settings.interface_language_persistence_hint": {
+    "ru": "Применяется сразу и сохраняется на этом компьютере.",
+    "en": "Applies immediately and is saved on this computer."
+  },
+  "settings.speech_language_russian_option_label": {
+    "ru": "Русский",
+    "en": "Russian"
+  },
+  "settings.completion_sounds_dialog_title": {
+    "ru": "Звуки окончания",
+    "en": "Completion sounds"
+  },
+  "settings.sounds_dialog_play_when_generation_finishes_so_you": {
+    "ru": "Звучат, когда генерация закончилась, — можно заниматься своими делами и не следить за экраном. Мелодии создаются прямо в студии и длятся до 7 секунд.",
+    "en": "Play when generation finishes, so you can do other things without watching the screen. Melodies are synthesized in the studio and last up to 7 seconds."
+  },
+  "settings.completion_success_sound_selector_label": {
+    "ru": "Успешно готово",
+    "en": "Success"
+  },
+  "settings.completion_success_sound_preview_accessibility_label": {
+    "ru": "Прослушать мелодию успеха",
+    "en": "Preview success sound"
+  },
+  "settings.completion_sound_preview_button_label": {
+    "ru": "▶ Прослушать",
+    "en": "▶ Preview"
+  },
+  "settings.generation_failed_status_label": {
+    "ru": "Ошибка",
+    "en": "Error"
+  },
+  "settings.sound_error_play_preview": {
+    "ru": "Прослушать мелодию ошибки",
+    "en": "Preview error sound"
+  },
+  "settings.completion_sound_volume_slider_label": {
+    "ru": "Громкость",
+    "en": "Volume"
+  },
+  "settings.sounds_dialog_no_sound_check_windows_volume_ensure": {
+    "ru": "Не слышно? Проверьте громкость Windows и что звук этого окна не выключен в микшере.",
+    "en": "No sound? Check Windows volume and ensure this window is not muted in the mixer."
+  },
+  "settings.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "settings.studio_terms_what_do_special_settings_mean": {
+    "ru": "Что означают специальные слова и настройки?",
+    "en": "What do the special terms and settings mean?"
+  },
+  "settings.studio_terms_sections_images_video": {
+    "ru": "Разделы для изображений и видео.",
+    "en": "Sections for images and video."
+  },
+  "settings.studio_terms_prompt": {
+    "ru": "Промпт / Prompt",
+    "en": "Prompt"
+  },
+  "settings.studio_terms_text_description_what_create_change_specify": {
+    "ru": "Текстовое описание того, что нужно создать или изменить. Укажите героя, действие, обстановку и желаемые детали.",
+    "en": "A text description of what to create or change. Specify the subject, action, setting and desired details."
+  },
+  "settings.source_reference_image_label": {
+    "ru": "Референс / Reference",
+    "en": "Reference"
+  },
+  "settings.studio_terms_example_image_helps_convey_character_s": {
+    "ru": "Картинка-образец: она помогает передать внешность персонажа, предмет, стиль или композицию.",
+    "en": "An example image that helps convey a character's appearance, an object, style or composition."
+  },
+  "settings.studio_terms_number_defining_initial_randomness_save_description": {
+    "ru": "Число, задающее начальную случайность. Сохраните его вместе с описанием и настройками, если хотите повторить похожий результат. Пустое поле выбирает новое число.",
+    "en": "A number defining initial randomness. Save it with the description and settings to repeat a similar result. An empty field selects a new number."
+  },
+  "settings.studio_terms_steps_sampling": {
+    "ru": "Шаги / Steps, сэмплинг / Sampling",
+    "en": "Steps / Sampling"
+  },
+  "settings.studio_terms_consecutive_refinements_used_model_build_result": {
+    "ru": "Последовательные уточнения, из которых модель собирает результат. Большее число шагов обычно увеличивает время работы.",
+    "en": "Consecutive refinements used by the model to build the result. More steps usually take more time."
+  },
+  "settings.studio_terms_two_passes_8_3": {
+    "ru": "Два прохода / 8 + 3",
+    "en": "Two passes / 8 + 3"
+  },
+  "settings.studio_terms_first_base_created_8_steps_refined": {
+    "ru": "Сначала создаётся основа за 8 шагов, затем она дополнительно уточняется за 3 шага. Предпросмотр останавливается после основного прохода.",
+    "en": "First a base is created in 8 steps, then refined for 3 more steps. Preview stops after the main pass."
+  },
+  "settings.studio_terms_resolution_pixels_512_288": {
+    "ru": "Разрешение, пиксели, 512 × 288",
+    "en": "Resolution, pixels, 512 × 288"
+  },
+  "settings.studio_terms_image_dimensions_width_height_individual_pixels": {
+    "ru": "Размер картинки: ширина × высота в отдельных точках-пикселях. Высокое разрешение требует больше памяти и времени.",
+    "en": "Image dimensions: width × height in individual pixels. Higher resolution requires more memory and time."
+  },
+  "settings.studio_terms_aspect_ratio_16_9_1_2": {
+    "ru": "Соотношение сторон, 16:9 / 1:1 / 2:3",
+    "en": "Aspect ratio, 16:9 / 1:1 / 2:3"
+  },
+  "settings.studio_terms_frame_shape_wide_rectangle_square_vertical": {
+    "ru": "Форма кадра: широкий прямоугольник, квадрат или вертикальный прямоугольник.",
+    "en": "Frame shape: wide rectangle, square or vertical rectangle."
+  },
+  "settings.studio_terms_fps_frames": {
+    "ru": "FPS и кадры",
+    "en": "FPS and frames"
+  },
+  "settings.studio_terms_fps_frames_per_second_24_one": {
+    "ru": "FPS — количество кадров за секунду. При 24 FPS минута видео содержит 1440 кадров.",
+    "en": "FPS is frames per second. At 24 FPS, one minute of video contains 1440 frames."
+  },
+  "settings.studio_terms_increasing_width_height_using_neural_network": {
+    "ru": "Увеличение ширины и высоты с помощью нейросети, которая дорисовывает детали. Оно не гарантирует восстановление точных деталей оригинала.",
+    "en": "Increasing width and height using a neural network that adds detail. Accurate recovery of original detail is not guaranteed."
+  },
+  "settings.studio_terms_ways_store_compute_models_reduced_precision": {
+    "ru": "Способы хранения и вычисления модели с уменьшенной точностью, чтобы ей требовалось меньше видеопамяти. Это характеристика модели, а не размер итогового файла.",
+    "en": "Ways to store and compute models at reduced precision to use less VRAM. This describes the model, not the output file size."
+  },
+  "settings.studio_terms_small_add_main_model_changes_capabilities": {
+    "ru": "Небольшое дополнение к основной модели, которое меняет её возможности или стиль. Установленные дополнения подбираются профилем модели.",
+    "en": "A small add-on to the main model that changes capabilities or style. Installed add-ons are selected by the model profile."
+  },
+  "settings.studio_terms_how_strongly_model_follows_text_description": {
+    "ru": "Параметр силы следования текстовому описанию. В этой студии он уже выбран для каждой модели; большее значение не обязательно лучше.",
+    "en": "How strongly the model follows the text description. The studio selects it for each model; a higher value is not necessarily better."
+  },
+  "settings.studio_terms_comfy_ui_engine_backend": {
+    "ru": "ComfyUI, движок / backend",
+    "en": "ComfyUI / engine / backend"
+  },
+  "settings.studio_terms_local_software_performs_generation_manages_automatically": {
+    "ru": "Локальная программа, которая выполняет генерацию. Студия управляет ею автоматически.",
+    "en": "Local software that performs generation. The studio manages it automatically."
+  },
+  "settings.studio_terms_graphics_card_dedicated_memory_models_use": {
+    "ru": "Видеокарта и её собственная память. Модели используют её во время генерации; если памяти не хватает, задача может завершиться ошибкой.",
+    "en": "The graphics card and its dedicated memory. Models use it during generation; insufficient memory can cause the task to fail."
+  },
+  "settings.studio_terms_rgb_rgba_alpha_channel": {
+    "ru": "RGB / RGBA, альфа-канал",
+    "en": "RGB / RGBA, alpha channel"
+  },
+  "settings.studio_terms_rgb_stores_color_rgba_also_transparency": {
+    "ru": "RGB хранит цвет. RGBA дополнительно хранит прозрачность — её называют альфа-каналом. Не каждая модель сохраняет прозрачность исходника.",
+    "en": "RGB stores color. RGBA also stores transparency, called an alpha channel. Not every model preserves source transparency."
+  },
+  "settings.studio_terms_mp4_video_file_h_264_compresses": {
+    "ru": "MP4 — видеофайл; H.264 сжимает изображение, AAC сжимает звук. Эти форматы подходят большинству обычных плееров.",
+    "en": "MP4 is a video file; H.264 compresses the picture and AAC compresses sound. These formats work in most standard players."
+  },
+  "settings.studio_terms_voice_sample_lip_synchronization": {
+    "ru": "Образец голоса и синхронизация губ",
+    "en": "Voice sample and lip synchronization"
+  },
+  "settings.studio_terms_sample_helps_speak_entered_text_similar": {
+    "ru": "Образец помогает озвучить введённый текст похожим тембром. Совпадение движений рта с речью — отдельная функция; сейчас она не реализована.",
+    "en": "A sample helps speak entered text in a similar voice. Matching mouth movement to speech is a separate feature and is not currently implemented."
+  },
+  "settings.studio_terms_logs_eta": {
+    "ru": "Логи / Logs, ETA",
+    "en": "Logs / ETA"
+  },
+  "settings.studio_terms_logs_record_stages_errors_eta_estimated": {
+    "ru": "Логи — журнал этапов и ошибок. ETA — приблизительное оставшееся время, если программа может его оценить.",
+    "en": "Logs record stages and errors. ETA is estimated time remaining, when the software can calculate it."
+  },
+  "settings.footer_local_generation_computer_cloud_ap_not": {
+    "ru": "Локальная генерация на этом компьютере. Во время генерации не используются облачные API; дополнительная AI-upscale модель устанавливается отдельно.",
+    "en": "Local generation on this computer. Cloud APIs are not used during generation; the extra AI upscale model is installed separately."
+  },
+  "settings.folder_picker_choose_autosave": {
+    "ru": "Выбор папки автосохранения",
+    "en": "Choose autosave folder"
+  },
+  "settings.folder_picker_select_drive_create_new_type_path": {
+    "ru": "Выбери диск и папку. Чтобы создать новую, введи путь вручную в поле автосохранения.",
+    "en": "Select a drive and folder. To create a new folder, type its path in the autosave field."
+  },
+  "settings.folder_picker_path_field_label": {
+    "ru": "Путь",
+    "en": "Path"
+  },
+  "settings.folder_picker_go": {
+    "ru": "Перейти",
+    "en": "Go"
+  },
+  "settings.folder_picker_drives": {
+    "ru": "Диски",
+    "en": "Drives"
+  },
+  "settings.folder_picker_up_parent": {
+    "ru": "↑ На уровень выше",
+    "en": "↑ Parent folder"
+  },
+  "settings.folder_picker_items_folders": {
+    "ru": "Папки",
+    "en": "Folders"
+  },
+  "settings.task_cancel_button_label": {
+    "ru": "Отмена",
+    "en": "Cancel"
+  },
+  "settings.folder_picker_select": {
+    "ru": "Выбрать эту папку",
+    "en": "Select this folder"
+  },
+  "settings.logs_visual_forge_ai_studio": {
+    "ru": "Логи · VisualForge AI Studio",
+    "en": "Logs · VisualForge AI Studio"
+  },
+  "settings.logs_close_log_window": {
+    "ru": "Закрыть окно логов",
+    "en": "Close log window"
+  },
+  "settings.logs_panel_local_visual_forge_ai_studio_shown": {
+    "ru": "Здесь отображаются только локальные журналы VisualForge AI Studio. Можно скопировать текст или сохранить TXT для диагностики. Перед отправкой проверь данные на приватность.",
+    "en": "Only local VisualForge AI Studio logs are shown here. Copy the text or save a TXT for diagnostics. Check for private information before sharing."
+  },
+  "settings.logs_scope_show": {
+    "ru": "Показать",
+    "en": "Show"
+  },
+  "settings.logs_scope_errors": {
+    "ru": "Ошибки",
+    "en": "Errors"
+  },
+  "settings.logs_scope_all": {
+    "ru": "Все",
+    "en": "All"
+  },
+  "settings.logs_scope_interface_python": {
+    "ru": "Интерфейс / Python",
+    "en": "Interface / Python"
+  },
+  "settings.logs_scope_startup_shutdown": {
+    "ru": "Запуск / закрытие",
+    "en": "Startup / shutdown"
+  },
+  "settings.clipboard_copy_button_label": {
+    "ru": "Копировать",
+    "en": "Copy"
+  },
+  "settings.logs_save_txt": {
+    "ru": "Сохранить TXT",
+    "en": "Save TXT"
+  },
+  "settings.logs_output_click_refresh_view": {
+    "ru": "Нажми «Обновить» для просмотра журналов.",
+    "en": "Click Refresh to view logs."
+  }
+}

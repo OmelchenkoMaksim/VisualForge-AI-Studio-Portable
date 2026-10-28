@@ -1,0 +1,710 @@
+{
+  "text.api_request_connect_studio_check_application_running_unavailable": {
+    "ru": "Нет связи со студией. Проверьте, запущено ли приложение.",
+    "en": "Cannot connect to the studio. Check that the application is running."
+  },
+  "text.api_request_invalid_text_service_response": {
+    "ru": "Некорректный ответ сервиса Text.",
+    "en": "Invalid Text service response."
+  },
+  "text.api_request_text_unavailable": {
+    "ru": "Text недоступен",
+    "en": "Text unavailable"
+  },
+  "text.message_code_block_language_fallback": {
+    "ru": "код",
+    "en": "code"
+  },
+  "text.clipboard_copy_button_label": {
+    "ru": "Копировать",
+    "en": "Copy"
+  },
+  "text.clipboard_copy_success_feedback": {
+    "ru": "Скопировано",
+    "en": "Copied"
+  },
+  "text.clipboard_copy_failed_feedback": {
+    "ru": "Не удалось",
+    "en": "Failed"
+  },
+  "text.chat_message_user_author_label": {
+    "ru": "Вы",
+    "en": "You"
+  },
+  "text.chat_message_agent_author_label": {
+    "ru": "Агент",
+    "en": "Agent"
+  },
+  "text.chat_message_model_author_label": {
+    "ru": "Модель",
+    "en": "Model"
+  },
+  "text.attachment_image_fallback_label": {
+    "ru": "Изображение",
+    "en": "Image"
+  },
+  "text.picture_attached_image": {
+    "ru": "Прикреплённое изображение",
+    "en": "Attached image"
+  },
+  "text.summary_model_reasoning": {
+    "ru": "Размышления модели",
+    "en": "Model reasoning"
+  },
+  "text.summary_model_reasoning_chars": {
+    "ru": "Размышления модели · {0} симв.",
+    "en": "Model reasoning · {0} chars"
+  },
+  "text.note_tok_s_context": {
+    "ru": "{0} ток/с · {1} ток. · контекст {2} из {3}",
+    "en": "{0} tok/s · {1} tok · context {2} of {3}"
+  },
+  "text.note_model_calls": {
+    "ru": "{0} обращ. к модели",
+    "en": "{0} model calls"
+  },
+  "text.note_response_tokens": {
+    "ru": "{0} ток. ответа",
+    "en": "{0} response tokens"
+  },
+  "text.chat_message_context_usage_template": {
+    "ru": "контекст {0} из {1}",
+    "en": "context {0} of {1}"
+  },
+  "text.note_response_interrupted": {
+    "ru": "Ответ прерван: ",
+    "en": "Response interrupted: "
+  },
+  "text.note_stopped_you": {
+    "ru": "Остановлено вами",
+    "en": "Stopped by you"
+  },
+  "text.chat_new_conversation_default_title": {
+    "ru": "Новый чат",
+    "en": "New chat"
+  },
+  "text.hint_select_project_folder_describe_task_agent": {
+    "ru": "Выберите папку проекта и опишите задачу. Агент читает файлы, предлагает правки и команды; перед каждым действием он спросит разрешения (если права это требуют). Всё работает на вашем компьютере, без интернета.",
+    "en": "Select a project folder and describe the task. The agent reads files and proposes edits and commands; it asks permission before each action when required by the permission level. Everything runs on your computer, offline."
+  },
+  "text.hint_write_first_message_model_runs_computer": {
+    "ru": "Напишите первое сообщение. Модель работает прямо на вашем компьютере, без интернета; история чатов хранится в папке программы.",
+    "en": "Write the first message. The model runs on your computer, offline; chat history is stored in the application folder."
+  },
+  "text.empty_nothing_found": {
+    "ru": "Ничего не найдено",
+    "en": "Nothing found"
+  },
+  "text.empty_no_chats_yet": {
+    "ru": "Чатов пока нет",
+    "en": "No chats yet"
+  },
+  "text.chat_history_message_count_date_template": {
+    "ru": "{0} сообщ. · {1}",
+    "en": "{0} messages · {1}"
+  },
+  "text.send_assign_task": {
+    "ru": "Дать задание",
+    "en": "Assign task"
+  },
+  "text.chat_message_send_button_label": {
+    "ru": "Отправить",
+    "en": "Send"
+  },
+  "text.input_describe_agent_s_task_enter_send": {
+    "ru": "Опишите задачу для агента. Enter — отправить, Shift+Enter — новая строка",
+    "en": "Describe the agent's task. Enter to send, Shift+Enter for a new line"
+  },
+  "text.input_write_message_enter_send_shift_new": {
+    "ru": "Напишите сообщение. Enter — отправить, Shift+Enter — новая строка",
+    "en": "Write a message. Enter to send, Shift+Enter for a new line"
+  },
+  "text.attach_images_not_yet_supported_agent_mode": {
+    "ru": "Агенту изображения пока не передаются",
+    "en": "Images are not yet supported in agent mode"
+  },
+  "text.attach_png_jpeg_paste_image_ctrl_v": {
+    "ru": "PNG или JPEG; картинку можно также вставить из буфера (Ctrl+V) или перетащить в поле ввода",
+    "en": "PNG or JPEG; paste an image (Ctrl+V) or drag it into the input field"
+  },
+  "text.attach_selected_model_does_not_support_images": {
+    "ru": "Выбранная модель не умеет работать с изображениями",
+    "en": "The selected model does not support images"
+  },
+  "text.reader_read_file_failed": {
+    "ru": "Не удалось прочитать файл",
+    "en": "Could not read the file"
+  },
+  "text.prepare_not_image": {
+    "ru": "«{0}» — не изображение",
+    "en": "“{0}” is not an image"
+  },
+  "text.prepare_exceeds_40_mi_b": {
+    "ru": "«{0}» больше 40 МиБ",
+    "en": "“{0}” exceeds 40 MiB"
+  },
+  "text.prepare_open_failed": {
+    "ru": "Не удалось открыть «{0}»",
+    "en": "Could not open “{0}”"
+  },
+  "text.prepare_too_large_even_after_compression": {
+    "ru": "«{0}» слишком тяжёлое даже после сжатия",
+    "en": "“{0}” is too large even after compression"
+  },
+  "text.add_files_selected_model_does_not_support_images": {
+    "ru": "Выбранная модель не умеет работать с изображениями.",
+    "en": "The selected model does not support images."
+  },
+  "text.add_files_you_attach_up_images_per_message": {
+    "ru": "К сообщению можно прикрепить до {0} изображений.",
+    "en": "You can attach up to {0} images per message."
+  },
+  "text.attachment_remove_image_accessibility_prefix": {
+    "ru": "Убрать изображение ",
+    "en": "Remove image "
+  },
+  "text.model_base_release_date_custom_fine_tuning": {
+    "ru": "{0}\nДата выпуска базовой модели; дата пользовательской настройки не установлена.\n{1}",
+    "en": "{0}\nBase model release date; the custom fine-tuning date is unknown.\n{1}"
+  },
+  "text.header_local_agent_project_files_commands_git": {
+    "ru": "Локальный агент: файлы проекта, команды и git",
+    "en": "Local agent: project files, commands and git"
+  },
+  "text.header_local_model_chat_text_images": {
+    "ru": "Локальный диалог с моделью — текст и изображения",
+    "en": "Local model chat — text and images"
+  },
+  "text.header_local_text_model_chat": {
+    "ru": "Локальный диалог с текстовой моделью",
+    "en": "Local text model chat"
+  },
+  "text.header_ollama_runtime_model_files_available_loads": {
+    "ru": "Ollama: программа и файлы модели доступны. Модель загружается при отправке сообщения.",
+    "en": "Ollama: runtime and model files are available. The model loads when a message is sent."
+  },
+  "text.header_chat_s_model_disabled_unavailable_enable": {
+    "ru": "Модель этого чата отключена или недоступна. Включите её в «Компонентах» либо выберите другую модель.",
+    "en": "This chat's model is disabled or unavailable. Enable it in Components or select another model."
+  },
+  "text.field_ollama_default": {
+    "ru": "По умолчанию в Ollama",
+    "en": "Ollama default"
+  },
+  "text.model_selection_name_size_capability_template": {
+    "ru": "{0} · {1} ГБ · {2}",
+    "en": "{0} · {1} GB · {2}"
+  },
+  "text.availability_text_images": {
+    "ru": "текст и изображения",
+    "en": "text and images"
+  },
+  "text.model_capability_text_only_label": {
+    "ru": "только текст",
+    "en": "text only"
+  },
+  "text.availability_part_model_may_run_ram": {
+    "ru": " · часть модели может работать в оперативной памяти",
+    "en": " · part of the model may run in RAM"
+  },
+  "text.open_chat_disabled_unavailable": {
+    "ru": " · отключена или недоступна",
+    "en": " · disabled or unavailable"
+  },
+  "text.model_selection_name_size_template": {
+    "ru": "{0} · {1} ГБ",
+    "en": "{0} · {1} GB"
+  },
+  "text.availability_model_runs_locally_through_ollama_inside": {
+    "ru": "Модель: {0} · работает локально через Ollama, внутри программы",
+    "en": "Model: {0} · runs locally through Ollama inside the application"
+  },
+  "text.poll_model_memory_gb_including_gpu_unloads": {
+    "ru": "Модель в памяти: {0} ГБ, из них на видеокарте {1} ГБ. Выгрузится сама через {2} простоя.",
+    "en": "Model in memory: {0} GB, including {1} GB on the GPU. Unloads after {2} of inactivity."
+  },
+  "text.poll_model_not_loaded_gpu_free": {
+    "ru": "Модель не загружена: видеокарта свободна.",
+    "en": "Model not loaded: GPU is free."
+  },
+  "text.poll_ready_model_load_first_message": {
+    "ru": "Готово. Модель загрузится при первом сообщении.",
+    "en": "Ready. The model will load with the first message."
+  },
+  "text.send_agent_receiving_task": {
+    "ru": "Агент получает задание…",
+    "en": "The agent is receiving the task…"
+  },
+  "text.chat_message_sending_status": {
+    "ru": "Отправка…",
+    "en": "Sending…"
+  },
+  "text.send_connect_studio_unavailable": {
+    "ru": "Нет связи со студией.",
+    "en": "Cannot connect to the studio."
+  },
+  "text.send_message_failed": {
+    "ru": "Не удалось отправить сообщение",
+    "en": "Could not send the message"
+  },
+  "text.read_stream_iteration_finished_handoff_saved_next_starts": {
+    "ru": "Итерация {0} из {1} закончена, итог записан в {2}. Следующая начинается со свежим контекстом…",
+    "en": "Iteration {0} of {1} finished; handoff saved to {2}. The next iteration starts with a fresh context…"
+  },
+  "text.read_stream_agent_working": {
+    "ru": "Агент работает…",
+    "en": "Agent working…"
+  },
+  "text.read_stream_model_responding": {
+    "ru": "Модель отвечает…",
+    "en": "Model responding…"
+  },
+  "text.read_stream_agent": {
+    "ru": "Агент: {0}",
+    "en": "Agent: {0}"
+  },
+  "text.read_stream_agent_waiting_decision_allow_reject_action": {
+    "ru": "Агент ждёт вашего решения: разрешите или отклоните действие.",
+    "en": "The agent is waiting for your decision: allow or reject the action."
+  },
+  "text.read_stream_agent_stopped": {
+    "ru": "Агент остановлен.",
+    "en": "Agent stopped."
+  },
+  "text.read_stream_agent_finished_steps": {
+    "ru": "Агент закончил: шагов — {0}.",
+    "en": "Agent finished: {0} steps."
+  },
+  "text.read_stream_done_tok_s_tokens_model_load": {
+    "ru": "Готово: {0} ток/с, {1} токенов, загрузка модели {2} с.",
+    "en": "Done: {0} tok/s, {1} tokens, model load {2} s."
+  },
+  "text.generation_stopped_status_message": {
+    "ru": "Остановлено.",
+    "en": "Stopped."
+  },
+  "text.stop_stopped_received_text_remains_saved_chat": {
+    "ru": "Остановлено: уже полученный текст сохраняется в чате.",
+    "en": "Stopped: received text remains saved in the chat."
+  },
+  "text.rename_chat_title": {
+    "ru": "Название чата",
+    "en": "Chat title"
+  },
+  "text.delete_chat_history": {
+    "ru": "Удалить чат «{0}» вместе с историей?",
+    "en": "Delete chat “{0}” and its history?"
+  },
+  "text.save_chat_settings_saved": {
+    "ru": "Настройки чата сохранены.",
+    "en": "Chat settings saved."
+  },
+  "text.agent_task_loop_enabled_status_hint": {
+    "ru": "Цикл включён: следующее задание пойдёт итерациями.",
+    "en": "Loop enabled: the next task will run in iterations."
+  },
+  "text.agent_task_loop_disabled_status": {
+    "ru": "Цикл выключен.",
+    "en": "Loop disabled."
+  },
+  "text.agent_task_loop_settings_saved_status": {
+    "ru": "Настройки цикла сохранены.",
+    "en": "Loop settings saved."
+  },
+  "text.agent_selection_next_task_new_chat_hint": {
+    "ru": "Следующее задание начнёт новый чат с выбранным агентом.",
+    "en": "The next task will start a new chat with the selected agent."
+  },
+  "text.agent_project_folder_new_session_hint": {
+    "ru": "Папка проекта изменена: агент начнёт с ней новую сессию.",
+    "en": "Project folder changed: the agent will start a new session there."
+  },
+  "text.agent_chat_permissions_changed_status": {
+    "ru": "Права агента для этого чата изменены.",
+    "en": "Agent permissions for this chat changed."
+  },
+  "text.save_settings_saved_changes_apply_next_response": {
+    "ru": "Параметры сохранены. Изменения применяются со следующего ответа.",
+    "en": "Settings saved. Changes apply to the next response."
+  },
+  "text.unload_model_unloaded_memory_gpu_free": {
+    "ru": "Модель выгружена из памяти: видеокарта свободна.",
+    "en": "Model unloaded from memory: GPU is free."
+  },
+  "text.unload_model_already_unloaded": {
+    "ru": "Модель и так не загружена.",
+    "en": "The model is already unloaded."
+  },
+  "text.chat_sidebar_conversations_title": {
+    "ru": "Чаты",
+    "en": "Chats"
+  },
+  "text.chat_sidebar_title_search_placeholder": {
+    "ru": "Поиск по названиям",
+    "en": "Search titles"
+  },
+  "text.chat_sidebar_search_accessibility_label": {
+    "ru": "Поиск по чатам",
+    "en": "Search chats"
+  },
+  "text.workspace_local_text_assistant": {
+    "ru": "Локальный текстовый ассистент",
+    "en": "Local text assistant"
+  },
+  "text.chat_sidebar_rename_button_label": {
+    "ru": "Переименовать",
+    "en": "Rename"
+  },
+  "text.chat_sidebar_delete_button_label": {
+    "ru": "Удалить чат",
+    "en": "Delete chat"
+  },
+  "text.workspace_operating_mode": {
+    "ru": "Режим работы",
+    "en": "Operating mode"
+  },
+  "text.workspace_regular_model_conversation": {
+    "ru": "Обычный разговор с моделью",
+    "en": "Regular model conversation"
+  },
+  "text.conversation_mode_chat_button_label": {
+    "ru": "Чат",
+    "en": "Chat"
+  },
+  "text.workspace_model_works_project_files_commands_git": {
+    "ru": "Модель работает с файлами проекта, командами и git — с вашего разрешения",
+    "en": "The model works with project files, commands and git with your permission"
+  },
+  "text.model_hover_see_full_name": {
+    "ru": "Полное имя модели показывается при наведении",
+    "en": "Hover to see the full model name"
+  },
+  "text.availability_checking_text_when_section_opens": {
+    "ru": "Проверка Text при открытии раздела…",
+    "en": "Checking Text when the section opens…"
+  },
+  "text.chat_conversation_region_label": {
+    "ru": "Переписка",
+    "en": "Conversation"
+  },
+  "text.chat_input_message_accessibility_label": {
+    "ru": "Сообщение",
+    "en": "Message"
+  },
+  "text.chat_attach_image_button_label": {
+    "ru": "Прикрепить изображение",
+    "en": "Attach image"
+  },
+  "text.generation_stop_button_label": {
+    "ru": "Остановить",
+    "en": "Stop"
+  },
+  "text.chat_regenerate_response_button_label": {
+    "ru": "Ответить заново",
+    "en": "Regenerate response"
+  },
+  "text.workspace_chat_model_settings": {
+    "ru": "Настройки чата и модели",
+    "en": "Chat and model settings"
+  },
+  "text.think_model_reasons_before_answering_responses_may": {
+    "ru": "Модель сначала рассуждает, потом отвечает: ответы точнее, но дольше. Рассуждения показываются в свёрнутом блоке над ответом.",
+    "en": "The model reasons before answering: responses may be more accurate but slower. Reasoning is shown in a collapsed block above the answer."
+  },
+  "text.think_before_answering_chat": {
+    "ru": "Размышлять перед ответом (для этого чата)",
+    "en": "Think before answering (this chat)"
+  },
+  "text.system_leave_empty_use_model_s_built": {
+    "ru": "Если оставить пустым, действует инструкция, встроенная в саму модель",
+    "en": "Leave empty to use the model's built-in instruction"
+  },
+  "text.system_instruction_chat_empty_uses_model_default": {
+    "ru": "Системная инструкция этого чата — пусто: инструкция модели по умолчанию",
+    "en": "System instruction for this chat — empty uses the model default"
+  },
+  "text.native_use_ollama_settings": {
+    "ru": "Настройки из Ollama",
+    "en": "Use Ollama settings"
+  },
+  "text.workspace_preserves_selected_model_s_parameters_template": {
+    "ru": "Сохраняет параметры, шаблон и встроенную инструкцию выбранной модели. Отключите для ручной настройки параметров ниже.",
+    "en": "Preserves the selected model's parameters, template and built-in instruction. Disable to configure the parameters below manually."
+  },
+  "text.p_num_ctx_how_many_tokens_model_remembers_conversation": {
+    "ru": "Сколько слов-токенов модель помнит в разговоре. Больше — длиннее память, но больше видеопамяти и медленнее",
+    "en": "How many tokens the model remembers in the conversation. More means longer memory but more VRAM and slower responses"
+  },
+  "text.p_num_ctx_conversation_memory_context_tokens": {
+    "ru": "Память разговора (контекст), токенов",
+    "en": "Conversation memory (context), tokens"
+  },
+  "text.p_num_predict_maximum_length_one_response": {
+    "ru": "Предел длины одного ответа",
+    "en": "Maximum length of one response"
+  },
+  "text.p_num_predict_maximum_response_length_tokens": {
+    "ru": "Макс. длина ответа, токенов",
+    "en": "Maximum response length, tokens"
+  },
+  "text.p_temperature_higher_more_varied_adventurous_lower_stricter": {
+    "ru": "Выше — разнообразнее и смелее, ниже — строже и предсказуемее",
+    "en": "Higher is more varied and adventurous; lower is stricter and more predictable"
+  },
+  "text.chat_model_temperature_parameter_label": {
+    "ru": "Температура",
+    "en": "Temperature"
+  },
+  "text.p_top_filters_unlikely_words_closer_1_means": {
+    "ru": "Отсекает маловероятные слова: ближе к 1 — шире выбор",
+    "en": "Filters unlikely words: closer to 1 means a wider choice"
+  },
+  "text.p_top_k_how_many_most_likely_words_consider": {
+    "ru": "Сколько самых вероятных слов рассматривать на каждом шаге",
+    "en": "How many of the most likely words to consider at each step"
+  },
+  "text.p_keep_alive_minutes_inactivity_before_model_unloads_frees": {
+    "ru": "Через сколько минут простоя модель сама выгрузится и освободит видеокарту",
+    "en": "Minutes of inactivity before the model unloads and frees the GPU"
+  },
+  "text.p_keep_alive_unload_memory_after": {
+    "ru": "Выгружать из памяти через",
+    "en": "Unload from memory after"
+  },
+  "text.p_keep_alive_2_minutes": {
+    "ru": "2 минуты",
+    "en": "2 minutes"
+  },
+  "text.p_keep_alive_10_minutes": {
+    "ru": "10 минут",
+    "en": "10 minutes"
+  },
+  "text.p_keep_alive_30_minutes": {
+    "ru": "30 минут",
+    "en": "30 minutes"
+  },
+  "text.p_keep_alive_60_minutes": {
+    "ru": "60 минут",
+    "en": "60 minutes"
+  },
+  "text.save_settings_parameters": {
+    "ru": "Сохранить параметры",
+    "en": "Save parameters"
+  },
+  "text.unload_model_memory": {
+    "ru": "Выгрузить модель из памяти",
+    "en": "Unload model from memory"
+  },
+  "text.workspace_text_image_video_music_share_gpu": {
+    "ru": "Text, Image, Video и Music используют видеокарту по очереди. Пока модель отвечает, запуск других задач откладывается; перед их запуском модель выгружается автоматически.",
+    "en": "Text, Image, Video and Music share the GPU sequentially. Other tasks wait while the model responds; the model unloads automatically before those tasks start."
+  },
+  "text.send_text_module_unavailable": {
+    "ru": "Модуль Text недоступен",
+    "en": "Text module unavailable"
+  },
+  "text.routes_request_contains_unsupported_parameters": {
+    "ru": "Запрос содержит неподдерживаемые параметры",
+    "en": "Request contains unsupported parameters"
+  },
+  "text.send_agent_chat_tasks_mode": {
+    "ru": "Это чат агента: задания ему отправляются в режиме «Агент»",
+    "en": "This is an agent chat: send tasks in Agent mode"
+  },
+  "text.send_regeneration_does_not_accept_new_text": {
+    "ru": "Перегенерация не принимает новый текст или изображения",
+    "en": "Regeneration does not accept new text or images"
+  },
+  "text.routes_error_text_module_unavailable_check_startup_log": {
+    "ru": "Модуль Text недоступен. Проверьте журнал запуска.",
+    "en": "Text module unavailable. Check the startup log."
+  },
+  "text.send_up_images_attached_message": {
+    "ru": "К сообщению можно прикрепить до %d изображений",
+    "en": "Up to %d images can be attached to a message"
+  },
+  "text.send_message_up_characters_least_one_image": {
+    "ru": "Сообщение: текст до %d символов или хотя бы одно изображение",
+    "en": "Message: up to %d characters or at least one image"
+  },
+  "text.send_selected_model_not_installed": {
+    "ru": "Выбранная модель не установлена",
+    "en": "Selected model is not installed"
+  },
+  "text.send_get_model_response_failed": {
+    "ru": "Не удалось получить ответ от модели",
+    "en": "Could not get a model response"
+  },
+  "text.send_preparing_response": {
+    "ru": "Подготовка ответа…",
+    "en": "Preparing response…"
+  },
+  "text.send_starting_ollama": {
+    "ru": "Запуск Ollama…",
+    "en": "Starting Ollama…"
+  },
+  "text.send_loading_model_into_memory_first_load": {
+    "ru": "Загрузка модели в память: первая загрузка с диска может занять несколько минут…",
+    "en": "Loading model into memory: the first load from disk may take a few minutes…"
+  },
+  "text.send_response_stopped_before_first_words": {
+    "ru": "Ответ остановлен до первых слов",
+    "en": "Response stopped before the first words"
+  },
+  "text.send_model_returned_empty_response": {
+    "ru": "Модель вернула пустой ответ",
+    "en": "The model returned an empty response"
+  },
+  "text.routes_chat_responding_stop_response_first": {
+    "ru": "Чат сейчас отвечает: сначала остановите ответ",
+    "en": "This chat is responding: stop the response first"
+  },
+  "text.decode_image_must_png_jpeg": {
+    "ru": "Изображение должно быть PNG или JPEG",
+    "en": "Image must be PNG or JPEG"
+  },
+  "text.image_path_not_found": {
+    "ru": "Изображение не найдено",
+    "en": "Image not found"
+  },
+  "text.image_info_png_jpeg_images_supported": {
+    "ru": "Поддерживаются изображения PNG и JPEG",
+    "en": "PNG and JPEG images are supported"
+  },
+  "text.image_info_dimensions_1_pixels_per_side": {
+    "ru": "Размер изображения: от 1 до %d пикселей по стороне",
+    "en": "Image dimensions: 1 to %d pixels per side"
+  },
+  "text.decode_image_damaged": {
+    "ru": "Повреждённое изображение",
+    "en": "Damaged image"
+  },
+  "text.decode_image_up_mi_b_after_compression": {
+    "ru": "Изображение: до %d МиБ после сжатия",
+    "en": "Image: up to %d MiB after compression"
+  },
+  "text.path_invalid_chat_number": {
+    "ru": "Некорректный номер чата",
+    "en": "Invalid chat number"
+  },
+  "text.store_chat_file_too_large": {
+    "ru": "Файл чата слишком большой",
+    "en": "Chat file too large"
+  },
+  "text.store_chat_file_corrupted": {
+    "ru": "Файл чата повреждён",
+    "en": "Chat file corrupted"
+  },
+  "text.rename_enter_chat_title": {
+    "ru": "Введите название чата",
+    "en": "Enter a chat title"
+  },
+  "text.image_path_invalid_number": {
+    "ru": "Некорректный номер изображения",
+    "en": "Invalid image number"
+  },
+  "text.save_history_reached_limit_start_new_chat": {
+    "ru": "История достигла лимита. Начните новый чат. Полный результат сохранён: ",
+    "en": "History reached its limit. Start a new chat. Full result saved: "
+  },
+  "text.create_too_many_chats_delete_unused": {
+    "ru": "Слишком много чатов: удалите ненужные",
+    "en": "Too many chats: delete unused chats"
+  },
+  "text.set_agent_regular_chat_not": {
+    "ru": "Это обычный чат, а не чат агента",
+    "en": "This is a regular chat, not an agent chat"
+  },
+  "text.system_instruction_up_characters": {
+    "ru": "Системная инструкция: текст до %d символов",
+    "en": "System instruction: up to %d characters"
+  },
+  "text.update_agent_working_chat_stop_task_first": {
+    "ru": "Агент работает в этом чате: сначала остановите задачу",
+    "en": "The agent is working in this chat: stop the task first"
+  },
+  "text.get_chat_not_found": {
+    "ru": "Чат не найден",
+    "en": "Chat not found"
+  },
+  "text.add_user_too_many_messages_chat_start_new": {
+    "ru": "В чате слишком много сообщений: начните новый чат",
+    "en": "Too many messages in this chat: start a new chat"
+  },
+  "text.prepare_regenerate_chat_has_no_question_answer": {
+    "ru": "В чате нет вопроса, на который можно ответить",
+    "en": "The chat has no question to answer"
+  },
+  "text.update_reasoning_yes_no": {
+    "ru": "Размышление: да или нет",
+    "en": "Reasoning: yes or no"
+  },
+  "text.add_user_too_many_images_chat_maximum_start": {
+    "ru": "В чате уже много изображений (не больше %d): начните новый чат",
+    "en": "Too many images in the chat (maximum %d): start a new chat"
+  },
+  "text.model_parameter_validation_number_bounds_template": {
+    "ru": "%s: %s от %g до %g",
+    "en": "%s: %s from %g to %g"
+  },
+  "text.availability_runtime_text_ollama_exe_not_found": {
+    "ru": "Не найден Runtime/Text/ollama/ollama.exe",
+    "en": "Runtime/Text/ollama/ollama.exe not found"
+  },
+  "text.availability_no_text_model_installed_models_ollama": {
+    "ru": "Нет установленной текстовой модели в Models/Text/ollama. Скачайте её во вкладке «Компоненты».",
+    "en": "No text model installed in Models/Text/ollama. Download it in Components."
+  },
+  "text.settings_text_contain_unsupported_parameters": {
+    "ru": "Настройки Text содержат неподдерживаемые параметры",
+    "en": "Text settings contain unsupported parameters"
+  },
+  "text.start_ollama_text_did_not_respond_during": {
+    "ru": "Ollama (Text) не ответил при запуске",
+    "en": "Ollama (Text) did not respond during startup"
+  },
+  "text.ollama_request_backend_error_code_template": {
+    "ru": "Ошибка Ollama (%s)",
+    "en": "Ollama error (%s)"
+  },
+  "text.begin_text_already_responding_wait_completion_stop": {
+    "ru": "Text уже отвечает. Дождитесь окончания ответа или остановите его.",
+    "en": "Text is already responding. Wait for completion or stop it."
+  },
+  "text.release_gpu_busy_text_model_responding_wait_completion": {
+    "ru": "GPU занят Text: идёт ответ модели. Дождитесь окончания или остановите ответ.",
+    "en": "GPU is busy with Text: the model is responding. Wait for completion or stop the response."
+  },
+  "text.model_parameter_validation_integer_type_label": {
+    "ru": "целое число",
+    "en": "integer"
+  },
+  "text.model_parameter_validation_decimal_type_label": {
+    "ru": "число",
+    "en": "number"
+  },
+  "text.settings_model_not_installed": {
+    "ru": "Эта модель не установлена",
+    "en": "This model is not installed"
+  },
+  "text.start_ollama_text_did_not_check_backend": {
+    "ru": "Ollama (Text) не запустился. Проверьте журнал text-backend.log.",
+    "en": "Ollama (Text) did not start. Check text-backend.log."
+  },
+  "text.ollama_request_backend_error_fallback": {
+    "ru": "Ошибка Ollama",
+    "en": "Ollama error"
+  },
+  "text.settings_ollama_enabled_disabled": {
+    "ru": "Настройки из Ollama: включено или выключено",
+    "en": "Ollama settings: enabled or disabled"
+  },
+  "text.start_text_port_occupied_another_application_change": {
+    "ru": "Порт Text занят другой программой. Измените TextPort в настройке запуска.",
+    "en": "Text port is occupied by another application. Change TextPort in launch settings."
+  },
+  "text.settings_unload_model_after_2_10_30": {
+    "ru": "Выгружать модель из памяти через: 2, 10, 30 или 60 минут",
+    "en": "Unload model after: 2, 10, 30 or 60 minutes"
+  }
+}

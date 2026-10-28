@@ -119,24 +119,24 @@
   const seq = (instrument, notes, step, len, v = 1, offset = 0) => notes.map((n, i) => [instrument, n, offset + i * step, len, v]);
   const PRESETS = {
     success: [
-      {id: 'classic', name: 'Классика — три ноты', score: seq('chime', ['C5', 'E5', 'G5'], .15, .32)},
-      {id: 'bell', name: 'Колокольчик', score: [...seq('bell', ['C6', 'E6', 'G6'], .16, 1.4), ['bell', 'C7', .52, 2.2, .8]]},
-      {id: 'marimba', name: 'Маримба', score: [...seq('mallet', ['G5', 'C6', 'E6', 'D6', 'G6'], .13, .7), ['mallet', 'C7', .7, .9, .9]]},
-      {id: 'harp', name: 'Арфа', score: [...seq('pluck', ['C4', 'E4', 'G4', 'C5', 'E5', 'G5', 'C6', 'E6'], .07, 1.6, .9), ['pluck', 'G6', .6, 2, .7]]},
-      {id: 'fanfare', name: 'Фанфары', score: [
+      {id: 'classic', name: StudioI18n.t("settings.sounds_presets_name_classic_three_notes"), score: seq('chime', ['C5', 'E5', 'G5'], .15, .32)},
+      {id: 'bell', name: StudioI18n.t("settings.sounds_presets_name_bell"), score: [...seq('bell', ['C6', 'E6', 'G6'], .16, 1.4), ['bell', 'C7', .52, 2.2, .8]]},
+      {id: 'marimba', name: StudioI18n.t("settings.sounds_presets_name_marimba"), score: [...seq('mallet', ['G5', 'C6', 'E6', 'D6', 'G6'], .13, .7), ['mallet', 'C7', .7, .9, .9]]},
+      {id: 'harp', name: StudioI18n.t("settings.sounds_presets_name_harp"), score: [...seq('pluck', ['C4', 'E4', 'G4', 'C5', 'E5', 'G5', 'C6', 'E6'], .07, 1.6, .9), ['pluck', 'G6', .6, 2, .7]]},
+      {id: 'fanfare', name: StudioI18n.t("settings.sounds_presets_name_fanfare"), score: [
         ['brass', 'G4', 0, .14], ['brass', 'G4', .18, .14], ['brass', 'G4', .36, .14], ['brass', 'C5', .54, .9],
         ['brass', 'E4', .54, .9, .6], ['brass', 'G5', 1.5, 1.2], ['brass', 'C5', 1.5, 1.2, .6], ['brass', 'E5', 1.5, 1.2, .6]]},
-      {id: 'chord', name: 'Мягкий аккорд', score: [...['C3', 'G3', 'E4', 'B4', 'D5'].map(n => ['pad', n, 0, 4.2]), ...seq('bell', ['E6', 'G6', 'D7'], .5, 1.8, .45, .3)]},
-      {id: 'tune', name: 'Мелодия победы', score: [
+      {id: 'chord', name: StudioI18n.t("settings.sounds_presets_name_soft_chord"), score: [...['C3', 'G3', 'E4', 'B4', 'D5'].map(n => ['pad', n, 0, 4.2]), ...seq('bell', ['E6', 'G6', 'D7'], .5, 1.8, .45, .3)]},
+      {id: 'tune', name: StudioI18n.t("settings.sounds_presets_name_victory_melody"), score: [
         ...seq('mallet', ['E5', 'G5', 'C6', 'B5', 'G5', 'A5'], .22, .6), ['mallet', 'F5', 1.32, .6], ['mallet', 'G5', 1.54, .6],
         ['mallet', 'C6', 1.76, .9], ['mallet', 'E6', 2.2, .9], ['bell', 'C7', 2.64, 2.4, .7],
         ...['C3', 'G3', 'E4'].map(n => ['pad', n, 0, 2.4, .8]), ...['F3', 'C4', 'A4'].map(n => ['pad', n, 1.3, 1.6, .6]), ...['C3', 'G3', 'E4', 'C5'].map(n => ['pad', n, 2.2, 3.2, .9])]}
     ],
     error: [
-      {id: 'classic', name: 'Классика — три ноты вниз', score: seq('chime', ['G4', 'D4', 'G3'], .15, .32)},
-      {id: 'twotone', name: 'Два тона', score: [['mallet', 'A4', 0, .7], ['mallet', 'E4', .32, .9]]},
-      {id: 'gong', name: 'Низкий гонг', score: [['bell', 'C3', 0, 3.5, 1.2], ['bell', 'G3', .02, 2.6, .5]]},
-      {id: 'minor', name: 'Мягкое предупреждение', score: [...['A2', 'E3', 'C4'].map(n => ['pad', n, 0, 2.6]), ...seq('pluck', ['E5', 'C5', 'A4'], .2, 1.2, 1.7, .1)]}
+      {id: 'classic', name: StudioI18n.t("settings.sounds_presets_name_classic_three_descending_notes"), score: seq('chime', ['G4', 'D4', 'G3'], .15, .32)},
+      {id: 'twotone', name: StudioI18n.t("settings.sounds_presets_name_two_tones"), score: [['mallet', 'A4', 0, .7], ['mallet', 'E4', .32, .9]]},
+      {id: 'gong', name: StudioI18n.t("settings.sounds_presets_name_low_gong"), score: [['bell', 'C3', 0, 3.5, 1.2], ['bell', 'G3', .02, 2.6, .5]]},
+      {id: 'minor', name: StudioI18n.t("settings.sounds_presets_name_gentle_warning"), score: [...['A2', 'E3', 'C4'].map(n => ['pad', n, 0, 2.6]), ...seq('pluck', ['E5', 'C5', 'A4'], .2, 1.2, 1.7, .1)]}
     ]
   };
 

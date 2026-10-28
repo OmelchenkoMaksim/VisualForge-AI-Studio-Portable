@@ -5,6 +5,7 @@ measures the context of every model request, and at the chat's threshold the man
 handoff note as a plain answer (no tools). The studio writes that note to `<project>/.visualforge/loop/<run>/NN-handoff.md`
 together with facts it records itself (changed files from git, the result of the user's check command) — a model saying "tests
 pass" is not evidence. The next iteration is a new agent session that gets the task, the note and its path."""
+from ui_strings import source as ui_text
 import hashlib
 import os
 from pathlib import Path
@@ -40,7 +41,7 @@ CONTINUE, DONE (the whole task is finished and verified) or BLOCKED"""
 def options(data):
     """Validated loop settings from the page: threshold (% of the context), iterations, optional check command."""
     if not isinstance(data, dict) or set(data) - set(DEFAULTS):
-        raise ValueError('Настройки цикла содержат неподдерживаемые параметры')
+        raise ValueError(ui_text('agent.options_loop_settings_contain_unsupported_parameters'))
     result = dict(DEFAULTS)
     for key, (low, high) in LIMITS.items():
         if key in data:
@@ -49,13 +50,13 @@ def options(data):
                     raise ValueError
                 value = int(data[key])
             except (TypeError, ValueError):
-                raise ValueError('Настройки цикла: %s — целое число' % key) from None
+                raise ValueError(ui_text('agent.options_loop_settings_must_integer') % key) from None
             if not low <= value <= high:
-                raise ValueError('Порог контекста: от 30 до 95%' if key == 'threshold' else 'Число итераций: от 1 до 100')
+                raise ValueError(ui_text('agent.options_context_threshold_30_95') if key == 'threshold' else ui_text('agent.options_iteration_count_1_100'))
             result[key] = value
     check = data.get('check', '')
     if not isinstance(check, str) or len(check) > 500 or '\n' in check or '\r' in check:
-        raise ValueError('Команда проверки: одна строка до 500 символов')
+        raise ValueError(ui_text('agent.options_check_command_one_line_up_500'))
     result['check'] = check.strip()
     return result
 
@@ -89,7 +90,7 @@ def contained(workspace, path):
     try:
         Path(path).resolve().relative_to(Path(workspace).resolve())
     except (ValueError, OSError, RuntimeError):
-        raise ValueError('Папка итогов цикла выходит за пределы проекта') from None
+        raise ValueError(ui_text('agent.contained_loop_handoff_folder_outside_project')) from None
     return Path(path)
 
 

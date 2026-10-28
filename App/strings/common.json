@@ -1,0 +1,402 @@
+{
+  "common.gpu_wait_completion_cancel_task": {
+    "ru": "Дождитесь завершения или отмените задачу.",
+    "en": "Wait for completion or cancel the task."
+  },
+  "common.gpu_wait_completion_cancel_video_task": {
+    "ru": "Дождитесь завершения или отмените задачу Video.",
+    "en": "Wait for completion or cancel the Video task."
+  },
+  "common.gpu_wait_completion_cancel_music_task": {
+    "ru": "Дождитесь завершения или отмените задачу Music.",
+    "en": "Wait for completion or cancel the Music task."
+  },
+  "common.gpu_wait_response_finish_stop": {
+    "ru": "Дождитесь окончания ответа или остановите его.",
+    "en": "Wait for the response to finish or stop it."
+  },
+  "common.gpu_admission_unknown_module": {
+    "ru": "Неизвестный модуль GPU",
+    "en": "Unknown GPU module"
+  },
+  "common.gpu_admission_busy": {
+    "ru": "GPU занят %s. %s",
+    "en": "GPU is busy with %s. %s"
+  },
+  "common.gpu_wait_for_check_free_video_memory_see_startup_failed": {
+    "ru": "Не удалось проверить свободную видеопамять. Подробности — в журнале запуска.",
+    "en": "Could not check free video memory. See the startup log for details."
+  },
+  "common.gpu_wait_for_insufficient_free_video_memory_least_gb": {
+    "ru": "Недостаточно свободной видеопамяти: нужно не менее %.1f ГБ, свободно %.1f ГБ. Закройте другие GPU-приложения; чужие процессы студия не завершает.",
+    "en": "Insufficient free video memory: at least %.1f GB required, %.1f GB available. Close other GPU applications; the studio does not terminate unrelated processes."
+  },
+  "common.gpu_busy_modules_conjunction": {
+    "ru": " и ",
+    "en": " and "
+  },
+  "common.job_delete_confined_file_invalid_task_path": {
+    "ru": "Некорректный путь файла задачи",
+    "en": "Invalid task file path"
+  },
+  "common.job_delete_confined_file_task_outside_folder": {
+    "ru": "Файл задачи выходит за пределы своей папки",
+    "en": "Task file is outside its folder"
+  },
+  "common.job_delete_plain_path_deletion_through_symbolic_link_junction_prohibited": {
+    "ru": "Удаление через символическую ссылку или junction запрещено: ",
+    "en": "Deletion through a symbolic link or junction is prohibited: "
+  },
+  "common.job_delete_file_folder_found_instead_task": {
+    "ru": "Вместо файла задачи найдена папка: ",
+    "en": "A folder was found instead of a task file: "
+  },
+  "common.job_delete_tree_file_found_instead_task_folder": {
+    "ru": "Вместо папки задачи найден файл: ",
+    "en": "A file was found instead of a task folder: "
+  },
+  "common.job_delete_sidecar_metadata_file_too_large": {
+    "ru": "Файл метаданных слишком большой: ",
+    "en": "Metadata file is too large: "
+  },
+  "common.job_delete_sidecar_verify_metadata_ownership_failed": {
+    "ru": "Не удалось проверить принадлежность метаданных: ",
+    "en": "Could not verify metadata ownership: "
+  },
+  "common.job_history_init_read_original_file_unchanged_generation_remains_failed": {
+    "ru": "Историю не удалось прочитать. Исходный файл сохранён без изменений; генерация доступна.",
+    "en": "Could not read history. The original file is unchanged; generation remains available."
+  },
+  "common.job_history_record_available_session_but_not_saved_disk": {
+    "ru": "История доступна в текущем запуске, но не записана на диск. Проверьте доступ к папке UserData.",
+    "en": "History is available for this session but was not saved to disk. Check UserData folder permissions."
+  },
+  "common.job_history_remove_not_writable_nothing_deleted": {
+    "ru": "История недоступна для записи. Удаление не выполнено.",
+    "en": "History is not writable. Nothing was deleted."
+  },
+  "common.model_policy_apply_profiles_disabled_enable_settings_components": {
+    "ru": "Модель отключена. Включите её в «Настройки → Компоненты».",
+    "en": "Model disabled. Enable it in Settings → Components."
+  },
+  "common.model_policy_disabled_read_switches_original_file_preserved_failed": {
+    "ru": "Не удалось прочитать переключатели моделей. Исходный файл сохранён.",
+    "en": "Could not read model switches. The original file is preserved."
+  },
+  "common.studio_bridge_choose_save_dir_select_qwen_output_autosave_folder": {
+    "ru": "Выберите папку автосохранения результатов Qwen",
+    "en": "Select Qwen output autosave folder"
+  },
+  "common.studio_bridge_settings_save_folder_unavailable_select_another_internal": {
+    "ru": "Папка сохранения недоступна. Выберите другую папку или внутреннюю Results.",
+    "en": "Save folder unavailable. Select another folder or internal Results."
+  },
+  "common.studio_bridge_video_unavailable": {
+    "ru": "Video недоступен: ",
+    "en": "Video unavailable: "
+  },
+  "common.studio_bridge_resolve_mix_tracks_add_music": {
+    "ru": "Добавьте дорожки музыки",
+    "en": "Add music tracks"
+  },
+  "common.studio_bridge_resolve_mix_tracks_music_module_unavailable_no_use": {
+    "ru": "Модуль Music недоступен: дорожки взять негде",
+    "en": "Music module unavailable: no tracks to use"
+  },
+  "common.studio_bridge_prompt_base_image_invalid_canvas_format": {
+    "ru": "Неверный формат холста",
+    "en": "Invalid canvas format"
+  },
+  "common.studio_bridge_normalize_save_dir_specify_output_autosave_folder": {
+    "ru": "Укажи папку для автосохранения результата",
+    "en": "Specify an output autosave folder"
+  },
+  "common.studio_bridge_choose_save_dir_native_folder_selection_supported_windows": {
+    "ru": "Нативный выбор папки поддерживается только на Windows",
+    "en": "Native folder selection is only supported on Windows"
+  },
+  "common.studio_bridge_choose_agent_workspace_folder_picker_already_open_find_taskbar": {
+    "ru": "Окно выбора папки уже открыто: найдите его на панели задач.",
+    "en": "The folder picker is already open: find it on the taskbar."
+  },
+  "common.studio_bridge_open_existing_directory_specify_folder": {
+    "ru": "Укажите папку",
+    "en": "Specify a folder"
+  },
+  "common.studio_bridge_open_existing_directory_folder_unavailable_check_drive_connection_path": {
+    "ru": "Папка недоступна. Проверьте подключение диска и путь.",
+    "en": "Folder unavailable. Check the drive connection and path."
+  },
+  "common.studio_bridge_open_existing_directory_opening_folders_supported_windows": {
+    "ru": "Открытие папки поддерживается только на Windows",
+    "en": "Opening folders is only supported on Windows"
+  },
+  "common.studio_bridge_check_image_missing_invalid_format": {
+    "ru": "Изображение отсутствует или имеет неверный формат",
+    "en": "Image missing or invalid format"
+  },
+  "common.studio_bridge_check_image_file_too_large_maximum_100_mi": {
+    "ru": "Файл слишком большой (максимум 100 МиБ)",
+    "en": "File is too large (maximum 100 MiB)"
+  },
+  "common.studio_bridge_check_image_file_empty_exceeds_100_mi_b": {
+    "ru": "Файл пустой или больше 100 МиБ",
+    "en": "File is empty or exceeds 100 MiB"
+  },
+  "common.studio_bridge_upload_image_comfy_ui_did_not_return_uploaded": {
+    "ru": "ComfyUI не вернул имя загруженного файла",
+    "en": "ComfyUI did not return an uploaded filename"
+  },
+  "common.studio_bridge_read_prompt_archive_too_large_safely": {
+    "ru": "Архив промптов слишком большой для безопасного чтения",
+    "en": "Prompt archive is too large to read safely"
+  },
+  "common.studio_bridge_read_prompt_archive_invalid_format": {
+    "ru": "Некорректный формат архива промптов",
+    "en": "Invalid prompt archive format"
+  },
+  "common.studio_bridge_read_prompt_archive_contains_more_than_200_entries": {
+    "ru": "В архиве больше 200 записей",
+    "en": "Archive contains more than 200 entries"
+  },
+  "common.studio_bridge_modify_prompt_archive_unknown_operation": {
+    "ru": "Неизвестная операция с архивом промптов",
+    "en": "Unknown prompt archive operation"
+  },
+  "common.studio_bridge_diagnostic_logs_no_obvious_errors_found_recent_excerpts": {
+    "ru": "В последних фрагментах доступных журналов явных ошибок не найдено.",
+    "en": "No obvious errors found in recent excerpts of available logs."
+  },
+  "common.studio_bridge_diagnostic_logs_recent_log_excerpts_shown_click_refresh": {
+    "ru": "\n\n[Показаны только последние фрагменты журналов. Нажми «Обновить» для актуальных данных.]",
+    "en": "\n\n[Only recent log excerpts are shown. Click Refresh for current data.]"
+  },
+  "common.studio_bridge_music_unavailable": {
+    "ru": "Music недоступен: ",
+    "en": "Music unavailable: "
+  },
+  "common.studio_bridge_voice_input_unavailable": {
+    "ru": "Voice input недоступен: ",
+    "en": "Voice input unavailable: "
+  },
+  "common.studio_bridge_text_unavailable": {
+    "ru": "Text недоступен: ",
+    "en": "Text unavailable: "
+  },
+  "common.studio_bridge_release_managed_models_finish_voice_input_first": {
+    "ru": "Сначала завершите голосовой ввод.",
+    "en": "Finish voice input first."
+  },
+  "common.studio_bridge_components_unavailable": {
+    "ru": "Components недоступен: ",
+    "en": "Components unavailable: "
+  },
+  "common.studio_bridge_resolve_mix_tracks_select_finished_music_result_each_track": {
+    "ru": "Выберите готовый результат Music для каждой дорожки",
+    "en": "Select a finished Music result for each track"
+  },
+  "common.studio_bridge_settings_read_select_save_folder_explicitly_failed": {
+    "ru": "Не удалось прочитать настройки. Выберите папку сохранения явно.",
+    "en": "Could not read settings. Select a save folder explicitly."
+  },
+  "common.studio_bridge_settings_internal_save_folder_unavailable": {
+    "ru": "Внутренняя папка сохранения недоступна.",
+    "en": "Internal save folder unavailable."
+  },
+  "common.studio_bridge_choose_save_dir_open_folder_picker_failed": {
+    "ru": "Не удалось открыть диалог выбора папки",
+    "en": "Could not open the folder picker"
+  },
+  "common.studio_bridge_choose_agent_workspace_select_project_folder": {
+    "ru": "Выберите папку проекта, в которой будет работать агент",
+    "en": "Select the project folder for the agent"
+  },
+  "common.studio_bridge_check_image_invalid_data": {
+    "ru": "Некорректные данные изображения",
+    "en": "Invalid image data"
+  },
+  "common.studio_bridge_read_prompt_archive_invalid_entry": {
+    "ru": "Некорректная запись в архиве промптов",
+    "en": "Invalid prompt archive entry"
+  },
+  "common.studio_bridge_save_outputs_locked_task_deleted_unavailable_saving": {
+    "ru": "Задача удалена или недоступна для сохранения",
+    "en": "Task deleted or unavailable for saving"
+  },
+  "common.studio_bridge_list_save_dirs_path_too_long": {
+    "ru": "Слишком длинный путь",
+    "en": "Path is too long"
+  },
+  "common.studio_bridge_list_save_dirs_path_must_absolute": {
+    "ru": "Путь должен быть абсолютным",
+    "en": "Path must be absolute"
+  },
+  "common.studio_bridge_diagnostic_logs_unknown_log_category": {
+    "ru": "Неизвестная категория логов",
+    "en": "Unknown log category"
+  },
+  "common.studio_bridge_diagnostic_logs_startup": {
+    "ru": "Запуск",
+    "en": "Startup"
+  },
+  "common.studio_bridge_microphone_event_invalid": {
+    "ru": "Некорректное событие микрофона",
+    "en": "Invalid microphone event"
+  },
+  "common.studio_bridge_delete_image_invalid_generation_identifier": {
+    "ru": "Некорректный идентификатор генерации",
+    "en": "Invalid generation identifier"
+  },
+  "common.studio_bridge_agent_mode_unavailable": {
+    "ru": "Режим «Агент» недоступен: ",
+    "en": "Agent mode unavailable: "
+  },
+  "common.studio_bridge_busy_state_gemma_voice_input": {
+    "ru": "Gemma (голосовой ввод)",
+    "en": "Gemma (voice input)"
+  },
+  "common.studio_bridge_open_existing_directory_folder_failed": {
+    "ru": "Не удалось открыть папку: ",
+    "en": "Could not open the folder: "
+  },
+  "common.studio_bridge_check_image_png_jpeg_web_p_supported": {
+    "ru": "Поддерживаются только PNG, JPEG и WebP",
+    "en": "Only PNG, JPEG and WebP are supported"
+  },
+  "common.studio_bridge_modify_prompt_archive_must_contain_1_5000_characters": {
+    "ru": "Промпт должен содержать от 1 до 5000 символов",
+    "en": "Prompt must contain 1 to 5000 characters"
+  },
+  "common.studio_bridge_modify_prompt_archive_contains_200_entries_delete_unused_save": {
+    "ru": "Архив содержит 200 записей. Удали ненужные, чтобы сохранить новые.",
+    "en": "Archive contains 200 entries. Delete unused entries to save new ones."
+  },
+  "common.studio_bridge_modify_prompt_archive_invalid_saved_id": {
+    "ru": "Некорректный ID сохранённого промпта",
+    "en": "Invalid saved prompt ID"
+  },
+  "common.studio_bridge_list_save_dirs_specified_path_not_folder": {
+    "ru": "Указанный путь не является папкой",
+    "en": "The specified path is not a folder"
+  },
+  "common.studio_bridge_diagnostic_logs_folder_has_not_been_created_yet": {
+    "ru": "Папка logs ещё не создана. Запусти приложение хотя бы один раз.",
+    "en": "The logs folder has not been created yet. Start the application at least once."
+  },
+  "common.studio_bridge_diagnostic_logs_no_matching_yet": {
+    "ru": "Подходящих журналов пока нет.",
+    "en": "No matching logs yet."
+  },
+  "common.studio_bridge_diagnostic_logs_empty_log": {
+    "ru": "(пустой журнал)",
+    "en": "(empty log)"
+  },
+  "common.studio_bridge_post_expected_json_object": {
+    "ru": "Ожидается JSON-объект",
+    "en": "Expected a JSON object"
+  },
+  "common.studio_bridge_post_ai_upscale_requires_real_esrgan_x2": {
+    "ru": "Для AI Upscale нужен RealESRGAN_x2plus.pth и ImageUpscaleWithModel",
+    "en": "AI Upscale requires RealESRGAN_x2plus.pth and ImageUpscaleWithModel"
+  },
+  "common.studio_bridge_cancel_invalid_prompt_id": {
+    "ru": "Некорректный prompt_id",
+    "en": "Invalid prompt_id"
+  },
+  "common.studio_bridge_cancel_permission_task_missing": {
+    "ru": "Отсутствует право на отмену этой задачи",
+    "en": "Permission to cancel this task is missing"
+  },
+  "common.studio_bridge_cancel_task_not_started_current_application_session": {
+    "ru": "Эта задача не была запущена текущей сессией приложения",
+    "en": "This task was not started by the current application session"
+  },
+  "common.studio_bridge_invalid_task_id": {
+    "ru": "Некорректный ID задачи",
+    "en": "Invalid task ID"
+  },
+  "common.studio_bridge_saved_files_currently_unavailable_check_output": {
+    "ru": "Сохранённые файлы сейчас недоступны. Проверьте папку результатов или подключение диска.",
+    "en": "Saved files are currently unavailable. Check the output folder or drive connection."
+  },
+  "common.studio_bridge_comfy_ui_finished_without_expected_output": {
+    "ru": "ComfyUI завершил задачу без ожидаемого выходного изображения.",
+    "en": "ComfyUI finished without the expected output image."
+  },
+  "common.studio_bridge_delete_image_entry_not_found_history_writable": {
+    "ru": "Запись не найдена или история недоступна для записи",
+    "en": "Entry not found or history is not writable"
+  },
+  "common.studio_bridge_delete_image_stop_generation_wait_finish_first": {
+    "ru": "Сначала остановите генерацию и дождитесь её завершения",
+    "en": "Stop generation and wait for it to finish first"
+  },
+  "common.studio_bridge_video_model_disabled_components": {
+    "ru": "Модель отключена в разделе «Компоненты».",
+    "en": "Model disabled in Components."
+  },
+  "common.studio_bridge_video_qwen3_tts_disabled_components": {
+    "ru": "Qwen3-TTS отключена в разделе «Компоненты».",
+    "en": "Qwen3-TTS disabled in Components."
+  },
+  "common.studio_bridge_diagnostic_logs_output_size_limit": {
+    "ru": "\n[Ограничение объёма вывода]\n",
+    "en": "\n[Output size limit]\n"
+  },
+  "common.studio_bridge_send_request_too_large": {
+    "ru": "Слишком большой запрос",
+    "en": "Request too large"
+  },
+  "common.studio_bridge_post_invalid_launch_number": {
+    "ru": "Некорректный номер запуска",
+    "en": "Invalid launch number"
+  },
+  "common.studio_bridge_post_comfy_ui_rejected_graph": {
+    "ru": "ComfyUI отклонил граф: ",
+    "en": "ComfyUI rejected the graph: "
+  },
+  "common.studio_bridge_microphone_event_invalid_state": {
+    "ru": "Некорректное состояние микрофона",
+    "en": "Invalid microphone state"
+  },
+  "common.studio_bridge_microphone_event_save_failed": {
+    "ru": "Не удалось сохранить событие микрофона.",
+    "en": "Could not save microphone event."
+  },
+  "common.studio_bridge_delete_image_invalid_comfy_ui_file_scope": {
+    "ru": "Некорректная область файла ComfyUI",
+    "en": "Invalid ComfyUI file scope"
+  },
+  "common.studio_bridge_image_not_found": {
+    "ru": "Изображение не найдено",
+    "en": "Image not found"
+  },
+  "common.studio_bridge_result_file_currently_unavailable": {
+    "ru": "Файл результата сейчас недоступен",
+    "en": "Result file currently unavailable"
+  },
+  "common.studio_bridge_video_gpu_already_busy_task": {
+    "ru": "GPU уже занят задачей Video.",
+    "en": "GPU is already busy with a Video task."
+  },
+  "common.studio_bridge_video_currently_unavailable": {
+    "ru": "Видео сейчас недоступно",
+    "en": "Video currently unavailable"
+  },
+  "common.studio_bridge_video_backend_error": {
+    "ru": "Ошибка Video-backend",
+    "en": "Video backend error"
+  },
+  "common.studio_bridge_post_comfy_ui_unavailable": {
+    "ru": "ComfyUI недоступен: ",
+    "en": "ComfyUI unavailable: "
+  },
+  "common.studio_bridge_get_event_history_unavailable_check_user_data": {
+    "ru": "История событий недоступна. Проверьте доступ к папке UserData и свободное место.",
+    "en": "Event history unavailable. Check UserData folder permissions and free disk space."
+  },
+  "common.studio_bridge_post_delete_all_generation_files_entry_preserved_failed": {
+    "ru": "Не удалось удалить все файлы генерации. Запись сохранена для повторной попытки: ",
+    "en": "Could not delete all generation files. Entry preserved for another attempt: "
+  }
+}

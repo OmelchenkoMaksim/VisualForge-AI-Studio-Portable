@@ -20,6 +20,7 @@ async function main() {
     if (release) await new Promise(resolve=>{release.resolve=resolve;});
     return {ok:!fail, json:async()=>fail ? {error:'Файл занят'} : {deleted:true}};
   }});
+  require('./i18n_fixture.cjs')(context);
   vm.runInContext(control, context);
   const button = context.deleteGenerationButton('Image', 'one', async()=>{cleaned++;}, ()=>{prepared++;});
   assert.equal(button.textContent, 'Удалить');

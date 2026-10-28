@@ -1,4 +1,5 @@
 """HTTP endpoints of the Text tab's agent mode, served through the loopback bridge after its same-origin checks."""
+from ui_strings import source as ui_text
 import json
 import select
 import socket
@@ -14,7 +15,7 @@ class Disconnected(Exception):
 def handle(handler, manager, route, data, choose_folder):
     """Everything except the streaming `send`. `choose_folder(initial)` opens the native folder dialog and returns a path or ''."""
     if manager is None:
-        return handler.response_json(503, {'error': 'Режим «Агент» недоступен. Проверьте журнал запуска.'})
+        return handler.response_json(503, {'error': ui_text('agent.routes_error_agent_mode_unavailable_check_startup_log')})
     try:
         if data is None:
             if route != 'availability':
@@ -32,7 +33,7 @@ def handle(handler, manager, route, data, choose_folder):
             answer = manager.settings(data)
         elif route == 'choose-workspace':
             if set(data) - {'initial'}:
-                raise ValueError('Запрос содержит неподдерживаемые параметры')
+                raise ValueError(ui_text('agent.create_chat_request_contains_unsupported_parameters'))
             chosen = choose_folder(data.get('initial') or manager.settings()['workspace'] or None)
             answer = dict(cancelled=not chosen, workspace=chosen or '')
         else:
@@ -48,11 +49,11 @@ def send(handler, manager, data):
     """Stream one agent task (or loop) as NDJSON events: status, context, delta, step, permission, permission_done, iteration,
     done, error."""
     if manager is None:
-        raise ValueError('Режим «Агент» недоступен')
+        raise ValueError(ui_text('agent.api_request_agent_mode_unavailable'))
     if not isinstance(data, dict) or set(data) - {'chat_id', 'content', 'loop'}:
-        raise ValueError('Запрос содержит неподдерживаемые параметры')
+        raise ValueError(ui_text('agent.create_chat_request_contains_unsupported_parameters'))
     if manager.busy():
-        raise Busy('Агент уже выполняет задачу. Дождитесь окончания или остановите её.')
+        raise Busy(ui_text('agent.send_agent_already_running_task_wait_completion'))
     state = dict(gone=False, started=False)
     finished = threading.Event()
 

@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 from gpu import Busy, GpuCoordinator
 from music.comfy_backend import ComfyBackend, ComfyClient, flac_to_wav, inspect_wav
-from music.manager import MusicManager
+from music.music_manager import MusicManager
 from music.registry import ENGINES, STABLE_AUDIO, validate
 from music.routes import handle
 from portable_paths import PortablePaths

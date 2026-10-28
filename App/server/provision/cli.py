@@ -3,6 +3,7 @@
 Without options in a terminal it shows a menu: the programs are always installed, every model is a checkbox.
 With options it runs unattended, e.g.  --software-only,  --preset light,  --all,  --models image.model.upscale,video.model.wan-ti2v-5b.
 """
+from ui_strings import source as ui_text
 import argparse
 import ctypes
 import locale
@@ -17,18 +18,18 @@ from .engine import Busy, Engine, NotEnoughSpace, ProvisionError, default_root
 
 TEXT = {
     'ru': dict(
-        title='VisualForge AI Studio: установка компонентов',
-        software='Программы (ставятся всегда, нужны всем разделам)', models='Модели (по желанию, можно докачать позже)',
-        installed='установлено', partial='частично', missing='нет',
-        total='К загрузке: %s, места на диске: около %s (свободно %s)',
-        help='Номера через запятую или диапазон (3,5-7) переключают модели; a - все; n - ни одной; l - лёгкий набор; i - установить; q - выйти',
-        prompt='Выбор > ', nothing='Нечего устанавливать: всё уже на месте.', done='Готово.', failed='Не удалось: %s',
-        start='Начинаю установку...', component='[%d/%d] %s', bye='Выход без установки.',
-        noterm='Запущено без терминала: укажите --software-only, --preset, --all или --models. Подробнее: --help.',
-        space='Недостаточно места на диске: нужно около %s, свободно %s.', busy='Уже запущена другая установка.',
-        later='Модели можно докачать позже: Setup-VisualForge.cmd или вкладка «Компоненты» в программе.',
-        first='Это первый запуск. Что установить?', cancelled='Остановлено. Докачка продолжится с того же места.',
-        longpath='Предупреждение: путь установки длинный (%d символов). Лучше короткий путь, например D:\\VisualForge.'),
+        title=ui_text('components.cli_visual_forge_ai_studio_component_installation'),
+        software=ui_text('components.cli_software_always_installed_required_all_sections'), models=ui_text('components.cli_models_optional_downloaded_later'),
+        installed=ui_text('components.component_installation_installed_label'), partial=ui_text('components.installer_cli_partially_installed_state'), missing=ui_text('components.installer_cli_not_installed_state'),
+        total=ui_text('components.cli_download_disk_space_about_free'),
+        help=ui_text('components.cli_comma_separated_numbers_ranges_3_5'),
+        prompt=ui_text('components.installer_cli_selection_prompt'), nothing=ui_text('components.cli_nothing_install_everything_already_present'), done=ui_text('components.installer_cli_completed_status'), failed=ui_text('components.installer_cli_component_failed_template'),
+        start=ui_text('components.cli_starting_installation'), component='[%d/%d] %s', bye=ui_text('components.cli_exiting_without_installation'),
+        noterm=ui_text('components.cli_no_terminal_available_specify_software_preset'),
+        space=ui_text('components.cli_insufficient_disk_space_about_required_free'), busy=ui_text('components.cli_another_installation_already_running'),
+        later=ui_text('components.cli_you_download_models_later_using_setup'),
+        first=ui_text('components.cli_first_launch_what_should_installed'), cancelled=ui_text('components.cli_stopped_download_resume_same_point'),
+        longpath=ui_text('components.cli_warning_installation_path_long_characters_prefer')),
     'en': dict(
         title='VisualForge AI Studio: component setup',
         software='Programs (always installed, every section needs them)', models='Models (optional, can be downloaded later)',

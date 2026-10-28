@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from text.manager import TextManager
+from text.text_manager import TextManager
 
 
 class ModelDefaultsTests(unittest.TestCase):

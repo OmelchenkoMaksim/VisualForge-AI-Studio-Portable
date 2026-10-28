@@ -15,8 +15,8 @@ let mode = 'single';
 const modeSelect = byId('modeSelect');
 function renderMode() {
   modeSelect.value = mode;
-  byId('title').textContent = 'VisualForge AI Studio';
-  StudioUI.setHeader('image', {description: {single:'Исходное изображение и текстовая инструкция', reference:'Изображение-основа и референс', prompt:'Создание изображения по тексту'}[mode]});
+  StudioI18n.bind(byId('title'), "textContent", () => ('VisualForge AI Studio'), true);
+  StudioUI.setHeader('image', {description: {single:StudioI18n.t("image.mode_source_image_editing_instruction"), reference:StudioI18n.t("image.mode_base_image_reference"), prompt:StudioI18n.t("image.mode_create_image_text")}[mode]});
   byId('referenceBlock').hidden = mode !== 'reference';
   byId('image2').required = mode === 'reference';
   byId('image2').disabled = mode !== 'reference';
@@ -25,9 +25,9 @@ function renderMode() {
   byId('image1').required = mode !== 'prompt';
   byId('image1').disabled = mode === 'prompt';
   byId('promptOnlyControls').hidden = mode !== 'prompt';
-  byId('promptLabelText').textContent = mode === 'prompt' ? 'Что создать?' : 'Что изменить?';
-  byId('prompt').placeholder = mode === 'prompt' ? 'Опишите желаемое изображение…' : 'Опишите изменение и то, что нужно сохранить…';
-  byId('generate').textContent = mode === 'prompt' ? 'Создать по промпту' : 'Создать изображение';
+  StudioI18n.bind(byId('promptLabelText'), "textContent", () => (mode === 'prompt' ? StudioI18n.t("image.prompt_what_should_created") : StudioI18n.t("image.prompt_what_should_change")), true);
+  StudioI18n.bind(byId('prompt'), "placeholder", () => (mode === 'prompt' ? StudioI18n.t("image.prompt_describe_image_you_want") : StudioI18n.t("image.prompt_describe_what_change_preserve")), true);
+  StudioI18n.bind(byId('generate'), "textContent", () => (mode === 'prompt' ? StudioI18n.t("image.generation_create_from_prompt_button_label") : StudioI18n.t("image.generation_create_image_button_label")), true);
   if (mode !== 'reference') choosePasteTarget('image1');
 }
 function readPreferredSelection() {
@@ -45,14 +45,14 @@ const MODE_NAMES = {single:'Single', reference:'Reference', prompt:'Prompt'};
 // Wording that differs per engine; Qwen engines use the generic native_prompt branches in renderEngine().
 const ENGINE_TEXT = {
   'flux3-klein-int8': {
-    header: 'Генерация изображения по тексту (FLUX.3 Klein)',
-    promptHint: 'Нативная генерация по тексту; редактирование одного изображения и работа с референсом — в режимах Single и Reference. Короткий промпт расширяет официальный upsampler Qwen3.5. Размер до 1024×1024; негативный промпт не используется.',
-    transparency: 'FLUX.3 Klein выдаёт RGB без прозрачности. AI Upscale увеличивает готовое изображение.'
+    header: StudioI18n.t("image.app_engine_header_text_image_generation_flux_3_klein"),
+    promptHint: StudioI18n.t("image.app_engine_prompt_hint_native_text_image_generation_single_editing"),
+    transparency: StudioI18n.t("image.app_engine_transparency_flux_3_klein_outputs_rgb_without")
   },
   'z-image-turbo-int8': {
-    header: 'Генерация изображения по тексту (Z-Image Turbo)',
-    promptHint: 'Нативная генерация по тексту, только режим Prompt. Размер до 1024×1024; негативный промпт не используется (CFG 1).',
-    transparency: 'Z-Image Turbo выдаёт RGB без прозрачности. AI Upscale увеличивает готовое изображение.'
+    header: StudioI18n.t("image.app_engine_header_text_image_generation_z_turbo"),
+    promptHint: StudioI18n.t("image.app_engine_prompt_hint_native_text_image_generation_mode_up"),
+    transparency: StudioI18n.t("image.app_engine_transparency_z_image_turbo_outputs_rgb_without")
   }
 };
 modeSelect.addEventListener('change', () => {
@@ -61,17 +61,17 @@ modeSelect.addEventListener('change', () => {
   mode = modeSelect.value;
   const previous = selectedEngine;
   selectedEngine = QwenEngineState.engineForMode(engineCatalog, selectedEngine, mode);
-  byId('selectionNotice').textContent = selectedEngine !== previous
-    ? `${engineCatalog[previous].name} не поддерживает режим ${MODE_NAMES[mode]}. Выбрана модель ${engineCatalog[selectedEngine].name}.` : '';
+  StudioI18n.bind(byId('selectionNotice'), "textContent", () => (selectedEngine !== previous
+    ? StudioI18n.t("image.selection_notice_does_not_support_mode_selected_model", [engineCatalog[previous].name, StudioI18n.remote(MODE_NAMES[mode]), engineCatalog[selectedEngine].name]) : ''), true);
   renderMode(); renderEngine(); rememberSelection();
   if (!engineReady() && QwenEngineState.supportsMode(engineCatalog, selectedEngine, mode)) window.repairStudioModel?.('image', selectedEngine);
 });
 
 let QUALITY_STEPS = {low:40, good:50, high:60};
 let QUALITY_HINTS = {
-  low:'40 шагов · проверенный базовый режим.',
-  good:'50 шагов · больше вычислений; улучшение зависит от изображения.',
-  high:'60 шагов · максимальный бюджет sampling, медленнее.'
+  low:StudioI18n.t("image.app_quality_hints_low_40_steps_verified_baseline"),
+  good:StudioI18n.t("image.app_quality_hints_good_50_steps_more_computation_improvements_depend"),
+  high:StudioI18n.t("image.app_quality_hints_high_60_steps_maximum_sampling_budget_slower")
 };
 const engineSelect = byId('engineSelect');
 let engineCatalog = {};
@@ -94,11 +94,11 @@ function renderEngine() {
     const sampler = info.sampler[0].toUpperCase() + info.sampler.slice(1).replace(/_/g, ' ');
     const presets = Object.keys(QUALITY_STEPS);
     QUALITY_HINTS = Object.fromEntries(Object.entries(QUALITY_STEPS).map(([key, steps]) =>
-      [key, `${steps} шагов · ${sampler} · CFG ${info.cfg}${presets.length === 1 ? ' · единственный пресет модели' : (info.native_prompt && key !== 'low' ? ' · экспериментальный пресет' : '')}`]));
+      [key, StudioI18n.t("image.engine_steps_cfg", [steps, sampler, info.cfg, presets.length === 1 ? StudioI18n.t("image.engine_model_s_preset") : (info.native_prompt && key !== 'low' ? StudioI18n.t("image.engine_experimental_preset") : '')])]));
     // A model with a single preset hides the other Quality choices instead of leaving dead options.
     for (const item of document.querySelectorAll('input[name="quality"]')) {
       item.closest('label').hidden = !presets.includes(item.value);
-      if (presets.includes(item.value)) item.nextElementSibling.textContent = presets.length === 1 ? `${QUALITY_STEPS[item.value]} шагов` : item.value[0].toUpperCase() + item.value.slice(1);
+      if (presets.includes(item.value)) StudioI18n.bind(item.nextElementSibling, "textContent", () => (presets.length === 1 ? StudioI18n.t("image.next_element_sibling_steps", [QUALITY_STEPS[item.value]]) : item.value[0].toUpperCase() + item.value.slice(1)), true);
     }
     if (!presets.includes(selected('quality'))) document.querySelector(`input[name="quality"][value="${presets[0]}"]`).checked = true;
     for (const option of modeSelect.options) {
@@ -106,20 +106,20 @@ function renderEngine() {
     }
     const text = ENGINE_TEXT[selectedEngine] || {};
     byId('expandGroup').hidden = !info.expansion;
-    byId('engineStatus').textContent = `${info.name} · ${info.ready ? 'установлена, workflow проверен' : 'недоступна'} · ${{single:'одно изображение',reference:'с референсом',prompt:'по тексту'}[mode]}`;
-    byId('engineCapabilities').textContent = info.capabilities;
-    byId('transparencyHint').textContent = text.transparency || (info.native_prompt
-      ? 'Qwen 2.1 поддерживает RGBA, но прозрачность исходника при редактировании не гарантируется. AI Upscale сохраняет полученный альфа-канал.'
-      : 'Qwen 2511 выдаёт RGB. Прозрачность исходника при редактировании не гарантируется.');
+    StudioI18n.bind(byId('engineStatus'), "textContent", () => (`${info.name} · ${info.ready ? StudioI18n.t("image.engine_installed_workflow_verified") : StudioI18n.t("image.model_availability_unavailable_label")} · ${{single:StudioI18n.t("image.engine_single_image"),reference:StudioI18n.t("image.engine_reference_mode_label"),prompt:StudioI18n.t("image.engine_text_to_image_mode_label")}[mode]}`), true);
+    StudioI18n.bind(byId('engineCapabilities'), "textContent", () => (info.capabilities), true);
+    StudioI18n.bind(byId('transparencyHint'), "textContent", () => (text.transparency || (info.native_prompt
+      ? StudioI18n.t("image.transparency_hint_qwen_2_1_supports_rgba_but")
+      : StudioI18n.t("image.transparency_hint_qwen_2511_outputs_rgb_source_not"))), true);
     StudioUI.setHeader('image', {model: info.name});
     if (mode === 'prompt') {
-      StudioUI.setHeader('image', {description: text.header || (info.native_prompt ? 'Генерация изображения непосредственно из текста' : 'Qwen Image Edit и пустой холст')});
-      byId('promptEngineHint').textContent = text.promptHint || (info.native_prompt
-        ? 'Нативная генерация по тексту. Размер до 1024×1024; усилитель промпта отключён.'
-        : 'Qwen Image Edit 2511 получает пустой холст. Это экспериментальный способ генерации.');
+      StudioUI.setHeader('image', {description: text.header || (info.native_prompt ? StudioI18n.t("image.engine_generate_image_directly_text") : StudioI18n.t("image.engine_qwen_image_edit_blank_canvas"))});
+      StudioI18n.bind(byId('promptEngineHint'), "textContent", () => (text.promptHint || (info.native_prompt
+        ? StudioI18n.t("image.prompt_engine_hint_native_text_image_generation_up_1024")
+        : StudioI18n.t("image.prompt_engine_hint_qwen_image_edit_2511_receives_blank"))), true);
     }
     StudioUI.setHeader('image', {tone: info.ready ? 'good' : 'bad',
-      status: info.ready ? 'ComfyUI: зависимости и схема workflow доступны. GPU-проверка выполняется при генерации.' : info.reasons.join('; ')});
+      status: info.ready ? StudioI18n.t("image.engine_comfy_ui_dependencies_workflow_schema_available") : info.reasons.join('; ')});
   }
   byId('guideUseExample').disabled = busy;
   byId('generate').disabled = busy || !engineReady();
@@ -133,8 +133,8 @@ engineSelect.addEventListener('change', () => {
   if (!engineCatalog[engineSelect.value]) { engineSelect.value = selectedEngine; return; }
   selectedEngine = engineSelect.value;
   const nextMode = QwenEngineState.modeForEngine(engineCatalog, selectedEngine, mode);
-  byId('selectionNotice').textContent = nextMode !== mode
-    ? `${engineCatalog[selectedEngine].name} работает только в режиме ${MODE_NAMES[nextMode]}; режим переключён.` : '';
+  StudioI18n.bind(byId('selectionNotice'), "textContent", () => (nextMode !== mode
+    ? StudioI18n.t("image.selection_notice_supports_mode_has_been_changed", [engineCatalog[selectedEngine].name, StudioI18n.remote(MODE_NAMES[nextMode])]) : ''), true);
   mode = nextMode;
   renderMode(); renderEngine(); rememberSelection();
   if (!engineReady()) window.repairStudioModel?.('image', selectedEngine);
@@ -144,7 +144,7 @@ function renderPromptGuide() {
   const guide = VisualForgeGuides.get(selectedEngine, mode);
   if (!guide) return;
   const fields = {promptGuideTitle:'title',guidePurpose:'purpose',guideStructure:'structure',guideLanguage:'language',guideMistakes:'mistakes',guideExample:'example',guideQuality:'quality'};
-  for (const [id,key] of Object.entries(fields)) byId(id).textContent = guide[key];
+  for (const [id,key] of Object.entries(fields)) StudioI18n.bind(byId(id), "textContent", () => (guide[key]), true);
 }
 byId('guideUseExample').addEventListener('click', () => {
   if (busy) return;
@@ -157,15 +157,15 @@ const selected = (name) => document.querySelector(`input[name="${name}"]:checked
 function refreshSettings() {
   const q = selected('quality');
   const u = Number(selected('upscale'));
-  byId('qualityHint').textContent = QUALITY_HINTS[q];
-  byId('upscaleHint').textContent = u===1
-    ? 'Без upscale · исходное разрешение Qwen.'
-    : (u===2 ? 'AI 2× по ширине и высоте · 4× пикселей.' : 'AI 4× по ширине и высоте · 16× пикселей (два прохода).');
+  StudioI18n.bind(byId('qualityHint'), "textContent", () => (QUALITY_HINTS[q]), true);
+  StudioI18n.bind(byId('upscaleHint'), "textContent", () => (u===1
+    ? StudioI18n.t("image.upscale_hint_no_original_qwen_resolution")
+    : (u===2 ? StudioI18n.t("image.upscale_hint_ai_2_width_height_4_pixels") : StudioI18n.t("image.upscale_hint_ai_4_width_height_16_pixels"))), true);
   if (u > 1 && !upscaleAvailable) {
-    byId('upscaleHint').textContent += ' · Модель пока не подтверждена ComfyUI; сервер проверит её перед запуском.';
+    StudioI18n.append(byId('upscaleHint'), "textContent", () => (StudioI18n.t("image.upscale_hint_model_has_not_yet_been_confirmed")), true);
   }
   const info = engineCatalog[selectedEngine];
-  byId('settingsSummary').textContent = `${info ? info.name : 'Qwen 2511'} · ${QUALITY_STEPS[q]} steps · CFG ${info ? info.cfg : 4} · Upscale ${u===1?'Off':u+'×'}`;
+  StudioI18n.bind(byId('settingsSummary'), "textContent", () => (`${info ? info.name : 'Qwen 2511'} · ${QUALITY_STEPS[q]} steps · CFG ${info ? info.cfg : 4} · Upscale ${u===1?'Off':u+'×'}`), true);
 }
 for (const item of document.querySelectorAll('input[name="quality"],input[name="upscale"],input[name="canvas"]')) {
   item.addEventListener('change', refreshSettings);
@@ -216,27 +216,27 @@ function clearStatusTicker() {
   }
 }
 function setStatusText(text) {
-  byId('status').textContent = text;
+  StudioI18n.bind(byId('status'), "textContent", () => (text), true);
 }
 function renderLiveStatus() {
   if (!liveState) return;
   const now = Date.now();
   const elapsedSec = Math.floor((now - liveState.startedAt) / 1000);
   const sinceUpdateSec = Math.floor((now - liveState.lastPollAt) / 1000);
-  let firstLine = 'Генерация: ';
-  if (liveState.phase === 'preparing') {
-    firstLine += liveState.detail || 'подготовка данных';
-  } else if (liveState.phase === 'submitted') {
-    firstLine += 'задача отправлена в ComfyUI';
+  let firstLine = StudioI18n.t("image.generation_live_status_prefix");
+  if (StudioI18n.remote(liveState.phase) === 'preparing') {
+    firstLine += liveState.detail || StudioI18n.t("image.live_preparing_data");
+  } else if (StudioI18n.remote(liveState.phase) === 'submitted') {
+    firstLine += StudioI18n.t("image.live_task_submitted_comfy_ui");
     if (liveState.promptId) firstLine += ` · ID ${liveState.promptId}`;
-  } else if (liveState.phase === 'queued') {
-    firstLine += 'ожидание в очереди';
+  } else if (StudioI18n.remote(liveState.phase) === 'queued') {
+    firstLine += StudioI18n.t("image.live_waiting_queue");
     if (Number.isFinite(liveState.queuePosition)) {
-      firstLine += ` · позиция ${liveState.queuePosition}`;
-      if (Number.isFinite(liveState.queueTotal)) firstLine += ` из ${liveState.queueTotal}`;
+      firstLine += StudioI18n.t("image.generation_queue_position_template", [liveState.queuePosition]);
+      if (Number.isFinite(liveState.queueTotal)) firstLine += StudioI18n.t("image.generation_queue_total_template", [liveState.queueTotal]);
     }
-  } else if (liveState.phase === 'running') {
-    firstLine += 'выполняется';
+  } else if (StudioI18n.remote(liveState.phase) === 'running') {
+    firstLine += StudioI18n.t("image.agent_step_running_status");
     if (liveState.progressPct !== null && liveState.progressPct !== undefined) {
       firstLine += ` · ${liveState.progressPct}%`;
     }
@@ -245,10 +245,10 @@ function renderLiveStatus() {
     } else if (liveState.detail) {
       firstLine += ` · ${liveState.detail}`;
     }
-  } else if (liveState.phase === 'cancelling') {
-    firstLine += 'ComfyUI завершает прерванную задачу…';
+  } else if (StudioI18n.remote(liveState.phase) === 'cancelling') {
+    firstLine += StudioI18n.t("image.live_comfy_ui_finishing_interrupted_task");
   }
-  let secondLine = `Прошло: ${formatDuration(elapsedSec)} · ответ ComfyUI: ${sinceUpdateSec} с назад`;
+  let secondLine = StudioI18n.t("image.live_elapsed_comfy_ui_responded_s_ago", [formatDuration(elapsedSec), sinceUpdateSec]);
   if (liveState.detail2) secondLine += ` · ${liveState.detail2}`;
   setStatusText(`${firstLine}\n${secondLine}`);
 }
@@ -285,11 +285,11 @@ function refreshVariantButton() {
   // A variant is an edit of the previous result, so engines without the single mode cannot make one.
   const canEdit = QwenEngineState.supportsMode(engineCatalog, selectedEngine, 'single');
   variantButton.disabled = busy || !canEdit || !hasSuccessfulResult || !lastResultInfo || !engineReady() || lastResultInfo.engine !== selectedEngine || lastResultInfo.mode !== mode;
-  variantButton.title = !canEdit
-    ? 'Эта модель не редактирует изображения. Для нового результата измените Seed и создайте заново.'
+  StudioI18n.bind(variantButton, "title", () => (!canEdit
+    ? StudioI18n.t("image.variant_button_model_does_not_edit_images_change")
     : !lastResultInfo
-    ? 'Сначала сгенерируй изображение.'
-    : 'Создать похожий вариант на основе последнего результата (ориентир: до 20% отличий).';
+    ? StudioI18n.t("image.variant_button_generate_image_first")
+    : StudioI18n.t("image.variant_button_create_similar_variation_latest_result_target")), true);
 }
 function clearTask() {
   busy = false;
@@ -300,7 +300,7 @@ function clearTask() {
   engineSelect.disabled = !engineInitialized;
   cancelButton.disabled = true;
   cancelButton.hidden = true;
-  cancelButton.textContent = 'Остановить генерацию';
+  StudioI18n.bind(cancelButton, "textContent", () => (StudioI18n.t("image.cancel_button_stop_generation")), true);
   refreshVariantButton();
 }
 function beginTask() {
@@ -316,23 +316,23 @@ cancelButton.addEventListener('click', async () => {
   if (!busy || !activeJob || cancellationInFlight) return;
   cancellationInFlight = true;
   cancelButton.disabled = true;
-  cancelButton.textContent = 'Остановка…';
-  updateLiveStatus({phase:'cancelling', detail:'Остановка задачи'});
+  StudioI18n.bind(cancelButton, "textContent", () => (StudioI18n.t("image.cancel_button_stopping")), true);
+  updateLiveStatus({phase:'cancelling', detail:StudioI18n.t("image.cancel_button_stopping_task")});
   try {
     const result = await request('/api/cancel', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(activeJob)
     });
     if (result.cancelled) {
-      updateLiveStatus({phase:'cancelling', detail:'Отмена запрошена'});
+      updateLiveStatus({phase:'cancelling', detail:StudioI18n.t("image.cancel_button_cancellation_requested")});
     } else {
-      updateLiveStatus({phase:'running', detail:'Задача уже почти завершилась; перепроверяем статус'});
+      updateLiveStatus({phase:'running', detail:StudioI18n.t("image.cancel_button_task_almost_complete_checking_status_again")});
     }
   } catch(e) {
-    finishLiveStatus('Ошибка отмены: ' + e.message + '. Генерация может продолжаться.');
+    finishLiveStatus(StudioI18n.t("image.cancel_button_cancellation_error") + StudioI18n.remote(e.message) + StudioI18n.t("image.cancel_button_generation_may_still_running"));
     cancellationInFlight = false;
     cancelButton.disabled = false;
-    cancelButton.textContent = 'Повторить остановку';
+    StudioI18n.bind(cancelButton, "textContent", () => (StudioI18n.t("image.cancel_button_retry_stopping")), true);
   }
 });
 variantButton.addEventListener('click', async () => {
@@ -356,11 +356,10 @@ function choosePasteTarget(inputId) {
     const selected = slot.id === inputId;
     slot.tile.classList.toggle('paste-selected', selected);
     slot.button.setAttribute('aria-pressed', String(selected));
-    slot.button.textContent = selected ? 'Вставлять сюда (Ctrl+V)' : 'Выбрать для вставки (Ctrl+V)';
+    StudioI18n.bind(slot.button, "textContent", () => (selected ? StudioI18n.t("image.slot_button_paste_here_ctrl_v") : StudioI18n.t("image.slot_button_select_paste_target_ctrl_v")), true);
   }
-  byId('pasteStatus').textContent =
-    (inputId === 'image1' ? 'Выбрано Image 1 (основа).' : 'Выбрано Image 2 (референс).') +
-    ' Скопируй картинку в браузере и нажми Ctrl+V в окне VisualForge.';
+  StudioI18n.bind(byId('pasteStatus'), "textContent", () => ((inputId === 'image1' ? StudioI18n.t("image.paste_image_1_base_selected") : StudioI18n.t("image.paste_image_2_reference_selected")) +
+    StudioI18n.t("image.paste_copy_image_browser_press_ctrl_v")), true);
 }
 for (const slot of uploadSlots) {
   slot.button.addEventListener('click', () => choosePasteTarget(slot.id));
@@ -375,16 +374,16 @@ document.addEventListener('paste', (event) => {
   if (!imageItem) return;
   event.preventDefault();
   if (busy) {
-    byId('pasteStatus').textContent = 'Генерация идёт. Останови или дождись завершения перед заменой изображения.';
+    StudioI18n.bind(byId('pasteStatus'), "textContent", () => (StudioI18n.t("image.paste_generation_running_stop_wait_finish_before")), true);
     return;
   }
   if (!SUPPORTED_PASTE_TYPES.has(imageItem.type)) {
-    byId('pasteStatus').textContent = 'Этот формат буфера не поддерживается. Используй PNG, JPEG или WebP.';
+    StudioI18n.bind(byId('pasteStatus'), "textContent", () => (StudioI18n.t("image.paste_clipboard_format_not_supported_use_png")), true);
     return;
   }
   const blob = imageItem.getAsFile();
   if (!blob || !blob.size || blob.size > MAX_IMAGE_BYTES) {
-    byId('pasteStatus').textContent = 'Вставка отклонена: пустое изображение или размер больше 100 МиБ.';
+    StudioI18n.bind(byId('pasteStatus'), "textContent", () => (StudioI18n.t("image.paste_rejected_empty_image_size_exceeds_100")), true);
     return;
   }
   try {
@@ -395,9 +394,9 @@ document.addEventListener('paste', (event) => {
     const selectedInput = byId(pasteTarget);
     selectedInput.files = transfer.files;
     selectedInput.dispatchEvent(new Event('change', {bubbles:true}));
-    byId('pasteStatus').textContent = 'Изображение вставлено. Можно продолжить работу.';
+    StudioI18n.bind(byId('pasteStatus'), "textContent", () => (StudioI18n.t("image.paste_image_pasted_you_continue")), true);
   } catch (error) {
-    byId('pasteStatus').textContent = 'Не удалось вставить изображение из буфера: ' + error.message;
+    StudioI18n.bind(byId('pasteStatus'), "textContent", () => (StudioI18n.t("image.paste_clipboard_image_failed") + StudioI18n.remote(error.message)), true);
   }
 });
 window.addEventListener('pagehide', () => {
@@ -407,18 +406,18 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request(url, options) {
   const r = await fetch(url, {cache:'no-store',...options});
   const body = await r.json();
-  if (!r.ok) throw new Error(body.error || `HTTP ${r.status}`);
+  if (!r.ok) throw new Error(StudioI18n.remote(body.error) || `HTTP ${r.status}`);
   return body;
 }
 async function loadSettings() {
   try {
     const data = await request('/api/settings');
     saveDirInput.value = data.save_dir || '';
-    saveDirStatus.textContent = data.save_dir_warning || 'Результаты автоматически сохраняются в эту папку после успешной генерации.';
+    StudioI18n.bind(saveDirStatus, "textContent", () => (data.save_dir_warning || StudioI18n.t("image.save_dir_results_saved_folder_automatically_after_successful")), true);
     byId('useInternalResults').hidden = !data.save_dir_warning;
-    byId('useInternalResults').onclick = async () => { try { await persistSaveDir(data.internal_save_dir); byId('useInternalResults').hidden=true; } catch(e) { saveDirStatus.textContent=e.message; } };
+    byId('useInternalResults').onclick = async () => { try { await persistSaveDir(data.internal_save_dir); byId('useInternalResults').hidden=true; } catch(e) { StudioI18n.bind(saveDirStatus, "textContent", () => (StudioI18n.remote(e.message)), true); } };
   } catch (e) {
-    saveDirStatus.textContent = 'Не удалось загрузить папку автосохранения: ' + e.message;
+    StudioI18n.bind(saveDirStatus, "textContent", () => (StudioI18n.t("image.save_dir_load_autosave_folder_failed") + StudioI18n.remote(e.message)), true);
   }
 }
 async function persistSaveDir(pathText) {
@@ -427,7 +426,7 @@ async function persistSaveDir(pathText) {
     body: JSON.stringify({save_dir: pathText})
   });
   saveDirInput.value = payload.save_dir || pathText;
-  saveDirStatus.textContent = 'Папка автосохранения сохранена. Следующие результаты будут сохраняться туда автоматически.';
+  StudioI18n.bind(saveDirStatus, "textContent", () => (StudioI18n.t("image.save_dir_autosave_folder_saved_future_results_there")), true);
 }
 
 // Directory picker is displayed inside the app window, avoiding Windows Z-order issues.
@@ -457,7 +456,7 @@ function closeFolderPicker() {
 }
 async function browseSaveFolder(path, initial = false) {
   const requestId = ++folderPickerSequence;
-  folderPickerStatus.textContent = 'Загружаем папки…';
+  StudioI18n.bind(folderPickerStatus, "textContent", () => (StudioI18n.t("image.folder_picker_loading_folders")), true);
   folderPickerSelect.disabled = true;
   folderPickerItems.replaceChildren();
   try {
@@ -473,29 +472,29 @@ async function browseSaveFolder(path, initial = false) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'secondary slim';
-      button.textContent = drive;
+      StudioI18n.bind(button, "textContent", () => (drive), true);
       button.addEventListener('click', () => browseSaveFolder(drive));
       drives.append(button);
     }
     for (const dir of data.directories || []) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = '📁 ' + dir.name;
-      button.title = dir.path;
+      StudioI18n.bind(button, "textContent", () => ('📁 ' + dir.name), false);
+      StudioI18n.bind(button, "title", () => (dir.path), false);
       button.addEventListener('click', () => browseSaveFolder(dir.path));
       folderPickerItems.append(button);
     }
     if (!data.directories?.length) {
       const info = document.createElement('p');
-      info.textContent = 'Вложенных папок нет.';
+      StudioI18n.bind(info, "textContent", () => (StudioI18n.t("image.info_no_subfolders")), true);
       info.className = 'save-hint';
       folderPickerItems.append(info);
     }
-    folderPickerStatus.textContent = (data.directories?.length || 0) + ' папок' + (data.truncated ? ' · показаны первые 500' : '');
+    StudioI18n.bind(folderPickerStatus, "textContent", () => ((data.directories?.length || 0) + StudioI18n.t("image.folder_picker_folders") + (data.truncated ? StudioI18n.t("image.folder_picker_showing_first_500") : '')), true);
     folderPickerSelect.disabled = false;
   } catch(e) {
     if (requestId !== folderPickerSequence || folderPicker.hidden) return;
-    folderPickerStatus.textContent = 'Не удалось открыть папку: ' + e.message;
+    StudioI18n.bind(folderPickerStatus, "textContent", () => (StudioI18n.t("image.folder_picker_open_failed") + StudioI18n.remote(e.message)), true);
   }
 }
 chooseSaveDirButton.addEventListener('click', () => {
@@ -524,7 +523,7 @@ folderPickerSelect.addEventListener('click', async () => {
   } catch(e) {
     folderPickerSaving = false;
     folderPickerSelect.disabled = false;
-    folderPickerStatus.textContent = 'Не удалось сохранить папку: ' + e.message;
+    StudioI18n.bind(folderPickerStatus, "textContent", () => (StudioI18n.t("image.folder_picker_save_failed") + StudioI18n.remote(e.message)), true);
   }
 });
 folderPicker.addEventListener('keydown', (event) => {
@@ -549,7 +548,7 @@ saveSaveDirButton.addEventListener('click', async () => {
   try {
     await persistSaveDir(saveDirInput.value);
   } catch (e) {
-    saveDirStatus.textContent = 'Не удалось сохранить папку: ' + e.message;
+    StudioI18n.bind(saveDirStatus, "textContent", () => (StudioI18n.t("image.folder_picker_save_failed") + StudioI18n.remote(e.message)), true);
   } finally {
     saveSaveDirButton.disabled = false;
   }
@@ -559,9 +558,9 @@ openSaveDirButton.addEventListener('click', async () => {
   try {
     const result = await request('/api/open-save-dir', {method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'});
     saveDirInput.value = result.save_dir || saveDirInput.value;
-    saveDirStatus.textContent = 'Папка автосохранения открыта в Проводнике.';
+    StudioI18n.bind(saveDirStatus, "textContent", () => (StudioI18n.t("image.save_dir_autosave_folder_opened_file_explorer")), true);
   } catch (e) {
-    saveDirStatus.textContent = 'Не удалось открыть папку: ' + e.message;
+    StudioI18n.bind(saveDirStatus, "textContent", () => (StudioI18n.t("image.folder_picker_open_failed") + StudioI18n.remote(e.message)), true);
   } finally {
     openSaveDirButton.disabled = false;
   }
@@ -576,17 +575,17 @@ async function check() {
       const selection = QwenEngineState.resolveSelection(engineCatalog, readPreferredSelection(), requestedMode);
       selectedEngine = selection.engine;
       mode = selection.mode;
-      byId('selectionNotice').textContent = selection.fallback
-        ? 'Сохранённая модель недоступна. Выбран Qwen Image Edit 2511; режим сохранён.' : '';
+      StudioI18n.bind(byId('selectionNotice'), "textContent", () => (selection.fallback
+        ? StudioI18n.t("image.selection_notice_saved_model_unavailable_qwen_image_edit") : ''), true);
     }
     engineInitialized = true;
     for (const option of engineSelect.options) {
       const info = engineCatalog[option.value];
-      option.textContent = `${StudioUI.modelLabel(option.value, info ? info.name : option.value)} — ${info && info.ready ? 'установлена' : 'недоступна'}`;
-      option.title = StudioUI.modelSource(option.value);
+      StudioI18n.bind(option, "textContent", () => (`${StudioUI.modelLabel(option.value, info ? info.name : option.value)} — ${info && info.ready ? StudioI18n.t("image.component_installation_installed_label") : StudioI18n.t("image.model_availability_unavailable_label")}`), true);
+      StudioI18n.bind(option, "title", () => (StudioUI.modelSource(option.value)), true);
     }
-    byId('engineDependencyDetails').textContent = Object.values(engineCatalog).map(info =>
-      `${info.name}: ${info.ready ? 'готова' : info.reasons.join('; ')}`).join('\n\n');
+    StudioI18n.bind(byId('engineDependencyDetails'), "textContent", () => (Object.values(engineCatalog).map(info =>
+      `${info.name}: ${info.ready ? StudioI18n.t("image.model_readiness_ready_label") : info.reasons.join('; ')}`).join('\n\n')), true);
     qwenInitProgressWebSocket(data.progress_client_id);
     lockPresets(busy);
     renderMode();
@@ -595,7 +594,7 @@ async function check() {
   } catch(e) {
     engineCatalog = {};
     byId('generate').disabled = true;
-    StudioUI.setHeader('image', {tone:'bad', status:'Проверка ComfyUI недоступна: ' + e.message});
+    StudioUI.setHeader('image', {tone:'bad', status:StudioI18n.t("image.backend_preflight_comfy_ui_check_unavailable") + StudioI18n.remote(e.message)});
     return false;
   }
 }
@@ -609,12 +608,12 @@ function selectPreview(id, pic, text) {
   if (previous) { URL.revokeObjectURL(previous); previewURLs.delete(id); }
   view.removeAttribute('src');
   view.hidden = true;
-  if (!file) {byId(text).textContent = 'Любой файл изображения до 100 МиБ · прямые форматы сохраняются как есть, остальные конвертируются в PNG'; return;}
+  if (!file) {StudioI18n.bind(byId(text), "textContent", () => (StudioI18n.t("image.select_preview_any_image_file_up_100_mi")), true); return;}
   const blob = URL.createObjectURL(file);
   previewURLs.set(id, blob);
   view.src = blob;
   view.hidden = false;
-  byId(text).textContent = `${file.name} · ${(file.size / 1048576).toFixed(1)} МиБ`;
+  StudioI18n.bind(byId(text), "textContent", () => (StudioI18n.t("image.select_preview_mi_b", [file.name, (file.size / 1048576).toFixed(1)])), false);
 }
 for (const [input,pic,text] of [['image1','preview1','name1'],['image2','preview2','name2']]) {
   byId(input).addEventListener('change', () => selectPreview(input,pic,text));
@@ -622,7 +621,7 @@ for (const [input,pic,text] of [['image1','preview1','name1'],['image2','preview
 async function fileToBase64(file) {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Ошибка чтения изображения'));
+    reader.onerror = () => reject(new Error(StudioI18n.t("image.reader_image_read_error")));
     reader.onload = () => resolve(String(reader.result).split(',', 2)[1]);
     reader.readAsDataURL(file);
   });
@@ -630,7 +629,7 @@ async function fileToBase64(file) {
 async function blobToBase64(blob) {
   return await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Ошибка чтения изображения после конвертации'));
+    reader.onerror = () => reject(new Error(StudioI18n.t("image.reader_read_converted_image_failed")));
     reader.onload = () => resolve(String(reader.result).split(',', 2)[1]);
     reader.readAsDataURL(blob);
   });
@@ -641,29 +640,29 @@ async function convertUnsupportedImageToPng(file) {
     const image = await new Promise((resolve, reject) => {
       const tag = new Image();
       tag.onload = () => resolve(tag);
-      tag.onerror = () => reject(new Error('Формат не поддерживается напрямую и не удалось декодировать его для конвертации в PNG.'));
+      tag.onerror = () => reject(new Error(StudioI18n.t("image.tag_format_not_directly_supported_could_decoded")));
       tag.src = objectUrl;
     });
     const width = image.naturalWidth || image.width;
     const height = image.naturalHeight || image.height;
-    if (!width || !height) throw new Error('Не удалось определить размер изображения для конвертации.');
+    if (!width || !height) throw new Error(StudioI18n.t("image.convert_unsupported_to_png_determine_image_dimensions_conversion_failed"));
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas недоступен; конвертация в PNG невозможна.');
+    if (!ctx) throw new Error(StudioI18n.t("image.convert_unsupported_to_png_canvas_unavailable_conversion_impossible"));
     ctx.drawImage(image, 0, 0);
     const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-    if (!pngBlob) throw new Error('Браузер не смог конвертировать изображение в PNG.');
-    if (pngBlob.size > MAX_IMAGE_BYTES) throw new Error('PNG после конвертации больше 100 МиБ.');
+    if (!pngBlob) throw new Error(StudioI18n.t("image.convert_unsupported_to_png_browser_could_not_image"));
+    if (pngBlob.size > MAX_IMAGE_BYTES) throw new Error(StudioI18n.t("image.convert_unsupported_to_png_converted_exceeds_100_mi_b"));
     return {base64: await blobToBase64(pngBlob)};
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
 }
 async function encodeFile(file) {
-  if (!file) throw new Error('Не выбран файл изображения');
-  if (file.size > MAX_IMAGE_BYTES) throw new Error('Изображение больше 100 МиБ');
+  if (!file) throw new Error(StudioI18n.t("image.encode_file_no_image_selected"));
+  if (file.size > MAX_IMAGE_BYTES) throw new Error(StudioI18n.t("image.encode_file_image_exceeds_100_mi_b"));
   const fileType = String(file.type || '').toLowerCase();
   if (DIRECT_IMAGE_TYPES.has(fileType)) {
     return {base64: await fileToBase64(file)};
@@ -674,9 +673,9 @@ async function encodeFile(file) {
 // Downscale very large (e.g. 4x-upscaled) results for the next edit pass.
 async function variantSourceImage(href) {
   const response = await fetch(href, {cache:'no-store'});
-  if (!response.ok) throw new Error('Не удалось получить предыдущий результат для варианта.');
+  if (!response.ok) throw new Error(StudioI18n.t("image.variant_retrieve_previous_result_variation_failed"));
   const sourceBlob = await response.blob();
-  if (!sourceBlob.size) throw new Error('Предыдущий результат пустой.');
+  if (!sourceBlob.size) throw new Error(StudioI18n.t("image.variant_previous_result_empty"));
   const bitmap = await createImageBitmap(sourceBlob);
   try {
     const maxSide = 1536;
@@ -685,11 +684,11 @@ async function variantSourceImage(href) {
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
     const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas недоступен для создания варианта.');
+    if (!context) throw new Error(StudioI18n.t("image.variant_canvas_unavailable_creating_variation"));
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
     if (!blob || !blob.size || blob.size > MAX_IMAGE_BYTES) {
-      throw new Error('Не удалось подготовить предыдущий результат для варианта.');
+      throw new Error(StudioI18n.t("image.variant_prepare_previous_result_variation_failed"));
     }
     return {base64: await blobToBase64(blob)};
   } finally {
@@ -708,8 +707,8 @@ function variationPrompt(originalPrompt) {
 }
 
 function reportImageError(error) {
-  finishLiveStatus('Ошибка: ' + error.message);
-  StudioUI.notify({module:'Image', id:activeJob?.prompt_id, error:true, message:error.message, onLogs:() => byId('openLogs').click()});
+  finishLiveStatus(StudioI18n.t("image.generation_error_notification_prefix") + StudioI18n.remote(error.message));
+  StudioUI.notify({module:'Image', id:activeJob?.prompt_id, error:true, message:StudioI18n.remote(error.message), onLogs:() => byId('openLogs').click()});
 }
 
 async function runGeneration(isVariant) {
@@ -724,17 +723,17 @@ async function runGeneration(isVariant) {
   const originalPrompt = isVariant ? prior.originalPrompt : byId('prompt').value.trim();
   let fixedSeed;
   try { fixedSeed = readFixedSeed(); }
-  catch (error) { finishLiveStatus(error.message); StudioUI.notify({module:'Image',error:true,message:error.message,onLogs:()=>byId('openLogs').click()}); return; }
+  catch (error) { finishLiveStatus(StudioI18n.remote(error.message)); StudioUI.notify({module:'Image',error:true,message:StudioI18n.remote(error.message),onLogs:()=>byId('openLogs').click()}); return; }
   const referenceFile = isVariant ? prior.referenceFile :
     (mode === 'reference' ? byId('image2').files[0] : null);
   const requestMode = selectionMode;
   beginTask();
   try {
-    startLiveStatus('preparing', isVariant ? 'подготовка похожего варианта из последнего результата' : 'подготовка изображений и prompt');
+    startLiveStatus('preparing', isVariant ? StudioI18n.t("image.run_generation_preparing_similar_variation_latest_result") : StudioI18n.t("image.run_generation_preparing_images_prompt"));
     const image1 = isVariant ? await variantSourceImage(prior.href) :
       (requestMode === 'prompt' ? null : await encodeFile(sourceFile));
     const image2 = requestMode === 'reference' ? await encodeFile(referenceFile) : null;
-    updateLiveStatus({phase:'preparing', detail:'загрузка изображений в локальный ComfyUI'});
+    updateLiveStatus({phase:'preparing', detail:StudioI18n.t("image.run_generation_uploading_images_local_comfy_ui")});
     const result = await request('/api/generate', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -752,7 +751,7 @@ async function runGeneration(isVariant) {
     activeJob = {prompt_id:result.prompt_id,cancel_token:result.cancel_token,engine:result.engine,node_names:result.node_names,sampler_node_ids:result.sampler_node_ids};
     cancelButton.disabled = false;
     updateLiveStatus({phase:'submitted', promptId: result.prompt_id});
-    qwenRecordStage('Задание принято ComfyUI');
+    qwenRecordStage(StudioI18n.t("image.run_generation_task_accepted_comfy_ui"));
     const started = Date.now();
     let misses = 0;
     for (;;) {
@@ -762,51 +761,51 @@ async function runGeneration(isVariant) {
       try { job = await request('/api/status?id=' + encodeURIComponent(result.prompt_id)); misses = 0; }
       catch (error) {
         if (++misses >= 6) {reportImageError(error);return;}
-        updateLiveStatus({detail2: 'нет ответа от ComfyUI, повторяю…'});
+        updateLiveStatus({detail2: StudioI18n.t("image.run_generation_no_response_comfy_ui_retrying")});
         continue;
       }
       if (liveState?.detail2) liveState.detail2 = '';
       if (job.state === 'cancelled') {
-        finishLiveStatus('Генерация отменена. Можно запускать следующую.');
+        finishLiveStatus(StudioI18n.t("image.run_generation_cancelled_you_start_another"));
         break;
       }
       if (job.state === 'cancelling') {
         updateLiveStatus({phase:'cancelling'});
         continue;
       }
-      if (job.state === 'error') {reportImageError({message:job.error || 'Ошибка исполнения'});return;}
+      if (job.state === 'error') {reportImageError({message:StudioI18n.remote(job.error) || StudioI18n.t("image.run_generation_execution_error")});return;}
       if (job.state === 'done') {
         lastSeed = result.seed;
-        qwenRecordStage('Готово: результат получен');
+        qwenRecordStage(StudioI18n.t("image.run_generation_done_result_received"));
         hasSuccessfulResult = true;
         rememberEngine(result.engine);
         rememberSelection();
         const saveLine = job.save_error
-          ? `\nАвтосохранение не удалось: ${job.save_error}. Копия осталась в ComfyUI.`
-          : (job.saved_count ? `\nАвтосохранено: ${job.saved_count} файл(ов) · ${job.save_dir}` : '\nАвтосохранение проверяется…');
-        finishLiveStatus(`${isVariant ? 'Новый вариант готов' : 'Готово'}. Результатов: ${job.images} · ${quality.toUpperCase()} / ${upscale===1?'Off':upscale+'×'}${saveLine}`);
+          ? StudioI18n.t("image.run_generation_autosave_failed_copy_remains_comfy_ui", [job.save_error])
+          : (job.saved_count ? StudioI18n.t("image.run_generation_autosaved_file_s", [job.saved_count, job.save_dir]) : StudioI18n.t("image.run_generation_checking_autosave"));
+        finishLiveStatus(StudioI18n.t("image.run_generation_results", [isVariant ? StudioI18n.t("image.run_generation_new_variation_ready") : StudioI18n.t("image.generation_completed_status_label"), job.images, quality.toUpperCase(), upscale===1?'Off':upscale+'×', StudioI18n.remote(saveLine)]));
         let firstResultHref = null;
         for (let i = 0; i < job.images; i++) {
           const wrapper = document.createElement('div');
           const meta = document.createElement('p');
           meta.className='result-meta';
-          meta.textContent=`${engineCatalog[result.engine]?.name || result.engine} · ${quality.toUpperCase()} · ${result.steps} steps · Upscale ${upscale===1?'Off':upscale+'×'} · Seed ${result.seed}`;
+          StudioI18n.bind(meta, "textContent", () => (`${engineCatalog[result.engine]?.name || result.engine} · ${quality.toUpperCase()} · ${result.steps} steps · Upscale ${upscale===1?'Off':upscale+'×'} · Seed ${result.seed}`), true);
           const image = document.createElement('img');
           image.loading = 'lazy'; image.decoding = 'async';
           const href = '/api/result?id=' + encodeURIComponent(result.prompt_id) + '&index=' + i;
           if (i === 0) firstResultHref = href;
-          image.src = href; image.alt = 'Сгенерированное изображение';
-          image.addEventListener('load', () => { meta.textContent += ` · ${image.naturalWidth}×${image.naturalHeight} px`; }, {once:true});
+          image.src = href; StudioI18n.bind(image, "alt", () => (StudioI18n.t("image.run_generation_generated_image")), true);
+          image.addEventListener('load', () => { StudioI18n.append(meta, "textContent", () => (` · ${image.naturalWidth}×${image.naturalHeight} px`), true); }, {once:true});
           const link = document.createElement('a');
-          link.href = href; link.download = `${result.filename_base || 'Generated Image'}${i ? ' ' + (i + 1) : ''}.png`; link.textContent = 'Сохранить результат';
+          link.href = href; link.download = `${result.filename_base || 'Generated Image'}${i ? ' ' + (i + 1) : ''}.png`; StudioI18n.bind(link, "textContent", () => (StudioI18n.t("image.link_save_result")), true);
           wrapper.append(meta);
           if (job.expanded_prompt) {
             // What the image model actually received after the upsampler; textContent keeps the model output inert.
             const details = document.createElement('details');
             const summary = document.createElement('summary');
-            summary.textContent = 'Расширенный промпт (upsampler)';
+            StudioI18n.bind(summary, "textContent", () => (StudioI18n.t("image.summary_expanded_prompt_upsampler")), true);
             const text = document.createElement('pre');
-            text.textContent = job.expanded_prompt;
+            StudioI18n.bind(text, "textContent", () => (job.expanded_prompt), false);
             details.append(summary, text);
             wrapper.append(details);
           }
@@ -817,22 +816,22 @@ async function runGeneration(isVariant) {
           hasSuccessfulResult = true;
         }
         StudioUI.notify({module:'Image', id:result.prompt_id, error:!!job.save_error,
-          message:job.save_error ? 'Изображение создано, но автосохранение не удалось: '+job.save_error : 'Изображение создано и сохранено.',
+          message:job.save_error ? StudioI18n.t("image.run_generation_image_created_but_autosave_failed")+job.save_error : StudioI18n.t("image.run_generation_image_created_saved"),
           folder:job.saved_count ? job.save_dir : '', onLogs:() => byId('openLogs').click()});
         loadResultHistory();
         break;
       }
-      if (Date.now() - started > 60 * 60 * 1000) {reportImageError({message:'Нет результата в течение часа. Проверьте журнал ComfyUI.'});return;}
+      if (Date.now() - started > 60 * 60 * 1000) {reportImageError({message:StudioI18n.t("image.run_generation_no_result_hour_check_comfy_ui")});return;}
       if (job.state === 'queued') {
-        if (!qwenRealtime || Date.now() - qwenRealtimeUpdated > 5000) qwenRecordStage('Ожидание в очереди ComfyUI');
+        if (!qwenRealtime || Date.now() - qwenRealtimeUpdated > 5000) qwenRecordStage(StudioI18n.t("image.run_generation_waiting_comfy_ui_queue"));
         updateLiveStatus({phase:'queued', queuePosition: Number.isFinite(job.queue_position) ? job.queue_position : null, queueTotal: Number.isFinite(job.queue_total) ? job.queue_total : null});
       } else {
         if (qwenRealtime && Date.now() - qwenRealtimeUpdated <= 5000) {
           const current = qwenRealtime;
-          updateLiveStatus({phase:'running', detail: 'Live этап ComfyUI', progressPct: null,
-            node: current.step === null ? current.node : `${current.node} · шаг ${current.step}/${current.total}`});
+          updateLiveStatus({phase:'running', detail: StudioI18n.t("image.run_generation_live_comfy_ui_stage"), progressPct: null,
+            node: current.step === null ? current.node : StudioI18n.t("image.run_generation_step", [StudioI18n.remote(current.node), current.step, current.total])});
         } else {
-          updateLiveStatus({phase:'running', detail: job.status || 'ComfyUI выполняет задачу', progressPct: (typeof job.progress_pct === 'number') ? job.progress_pct : null, node: job.node || ''});
+          updateLiveStatus({phase:'running', detail: job.status || StudioI18n.t("image.run_generation_comfy_ui_running_task"), progressPct: (typeof job.progress_pct === 'number') ? job.progress_pct : null, node: job.node || ''});
         }
       }
     }
@@ -850,7 +849,7 @@ function readFixedSeed() {
   if (!text) return undefined;
   const value = Number(text);
   if (!/^\d+$/.test(text) || !Number.isSafeInteger(value) || value < 0 || value >= 2**48) {
-    throw new Error('Seed должен быть целым числом от 0 до 281474976710655.');
+    throw new Error(StudioI18n.t("image.read_fixed_seed_must_integer_0_281474976710655"));
   }
   return value;
 }
@@ -865,7 +864,7 @@ try {
 byId('prompt').addEventListener('input', rememberDraft);
 byId('seed').addEventListener('input', () => {
   try { readFixedSeed(); byId('seed').setCustomValidity(''); }
-  catch (error) { byId('seed').setCustomValidity(error.message); }
+  catch (error) { byId('seed').setCustomValidity(StudioI18n.remote(error.message)); }
   rememberDraft();
 });
 function useSeed(value) {
@@ -886,22 +885,22 @@ async function loadResultHistory() {
     if (lastSeed === null && Number.isSafeInteger(rows[0]?.seed)) lastSeed = rows[0].seed;
     byId('reuseSeed').disabled = busy || lastSeed === null;
     byId('historyCards').replaceChildren();
-    byId('historyStatus').textContent = result.warning || (rows.length ? `Заданий в истории: ${rows.length}. Показаны последние ${Math.min(20,rows.length)}. Файлы хранятся в выбранных при генерации папках.` : 'Новые сохранённые результаты появятся здесь и останутся после перезапуска. История хранит до 100 заданий.');
+    StudioI18n.bind(byId('historyStatus'), "textContent", () => (StudioI18n.remote(result.warning) || (rows.length ? StudioI18n.t("image.history_tasks_showing_latest_files_remain_folders", [rows.length, Math.min(20,rows.length)]) : StudioI18n.t("image.history_new_saved_results_appear_here_persist"))), true);
     for (const row of rows.slice(0,20)) {
       const card = document.createElement('article'); card.className = 'history-card';
-      const heading = document.createElement('strong'); heading.textContent = row.filename_base || 'Сохранённый результат';
+      const heading = document.createElement('strong'); StudioI18n.bind(heading, "textContent", () => (row.filename_base || StudioI18n.t("image.heading_saved_result")), false);
       const meta = document.createElement('p'); meta.className = 'preset-hint';
-      meta.textContent = `${row.engine} · ${row.quality || ''} · Seed ${row.seed} · ${row.upscale || 1}×`;
-      const prompt = document.createElement('p'); prompt.className = 'history-prompt'; prompt.textContent = row.original_prompt || '';
+      StudioI18n.bind(meta, "textContent", () => (`${row.engine} · ${row.quality || ''} · Seed ${row.seed} · ${row.upscale || 1}×`), true);
+      const prompt = document.createElement('p'); prompt.className = 'history-prompt'; StudioI18n.bind(prompt, "textContent", () => (row.original_prompt || ''), false);
       card.append(heading,meta,prompt);
       const links = document.createElement('div'); links.className = 'history-actions';
       for (const index of row.image_indices || []) {
         const link = document.createElement('a'); link.href = '/api/result?id='+encodeURIComponent(row.prompt_id)+'&index='+index;
-        link.textContent = index ? `Открыть результат ${index+1}` : 'Открыть результат'; link.target = '_blank'; link.rel = 'noopener'; links.append(link);
+        StudioI18n.bind(link, "textContent", () => (index ? StudioI18n.t("image.history_result_indexed_open_accessibility_template", [index+1]) : StudioI18n.t("image.history_result_open_button_label")), true); link.target = '_blank'; link.rel = 'noopener'; links.append(link);
       }
-      if (!row.image_indices?.length) { const missing = document.createElement('span'); missing.textContent = 'Файлы сейчас недоступны. Проверьте папку результатов или подключение диска.'; links.append(missing); }
+      if (!row.image_indices?.length) { const missing = document.createElement('span'); StudioI18n.bind(missing, "textContent", () => (StudioI18n.t("image.missing_files_currently_unavailable_check_output_folder")), true); links.append(missing); }
       if (Number.isSafeInteger(row.seed) && row.seed >= 0 && row.seed < 2**48) {
-        const seedButton = document.createElement('button'); seedButton.type = 'button'; seedButton.className='secondary slim'; seedButton.textContent='Использовать seed'; seedButton.disabled=busy; seedButton.addEventListener('click',()=>useSeed(row.seed)); links.append(seedButton);
+        const seedButton = document.createElement('button'); seedButton.type = 'button'; seedButton.className='secondary slim'; StudioI18n.bind(seedButton, "textContent", () => (StudioI18n.t("image.seed_button_use")), true); seedButton.disabled=busy; seedButton.addEventListener('click',()=>useSeed(row.seed)); links.append(seedButton);
       }
       links.append(StudioUI.deleteGenerationButton('Image', row.prompt_id, async () => {
         for (const link of byId('images').querySelectorAll('a[href^="/api/result"]')) {
@@ -916,7 +915,7 @@ async function loadResultHistory() {
       if (row.generation) card.append(StudioUI.generationInfo(row.generation));
       byId('historyCards').append(card);
     }
-  } catch { byId('historyStatus').textContent = 'История сейчас недоступна. Генерация и сохранённые файлы остаются доступными.'; }
+  } catch { StudioI18n.bind(byId('historyStatus'), "textContent", () => (StudioI18n.t("image.history_currently_unavailable_generation_saved_files_remain")), true); }
 }
 loadResultHistory();
 
@@ -941,19 +940,19 @@ function closeLogsPanel() {
 async function updateLogsPanel() {
   const sequence = ++logsSequence;
   logsRefresh.disabled = true;
-  logsStatus.textContent = 'Читаем последние записи…';
+  StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_reading_recent_entries")), true);
   try {
     const result = await request('/api/logs?scope=' + encodeURIComponent(logsScope.value));
     if (sequence !== logsSequence || logsPanel.hidden) return;
-    logsText = String(result.text || 'Нет записей.');
-    logsOutput.textContent = logsText;
-    logsStatus.textContent = `Файлов: ${result.files || 0}` +
-      (result.truncated ? ' · показаны последние фрагменты' : '') + ' · локально, без отправки в интернет';
+    logsText = String(result.text || StudioI18n.t("image.update_logs_panel_no_entries"));
+    StudioI18n.bind(logsOutput, "textContent", () => (logsText), true);
+    StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.diagnostics_log_file_count_template", [result.files || 0]) +
+      (result.truncated ? StudioI18n.t("image.logs_showing_recent_excerpts") : '') + StudioI18n.t("image.logs_local_never_sent_online")), true);
   } catch (error) {
     if (sequence !== logsSequence || logsPanel.hidden) return;
     logsText = '';
-    logsOutput.textContent = 'Не удалось прочитать логи: ' + error.message;
-    logsStatus.textContent = 'Ошибка получения логов';
+    StudioI18n.bind(logsOutput, "textContent", () => (StudioI18n.t("image.logs_output_read_failed") + StudioI18n.remote(error.message)), true);
+    StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_retrieve_failed")), true);
   } finally {
     if (sequence === logsSequence) logsRefresh.disabled = false;
   }
@@ -1009,16 +1008,16 @@ async function copyLogsText(text) {
   }
 }
 logsCopy.addEventListener('click', async () => {
-  if (!logsText) { logsStatus.textContent = 'Сначала получи логи.'; return; }
+  if (!logsText) { StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_load_first")), true); return; }
   if (await copyLogsText(logsText)) {
-    logsStatus.textContent = 'Логи скопированы в буфер обмена.';
+    StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_copied_clipboard")), true);
   } else {
-    logsStatus.textContent = 'Копирование недоступно: выдели текст журнала вручную (Ctrl+A / Ctrl+C внутри области).';
+    StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_copying_unavailable_select_log_text_manually")), true);
     logsOutput.focus();
   }
 });
 logsSaveTxt.addEventListener('click', () => {
-  if (!logsText) { logsStatus.textContent = 'Сначала получи логи.'; return; }
+  if (!logsText) { StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_load_first")), true); return; }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const file = new Blob([logsText], {type:'text/plain;charset=utf-8'});
   const url = URL.createObjectURL(file);
@@ -1029,7 +1028,7 @@ logsSaveTxt.addEventListener('click', () => {
     document.body.append(link);
     link.click();
     link.remove();
-    logsStatus.textContent = 'TXT передан браузеру для сохранения.';
+    StudioI18n.bind(logsStatus, "textContent", () => (StudioI18n.t("image.logs_txt_sent_browser_saving")), true);
   } finally {
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
@@ -1060,35 +1059,35 @@ let qwenStageHistory = [];
 let qwenLastRecordedStage = '';
 let qwenLastSamplerStep = -1;
 const qwenNodeNames = {
-  '41': 'Загрузка исходного изображения',
-  '83': 'Загрузка референса',
-  '161': 'Загрузка Qwen diffusion model',
-  '162': 'Загрузка текстового энкодера',
-  '146': 'Загрузка VAE',
-  '170': 'Подключение LoRA',
-  '145': 'Настройка сэмплинга',
-  '152': 'Подготовка CFG',
-  '160': 'Масштабирование входного изображения',
-  '151': 'Обработка промпта',
-  '149': 'Подготовка conditioning',
-  '148': 'Подготовка референсов',
-  '147': 'Подготовка conditioning',
-  '156': 'Кодирование входного изображения (VAE)',
-  '169': 'Генерация изображения · KSampler',
-  '158': 'Декодирование результата (VAE)',
-  '200': 'Загрузка модели Real-ESRGAN',
-  '201': 'AI Upscale · первый проход',
-  '202': 'AI Upscale · второй проход',
-  '9': 'Запись готового файла'
+  '41': StudioI18n.t("image.app_qwen_names_loading_source_image"),
+  '83': StudioI18n.t("image.app_qwen_names_loading_reference"),
+  '161': StudioI18n.t("image.app_qwen_names_loading_diffusion_model"),
+  '162': StudioI18n.t("image.app_qwen_names_loading_text_encoder"),
+  '146': StudioI18n.t("image.app_qwen_names_loading_vae"),
+  '170': StudioI18n.t("image.app_qwen_names_applying_lo_ra"),
+  '145': StudioI18n.t("image.app_qwen_names_configuring_sampling"),
+  '152': StudioI18n.t("image.app_qwen_names_preparing_cfg"),
+  '160': StudioI18n.t("image.app_qwen_names_scaling_input_image"),
+  '151': StudioI18n.t("image.app_qwen_names_processing_prompt"),
+  '149': StudioI18n.t("image.app_qwen_names_preparing_conditioning"),
+  '148': StudioI18n.t("image.app_qwen_names_preparing_references"),
+  '147': StudioI18n.t("image.app_qwen_names_preparing_conditioning"),
+  '156': StudioI18n.t("image.app_qwen_names_encoding_input_image_vae"),
+  '169': StudioI18n.t("image.app_qwen_names_generating_image_k_sampler"),
+  '158': StudioI18n.t("image.app_qwen_names_decoding_result_vae"),
+  '200': StudioI18n.t("image.app_qwen_names_loading_real_esrgan_model"),
+  '201': StudioI18n.t("image.app_qwen_names_ai_upscale_first_pass"),
+  '202': StudioI18n.t("image.app_qwen_names_ai_upscale_second_pass"),
+  '9': StudioI18n.t("image.app_qwen_names_writing_output_file")
 };
 function qwenAddStage(text) {
   if (!text || text === qwenLastRecordedStage) return;
   qwenLastRecordedStage = text;
   const date = new Date();
-  const clock = date.toLocaleTimeString('ru-RU', {hour12:false});
+  const clock = date.toLocaleTimeString(StudioI18n.locale, {hour12:false});
   qwenStageHistory.push(`[${clock}] ${text}`);
   qwenStageHistory = qwenStageHistory.slice(-8);
-  qwenStageEvents.textContent = qwenStageHistory.join('\n');
+  StudioI18n.bind(qwenStageEvents, "textContent", () => (qwenStageHistory.join('\n')), true);
 }
 function qwenResetProgressUI() {
   qwenStageHistory = [];
@@ -1098,26 +1097,26 @@ function qwenResetProgressUI() {
   qwenRealtimeUpdated = 0;
   qwenStagePanel.hidden = false;
   qwenSamplerProgress.hidden = true;
-  qwenStageStep.textContent = '';
-  qwenStageName.textContent = 'Подготовка запроса';
-  qwenStageEvents.textContent = '';
-  qwenProgressHint.textContent = 'Показываем только реальные события ComfyUI. Процент шагов — не процент всей генерации.';
-  qwenAddStage('Подготовка запроса');
+  StudioI18n.bind(qwenStageStep, "textContent", () => (''), true);
+  StudioI18n.bind(qwenStageName, "textContent", () => (StudioI18n.t("image.qwen_stage_name_preparing_request")), true);
+  StudioI18n.bind(qwenStageEvents, "textContent", () => (''), true);
+  StudioI18n.bind(qwenProgressHint, "textContent", () => (StudioI18n.t("image.qwen_progress_hint_real_comfy_ui_events_shown_step")), true);
+  qwenAddStage(StudioI18n.t("image.qwen_stage_name_preparing_request"));
 }
 function qwenRecordStage(stage, step, maxSteps) {
   qwenStagePanel.hidden = false;
-  qwenStageName.textContent = stage;
+  StudioI18n.bind(qwenStageName, "textContent", () => (stage), true);
   if (Number.isFinite(step) && Number.isFinite(maxSteps) && maxSteps > 0) {
-    qwenStageStep.textContent = `Шаг ${step}/${maxSteps}`;
+    StudioI18n.bind(qwenStageStep, "textContent", () => (StudioI18n.t("image.qwen_stage_step", [step, maxSteps])), true);
     qwenSamplerProgress.hidden = false;
     qwenSamplerProgress.max = maxSteps;
     qwenSamplerProgress.value = Math.max(0, Math.min(maxSteps, step));
     if (step !== qwenLastSamplerStep) {
       qwenLastSamplerStep = step;
-      qwenAddStage(`KSampler · шаг ${step}/${maxSteps}`);
+      qwenAddStage(StudioI18n.t("image.qwen_record_stage_k_sampler_step", [step, maxSteps]));
     }
   } else {
-    qwenStageStep.textContent = '';
+    StudioI18n.bind(qwenStageStep, "textContent", () => (''), true);
     qwenSamplerProgress.hidden = true;
     qwenAddStage(stage);
   }
@@ -1144,7 +1143,7 @@ function qwenSocketMessage(event) {
     value = Number(running.value);
     maximum = Number(running.max);
   } else if (type === 'execution_start') {
-    qwenRecordStage('ComfyUI начал выполнение');
+    qwenRecordStage(StudioI18n.t("image.qwen_socket_message_comfy_ui_started_execution"));
     return;
   } else {
     return;
@@ -1159,7 +1158,7 @@ function qwenSocketMessage(event) {
   qwenRecordStage(label, step, total);
   if (liveState && busy) {
     // The existing 2-second HTTP polling remains the authoritative job-state fallback.
-    updateLiveStatus({phase:'running', node: step === null ? label : `${label} · шаг ${step}/${total}`, progressPct:null});
+    updateLiveStatus({phase:'running', node: step === null ? label : StudioI18n.t("image.run_generation_step", [StudioI18n.remote(label), step, total]), progressPct:null});
   }
 }
 function qwenInitProgressWebSocket(clientId) {
@@ -1174,13 +1173,13 @@ function qwenInitProgressWebSocket(clientId) {
     ws.addEventListener('close', () => {
       if (qwenProgressSocket !== ws) return;
       qwenProgressSocket = null;
-      qwenProgressHint.textContent = 'Live-прогресс недоступен: остаётся надёжный опрос состояния задачи каждые 2 секунды.';
+      StudioI18n.bind(qwenProgressHint, "textContent", () => (StudioI18n.t("image.qwen_progress_hint_live_unavailable_task_status_still_reliably")), true);
     });
     ws.addEventListener('error', () => {
-      qwenProgressHint.textContent = 'Нет WebSocket-прогресса; работает HTTP-статус. Результат генерации не затронут.';
+      StudioI18n.bind(qwenProgressHint, "textContent", () => (StudioI18n.t("image.qwen_progress_hint_no_web_socket_http_status_checks")), true);
     });
   } catch (error) {
-    qwenProgressHint.textContent = 'ComfyUI WebSocket не подключился, используется обычный HTTP-статус.';
+    StudioI18n.bind(qwenProgressHint, "textContent", () => (StudioI18n.t("image.qwen_progress_hint_comfy_ui_web_socket_could_not")), true);
   }
 }
 
@@ -1194,13 +1193,13 @@ function qwenCloseArchive() {
   (qwenLastFocus || qwenFavOpenButton).focus();
 }
 function qwenRenderFavorites() {
-  const search = qwenArchiveSearch.value.toLocaleLowerCase('ru-RU');
-  const matches = qwenFavorites.filter(item => item.prompt.toLocaleLowerCase('ru-RU').includes(search));
+  const search = qwenArchiveSearch.value.toLocaleLowerCase(StudioI18n.locale);
+  const matches = qwenFavorites.filter(item => item.prompt.toLocaleLowerCase(StudioI18n.locale).includes(search));
   qwenArchiveEntries.replaceChildren();
   if (!matches.length) {
     const empty = document.createElement('p');
     empty.className = 'qwen-muted';
-    empty.textContent = search ? 'По запросу ничего нет.' : 'Архив пока пуст. Сохрани промпт кнопкой ♡.';
+    StudioI18n.bind(empty, "textContent", () => (search ? StudioI18n.t("image.empty_no_matches") : StudioI18n.t("image.empty_archive_save_prompt")), true);
     qwenArchiveEntries.append(empty);
     return;
   }
@@ -1209,20 +1208,20 @@ function qwenRenderFavorites() {
     wrap.className = 'qwen-archive-item';
     const meta = document.createElement('div');
     meta.className = 'qwen-archive-meta';
-    meta.textContent = `Сохранён: ${item.created_at}`;
+    StudioI18n.bind(meta, "textContent", () => (StudioI18n.t("image.prompt_archive_entry_saved_date_template", [item.created_at])), true);
     const pre = document.createElement('pre');
-    pre.textContent = item.prompt; // Never inject prompt text as HTML.
+    StudioI18n.bind(pre, "textContent", () => (item.prompt), false); // Never inject prompt text as HTML.
     const actions = document.createElement('div');
     actions.className = 'qwen-archive-buttons';
     const append = document.createElement('button');
     append.type = 'button';
     append.className = 'secondary';
-    append.textContent = 'Добавить к промпту';
+    StudioI18n.bind(append, "textContent", () => (StudioI18n.t("image.prompt_archive_append_to_prompt_button_label")), true);
     append.addEventListener('click', () => {
       const target = byId('prompt');
       const separator = target.value.trim() ? '\n\n' : '';
       if ((target.value + separator + item.prompt).length > 5000) {
-        qwenArchiveStatus.textContent = 'После добавления получится больше 5000 символов. Сократи текущий промпт.';
+        StudioI18n.bind(qwenArchiveStatus, "textContent", () => (StudioI18n.t("image.qwen_archive_combined_prompt_would_exceed_5000_characters")), true);
         return;
       }
       target.value += separator + item.prompt;
@@ -1230,14 +1229,14 @@ function qwenRenderFavorites() {
       qwenCloseArchive();
       target.focus();
       target.setSelectionRange(target.value.length, target.value.length);
-      qwenFavStatus.textContent = 'Промпт из архива добавлен в конец текста.';
+      StudioI18n.bind(qwenFavStatus, "textContent", () => (StudioI18n.t("image.qwen_fav_archived_prompt_appended_text")), true);
     });
     const del = document.createElement('button');
     del.type = 'button';
     del.className = 'qwen-danger';
-    del.textContent = 'Удалить из архива';
+    StudioI18n.bind(del, "textContent", () => (StudioI18n.t("image.del_delete_archive")), true);
     del.addEventListener('click', async () => {
-      if (!confirm('Удалить этот промпт из архива? Это нельзя отменить.')) return;
+      if (!confirm(StudioI18n.t("image.del_delete_archived_prompt_cannot_undone"))) return;
       del.disabled = true;
       try {
         const result = await request('/api/favorites', {
@@ -1245,11 +1244,11 @@ function qwenRenderFavorites() {
           body:JSON.stringify({action:'delete', id:item.id})
         });
         qwenFavorites = result.entries;
-        qwenArchiveStatus.textContent = 'Запись удалена из архива.';
+        StudioI18n.bind(qwenArchiveStatus, "textContent", () => (StudioI18n.t("image.qwen_archive_entry_deleted")), true);
         qwenRenderFavorites();
       } catch (error) {
         del.disabled = false;
-        qwenArchiveStatus.textContent = 'Ошибка удаления: ' + error.message;
+        StudioI18n.bind(qwenArchiveStatus, "textContent", () => (StudioI18n.t("image.qwen_archive_deletion_error") + StudioI18n.remote(error.message)), true);
       }
     });
     actions.append(append,del);
@@ -1259,7 +1258,7 @@ function qwenRenderFavorites() {
 }
 qwenFavSaveButton.addEventListener('click', async () => {
   const prompt = byId('prompt').value;
-  if (!prompt.trim()) { qwenFavStatus.textContent = 'Сначала введи промпт.'; return; }
+  if (!prompt.trim()) { StudioI18n.bind(qwenFavStatus, "textContent", () => (StudioI18n.t("image.qwen_fav_enter_prompt_first")), true); return; }
   qwenFavSaveButton.disabled = true;
   try {
     const result = await request('/api/favorites', {
@@ -1267,21 +1266,21 @@ qwenFavSaveButton.addEventListener('click', async () => {
       body:JSON.stringify({action:'add',prompt})
     });
     qwenFavorites = result.entries;
-    qwenFavStatus.textContent = result.duplicate ? 'Этот промпт уже есть в архиве.' : '♡ Сохранено в portable-архив.';
-  } catch(error) { qwenFavStatus.textContent = 'Ошибка сохранения: ' + error.message; }
+    StudioI18n.bind(qwenFavStatus, "textContent", () => (result.duplicate ? StudioI18n.t("image.qwen_fav_prompt_already_archived") : StudioI18n.t("image.qwen_fav_saved_portable_archive")), true);
+  } catch(error) { StudioI18n.bind(qwenFavStatus, "textContent", () => (StudioI18n.t("image.qwen_fav_save_error") + StudioI18n.remote(error.message)), true); }
   finally { qwenFavSaveButton.disabled = false; }
 });
 qwenFavOpenButton.addEventListener('click', async () => {
   qwenLastFocus = document.activeElement;
   qwenArchivePanel.hidden = false;
-  qwenArchiveStatus.textContent = 'Загружаем архив…';
+  StudioI18n.bind(qwenArchiveStatus, "textContent", () => (StudioI18n.t("image.qwen_archive_loading")), true);
   qwenArchiveSearch.value = '';
   byId('qwenArchiveClose').focus();
   try {
     await qwenReloadFavorites();
-    qwenArchiveStatus.textContent = `Сохранено промптов: ${qwenFavorites.length}`;
+    StudioI18n.bind(qwenArchiveStatus, "textContent", () => (StudioI18n.t("image.qwen_archive_saved_prompts", [qwenFavorites.length])), true);
   } catch(error) {
-    qwenArchiveStatus.textContent = 'Не удалось прочитать архив: ' + error.message;
+    StudioI18n.bind(qwenArchiveStatus, "textContent", () => (StudioI18n.t("image.qwen_archive_read_failed") + StudioI18n.remote(error.message)), true);
   }
 });
 byId('qwenArchiveClose').addEventListener('click', qwenCloseArchive);

@@ -6,14 +6,15 @@ cached until told to drop them, and Ollama (Text) keeps the chat model for the k
 "start" route calls: it refuses while another module works, asks each idle module to release what it holds and, when the
 caller needs a minimum, waits until that much memory is really free.
 """
+from ui_strings import source as ui_text
 import time
 
 MODULES = ('image', 'video', 'music', 'text')
 # Voice input is not a module that blocks others (it never locks the interface), but its worker may hold video memory: it is released like the rest.
 RELEASABLE = MODULES + ('speech',)
 NAMES = dict(image='Image', video='Video', music='Music', text='Text')
-HINTS = dict(image='Дождитесь завершения или отмените задачу.', video='Дождитесь завершения или отмените задачу Video.',
-             music='Дождитесь завершения или отмените задачу Music.', text='Дождитесь окончания ответа или остановите его.')
+HINTS = dict(image=ui_text('common.gpu_wait_completion_cancel_task'), video=ui_text('common.gpu_wait_completion_cancel_video_task'),
+             music=ui_text('common.gpu_wait_completion_cancel_music_task'), text=ui_text('common.gpu_wait_response_finish_stop'))
 
 
 class Busy(ValueError):
@@ -54,10 +55,10 @@ class GpuCoordinator:
     def claim(self, module, need_vram_mb=0, wait=12.0):
         """Let `module` start. Returns the modules that released memory; raises Busy / GpuUnavailable."""
         if module not in MODULES:
-            raise ValueError('Неизвестный модуль GPU')
+            raise ValueError(ui_text('common.gpu_admission_unknown_module'))
         working = self.busy_modules(exclude=module)
         if working:
-            raise Busy('GPU занят %s. %s' % (' и '.join(NAMES[m] for m in working), HINTS[working[0]]))
+            raise Busy(ui_text('common.gpu_admission_busy') % (ui_text('common.gpu_busy_modules_conjunction').join(NAMES[m] for m in working), HINTS[working[0]]))
         released = []
         for other in RELEASABLE:
             release = self.releasers.get(other)
@@ -89,10 +90,10 @@ class GpuCoordinator:
             try:
                 free = self.free_vram() + self._held_mb(module)
             except Exception:
-                raise GpuUnavailable('Не удалось проверить свободную видеопамять. Подробности — в журнале запуска.') from None
+                raise GpuUnavailable(ui_text('common.gpu_wait_for_check_free_video_memory_see_startup_failed')) from None
             if free >= need_mb:
                 return
             if self.clock() >= deadline:
-                raise Busy('Недостаточно свободной видеопамяти: нужно не менее %.1f ГБ, свободно %.1f ГБ. Закройте другие GPU-приложения; чужие процессы студия не завершает.'
+                raise Busy(ui_text('common.gpu_wait_for_insufficient_free_video_memory_least_gb')
                            % (need_mb / 1024, free / 1024))
             self.sleep(0.5)

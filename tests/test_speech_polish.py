@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / 'App/server'))
 sys.path.insert(0, str(ROOT / 'tests'))
 from gpu import Busy, GpuCoordinator, GpuUnavailable
 from speech import polish, routes
-from speech.manager import SpeechManager
+from speech.speech_manager import SpeechManager
 from test_speech import Handler, SpeechCase, wav_bytes
 
 

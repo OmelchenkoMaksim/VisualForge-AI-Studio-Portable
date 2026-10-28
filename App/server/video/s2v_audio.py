@@ -1,4 +1,5 @@
 """Decode and bound S2V speech inputs before starting an owned GPU worker."""
+from ui_strings import source as ui_text
 import hashlib
 import json
 from pathlib import Path
@@ -16,7 +17,7 @@ def prepare(jobs,data,folder):
         valid=(2<=duration<=30) if cloning else (.1<=duration<=77/16)
         if not any(s['codec_type']=='audio' for s in info['streams']) or not valid:raise ValueError('duration')
     except (ValueError,KeyError,subprocess.SubprocessError,OSError) as error:
-        raise ValueError('Нужен читаемый образец голоса на 2–30 с.' if cloning else 'Нужна читаемая запись речи от 0,1 до 4,8125 с; длинная запись не обрезается автоматически.') from error
+        raise ValueError(ui_text('video.prepare_readable_2_30_s_voice_sample') if cloning else ui_text('video.prepare_readable_0_1_4_8125_s')) from error
     return dict(speech_input_path=str(target),speech_input_sha256=hashlib.sha256(raw).hexdigest(),
                 speech_input_duration=duration,audio_conditioning=True,
                 lip_sync_accuracy='model_generated_not_guaranteed')

@@ -2,20 +2,20 @@
 (() => {
   'use strict';
   const releases = {
-    'qwen-edit-2511': ['23.12.2025', 'выпуск модели', 'https://github.com/QwenLM/Qwen-Image'],
-    'qwen-image-21-uc-fp8': ['23.09.2026', 'публикация FP8', 'https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-Quantized/commits/main'],
-    'flux3-klein-int8': ['17.10.2026', 'обновление пакета ComfyUI', 'https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/commits/main'],
-    'z-image-turbo-int8': ['23.09.2026', 'обновление пакета ComfyUI', 'https://huggingface.co/Comfy-Org/Z-Image-Turbo/commits/main'],
-    'stable-audio-3-medium': ['23.09.2026', 'публикация пакета ComfyUI', 'https://huggingface.co/Comfy-Org/stable-audio-3/commits/main'],
-    'minimax-music3-int8': ['13.08.2026', 'выпуск модели', 'https://blog.comfy.org/p/minimax-music-3-state-of-the-art'],
-    'ace-step-15-turbo': ['23.01.2026', 'публикация весов', 'https://huggingface.co/ACE-Step/Ace-Step1.5/commits/main'],
-    'freevideo-h3-int8': ['13.09.2026', 'публикация весов VDN-H3 Edge', 'https://huggingface.co/OpenVDN/vdn-minimax-h3-edge/commits/main'],
-    'wan22-ti2v-5b': ['28.07.2025', 'выпуск модели', 'https://github.com/Wan-Video/Wan2.2'],
-    'wan22-s2v-14b': ['26.08.2025', 'выпуск модели', 'https://github.com/Wan-Video/Wan2.2'],
-    'ltx25-distilled': ['11.08.2026', 'выпуск модели', 'https://github.com/Lightricks/LTX-2/releases/tag/v1.2.0'],
-    'text-qwen38-27b': ['14.08.2026', 'выпуск базы', 'https://github.com/QwenLM/Qwen3.8#news'],
-    'text-qwen36-35b-a3b': ['16.04.2026', 'выпуск базы', 'https://github.com/QwenLM/Qwen3.8#news'],
-    'text-gemma4-26b-a4b': ['31.03.2026', 'выпуск базы', 'https://ai.google.dev/gemma/docs/releases#march_31_2026']
+    'qwen-edit-2511': ['23.12.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/QwenLM/Qwen-Image'],
+    'qwen-image-21-uc-fp8': ['23.09.2026', StudioI18n.t("settings.studio_ui_releases_fp8_publication"), 'https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-Quantized/commits/main'],
+    'flux3-klein-int8': ['17.10.2026', StudioI18n.t("settings.studio_ui_releases_comfy_package_update"), 'https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/commits/main'],
+    'z-image-turbo-int8': ['23.09.2026', StudioI18n.t("settings.studio_ui_releases_comfy_package_update"), 'https://huggingface.co/Comfy-Org/Z-Image-Turbo/commits/main'],
+    'stable-audio-3-medium': ['23.09.2026', StudioI18n.t("settings.studio_ui_releases_comfy_package_publication"), 'https://huggingface.co/Comfy-Org/stable-audio-3/commits/main'],
+    'minimax-music3-int8': ['13.08.2026', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://blog.comfy.org/p/minimax-music-3-state-of-the-art'],
+    'ace-step-15-turbo': ['23.01.2026', StudioI18n.t("settings.studio_ui_releases_weights_publication"), 'https://huggingface.co/ACE-Step/Ace-Step1.5/commits/main'],
+    'freevideo-h3-int8': ['13.09.2026', StudioI18n.t("settings.studio_ui_releases_vdn_h3_edge_weights_publication"), 'https://huggingface.co/OpenVDN/vdn-minimax-h3-edge/commits/main'],
+    'wan22-ti2v-5b': ['28.07.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/Wan-Video/Wan2.2'],
+    'wan22-s2v-14b': ['26.08.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/Wan-Video/Wan2.2'],
+    'ltx25-distilled': ['11.08.2026', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/Lightricks/LTX-2/releases/tag/v1.2.0'],
+    'text-qwen38-27b': ['14.08.2026', StudioI18n.t("settings.studio_ui_releases_base_model_release"), 'https://github.com/QwenLM/Qwen3.8#news'],
+    'text-qwen36-35b-a3b': ['16.04.2026', StudioI18n.t("settings.studio_ui_releases_base_model_release"), 'https://github.com/QwenLM/Qwen3.8#news'],
+    'text-gemma4-26b-a4b': ['31.03.2026', StudioI18n.t("settings.studio_ui_releases_base_model_release"), 'https://ai.google.dev/gemma/docs/releases#march_31_2026']
   };
   // Keep the existing action buttons so module navigation and log handlers retain their ownership.
   const settingsToggle = document.getElementById('studioSettingsToggle');
@@ -44,6 +44,8 @@
     if (!settingsHost.contains(event.relatedTarget)) closeSettings();
   });
   settingsHost.addEventListener('keydown', event => {
+    // Native selects own arrow/Home/End keys; menu navigation must not steal language selection.
+    if (event.target.tagName === 'SELECT' && event.key !== 'Escape') return;
     if (event.key === 'Escape' && !settingsMenu.hidden) {
       event.preventDefault();event.stopPropagation();closeSettings(true);
     } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
@@ -58,18 +60,18 @@
   // Cache each module separately: a late Image preflight must not overwrite the active tab's header.
   const headers = {
     image: {model: '', description: document.getElementById('subtitle').textContent, status: document.getElementById('preflight').textContent, tone: 'muted'},
-    video: {model: 'Video', description: 'Локальная генерация видео', status: 'Проверка моделей Video…', tone: 'muted'},
-    music: {model: 'Music', description: 'Локальная генерация музыки и песен', status: 'Проверка моделей Music…', tone: 'muted'},
-    text: {model: 'Text', description: 'Локальный текстовый ассистент', status: 'Проверка моделей Text…', tone: 'muted'}
+    video: {model: 'Video', description: StudioI18n.t("settings.studio_ui_headers_description_local_video_generation"), status: StudioI18n.t("settings.studio_ui_headers_checking_video_models"), tone: 'muted'},
+    music: {model: 'Music', description: StudioI18n.t("settings.studio_ui_headers_description_local_music_song_generation"), status: StudioI18n.t("settings.studio_ui_headers_checking_music_models"), tone: 'muted'},
+    text: {model: 'Text', description: StudioI18n.t("settings.studio_ui_headers_description_local_text_assistant"), status: StudioI18n.t("settings.studio_ui_headers_checking_text_models"), tone: 'muted'}
   };
   function renderHeader() {
     const state = headers[document.body.dataset.studioModule || 'image'];
     if (!state) return;
     // The compact top bar already shows the section in the rail, so the context starts directly with the model name.
-    document.getElementById('engineEyebrow').textContent = state.model || 'Local AI';
-    document.getElementById('subtitle').textContent = state.description;
+    StudioI18n.bind(document.getElementById('engineEyebrow'), "textContent", () => (state.model || 'Local AI'), true);
+    StudioI18n.bind(document.getElementById('subtitle'), "textContent", () => (StudioI18n.remote(state.description)), true);
     const readiness = document.getElementById('preflight');
-    readiness.textContent = state.status;
+    StudioI18n.bind(readiness, "textContent", () => (state.status), true);
     readiness.className = 'status ' + state.tone;
   }
   function setHeader(module, state) {
@@ -86,7 +88,7 @@
   async function openFolder(path) {
     const response = await fetch('/api/open-output-dir', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({path})});
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Не удалось открыть папку');
+    if (!response.ok) throw new Error(StudioI18n.remote(result.error) || StudioI18n.t("settings.open_folder_failed"));
     return result;
   }
   function notify({module, id, error = false, message = '', folder = '', onLogs}) {
@@ -96,56 +98,56 @@
     let host = document.getElementById('studioNotifications');
     if (!host) {
       host = document.createElement('section'); host.id = 'studioNotifications';
-      host.setAttribute('aria-label', 'Уведомления студии'); document.body.append(host);
+      StudioI18n.bind(host, "@aria-label", () => (StudioI18n.t("settings.host_studio_notifications")), true); document.body.append(host);
     }
     const card = document.createElement('div'); card.className = 'studio-notice' + (error ? ' studio-notice-error' : '');
     if (id) card.dataset.jobKey = module + ':' + id;
     card.setAttribute('role', error ? 'alert' : 'status');
     const title = document.createElement('strong');
-    title.textContent = module + (error ? ' · Ошибка' : ' · Завершено успешно');
-    const body = document.createElement('p'); body.textContent = message || (error ? 'Подробности доступны в журнале.' : 'Результат сохранён.');
+    StudioI18n.bind(title, "textContent", () => (module + (error ? StudioI18n.t("settings.generation_notification_error_title_suffix") : StudioI18n.t("settings.notify_completed_successfully"))), true);
+    const body = document.createElement('p'); StudioI18n.bind(body, "textContent", () => (message || (error ? StudioI18n.t("settings.notify_details_available_log") : StudioI18n.t("settings.notify_result_saved"))), true);
     card.append(title, body);
     const action = (label, callback) => {
-      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary'; button.textContent = label;
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary'; StudioI18n.bind(button, "textContent", () => (label), true);
       button.onclick = async () => {
         button.disabled = true;
-        try { await callback(); } catch (e) { body.textContent = e.message; } finally { button.disabled = false; }
+        try { await callback(); } catch (e) { StudioI18n.bind(body, "textContent", () => (StudioI18n.remote(e.message)), true); } finally { button.disabled = false; }
       };
       card.append(button);
     };
-    if (folder) action('Открыть папку', () => openFolder(folder));
-    if (onLogs) action('Показать лог', onLogs);
-    action('Закрыть', () => card.remove());
+    if (folder) action(StudioI18n.t("settings.notify_open_folder"), () => openFolder(folder));
+    if (onLogs) action(StudioI18n.t("settings.notify_show_log"), onLogs);
+    action(StudioI18n.t("settings.dialog_close_button_label"), () => card.remove());
     host.append(card);
     sound(error);
   }
   function generationInfo(record) {
     const details = document.createElement('details'); details.className = 'generation-info';
     const summary = document.createElement('summary');
-    summary.textContent = 'Данные генерации · ' + record.type + ' · ' + record.id.slice(0, 12) + '…';
+    StudioI18n.bind(summary, "textContent", () => (StudioI18n.t("settings.summary_generation_data") + record.type + ' · ' + record.id.slice(0, 12) + '…'), true);
     details.append(summary);
     const list = document.createElement('dl');
-    const date = record.started_at ? new Date(record.started_at).toLocaleString('ru-RU') : 'неизвестно';
-    const duration = record.duration_sec === null ? 'ещё не завершена или время неизвестно' : record.duration_sec.toLocaleString('ru-RU') + ' с';
-    for (const [label, value] of [['Тип', record.type], ['ID', record.id], ['Начало', date], ['Длительность', duration]]) {
+    const date = () => record.started_at ? new Date(record.started_at).toLocaleString(StudioI18n.locale) : StudioI18n.t("settings.metadata_unknown_value_label");
+    const duration = () => record.duration_sec === null ? StudioI18n.t("settings.generation_info_not_finished_yet_duration_unknown") : record.duration_sec.toLocaleString(StudioI18n.locale) + StudioI18n.t("settings.duration_seconds_unit_suffix");
+    for (const [label, read] of [[()=>StudioI18n.t("settings.generation_identity_type_field_label"), ()=>record.type], [()=>'ID', ()=>record.id], [()=>StudioI18n.t("settings.generation_identity_started_field_label"), date], [()=>StudioI18n.t("settings.generation_identity_duration_field_label"), duration]]) {
       const key = document.createElement('dt'), text = document.createElement('dd');
-      key.textContent = label; text.textContent = value; list.append(key, text);
+      StudioI18n.bind(key, "textContent", label, false); StudioI18n.bind(text, "textContent", read, false); list.append(key, text);
     }
-    const copy = document.createElement('button'); copy.type='button'; copy.className='secondary slim'; copy.textContent='Скопировать объект';
+    const copy = document.createElement('button'); copy.type='button'; copy.className='secondary slim'; StudioI18n.bind(copy, "textContent", () => (StudioI18n.t("settings.generation_identity_copy_button_label")), true);
     copy.onclick = async () => {
-      try { await navigator.clipboard.writeText(JSON.stringify(record, null, 2)); copy.textContent='Скопировано'; }
-      catch { copy.textContent='Не удалось скопировать'; }
+      try { await navigator.clipboard.writeText(JSON.stringify(record, null, 2)); StudioI18n.bind(copy, "textContent", () => (StudioI18n.t("settings.clipboard_copy_success_feedback")), true); }
+      catch { StudioI18n.bind(copy, "textContent", () => (StudioI18n.t("settings.clipboard_copy_failed_feedback")), true); }
     };
     details.append(list, copy);
     return details;
   }
   function deleteGenerationButton(module, id, afterDelete, beforeDelete = () => {}) {
     const button = document.createElement('button');
-    button.type = 'button'; button.className = 'secondary slim'; button.textContent = 'Удалить';
-    button.title = 'Удалить генерацию вместе с результатом, метаданными и отдельным логом задачи';
-    const reportFailure = message => notify({module, error:true, message:'Не удалось завершить удаление: ' + message});
+    button.type = 'button'; button.className = 'secondary slim'; StudioI18n.bind(button, "textContent", () => (StudioI18n.t("settings.generation_delete_button_label")), true);
+    StudioI18n.bind(button, "title", () => (StudioI18n.t("settings.button_delete_generation_output_metadata_separate_task")), true);
+    const reportFailure = message => notify({module, error:true, message:StudioI18n.t("settings.delete_generation_button_complete_deletion_failed") + message});
     button.onclick = async () => {
-      if (button.disabled || !window.confirm('Удалить эту генерацию безвозвратно?\n\nБудут удалены запись истории, файлы результата, метаданные, временные файлы и отдельный лог задачи. Общие журналы студии и движков могут содержать сведения об этой генерации и сохранятся. Отдельные генерации и миксы останутся.')) return;
+      if (button.disabled || !window.confirm(StudioI18n.t("settings.button_permanently_delete_generation_history_entry_output"))) return;
       button.disabled = true;
       try {
         // Release range requests before deleting a playing file: Windows otherwise keeps its handle open.
@@ -153,11 +155,11 @@
         const url = module === 'Image' ? '/api/history/delete' : '/api/' + module.toLowerCase() + '/delete';
         const response = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})});
         const value = await response.json();
-        if (!response.ok || !value?.deleted) {reportFailure(value?.error || 'Удаление не подтверждено');return;}
+        if (!response.ok || !value?.deleted) {reportFailure(StudioI18n.remote(value?.error) || StudioI18n.t("settings.button_deletion_not_confirmed"));return;}
         for (const card of document.querySelectorAll('.studio-notice')) if (card.dataset.jobKey === module + ':' + id) card.remove();
         await afterDelete();
       } catch (error) {
-        reportFailure(error.message);
+        reportFailure(StudioI18n.remote(error.message));
       } finally { button.disabled = false; }
     };
     return button;
@@ -173,7 +175,7 @@
   }
   for (const option of document.querySelectorAll('#engineSelect option, #videoEngine option, #musicEngine option')) {
     const data=releases[option.value];
-    if (data) { option.textContent += ` · ${data[1]}: ${data[0]}`; option.title=data[2]; }
+    if (data) { StudioI18n.append(option, "textContent", () => (` · ${data[1]}: ${data[0]}`), true); StudioI18n.bind(option, "title", () => (data[2]), true); }
   }
   // ---- while any module generates, everything that would start or disturb a job is inert ----------------------------------
   // Tabs, engine and mode choices, settings and typing in prompt fields stay free; the buttons below (starting a generation or an export,
@@ -199,9 +201,9 @@
     if (banner) return;
     banner = document.createElement('div');banner.id = 'studioBusy';banner.setAttribute('role', 'status');banner.hidden = true;
     banner_text = document.createElement('span');
-    banner_stop = document.createElement('button');banner_stop.type = 'button';banner_stop.id = 'studioBusyStop';banner_stop.dataset.allowBusy = '1';banner_stop.textContent = 'Остановить генерацию';
+    banner_stop = document.createElement('button');banner_stop.type = 'button';banner_stop.id = 'studioBusyStop';banner_stop.dataset.allowBusy = '1';StudioI18n.bind(banner_stop, "textContent", () => (StudioI18n.t("settings.banner_stop_generation")), true);
     banner_stop.onclick = async () => {
-      banner_stop.disabled = true;banner_stop.textContent = 'Останавливаю…';
+      banner_stop.disabled = true;StudioI18n.bind(banner_stop, "textContent", () => (StudioI18n.t("settings.banner_stop_stopping")), true);
       try {await fetch('/api/stop-generation', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});} catch {}
       for (const delay of [300, 1200, 3000]) setTimeout(poll, delay);
     };
@@ -212,12 +214,12 @@
     if (busy !== locked || kind !== lockKind) {
       const was = locked, wasKind = lockKind;
       locked = busy;lockKind = busy ? kind : '';document.body.classList.toggle('studio-busy', busy);banner.hidden = !busy;
-      if (!busy) {banner_stop.disabled = false;banner_stop.textContent = 'Остановить генерацию';}
+      if (!busy) {banner_stop.disabled = false;StudioI18n.bind(banner_stop, "textContent", () => (StudioI18n.t("settings.banner_stop_generation")), true);}
       if (busy !== was) window.dispatchEvent(new CustomEvent(busy ? 'studio:busy' : 'studio:idle', {detail: {kind: busy ? kind : wasKind, labels}}));
     }
-    if (busy) banner_text.textContent = kind === 'voice'
-      ? 'Gemma работает для голосового ввода (загрузка или правка текста). Запуск генерации подождёт несколько секунд, остальное можно делать.'
-      : `Идёт генерация: ${labels.join(', ')}. Вкладки, выбор нейросети и ввод текста доступны; запускать новое нельзя до конца.`;
+    if (busy) StudioI18n.bind(banner_text, "textContent", () => (kind === 'voice'
+      ? StudioI18n.t("settings.banner_gemma_working_voice_input_loading_editing")
+      : StudioI18n.t("settings.banner_generation_running_tabs_model_selection_text", [labels.map(label=>StudioI18n.remote(label)).join(', ')])), true);
   }
   let again = false;
   async function poll() {

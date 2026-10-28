@@ -4,6 +4,7 @@ The worker engines (ACE-Step, MiniMax) run in their own Python subprocess; this 
 Image section already runs. ComfyUI writes a FLAC preview into its temp folder; the bridge fetches it and turns it into the WAV that
 Music stores, reading the real sample rate, channel count and length from that file.
 """
+from ui_strings import source as ui_text
 import hashlib
 import json
 from pathlib import Path
@@ -59,7 +60,7 @@ class ComfyClient:
     def fetch(self, path, limit=MAX_FLAC_BYTES, timeout=120):
         data = self._open(path, timeout=timeout, limit=limit)
         if len(data) > limit:
-            raise RuntimeError('ComfyUI вернул слишком большой аудиофайл')
+            raise RuntimeError(ui_text('music.fetch_comfy_ui_returned_audio_file_too'))
         return data
 
 
@@ -90,7 +91,7 @@ def inspect_wav(path):
         frames, rate = stream.getnframes(), stream.getframerate()
         info = dict(sample_rate=rate, channels=stream.getnchannels(), bits=stream.getsampwidth() * 8, frames=frames)
     if not frames or not rate:
-        raise RuntimeError('Stable Audio создал пустой WAV')
+        raise RuntimeError(ui_text('music.inspect_wav_stable_audio_created_empty'))
     info['duration'] = round(frames / rate, 2)
     return info
 
@@ -127,7 +128,7 @@ class ComfyBackend:
         if not runtime.is_file():
             missing.append(str(runtime))
         return dict(available=not missing, missing=missing,
-                    reason='Stable Audio 3 Medium не установлена: нужны программа Image и модели. Скачайте их во вкладке «Компоненты».' if missing else '')
+                    reason=ui_text('music.availability_stable_audio_3_medium_not_installed') if missing else '')
 
     # ---- graph -------------------------------------------------------------------------------------------------------
     def build(self, request):
@@ -152,15 +153,15 @@ class ComfyBackend:
         """Refuse before any GPU work when ComfyUI cannot run this graph; the reasons are the same ones Image reports."""
         from engines.preflight import combo_options, graph_errors, input_specs
         if self.client is None:
-            raise ValueError('ComfyUI раздела Image не подключён. Перезапустите студию.')
+            raise ValueError(ui_text('music.preflight_image_comfy_ui_not_connected_restart'))
         try:
             info = self.client.get('/object_info', timeout=20)
         except (urllib.error.URLError, TimeoutError, OSError, ComfyError):
-            raise ValueError('ComfyUI раздела Image не отвечает. Подождите запуска или перезапустите студию.') from None
+            raise ValueError(ui_text('music.preflight_image_comfy_ui_not_responding_wait')) from None
         graph, _ = self.build(request)
         missing = sorted({node['class_type'] for node in graph.values() if node['class_type'] not in info})
         if missing:
-            raise ValueError('В ComfyUI нет узлов: ' + ', '.join(missing))
+            raise ValueError(ui_text('music.preflight_missing_comfy_ui_nodes') + ', '.join(missing))
         absent = []
         for node in graph.values():
             for key, filename in (('ckpt_name', CHECKPOINT[1]), ('clip_name', TEXT_ENCODER[1])):
@@ -169,13 +170,13 @@ class ComfyBackend:
                     if options is None or filename not in options:
                         absent.append(filename)
         if absent:
-            raise ValueError('ComfyUI не видит модели: ' + ', '.join(absent) + '. Проверьте вкладку «Компоненты».')
+            raise ValueError(ui_text('music.preflight_comfy_ui_cannot_find_models') + ', '.join(absent) + ui_text('music.preflight_check_components'))
         # Only the two model names were answered above (with the Components hint); any other unavailable value, such as a
         # sampler, scheduler or CLIP type that a ComfyUI update dropped, must stop the job here and not fail it on the GPU.
         handled = tuple(': unavailable %s=' % key for key in ('ckpt_name', 'clip_name'))
         errors = [error for error in graph_errors(graph, info) if not any(mark in error for mark in handled)]
         if errors:
-            raise ValueError('Граф Stable Audio несовместим с ComfyUI: ' + '; '.join(errors[:6]))
+            raise ValueError(ui_text('music.preflight_stable_audio_graph_incompatible_comfy_ui') + '; '.join(errors[:6]))
 
     # ---- one job -----------------------------------------------------------------------------------------------------
     def owned_prompt_ids(self):
@@ -195,27 +196,27 @@ class ComfyBackend:
             try:
                 answer = self.client.post('/prompt', {'prompt': graph, 'client_id': self.client.client_id}, timeout=30)
             except ComfyError as error:
-                raise RuntimeError('ComfyUI отклонил граф: ' + str(error)[:700]) from None
+                raise RuntimeError(ui_text('music.run_comfy_ui_rejected_graph') + str(error)[:700]) from None
             prompt_id = answer.get('prompt_id')
             if not isinstance(prompt_id, str) or not prompt_id:
-                raise RuntimeError('ComfyUI отклонил граф: ' + str(answer)[:600])
+                raise RuntimeError(ui_text('music.run_comfy_ui_rejected_graph') + str(answer)[:600])
             with self._lock:
                 self._prompt_id = prompt_id
             from .storage import write_json
             write_json(directory / 'comfy-artifacts.json', {'prompt_id': prompt_id})
-            log('Граф отправлен в ComfyUI, prompt_id=' + prompt_id)
-            progress('Ожидание очереди ComfyUI')
+            log(ui_text('music.run_graph_submitted_comfy_ui_prompt_id') + prompt_id)
+            progress(ui_text('music.run_waiting_comfy_ui_queue'))
             item = self._wait(prompt_id, started, progress, log, cancelled)
             write_json(directory / 'comfy-artifacts.json', {'prompt_id': prompt_id, 'outputs': [item]})
             flac = scratch / 'result.flac'
             query = urllib.parse.urlencode({'filename': item['filename'], 'subfolder': item.get('subfolder', ''), 'type': item.get('type', 'temp')})
             flac.write_bytes(self.client.fetch('/view?' + query))
-            log('Получен FLAC: %d байт' % flac.stat().st_size)
-            progress('Преобразование в WAV')
+            log(ui_text('music.run_flac_received_bytes') % flac.stat().st_size)
+            progress(ui_text('music.run_converting_wav'))
             wav = scratch / 'result.wav'
             self.convert(flac, wav)
             facts = inspect_wav(wav)
-            log('WAV: %d Гц, %d канала, %d бит, %.2f с' % (facts['sample_rate'], facts['channels'], facts['bits'], facts['duration']))
+            log(ui_text('music.run_wav_hz_channels_bit_s') % (facts['sample_rate'], facts['channels'], facts['bits'], facts['duration']))
             metadata.update(facts, generation_sec=round(self.clock() - started, 1), backend='comfy', source_format='flac', comfy_prompt_id=prompt_id)
             return dict(path=str(wav), metadata=metadata)
         except Cancelled:
@@ -237,10 +238,10 @@ class ComfyBackend:
         while True:
             if cancelled() and not cancel_sent:
                 cancel_sent = True
-                progress('Отмена Music')
+                progress(ui_text('music.wait_cancelling_music'))
                 self._remote_cancel(prompt_id, log)
             if self.clock() - started > JOB_TIMEOUT_SEC:
-                raise RuntimeError('Stable Audio не завершился за час; задача снимается в ComfyUI')
+                raise RuntimeError(ui_text('music.wait_stable_audio_did_not_finish_within'))
             entry = (self.client.get('/history/' + prompt_id, timeout=30) or {}).get(prompt_id)
             if entry:
                 status = entry.get('status', {})
@@ -249,20 +250,20 @@ class ComfyBackend:
                         raise Cancelled()
                     errors = [m[1] for m in status.get('messages', []) if m and m[0] == 'execution_error' and len(m) > 1 and isinstance(m[1], dict)]
                     detail = errors[-1].get('exception_message') if errors else None
-                    raise RuntimeError('ComfyUI: ' + str(detail or 'задача завершилась ошибкой')[:800])
+                    raise RuntimeError('ComfyUI: ' + str(detail or ui_text('music.wait_task_failed'))[:800])
                 audio = (entry.get('outputs', {}).get(RESULT_NODE) or {}).get('audio') or []
                 if audio:
                     item = audio[0]
                     if not isinstance(item, dict) or not isinstance(item.get('filename'), str) or '/' in item['filename'] or '\\' in item['filename'] or '..' in str(item.get('subfolder', '')):
-                        raise RuntimeError('ComfyUI вернул непонятный путь к аудио')
+                        raise RuntimeError(ui_text('music.wait_comfy_ui_returned_unrecognized_audio_path'))
                     return item
                 if status.get('completed') is True:
                     if cancelled():
                         raise Cancelled()
-                    raise RuntimeError('ComfyUI завершил задачу без аудио')
+                    raise RuntimeError(ui_text('music.wait_comfy_ui_finished_without_audio'))
             elif cancelled() and not self._in_queue(prompt_id):
                 raise Cancelled()
-            now = 'Генерация звука' if self._running(prompt_id) else 'Ожидание очереди ComfyUI'
+            now = ui_text('music.wait_generating_audio') if self._running(prompt_id) else ui_text('music.run_waiting_comfy_ui_queue')
             if now != phase:
                 phase = now
                 progress(now)
@@ -285,14 +286,14 @@ class ComfyBackend:
         """Cancel only this prompt: ComfyUI interrupts it if it runs and dequeues it if it waits; other jobs are untouched."""
         try:
             answer = self.client.post('/api/jobs/' + prompt_id + '/cancel', {}, timeout=15)
-            log('Отмена в ComfyUI: ' + json.dumps(answer, ensure_ascii=False)[:200])
+            log(ui_text('music.remote_cancel_comfy_ui_cancellation') + json.dumps(answer, ensure_ascii=False)[:200])
         except (urllib.error.URLError, TimeoutError, OSError, ValueError, ComfyError) as error:
-            log('Не удалось отменить задачу в ComfyUI: ' + str(error)[:200])
+            log(ui_text('music.remote_cancel_comfy_ui_task_failed') + str(error)[:200])
 
     def _free(self, log):
         """Ask ComfyUI to drop its models; the job is already finished or failed, so a refusal only gets logged."""
         try:
             self.client.post('/free', {'unload_models': True, 'free_memory': True}, timeout=10)
-            log('ComfyUI: модели выгружены')
+            log(ui_text('music.free_comfy_ui_models_unloaded'))
         except Exception as error:
-            log('ComfyUI не выгрузил модели: ' + str(error)[:200])
+            log(ui_text('music.free_comfy_ui_did_not_unload_models') + str(error)[:200])

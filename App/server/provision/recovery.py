@@ -1,4 +1,5 @@
 """One expiring installer question, shared by the worker and all browser tabs."""
+from ui_strings import source as ui_text
 import secrets
 import threading
 import time
@@ -43,16 +44,16 @@ class Recovery:
     def respond(self, token, kind, value=''):
         with self.condition:
             if not self.pending or self.pending['token'] != token or self.clock() >= self.pending['deadline'] or self.answer is not None:
-                raise ValueError('Запрос уже закрыт. Повторите установку модели.')
+                raise ValueError(ui_text('components.respond_request_already_closed_retry_model_installation'))
             if kind not in ('url', 'file', 'skip') or not isinstance(value, str) or len(value) > 4096:
-                raise ValueError('Некорректный источник')
+                raise ValueError(ui_text('components.respond_invalid_source'))
             value = value.strip()
             if kind == 'url':
                 parsed = urlsplit(value)
                 if parsed.scheme not in ('https', 'http') or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
-                    raise ValueError('Нужна прямая HTTP(S)-ссылка без логина и пароля в адресе')
+                    raise ValueError(ui_text('components.respond_direct_http_s_link_without_credentials'))
             if kind == 'file' and not value:
-                raise ValueError('Укажите скачанный файл')
+                raise ValueError(ui_text('components.respond_specify_downloaded_file'))
             self.answer = dict(kind=kind, value=value)
             self.condition.notify_all()
             return {'accepted': True}

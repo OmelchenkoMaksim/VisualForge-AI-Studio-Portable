@@ -1,4 +1,5 @@
 """Read-only model facts and catalog-backed storage budgets; never downloads or hashes weights."""
+from ui_strings import source as ui_text
 from pathlib import Path
 from provision import catalog as catalog_module
 from provision.engine import Engine as Installer, SPACE_MARGIN
@@ -16,53 +17,53 @@ COMPONENTS = {
     'music:minimax-music3-int8': 'music.model.minimax-music3',
     'music:stable-audio-3-medium': 'music.model.stable-audio-3',
 }
-MODES = dict(t2v='Видео по тексту', i2v='Оживление изображения', first_last='Первый / последний кадр',
-    characters='Персонажи по референсам', s2v='Речь → видео', instrumental='Инструментал', song='Песня с вокалом',
-    single='Редактирование', reference='Редактирование с референсом', prompt='Изображение по тексту',
-    audio='Музыка и звуки по описанию')
+MODES = dict(t2v=ui_text('hardware.model_requirements_video_text'), i2v=ui_text('hardware.model_requirements_image_animation'), first_last=ui_text('hardware.model_requirements_first_last_frame'),
+    characters=ui_text('hardware.model_requirements_characters_references'), s2v=ui_text('hardware.model_requirements_speech_video'), instrumental=ui_text('hardware.generation_instrumental_mode_label'), song=ui_text('hardware.model_requirements_song_vocals'),
+    single=ui_text('hardware.model_requirements_editing'), reference=ui_text('hardware.model_requirements_editing_reference'), prompt=ui_text('hardware.model_requirements_image_text'),
+    audio=ui_text('hardware.model_requirements_music_sounds_description'))
 
 
 def facts(module, ident, model=None):
     if module == 'image':
         from engines.registry import ENGINES, CANVASES
         engine = ENGINES[ident]
-        weights = {'qwen-image-21-uc-fp8': 'FP8; текстовый энкодер INT8',
-                   'z-image-turbo-int8': 'Трансформер INT8; текстовый энкодер Qwen3-4B FP8',
-                   'flux3-klein-int8': 'Distilled INT8; энкодер Qwen3-VL-4B INT8; upsampler промпта Qwen3.5-9B INT8'}.get(ident, 'FP8; текстовый энкодер FP8')
-        rows = [('Возможности', ', '.join(MODES[m] + (' (экспериментально)' if m == 'prompt' and not engine.native_prompt else '') for m in engine.modes)), ('Формат результата', 'PNG'),
-            ('Качество', ' / '.join(str(n) for n in engine.quality_steps.values()) + ' шагов'),
-            ('Кадр с нуля', ', '.join('%d×%d' % size for size in dict.fromkeys(CANVASES.values()))),
-            ('Веса', weights)]
+        weights = {'qwen-image-21-uc-fp8': ui_text('hardware.model_requirements_characteristics_fp8_int8_text_encoder'),
+                   'z-image-turbo-int8': ui_text('hardware.model_requirements_characteristics_int8_transformer_fp8_qwen3_4_b'),
+                   'flux3-klein-int8': ui_text('hardware.model_requirements_characteristics_distilled_int8_qwen3_vl_4_b')}.get(ident, ui_text('hardware.model_requirements_characteristics_fp8_text_encoder'))
+        rows = [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(MODES[m] + (ui_text('hardware.model_requirements_characteristics_experimental') if m == 'prompt' and not engine.native_prompt else '') for m in engine.modes)), (ui_text('hardware.model_requirements_characteristics_output_format'), 'PNG'),
+            (ui_text('hardware.model_requirements_characteristics_quality'), ' / '.join(str(n) for n in engine.quality_steps.values()) + ui_text('hardware.model_requirements_characteristics_steps')),
+            (ui_text('hardware.model_requirements_characteristics_frame_scratch'), ', '.join('%d×%d' % size for size in dict.fromkeys(CANVASES.values()))),
+            (ui_text('hardware.model_requirements_characteristics_weights'), weights)]
         if 'single' not in engine.modes:
-            rows.append(('Особенности', 'Только создание по тексту: нет редактирования, референсов и вариантов; негативный промпт не используется (CFG 1).'))
+            rows.append((ui_text('hardware.model_requirements_characteristics_features'), ui_text('hardware.model_requirements_characteristics_text_image_no_editing_references_variations')))
         if ident == 'flux3-klein-int8':
-            rows.append(('Лицензия', 'FLUX Kommunity License: некоммерческое использование; коммерческое — только при выручке до 5 млн долл. в год и с проверкой результатов'))
+            rows.append((ui_text('hardware.model_license_row_label'), ui_text('hardware.model_requirements_characteristics_flux_kommunity_license_noncommercial_use_commercial')))
         return rows
     if module == 'video':
         from video.registry import ENGINES
         engine = ENGINES[ident]
-        return [('Возможности', ', '.join(MODES[m] for m in engine['modes'])),
-            ('Профиль', engine['release']),
-            ('Размеры кадра', ', '.join('%d×%d' % tuple(size) for size in engine['resolutions'])),
-            ('Частота', '%g FPS' % engine['fps']),
-            ('Длительности', ' · '.join(('%g' % round(n / engine['fps'], 3)).replace('.', ',') for n in engine['frames']) + ' с'),
-            ('Звук', 'Совместная генерация видео и звука' if ident == 'ltx25-distilled' else 'Синхронизация с речью' if ident == 'wan22-s2v-14b' else 'Без генерации звука' if ident == 'wan22-ti2v-5b' else 'Видео и звук; клонирование голоса — отдельно'),
-            ('Особенности', engine['limitations'])]
+        return [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(MODES[m] for m in engine['modes'])),
+            (ui_text('hardware.model_requirements_characteristics_profile'), engine['release']),
+            (ui_text('hardware.model_requirements_characteristics_frame_dimensions'), ', '.join('%d×%d' % tuple(size) for size in engine['resolutions'])),
+            (ui_text('hardware.model_requirements_characteristics_frame_rate'), '%g FPS' % engine['fps']),
+            (ui_text('hardware.model_requirements_characteristics_durations'), ' · '.join(('%g' % round(n / engine['fps'], 3)).replace('.', ',') for n in engine['frames']) + ui_text('hardware.duration_seconds_unit_suffix')),
+            (ui_text('hardware.model_requirements_characteristics_audio'), ui_text('hardware.model_requirements_characteristics_joint_video_audio_generation') if ident == 'ltx25-distilled' else ui_text('hardware.model_requirements_characteristics_speech_synchronization') if ident == 'wan22-s2v-14b' else ui_text('hardware.model_requirements_characteristics_no_audio_generation') if ident == 'wan22-ti2v-5b' else ui_text('hardware.model_requirements_characteristics_video_audio_voice_cloning_separately')),
+            (ui_text('hardware.model_requirements_characteristics_features'), engine['limitations'])]
     if module == 'music':
         from music.registry import ENGINES
         engine = ENGINES[ident]
-        return [('Возможности', ', '.join(MODES[m] for m in engine['modes'])),
-            ('Длительность', '%g–%g с' % (engine['min_duration'], engine['max_duration'])),
-            ('Результат', '%s · %g кГц' % (engine['format'].upper(), engine['sample_rate'] / 1000)),
-            ('Лицензия', engine['license']),
-            ('Планировщик', engine['planner'] or 'Не используется'),
-            ('Особенности', engine.get('limitations', 'Локальная генерация инструментальной музыки и песен; без клонирования голоса.'))]
+        return [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(MODES[m] for m in engine['modes'])),
+            (ui_text('hardware.generation_identity_duration_field_label'), ui_text('hardware.model_requirements_characteristics_s') % (engine['min_duration'], engine['max_duration'])),
+            (ui_text('hardware.generation_output_region_label'), ui_text('hardware.model_requirements_characteristics_k_hz') % (engine['format'].upper(), engine['sample_rate'] / 1000)),
+            (ui_text('hardware.model_license_row_label'), engine['license']),
+            (ui_text('hardware.model_requirements_characteristics_planner'), engine['planner'] or ui_text('hardware.model_requirements_characteristics_not_used')),
+            (ui_text('hardware.model_requirements_characteristics_features'), engine.get('limitations', ui_text('hardware.model_requirements_characteristics_local_instrumental_music_song_generation_no')))]
     model = model or {}
-    return [('Возможности', 'Текст и изображения' if model.get('vision') else 'Текст'),
-        ('Параметры модели', model.get('parameter_size') or 'Нет данных'),
-        ('Квантизация', model.get('quantization') or 'Нет данных'),
-        ('Контекст сборки', '%s токенов' % model['parameters']['num_ctx'] if model.get('parameters', {}).get('num_ctx') else 'По настройкам Ollama'),
-        ('Исполнение', 'Ollama · GPU и/или CPU с ОЗУ')]
+    return [(ui_text('hardware.model_requirements_characteristics_capabilities'), ui_text('hardware.model_requirements_characteristics_text_images') if model.get('vision') else ui_text('hardware.text_section_title_label')),
+        (ui_text('hardware.model_requirements_characteristics_parameters'), model.get('parameter_size') or ui_text('hardware.specifications_missing_value_label')),
+        (ui_text('hardware.model_requirements_characteristics_quantization'), model.get('quantization') or ui_text('hardware.specifications_missing_value_label')),
+        (ui_text('hardware.model_requirements_characteristics_build_context'), ui_text('hardware.model_requirements_characteristics_tokens') % model['parameters']['num_ctx'] if model.get('parameters', {}).get('num_ctx') else ui_text('hardware.model_requirements_characteristics_ollama_settings')),
+        (ui_text('hardware.model_requirements_characteristics_execution'), ui_text('hardware.model_requirements_characteristics_ollama_gpu_cpu_ram'))]
 
 
 def storage(installer, statuses, ident):

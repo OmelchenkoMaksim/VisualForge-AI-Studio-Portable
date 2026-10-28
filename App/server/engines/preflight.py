@@ -1,4 +1,5 @@
 """Check each engine separately against the actual ComfyUI API schema."""
+from ui_strings import source as ui_text
 from .registry import ENGINES, UPSCALE_MODEL
 
 
@@ -74,17 +75,17 @@ def engine_readiness(engine, obj):
         schema_errors.extend(f'{mode}: {err}' for err in graph_errors(graph, obj)
                              if not any(': unavailable ' + key + '=' in err for key in asset_keys))
     reasons = []
-    if missing_classes: reasons.append('Нет узлов ComfyUI: ' + ', '.join(sorted(missing_classes)))
-    if missing_assets: reasons.append('Нет моделей: ' + ', '.join(missing_assets) + '. Скачайте их во вкладке «Компоненты».')
-    if schema_errors: reasons.append('Workflow несовместим: ' + '; '.join(schema_errors[:8]))
+    if missing_classes: reasons.append(ui_text('image.engine_readiness_missing_comfy_ui_nodes') + ', '.join(sorted(missing_classes)))
+    if missing_assets: reasons.append(ui_text('image.engine_readiness_missing_models') + ', '.join(missing_assets) + ui_text('image.engine_readiness_download_them_components'))
+    if schema_errors: reasons.append(ui_text('image.engine_readiness_incompatible_workflow') + '; '.join(schema_errors[:8]))
     ready = not reasons
     sampler = engine.template(engine.modes[0])[engine.sampler_node]['inputs']
     if engine.modes == ('prompt',):
-        capabilities = 'Только текст → изображение; без редактирования и референсов'
+        capabilities = ui_text('image.engine_readiness_text_image_no_editing_references')
     elif engine.native_prompt:
-        capabilities = 'Текст → изображение; редактирование; два изображения'
+        capabilities = ui_text('image.engine_readiness_text_image_editing_two_images')
     else:
-        capabilities = 'Редактирование; референс; промпт через пустой холст'
+        capabilities = ui_text('image.engine_readiness_editing_reference_prompt_through_blank_canvas')
     return {'id':engine.id, 'name':engine.name, 'ready':ready,
             'status':'installed' if ready else ('incompatible' if missing_classes or schema_errors else 'unavailable'),
             'reasons':reasons, 'missing_node_types':sorted(missing_classes),

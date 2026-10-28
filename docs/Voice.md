@@ -130,7 +130,7 @@ Whisper large-v3-turbo stays the default: 0.2 s per phrase on the card, 3.6 % wo
 
 ## Files
 
-`App/server/speech/` (`manager.py` worker control and GPU rules, `worker.py` the recognizer, `polish.py` the Gemma edit, `routes.py`), `App/frontend/voice.js` (bar, capture,
+`App/server/speech/` (`speech_manager.py` worker control and GPU rules, `worker.py` the recognizer, `polish.py` the Gemma edit, `routes.py`), `App/frontend/voice.js` (bar, capture,
 live preview), `voice-gate.js` (when speech starts and stops; also run by Node in the tests), `voice-worklet.js`, `voice.css`, endpoints
 `/api/speech/availability|settings|prepare|unload|transcribe[?partial=1][&enhance=1]`, tests `tests/test_speech.py`, `tests/test_speech_polish.py`,
 `tests/test_voice_gate.py`.

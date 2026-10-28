@@ -1,4 +1,5 @@
 """HTTP Music endpoints served through the existing safe-origin loopback bridge."""
+from ui_strings import source as ui_text
 import re
 from urllib.parse import parse_qs
 
@@ -44,7 +45,7 @@ def serve_audio(handler, path):
 def handle(handler, manager, gpu, route, data, query):
     """GPU admission (`gpu.claim`) runs under the bridge's existing shared submission lock."""
     if manager is None:
-        return handler.response_json(503, {'error': 'Модуль Music недоступен. Проверьте журнал запуска.'})
+        return handler.response_json(503, {'error': ui_text('music.routes_error_music_module_unavailable_check_startup_log')})
     ident = parse_qs(query.lstrip('?')).get('id', [''])[0]
     try:
         if route == 'availability' and data is None:
@@ -69,7 +70,7 @@ def handle(handler, manager, gpu, route, data, query):
             from .registry import claim_vram_mb, validate
             data = validate(data)
             if manager.busy():
-                return handler.response_json(409, {'error': 'GPU уже занят задачей Music. Дождитесь завершения или отмените её.'})
+                return handler.response_json(409, {'error': ui_text('music.routes_error_gpu_already_busy_music_task_wait')})
             available = manager.availability(data['engine'])
             if not available['available']:
                 return handler.response_json(503, {'error': available['reason']})

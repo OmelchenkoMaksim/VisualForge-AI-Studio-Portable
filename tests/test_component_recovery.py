@@ -16,7 +16,7 @@ from provision import net
 from provision.engine import Engine
 from provision.recovery import Recovery
 from provision.software_bundle import bundled_source
-from provision.manager import ComponentsManager
+from provision.components_manager import ComponentsManager
 from test_provision import tiny_catalog
 
 

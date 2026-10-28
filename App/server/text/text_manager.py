@@ -1,5 +1,6 @@
 """A private, owned Ollama process and streaming chat. Nothing is shared with a user's own Ollama installation:
 own port, own model store (Models/Text/ollama), own home folder, killed with the application's job object."""
+from ui_strings import source as ui_text
 import atexit
 import itertools
 import json
@@ -25,7 +26,7 @@ REGISTRY = 'registry.ollama.ai'
 
 def _number(value, name, low, high, integer=False):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not low <= value <= high or (integer and value != int(value)):
-        raise ValueError('%s: %s от %g до %g' % (name, 'целое число' if integer else 'число', low, high))
+        raise ValueError(ui_text('text.model_parameter_validation_number_bounds_template') % (name, ui_text('text.model_parameter_validation_integer_type_label') if integer else ui_text('text.model_parameter_validation_decimal_type_label'), low, high))
     return int(value) if integer else float(value)
 
 
@@ -110,9 +111,9 @@ class TextManager:
         usable = [m for m in models if m['ok']]
         problems = []
         if self.command is None and not self.executable.is_file():
-            problems.append('Не найден Runtime/Text/ollama/ollama.exe')
+            problems.append(ui_text('text.availability_runtime_text_ollama_exe_not_found'))
         if not usable:
-            problems.append('Нет установленной текстовой модели в Models/Text/ollama. Скачайте её во вкладке «Компоненты».')
+            problems.append(ui_text('text.availability_no_text_model_installed_models_ollama'))
         return dict(available=not problems, reason='; '.join(problems), models=models, running=self.alive(), port=self.port)
 
     # ---- settings -----------------------------------------------------------------------------------------------
@@ -127,18 +128,18 @@ class TextManager:
         if data is None:
             return current
         if not isinstance(data, dict) or set(data) - set(DEFAULTS):
-            raise ValueError('Настройки Text содержат неподдерживаемые параметры')
+            raise ValueError(ui_text('text.settings_text_contain_unsupported_parameters'))
         names = {m['name'] for m in self.installed_models() if m['ok']}
         for key, value in data.items():
             if key == 'model':
                 if value != '' and value not in names:
-                    raise ValueError('Эта модель не установлена')
+                    raise ValueError(ui_text('text.settings_model_not_installed'))
             elif key == 'native_parameters':
                 if not isinstance(value, bool):
-                    raise ValueError('Настройки из Ollama: включено или выключено')
+                    raise ValueError(ui_text('text.settings_ollama_enabled_disabled'))
             elif key == 'keep_alive':
                 if value not in KEEP_ALIVE_CHOICES:
-                    raise ValueError('Выгружать модель из памяти через: 2, 10, 30 или 60 минут')
+                    raise ValueError(ui_text('text.settings_unload_model_after_2_10_30'))
             else:
                 value = _number(value, key, *LIMITS[key], integer=key in ('num_ctx', 'top_k', 'num_predict'))
             current[key] = value
@@ -185,7 +186,7 @@ class TextManager:
                 return
             status = self.availability()
             if not status['available']:
-                raise ValueError(status['reason'] or 'Text недоступен')
+                raise ValueError(status['reason'] or ui_text('text.api_request_text_unavailable'))
             if self.job:
                 self.job.close()
                 self.job = None
@@ -193,7 +194,7 @@ class TextManager:
                 try:
                     probe.bind(('127.0.0.1', self.port))
                 except OSError:
-                    raise ValueError('Порт Text занят другой программой. Измените TextPort в настройке запуска.') from None
+                    raise ValueError(ui_text('text.start_text_port_occupied_another_application_change')) from None
             log = self.paths.logs / 'text-backend.log'
             log.parent.mkdir(parents=True, exist_ok=True)
             if log.is_file() and log.stat().st_size > 4 * 1024 * 1024:
@@ -212,13 +213,13 @@ class TextManager:
             deadline = time.monotonic() + 45
             while time.monotonic() < deadline:
                 if self.process.poll() is not None:
-                    raise ValueError('Ollama (Text) не запустился. Проверьте журнал text-backend.log.')
+                    raise ValueError(ui_text('text.start_ollama_text_did_not_check_backend'))
                 try:
                     self.call('/api/version', timeout=2)
                     return
                 except (OSError, ValueError):
                     time.sleep(0.2)
-            raise ValueError('Ollama (Text) не ответил при запуске')
+            raise ValueError(ui_text('text.start_ollama_text_did_not_respond_during'))
 
     def close(self):
         with self.lock:
@@ -243,9 +244,9 @@ class TextManager:
     @staticmethod
     def _error_from(raw, status):
         try:
-            return str(json.loads(raw).get('error') or 'Ошибка Ollama')[:600]
+            return str(json.loads(raw).get('error') or ui_text('text.ollama_request_backend_error_fallback'))[:600]
         except (ValueError, AttributeError):
-            return 'Ошибка Ollama (%s)' % status
+            return ui_text('text.ollama_request_backend_error_code_template') % status
 
     @classmethod
     def _error_text(cls, error):
@@ -274,7 +275,7 @@ class TextManager:
     def begin(self, chat_id):
         with self.lock:
             if self.active:
-                raise Busy('Text уже отвечает. Дождитесь окончания ответа или остановите его.')
+                raise Busy(ui_text('text.begin_text_already_responding_wait_completion_stop'))
             event = self.active[chat_id] = threading.Event()
             return event
 
@@ -311,7 +312,7 @@ class TextManager:
         submission lock, which also admits chat answers, so no answer can start between the check and the unload."""
         with self.lock:
             if self.active:
-                raise Busy('GPU занят Text: идёт ответ модели. Дождитесь окончания или остановите ответ.')
+                raise Busy(ui_text('text.release_gpu_busy_text_model_responding_wait_completion'))
         return self.unload()
 
     # ---- chat ---------------------------------------------------------------------------------------------------

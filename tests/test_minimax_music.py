@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from music.registry import ENGINE, MINIMAX, validate
-from music.manager import MusicManager
+from music.music_manager import MusicManager
 
 
 class MiniMaxMusicTests(unittest.TestCase):

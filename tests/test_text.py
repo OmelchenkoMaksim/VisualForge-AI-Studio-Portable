@@ -16,7 +16,7 @@ from typing import Optional
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from text import routes
 from text import store as store_module
-from text.manager import Busy, TextManager
+from text.text_manager import Busy, TextManager
 from text.store import ChatStore
 
 FAKE = Path(__file__).with_name('fake_ollama.py')

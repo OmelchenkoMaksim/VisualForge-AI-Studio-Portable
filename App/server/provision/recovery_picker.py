@@ -1,4 +1,5 @@
 """Windows picker with a hard timeout matching the server recovery deadline."""
+from ui_strings import source as ui_text
 import base64
 import os
 import json
@@ -33,9 +34,9 @@ def standalone(root):
 
 def choose_file(remaining):
     if os.name != 'nt':
-        raise ValueError('Вставьте полный путь к файлу вручную')
+        raise ValueError(ui_text('components.choose_file_paste_full_path_manually'))
     if remaining <= 0:
-        raise ValueError('Время выбора истекло')
+        raise ValueError(ui_text('components.choose_file_selection_timed_out'))
     script = r'''
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
@@ -58,5 +59,5 @@ try {
     except subprocess.TimeoutExpired:
         return ''
     if result.returncode:
-        raise ValueError('Не удалось открыть выбор файла. Вставьте полный путь вручную.')
+        raise ValueError(ui_text('components.choose_file_open_picker_paste_full_path_manually_failed'))
     return result.stdout.decode('utf-8-sig').strip()

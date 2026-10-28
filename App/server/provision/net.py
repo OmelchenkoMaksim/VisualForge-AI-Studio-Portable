@@ -3,6 +3,7 @@
 A file is written to "<name>.part", hashed while it is written and renamed into place only when its size and SHA-256
 match. A broken connection resumes with a Range request; a wrong hash discards the part file and raises ChecksumError.
 """
+from ui_strings import source as ui_text
 import errno
 import hashlib
 import os
@@ -40,7 +41,7 @@ def import_file(source, destination, size, sha256, progress=None, cancel=None):
     """Copy a user-selected pinned artifact; never move or modify the user's original."""
     source, destination = Path(source), Path(destination)
     if not source.is_file() or source.stat().st_size != size:
-        raise ChecksumError('Размер выбранного файла не совпадает с требуемым')
+        raise ChecksumError(ui_text('components.import_file_selected_size_does_not_match_requirement'))
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_name(destination.name + '.' + uuid.uuid4().hex + '.tmp')
     digest, done = hashlib.sha256(), 0
@@ -58,7 +59,7 @@ def import_file(source, destination, size, sha256, progress=None, cancel=None):
                 if progress:
                     progress(done, size)
         if done != size or digest.hexdigest() != sha256.lower():
-            raise ChecksumError('SHA-256 выбранного файла не совпадает с требуемым')
+            raise ChecksumError(ui_text('components.import_file_selected_sha_256_does_not_match'))
         os.replace(temporary, destination)
         return destination
     finally:
@@ -166,8 +167,7 @@ def download(urls, destination, size=None, sha256=None, progress=None, cancel=No
             except (URLError, OSError, socket.timeout, ConnectionError) as error:
                 if getattr(error, 'errno', None) == errno.ENOSPC:
                     # A full disk is not a network hiccup: retrying with back-off only delays the same failure by minutes.
-                    raise DiskFull('Недостаточно места на диске для %s; освободите место и запустите установку снова '
-                                        '(уже скачанная часть сохранена).' % destination.name) from None
+                    raise DiskFull(ui_text('components.download_insufficient_disk_space_free_restart_installation') % destination.name) from None
                 # Counting all disconnects exhausted retries even when each attempt added gigabytes.
                 # Reset the streak when bytes arrived; only consecutive stalls consume the budget.
                 failures = 1 if part.is_file() and part.stat().st_size > before else failures + 1

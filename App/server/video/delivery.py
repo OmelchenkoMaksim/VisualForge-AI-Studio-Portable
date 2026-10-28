@@ -8,6 +8,7 @@ audio mixing and scene assembly are other stages and are deliberately not hidden
 Command line (the first argument is the runtime folder holding ffmpeg/bin):
     python delivery.py --runtime-root <Runtime/Video> clip.mp4 reels-1080x1920 --output-dir <folder>
 """
+from ui_strings import source as ui_text
 import argparse
 import collections
 from fractions import Fraction
@@ -35,9 +36,9 @@ FRAME_TOLERANCE = 2
 # visible focus choice first, so it is not offered here.
 PRESETS = {
     'reels-1080x1920': dict(label='Instagram Reels / Stories · Full HD 9:16', width=1080, height=1920, aspect='9:16'),
-    'vertical-720x1280': dict(label='Вертикальное видео · HD 9:16', width=720, height=1280, aspect='9:16'),
-    'feed-1080x1350': dict(label='Instagram лента · портрет 4:5', width=1080, height=1350, aspect='4:5'),
-    'landscape-1920x1080': dict(label='Горизонтальное видео · Full HD 16:9', width=1920, height=1080, aspect='16:9'),
+    'vertical-720x1280': dict(label=ui_text('video.delivery_presets_vertical_video_hd_9_16'), width=720, height=1280, aspect='9:16'),
+    'feed-1080x1350': dict(label=ui_text('video.delivery_presets_instagram_feed_portrait_4_5'), width=1080, height=1350, aspect='4:5'),
+    'landscape-1920x1080': dict(label=ui_text('video.delivery_presets_landscape_video_full_hd_16_9'), width=1920, height=1080, aspect='16:9'),
 }
 
 
@@ -74,7 +75,7 @@ def _run(command, timeout, cancel=None, progress: Optional[Callable] = None):
         process = subprocess.Popen([str(part) for part in command], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     except OSError as error:
-        raise DeliveryError('Не удалось запустить %s: %s' % (command[0], error)) from None
+        raise DeliveryError(ui_text('video.run_start_failed') % (command[0], error)) from None
     output, tail = [], collections.deque(maxlen=40)
 
     def read_output():
@@ -95,9 +96,9 @@ def _run(command, timeout, cancel=None, progress: Optional[Callable] = None):
     try:
         while process.poll() is None:
             if cancel.is_set():
-                raise DeliveryCancelled('Экспорт отменён')
+                raise DeliveryCancelled(ui_text('video.run_export_cancelled'))
             if time.monotonic() > deadline:
-                raise DeliveryError('FFmpeg не завершился за %d с и был остановлен' % timeout)
+                raise DeliveryError(ui_text('video.run_f_fmpeg_did_not_finish_within') % timeout)
             cancel.wait(0.1)
     except BaseException:
         process.kill()
@@ -109,7 +110,7 @@ def _run(command, timeout, cancel=None, progress: Optional[Callable] = None):
         process.stdout.close()
         process.stderr.close()
     if process.returncode != 0:
-        raise DeliveryError(b''.join(tail).decode('utf-8', errors='replace')[-1500:].strip() or 'FFmpeg завершился с ошибкой')
+        raise DeliveryError(b''.join(tail).decode('utf-8', errors='replace')[-1500:].strip() or ui_text('video.run_f_fmpeg_failed'))
     return b''.join(output)
 
 
@@ -131,11 +132,11 @@ def probe(ffprobe, path, timeout=60):
     streams = data.get('streams', [])
     video = next((s for s in streams if s.get('codec_type') == 'video' and not s.get('disposition', {}).get('attached_pic')), None)
     if video is None:
-        raise ValueError('В файле нет видеопотока')
+        raise ValueError(ui_text('video.probe_file_has_no_video_stream'))
     audio = next((s for s in streams if s.get('codec_type') == 'audio'), None)
     width, height = int(video.get('width') or 0), int(video.get('height') or 0)
     if width < 2 or height < 2:
-        raise ValueError('Не удалось определить размер кадра')
+        raise ValueError(ui_text('video.probe_determine_frame_dimensions_failed'))
     rotation = video.get('tags', {}).get('rotate')
     for item in video.get('side_data_list', []):
         if 'rotation' in item:
@@ -146,7 +147,7 @@ def probe(ffprobe, path, timeout=60):
     fps = _ratio(video.get('avg_frame_rate')) or _ratio(video.get('r_frame_rate'))
     duration = float(video.get('duration') or 0) or float(data.get('format', {}).get('duration') or 0)
     if duration <= 0 or not fps:
-        raise ValueError('Не удалось определить длительность или частоту кадров')
+        raise ValueError(ui_text('video.probe_determine_duration_frame_rate_failed'))
     return dict(width=width, height=height, display_width=max(2, round(display_w)), display_height=max(2, round(display_h)),
                 fps=fps, duration=duration, video_codec=video.get('codec_name'), pix_fmt=video.get('pix_fmt'),
                 has_audio=audio is not None,
@@ -221,23 +222,23 @@ def _verify(ffprobe, output, preset, source, expect_audio):
     result = probe(ffprobe, output)
     problems = []
     if (result['width'], result['height']) != (preset['width'], preset['height']):
-        problems.append('размер %dx%d' % (result['width'], result['height']))
+        problems.append(ui_text('video.verify_dimensions_x') % (result['width'], result['height']))
     if (result['display_width'], result['display_height']) != (preset['width'], preset['height']):
-        problems.append('неквадратный пиксель')
+        problems.append(ui_text('video.verify_non_square_pixel'))
     if result['fps'] != FPS:
-        problems.append('частота кадров %s' % result['fps'])
+        problems.append(ui_text('video.verify_frame_rate') % result['fps'])
     if result['video_codec'] != 'h264' or result['pix_fmt'] != 'yuv420p':
-        problems.append('кодек %s/%s' % (result['video_codec'], result['pix_fmt']))
+        problems.append(ui_text('video.export_validation_unexpected_codec_template') % (result['video_codec'], result['pix_fmt']))
     if result['has_audio'] != expect_audio:
-        problems.append('звуковая дорожка не соответствует ожиданию')
+        problems.append(ui_text('video.verify_audio_track_does_not_match_expectations'))
     if abs(result['duration'] - source['duration']) > DURATION_TOLERANCE:
-        problems.append('длительность %.3f с вместо %.3f с' % (result['duration'], source['duration']))
+        problems.append(ui_text('video.verify_duration_s_instead') % (result['duration'], source['duration']))
     frames = count_frames(ffprobe, output)
     expected = round(source['duration'] * FPS)
     if abs(frames - expected) > FRAME_TOLERANCE:
-        problems.append('кадров %d вместо около %d' % (frames, expected))
+        problems.append(ui_text('video.verify_frames_instead_about') % (frames, expected))
     if problems:
-        raise DeliveryError('Экспорт не прошёл проверку: ' + '; '.join(problems))
+        raise DeliveryError(ui_text('video.verify_export_validation_failed') + '; '.join(problems))
     result['frames'] = frames
     return result
 
@@ -249,9 +250,9 @@ def plan_export(info, preset_id, audio='keep'):
     """
     preset = PRESETS.get(preset_id)
     if preset is None:
-        raise ValueError('Неизвестный пресет экспорта')
+        raise ValueError(ui_text('video.plan_export_unknown_preset'))
     if audio not in AUDIO_MODES:
-        raise ValueError('Звук: keep, require или fill')
+        raise ValueError(ui_text('video.plan_export_audio_keep_require_fill'))
     geometry = fit_geometry(info['display_width'], info['display_height'], preset['width'], preset['height'])
     expect_audio = info['has_audio'] or audio == 'fill'
     picture = dict(width=geometry['width'], height=geometry['height'], x=geometry['x'], y=geometry['y'],
@@ -263,7 +264,7 @@ def plan_export(info, preset_id, audio='keep'):
                 frame_rate_conversion='none' if info['fps'] == FPS else FRAME_RATE_NOTE,
                 audio_origin='source' if info['has_audio'] else ('silence' if expect_audio else 'none'),
                 expect_audio=expect_audio, enhancement='none',
-                blocked='В исходном ролике нет звука, а выбран режим «звук обязателен»' if audio == 'require' and not info['has_audio'] else None)
+                blocked=ui_text('video.plan_export_source_clip_has_no_audio_but') if audio == 'require' and not info['has_audio'] else None)
 
 
 def export_clip(source, directory, preset_id, ffmpeg, ffprobe, audio='keep', x264_preset='slow', crf=18, base=None,
@@ -273,15 +274,15 @@ def export_clip(source, directory, preset_id, ffmpeg, ffprobe, audio='keep', x26
     `cancel` is a threading.Event; `progress(fraction)` is called with 0..1 while encoding.
     """
     if preset_id not in PRESETS:
-        raise ValueError('Неизвестный пресет экспорта')
+        raise ValueError(ui_text('video.plan_export_unknown_preset'))
     preset = PRESETS[preset_id]
     if audio not in AUDIO_MODES:
-        raise ValueError('Звук: keep, require или fill')
+        raise ValueError(ui_text('video.plan_export_audio_keep_require_fill'))
     if x264_preset not in X264_PRESETS or type(crf) is not int or not 12 <= crf <= 30:
-        raise ValueError('Недопустимые параметры кодирования')
+        raise ValueError(ui_text('video.export_clip_invalid_encoding_parameters'))
     source, directory = Path(source), Path(directory)
     if not source.is_file():
-        raise ValueError('Исходный файл не найден')
+        raise ValueError(ui_text('video.export_clip_source_file_not_found'))
     info = probe(ffprobe, source)
     plan = plan_export(info, preset_id, audio)
     if plan['blocked']:

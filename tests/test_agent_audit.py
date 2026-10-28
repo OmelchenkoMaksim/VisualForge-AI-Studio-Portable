@@ -19,8 +19,9 @@ from unittest.mock import patch
 from tests.test_agents import ROOT, FakeText, FakeGpu, paths_in, remove_tree
 from agents import loop, routes
 from agents.gateway import ResponseUsage
-from agents.manager import AgentManager
+from agents.agent_manager import AgentManager
 from agents.opencode import clean_environment
+from generation import begin as generation_begin
 from gpu import Busy
 from text import store as store_module
 from text.store import ChatStore
@@ -200,7 +201,8 @@ udp.close(); console.log(blocked);
         workspace.mkdir()
         chat = m.store.create(agent=dict(id='aider', workspace=str(workspace), permission='ask'))
         cancel = threading.Event()
-        m.run = dict(chat=chat['id'], cancel=cancel, size=32768, wrap=threading.Event(), phase='work', used=0)
+        m.run = dict(chat=chat['id'], cancel=cancel, size=32768, wrap=threading.Event(), phase='work', used=0,
+                     record=generation_begin('Agent'))
         calls = []
         def turn(*args, **kwargs):
             calls.append(cancel.is_set())

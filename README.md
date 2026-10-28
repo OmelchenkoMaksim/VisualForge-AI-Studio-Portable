@@ -2,6 +2,8 @@
 
 A local, offline multimedia AI studio for Windows. One window, five tabs, one video card:
 
+Settings → Interface language switches the studio between Russian and English immediately, preserving inputs and active tasks. The preference is saved in the browser profile. See [localization](docs/Localization.md).
+
 Settings → «История событий» opens the [unified local event journal](docs/Event-History.md), including distinct technical operation types. Module logs stay separate; click analytics is not collected yet.
 
 Image, Video and Music history cards include a confirmed «Удалить» action for the recorded result, metadata, per-job scratch and dedicated log. Active jobs must finish first; shared backend logs remain. «Данные генерации» shows the [four-field generation identity](docs/Generations.md), including a copyable ID, start time and measured duration. See [deletion details and limits](docs/Interface.md#deleting-a-generation).

@@ -1,0 +1,618 @@
+{
+  "agent.api_request_studio_connection_failed": {
+    "ru": "Нет связи со студией. Проверьте, запущено ли приложение.",
+    "en": "Cannot connect to the studio. Check that the application is running."
+  },
+  "agent.api_request_invalid_response_error": {
+    "ru": "Некорректный ответ режима «Агент».",
+    "en": "Invalid agent mode response."
+  },
+  "agent.api_request_agent_mode_unavailable": {
+    "ru": "Режим «Агент» недоступен",
+    "en": "Agent mode is unavailable"
+  },
+  "agent.agent_step_preparing_status": {
+    "ru": "готовится",
+    "en": "preparing"
+  },
+  "agent.agent_step_running_status": {
+    "ru": "выполняется",
+    "en": "running"
+  },
+  "agent.agent_step_completed_status": {
+    "ru": "готово",
+    "en": "done"
+  },
+  "agent.agent_step_failed_status": {
+    "ru": "ошибка",
+    "en": "error"
+  },
+  "agent.tools_bash_command": {
+    "ru": "Команда",
+    "en": "Command"
+  },
+  "agent.tools_edit_file": {
+    "ru": "Правка файла",
+    "en": "Edit file"
+  },
+  "agent.tools_write_new_file": {
+    "ru": "Новый файл",
+    "en": "New file"
+  },
+  "agent.tools_read_file": {
+    "ru": "Чтение файла",
+    "en": "Read file"
+  },
+  "agent.tools_glob_find_files": {
+    "ru": "Поиск файлов",
+    "en": "Find files"
+  },
+  "agent.tools_grep_search_files": {
+    "ru": "Поиск в файлах",
+    "en": "Search files"
+  },
+  "agent.tools_list_files": {
+    "ru": "Список файлов",
+    "en": "List files"
+  },
+  "agent.tools_todowrite_plan": {
+    "ru": "План",
+    "en": "Plan"
+  },
+  "agent.tools_task_subtask": {
+    "ru": "Подзадача",
+    "en": "Subtask"
+  },
+  "agent.tools_patch_changes": {
+    "ru": "Изменения",
+    "en": "Changes"
+  },
+  "agent.tools_webfetch_network_download": {
+    "ru": "Загрузка из сети",
+    "en": "Network download"
+  },
+  "agent.tools_create_goal": {
+    "ru": "Цель",
+    "en": "Goal"
+  },
+  "agent.tools_job_list_background_tasks": {
+    "ru": "Фоновые задачи",
+    "en": "Background tasks"
+  },
+  "agent.tools_job_output_background_task": {
+    "ru": "Фоновая задача",
+    "en": "Background task"
+  },
+  "agent.tools_job_kill_stop_background_task": {
+    "ru": "Остановка фоновой задачи",
+    "en": "Stop background task"
+  },
+  "agent.tool_step_skill_execution_label": {
+    "ru": "Навык",
+    "en": "Skill"
+  },
+  "agent.tools_working_directory_folder": {
+    "ru": "Рабочая папка",
+    "en": "Working folder"
+  },
+  "agent.tools_read_image_view": {
+    "ru": "Просмотр картинки",
+    "en": "View image"
+  },
+  "agent.permissions_bash_run_command": {
+    "ru": "выполнить команду",
+    "en": "run a command"
+  },
+  "agent.permissions_edit_file": {
+    "ru": "изменить файл",
+    "en": "edit a file"
+  },
+  "agent.permissions_external_directory_access_outside_project_folder": {
+    "ru": "выйти за папку проекта",
+    "en": "access outside the project folder"
+  },
+  "agent.permissions_doom_loop_repeat_same_action": {
+    "ru": "повторить одно и то же действие ещё раз",
+    "en": "repeat the same action"
+  },
+  "agent.option_coming_soon": {
+    "ru": "скоро",
+    "en": "coming soon"
+  },
+  "agent.component_installation_missing_label": {
+    "ru": "не установлен",
+    "en": "not installed"
+  },
+  "agent.box_model_context_tokens": {
+    "ru": "Контекст модели: {0}{1} из {2} токенов ({3}%)",
+    "en": "Model context: {0}{1} of {2} tokens ({3}%)"
+  },
+  "agent.describe_not_installed_install_under_settings_components": {
+    "ru": " Не установлен: поставьте его в «Настройки → Компоненты», раздел Text.",
+    "en": " Not installed: install it under Settings → Components, in the Text section."
+  },
+  "agent.info_runs_offline_through_local_model_git": {
+    "ru": "{0}{1} · {2} · {3}{4} {5} Работает без интернета через локальную модель; git push запрещён.",
+    "en": "{0}{1} · {2} · {3}{4} {5} Runs offline through a local model; git push is blocked."
+  },
+  "agent.card_agent_permission_request": {
+    "ru": "Запрос разрешения агента",
+    "en": "Agent permission request"
+  },
+  "agent.permission_card_agent_requests": {
+    "ru": "Агент просит разрешения {0}:",
+    "en": "The agent requests permission to {0}:"
+  },
+  "agent.permission_card_allow_once": {
+    "ru": "Разрешить один раз",
+    "en": "Allow once"
+  },
+  "agent.permission_card_allow_action": {
+    "ru": "Разрешать такое",
+    "en": "Allow this action"
+  },
+  "agent.permission_card_reject": {
+    "ru": "Отклонить",
+    "en": "Reject"
+  },
+  "agent.button_allowed_without_asking": {
+    "ru": "Без вопросов: ",
+    "en": "Allowed without asking: "
+  },
+  "agent.note_you_rejected_request": {
+    "ru": "Вы отклонили запрос.",
+    "en": "You rejected the request."
+  },
+  "agent.note_permission_saved_current_agent_session": {
+    "ru": "Разрешение запомнено агентом для текущей сессии выполнения.",
+    "en": "Permission saved for the current agent session."
+  },
+  "agent.note_allowed_once": {
+    "ru": "Разрешено один раз.",
+    "en": "Allowed once."
+  },
+  "agent.error_agent_exited": {
+    "ru": "Агент завершился с ошибкой",
+    "en": "Agent exited with an error"
+  },
+  "agent.error_conversation_exceeds_model_context_start_new": {
+    "ru": "Разговор не помещается в контекст модели: начните новый чат агента или увеличьте контекст",
+    "en": "Conversation exceeds model context: start a new agent chat or increase context"
+  },
+  "agent.workspace_path_select_project_folder_agent": {
+    "ru": "Выберите папку проекта для агента",
+    "en": "Select a project folder for the agent"
+  },
+  "agent.workspace_path_project_folder_full_required": {
+    "ru": "Папка проекта: нужен полный путь",
+    "en": "Project folder: a full path is required"
+  },
+  "agent.workspace_path_project_folder_not": {
+    "ru": "Папка проекта: путь указывает не на папку",
+    "en": "Project folder: path is not a folder"
+  },
+  "agent.workspace_path_drive_root_cannot_assigned_agent_select": {
+    "ru": "Корень диска нельзя отдать агенту: выберите папку проекта",
+    "en": "A drive root cannot be assigned to the agent: select a project folder"
+  },
+  "agent.alias_of_chat_s_model_not_installed_disabled": {
+    "ru": "Модель этого чата не установлена или отключена",
+    "en": "This chat's model is not installed or is disabled"
+  },
+  "agent.verdict_context_filled": {
+    "ru": "заполнен контекст",
+    "en": "context filled"
+  },
+  "agent.verdict_agent_finished_turn": {
+    "ru": "агент закончил ход",
+    "en": "agent finished its turn"
+  },
+  "agent.verdict_agent_considers_task_complete_but_check": {
+    "ru": ", агент считает задачу выполненной, но проверка не прошла",
+    "en": ", the agent considers the task complete but the check failed"
+  },
+  "agent.workspace_path_project_folder_not_found": {
+    "ru": "Папка проекта не найдена",
+    "en": "Project folder not found"
+  },
+  "agent.clip_truncated_more_characters": {
+    "ru": "\n… (обрезано: ещё %d симв.)",
+    "en": "\n… (truncated: %d more characters)"
+  },
+  "agent.step_from_you_rejected_action": {
+    "ru": "Вы отклонили это действие.",
+    "en": "You rejected this action."
+  },
+  "agent.settings_agent_contain_unsupported_parameters": {
+    "ru": "Настройки агента содержат неподдерживаемые параметры",
+    "en": "Agent settings contain unsupported parameters"
+  },
+  "agent.settings_unknown_agent_permission_level": {
+    "ru": "Неизвестный уровень прав агента",
+    "en": "Unknown agent permission level"
+  },
+  "agent.settings_loop_setting_yes_no": {
+    "ru": "Настройка цикла: да или нет",
+    "en": "Loop setting: yes or no"
+  },
+  "agent.create_chat_request_contains_unsupported_parameters": {
+    "ru": "Запрос содержит неподдерживаемые параметры",
+    "en": "Request contains unsupported parameters"
+  },
+  "agent.update_chat_regular_not_agent": {
+    "ru": "Это обычный чат, а не чат агента",
+    "en": "This is a regular chat, not an agent chat"
+  },
+  "agent.send_agent_task_text_up_100_000": {
+    "ru": "Задание агенту: текст до 100 000 символов",
+    "en": "Agent task: text up to 100,000 characters"
+  },
+  "agent.send_regular_chat_enable_agent_mode_create": {
+    "ru": "Это обычный чат: включите режим «Агент» и создайте чат агента",
+    "en": "This is a regular chat: enable Agent mode and create an agent chat"
+  },
+  "agent.loop_iteration_handoff": {
+    "ru": "**Итерация %d из %d** · %s · итог: `%s`",
+    "en": "**Iteration %d of %d** · %s · handoff: `%s`"
+  },
+  "agent.verdict_loop_stopped_you": {
+    "ru": "цикл остановлен вами",
+    "en": "loop stopped by you"
+  },
+  "agent.verdict_agent_exited_error_loop_stopped": {
+    "ru": "агент завершился с ошибкой — цикл остановлен",
+    "en": "agent exited with an error — loop stopped"
+  },
+  "agent.verdict_agent_encountered_blocker_blocked_loop_stopped": {
+    "ru": "агент упёрся в препятствие (BLOCKED) — цикл остановлен",
+    "en": "agent encountered a blocker (BLOCKED) — loop stopped"
+  },
+  "agent.verdict_no_changes_same_next_step_loop": {
+    "ru": "без изменений и с тем же следующим шагом — цикл остановлен, чтобы не ходить по кругу",
+    "en": "no changes and the same next step — loop stopped to avoid repetition"
+  },
+  "agent.verdict_check_failed": {
+    "ru": ", проверка не прошла",
+    "en": ", check failed"
+  },
+  "agent.task_loop_continuing_verdict_suffix": {
+    "ru": " — продолжаю",
+    "en": " — continuing"
+  },
+  "agent.follow_open_code_exited_unexpectedly_see_agent": {
+    "ru": "OpenCode неожиданно завершился. Подробности — в журнале agent-opencode.log.",
+    "en": "OpenCode exited unexpectedly. See agent-opencode.log for details."
+  },
+  "agent.step_from_blocked_agent_permissions_chat": {
+    "ru": "Запрещено правами агента в этом чате.",
+    "en": "Blocked by agent permissions in this chat."
+  },
+  "agent.admit_agent_not_running_task": {
+    "ru": "Агент сейчас не выполняет задачу",
+    "en": "The agent is not running a task"
+  },
+  "agent.admit_agent_task_stopped": {
+    "ru": "Задача агента остановлена",
+    "en": "Agent task stopped"
+  },
+  "agent.create_chat_not_connected_yet": {
+    "ru": "%s пока не подключён",
+    "en": "%s is not connected yet"
+  },
+  "agent.update_chat_agent_working_wait_completion_stop_first": {
+    "ru": "Агент работает в этом чате: сначала дождитесь окончания или остановите его",
+    "en": "The agent is working in this chat: wait for completion or stop it first"
+  },
+  "agent.send_agent_already_running_task_wait_completion": {
+    "ru": "Агент уже выполняет задачу. Дождитесь окончания или остановите её.",
+    "en": "The agent is already running a task. Wait for completion or stop it."
+  },
+  "agent.send_agent_could_not_complete_task": {
+    "ru": "Агент не смог выполнить задание",
+    "en": "The agent could not complete the task"
+  },
+  "agent.opencode_handoff_agent_writing_iteration": {
+    "ru": "Агент пишет итог итерации…",
+    "en": "The agent is writing the iteration handoff…"
+  },
+  "agent.verdict_task_completed_done": {
+    "ru": "задача выполнена (DONE)",
+    "en": "task completed (DONE)"
+  },
+  "agent.verdict_iteration_limit_reached": {
+    "ru": " — достигнут лимит итераций",
+    "en": " — iteration limit reached"
+  },
+  "agent.reply_agent_request_no_longer_waiting_response": {
+    "ru": "Этот запрос агента уже не ждёт ответа",
+    "en": "This agent request is no longer waiting for a response"
+  },
+  "agent.send_agent_starting_task": {
+    "ru": "Агент начинает задачу…",
+    "en": "Agent starting the task…"
+  },
+  "agent.turn_starting_open_code": {
+    "ru": "Запуск OpenCode…",
+    "en": "Starting OpenCode…"
+  },
+  "agent.turn_agent_received_task": {
+    "ru": "Агент получил задание",
+    "en": "Agent received the task"
+  },
+  "agent.turn_process_starting_aider": {
+    "ru": "Запуск Aider…",
+    "en": "Starting Aider…"
+  },
+  "agent.turn_process_starting_deep_seek_harness": {
+    "ru": "Запуск DeepSeek Harness…",
+    "en": "Starting DeepSeek Harness…"
+  },
+  "agent.verdict_check_passed": {
+    "ru": ", проверка прошла",
+    "en": ", check passed"
+  },
+  "agent.observe_context_full_agent_finishing_iteration": {
+    "ru": "Контекст заполнен на %d%%: агент заканчивает итерацию…",
+    "en": "Context is %d%% full: the agent is finishing the iteration…"
+  },
+  "agent.task_loop_iteration_progress_template": {
+    "ru": "Итерация %d из %d…",
+    "en": "Iteration %d of %d…"
+  },
+  "agent.admit_model_thinking_about_next_step": {
+    "ru": "Модель обдумывает следующий шаг…",
+    "en": "The model is thinking about the next step…"
+  },
+  "agent.admit_loading_model_into_video_memory_first": {
+    "ru": "Загрузка модели в видеопамять: первая загрузка с диска может занять несколько минут…",
+    "en": "Loading model into video memory: the first load from disk may take a few minutes…"
+  },
+  "agent.task_loop_check_command_label_template": {
+    "ru": "Проверка: %s",
+    "en": "Check: %s"
+  },
+  "agent.admit_agent_waiting_gpu": {
+    "ru": "Агент ждёт видеокарту: ",
+    "en": "Agent waiting for the GPU: "
+  },
+  "agent.follow_retrying_model_request": {
+    "ru": "Повтор запроса к модели: ",
+    "en": "Retrying model request: "
+  },
+  "agent.run_aider_not_installed_runtime_agents_missing": {
+    "ru": "Aider не установлен: нет Runtime/Agents/aider. Установите его в «Настройки → Компоненты», раздел Text.",
+    "en": "Aider is not installed: Runtime/Agents/aider is missing. Install it in Settings → Components, under Text."
+  },
+  "agent.reply_permission_allow_once_always_reject": {
+    "ru": "Ответ на запрос: разрешить один раз, разрешать всегда или отклонить",
+    "en": "Permission reply: allow once, allow always or reject"
+  },
+  "agent.write_aider_no_longer_running_task": {
+    "ru": "Aider уже не выполняет задачу",
+    "en": "Aider is no longer running a task"
+  },
+  "agent.run_aider_exited_unexpectedly_code_see_agent": {
+    "ru": "Aider неожиданно завершился (код %s). Подробности — в журнале agent-aider.log.",
+    "en": "Aider exited unexpectedly (code %s). See agent-aider.log for details."
+  },
+  "agent.block_preview_entire_file_written": {
+    "ru": "%s: файл будет записан целиком",
+    "en": "%s: the entire file will be written"
+  },
+  "agent.allow_read_file_added_model_conversation": {
+    "ru": "Файл добавлен в разговор с моделью.",
+    "en": "File added to the model conversation."
+  },
+  "agent.aider_bridge_reading_project": {
+    "ru": "Aider читает проект…",
+    "en": "Aider is reading the project…"
+  },
+  "agent.guarded_apply_file_changed": {
+    "ru": "Файл изменён.",
+    "en": "File changed."
+  },
+  "agent.run_command_did_not_finish_within_s_stopped": {
+    "ru": "Команда не завершилась за %d с и остановлена.",
+    "en": "The command did not finish within %d s and was stopped."
+  },
+  "agent.run_command_exit_code": {
+    "ru": "\n(код выхода %d)",
+    "en": "\n(exit code %d)"
+  },
+  "agent.run_deep_seek_harness_not_installed_runtime": {
+    "ru": "DeepSeek Harness не установлен: нет Runtime/Agents/dsh. Установите его в «Настройки → Компоненты», раздел Text.",
+    "en": "DeepSeek Harness is not installed: Runtime/Agents/dsh is missing. Install it in Settings → Components, under Text."
+  },
+  "agent.send_deep_seek_harness_no_longer_running": {
+    "ru": "DeepSeek Harness уже не выполняет задачу",
+    "en": "DeepSeek Harness is no longer running a task"
+  },
+  "agent.run_model_reached_response_length_limit": {
+    "ru": "Модель упёрлась в лимит длины ответа",
+    "en": "The model reached its response length limit"
+  },
+  "agent.run_model_refused_answer": {
+    "ru": "Модель отказалась отвечать",
+    "en": "The model refused to answer"
+  },
+  "agent.dsh_deep_seek_harness_exited_unexpectedly_see": {
+    "ru": "DeepSeek Harness неожиданно завершился. Подробности — в журнале agent-dsh.log.",
+    "en": "DeepSeek Harness exited unexpectedly. See agent-dsh.log for details."
+  },
+  "agent.allowed_invalid_agent_gateway_key": {
+    "ru": "Неверный ключ шлюза агента",
+    "en": "Invalid agent gateway key"
+  },
+  "agent.post_model_request_too_large": {
+    "ru": "Слишком большой запрос к модели",
+    "en": "Model request too large"
+  },
+  "agent.post_agent_model_not_found_among_installed": {
+    "ru": "Модель агента не найдена среди установленных моделей Text",
+    "en": "Agent model not found among installed Text models"
+  },
+  "agent.post_invalid_model_request": {
+    "ru": "Некорректный запрос к модели",
+    "en": "Invalid model request"
+  },
+  "agent.relay_ollama_text_not_responding": {
+    "ru": "Ollama (Text) не отвечает",
+    "en": "Ollama (Text) is not responding"
+  },
+  "agent.relay_stopped_user": {
+    "ru": "Остановлено пользователем",
+    "en": "Stopped by user"
+  },
+  "agent.relay_ollama_text_interrupted_response": {
+    "ru": "Ollama (Text) прервал ответ",
+    "en": "Ollama (Text) interrupted the response"
+  },
+  "agent.start_agent_gateway_port_occupied_another_application": {
+    "ru": "Порт шлюза агента %d занят другой программой. Измените AgentGatewayPort в настройке запуска.",
+    "en": "Agent gateway port %d is occupied by another application. Change AgentGatewayPort in launch settings."
+  },
+  "agent.options_loop_settings_contain_unsupported_parameters": {
+    "ru": "Настройки цикла содержат неподдерживаемые параметры",
+    "en": "Loop settings contain unsupported parameters"
+  },
+  "agent.options_check_command_one_line_up_500": {
+    "ru": "Команда проверки: одна строка до 500 символов",
+    "en": "Check command: one line, up to 500 characters"
+  },
+  "agent.contained_loop_handoff_folder_outside_project": {
+    "ru": "Папка итогов цикла выходит за пределы проекта",
+    "en": "Loop handoff folder is outside the project"
+  },
+  "agent.options_context_threshold_30_95": {
+    "ru": "Порог контекста: от 30 до 95%",
+    "en": "Context threshold: 30 to 95%"
+  },
+  "agent.options_iteration_count_1_100": {
+    "ru": "Число итераций: от 1 до 100",
+    "en": "Iteration count: 1 to 100"
+  },
+  "agent.options_loop_settings_must_integer": {
+    "ru": "Настройки цикла: %s — целое число",
+    "en": "Loop settings: %s must be an integer"
+  },
+  "agent.start_open_code_not_installed_runtime_agents": {
+    "ru": "OpenCode не установлен: нет Runtime/Agents/opencode/opencode.exe. Установите его в «Настройки → Компоненты», раздел Text.",
+    "en": "OpenCode is not installed: Runtime/Agents/opencode/opencode.exe is missing. Install it in Settings → Components, under Text."
+  },
+  "agent.start_open_code_did_not_respond_during": {
+    "ru": "OpenCode не ответил при запуске",
+    "en": "OpenCode did not respond during startup"
+  },
+  "agent.error_open_code": {
+    "ru": "OpenCode: ошибка %s",
+    "en": "OpenCode: error %s"
+  },
+  "agent.start_open_code_did_not_check_agent": {
+    "ru": "OpenCode не запустился. Проверьте журнал agent-opencode.log.",
+    "en": "OpenCode did not start. Check agent-opencode.log."
+  },
+  "agent.start_open_code_port_occupied_another_application": {
+    "ru": "Порт OpenCode %d занят другой программой. Измените OpenCodePort в настройке запуска.",
+    "en": "OpenCode port %d is occupied by another application. Change OpenCodePort in launch settings."
+  },
+  "agent.registry_permission_modes_read": {
+    "ru": "Только чтение",
+    "en": "Read only"
+  },
+  "agent.registry_permission_modes_ask_before_actions": {
+    "ru": "Спрашивать перед действиями",
+    "en": "Ask before actions"
+  },
+  "agent.registry_permission_modes_auto_edit_commit_without_asking": {
+    "ru": "Правки и коммиты без вопросов",
+    "en": "Edit and commit without asking"
+  },
+  "agent.registry_permission_hints_read_agent_reads_searches_project_files_edits": {
+    "ru": "Агент читает и ищет по файлам проекта; правки и команды запрещены.",
+    "en": "The agent reads and searches project files; edits and commands are blocked."
+  },
+  "agent.registry_permission_hints_ask_agent_asks_before_every_file_edit": {
+    "ru": "Перед каждой правкой файла и каждой командой агент спрашивает разрешения.",
+    "en": "The agent asks permission before every file edit and command."
+  },
+  "agent.registry_permission_hints_auto_file_edits_git_status_diff_log": {
+    "ru": "Правки файлов, git status/diff/log/add/commit — без вопросов; остальные команды — по запросу.",
+    "en": "File edits and git status/diff/log/add/commit run without asking; other commands require permission."
+  },
+  "agent.registry_agents_code_git_agent_reads_edits_project": {
+    "ru": "Агент для кода и git: читает и правит файлы проекта, запускает команды в терминале.",
+    "en": "Code and git agent: reads and edits project files, runs terminal commands."
+  },
+  "agent.registry_agents_code_editing_agent_git_folders_shows": {
+    "ru": "Агент для правок кода в git-папке: показывает правки блоками «было/стало»; при уровне «без вопросов» сам коммитит каждую правку, при «спрашивать» оставляет их незакоммиченными.",
+    "en": "Code editing agent for git folders: shows before/after blocks; automatically commits edits at the automatic permission level and leaves them uncommitted at the ask level."
+  },
+  "agent.registry_agents_modular_deep_seek_plugin_agent_preview": {
+    "ru": "Модульный агент DeepSeek на плагинах (предварительная версия): читает и правит файлы, запускает команды PowerShell.",
+    "en": "Modular DeepSeek plugin agent (preview): reads and edits files, runs PowerShell commands."
+  },
+  "agent.agent_selection_unknown_identifier_error": {
+    "ru": "Неизвестный агент",
+    "en": "Unknown agent"
+  },
+  "agent.routes_error_agent_mode_unavailable_check_startup_log": {
+    "ru": "Режим «Агент» недоступен. Проверьте журнал запуска.",
+    "en": "Agent mode unavailable. Check the startup log."
+  },
+  "agent.chat_message_agent_author_label": {
+    "ru": "Агент",
+    "en": "Agent"
+  },
+  "agent.permission_agent_permissions": {
+    "ru": "Права агента",
+    "en": "Agent permissions"
+  },
+  "agent.workspace_project_folder_agent_works_inside": {
+    "ru": "Папка проекта — агент работает только внутри неё",
+    "en": "Project folder — the agent works only inside it"
+  },
+  "agent.workspace_example_d_projects_my_app": {
+    "ru": "Например, D:\\Projects\\my-app",
+    "en": "For example, D:\\Projects\\my-app"
+  },
+  "agent.project_folder_picker_button_label": {
+    "ru": "Выбрать папку…",
+    "en": "Choose folder…"
+  },
+  "agent.loop_tasks_exceeding_model_context_each_iteration": {
+    "ru": "Для задач, которые не помещаются в контекст модели: каждая итерация начинается со свежим контекстом, а перед её концом агент пишет итог в файл .visualforge/loop/… в папке проекта; следующая итерация продолжает с него.",
+    "en": "For tasks exceeding the model context: each iteration starts fresh. Before ending, the agent writes a handoff to .visualforge/loop/… in the project folder; the next iteration continues from it."
+  },
+  "agent.loop_large_tasks_iterations_fresh_context": {
+    "ru": "Цикл для большой задачи — итерациями со свежим контекстом",
+    "en": "Loop for large tasks — iterations with fresh context"
+  },
+  "agent.loop_threshold_when_context_reaches_percentage_studio_interrupts": {
+    "ru": "Когда контекст модели заполнится на столько процентов, студия прервёт агента и попросит записать итог итерации",
+    "en": "When context reaches this percentage, the studio interrupts the agent and requests an iteration handoff"
+  },
+  "agent.loop_threshold_context": {
+    "ru": "Порог контекста, %",
+    "en": "Context threshold, %"
+  },
+  "agent.loop_iterations_stops_after_many_even_if_task": {
+    "ru": "Цикл остановится после стольких итераций, даже если задача не закончена",
+    "en": "The loop stops after this many iterations even if the task is unfinished"
+  },
+  "agent.loop_iterations_maximum": {
+    "ru": "Итераций, не больше",
+    "en": "Maximum iterations"
+  },
+  "agent.loop_check_studio_runs_project_folder_after_each": {
+    "ru": "Студия сама запускает её в папке проекта после каждой итерации; агент считается закончившим только если она проходит",
+    "en": "The studio runs it in the project folder after each iteration; the agent is considered finished only if it passes"
+  },
+  "agent.loop_check_command_after_each_iteration_optional": {
+    "ru": "Команда проверки после итерации — необязательно",
+    "en": "Check command after each iteration — optional"
+  },
+  "agent.loop_check_example_python_m_unittest_gradlew_test": {
+    "ru": "Например, python -m unittest или gradlew test",
+    "en": "For example, python -m unittest or gradlew test"
+  }
+}

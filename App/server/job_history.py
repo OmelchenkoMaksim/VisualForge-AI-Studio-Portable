@@ -1,4 +1,5 @@
 """Bounded terminal receipts; generation never depends on history storage."""
+from ui_strings import source as ui_text
 import copy
 import json
 import os
@@ -39,7 +40,7 @@ class JobHistory:
         except (OSError, ValueError, TypeError, AttributeError, KeyError, RecursionError):
             self.rows = {}
             self.writable = False
-            self.warning = 'Историю не удалось прочитать. Исходный файл сохранён без изменений; генерация доступна.'
+            self.warning = ui_text('common.job_history_init_read_original_file_unchanged_generation_remains_failed')
 
     def _resolve_file(self, value):
         if not isinstance(value, str) or not value or '\x00' in value or len(value) > 32768 or Path(value).suffix.lower() not in ('.png', '.jpg', '.jpeg'):
@@ -98,7 +99,7 @@ class JobHistory:
                 os.replace(temporary, self.path)
                 self.warning = ''
             except OSError:
-                self.warning = 'История доступна в текущем запуске, но не записана на диск. Проверьте доступ к папке UserData.'
+                self.warning = ui_text('common.job_history_record_available_session_but_not_saved_disk')
             finally:
                 try:
                     temporary.unlink(missing_ok=True)
@@ -109,7 +110,7 @@ class JobHistory:
         from job_delete import write_receipt
         with self.lock:
             if not self.writable:
-                raise ValueError('История недоступна для записи. Удаление не выполнено.')
+                raise ValueError(ui_text('common.job_history_remove_not_writable_nothing_deleted'))
             remaining = {key: row for key, row in self.rows.items() if key != ident}
             write_receipt(self.path, {'schema_version': 1, 'entries': list(remaining.values())})
             self.rows = remaining

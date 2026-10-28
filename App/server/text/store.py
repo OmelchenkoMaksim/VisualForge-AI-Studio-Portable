@@ -1,4 +1,5 @@
 """Chat history: one JSON file per chat plus a small index, written atomically; nothing leaves the portable folder."""
+from ui_strings import source as ui_text
 import base64
 import binascii
 import json
@@ -49,22 +50,22 @@ def image_info(raw):
                 position += 2 + struct.unpack('>H', raw[position + 2:position + 4])[0]
         mime, extension = 'image/jpeg', '.jpg'
     else:
-        raise ValueError('Поддерживаются изображения PNG и JPEG')
+        raise ValueError(ui_text('text.image_info_png_jpeg_images_supported'))
     if not 1 <= width <= MAX_IMAGE_SIDE or not 1 <= height <= MAX_IMAGE_SIDE:
-        raise ValueError('Размер изображения: от 1 до %d пикселей по стороне' % MAX_IMAGE_SIDE)
+        raise ValueError(ui_text('text.image_info_dimensions_1_pixels_per_side') % MAX_IMAGE_SIDE)
     return mime, extension, width, height
 
 
 def decode_image(value, name=''):
     """A data URL from the browser -> a checked record ready to be stored."""
     if not isinstance(value, str) or not DATA_URL.match(value):
-        raise ValueError('Изображение должно быть PNG или JPEG')
+        raise ValueError(ui_text('text.decode_image_must_png_jpeg'))
     try:
         raw = base64.b64decode(value.partition(',')[2], validate=True)
     except (binascii.Error, ValueError):
-        raise ValueError('Повреждённое изображение') from None
+        raise ValueError(ui_text('text.decode_image_damaged')) from None
     if not 32 < len(raw) <= MAX_IMAGE_BYTES:
-        raise ValueError('Изображение: до %d МиБ после сжатия' % (MAX_IMAGE_BYTES // 1024 // 1024))
+        raise ValueError(ui_text('text.decode_image_up_mi_b_after_compression') % (MAX_IMAGE_BYTES // 1024 // 1024))
     mime, extension, width, height = image_info(raw)
     return dict(raw=raw, mime=mime, extension=extension, width=width, height=height, name=str(name or 'image')[:120])
 
@@ -90,7 +91,7 @@ class ChatStore:
 
     def _path(self, ident):
         if not isinstance(ident, str) or not ID_PATTERN.match(ident):
-            raise ValueError('Некорректный номер чата')
+            raise ValueError(ui_text('text.path_invalid_chat_number'))
         return self.directory / (ident + '.json')
 
     def _summary(self, chat):
@@ -138,10 +139,10 @@ class ChatStore:
     def _load(self, ident):
         path = self._path(ident)
         if path.stat().st_size > MAX_FILE_BYTES:
-            raise ValueError('Файл чата слишком большой')
+            raise ValueError(ui_text('text.store_chat_file_too_large'))
         chat = json.loads(path.read_text(encoding='utf-8'))
         if chat.get('schema_version') != SCHEMA_VERSION or chat.get('id') != ident or not isinstance(chat.get('messages'), list):
-            raise ValueError('Файл чата повреждён')
+            raise ValueError(ui_text('text.store_chat_file_corrupted'))
         for index, message in enumerate(chat['messages']):
             if message.get('role') == 'assistant':
                 generation_ensure(message, 'Agent' if chat.get('kind') == 'agent' else 'Text', message.get('id', ident + ':' + str(index)))
@@ -153,7 +154,7 @@ class ChatStore:
         if len(json.dumps(chat, ensure_ascii=False, indent=1).encode('utf-8')) > MAX_FILE_BYTES or len(chat['messages']) > MAX_MESSAGES:
             recovery = self.directory / (chat['id'] + '.overflow') / (uuid.uuid4().hex + '.json')
             _write_json(recovery, chat)
-            raise ValueError('История достигла лимита. Начните новый чат. Полный результат сохранён: ' + str(recovery))
+            raise ValueError(ui_text('text.save_history_reached_limit_start_new_chat') + str(recovery))
         _write_json(self._path(chat['id']), chat)
         chats = [item for item in self._read_index() if item['id'] != chat['id']]
         chats.insert(0, self._summary(chat))
@@ -168,9 +169,9 @@ class ChatStore:
         """A chat; with `agent` (id, workspace, permission, session) it is an agent chat of the Text tab's «Агент» mode."""
         with self.lock:
             if len(self._read_index()) >= MAX_CHATS:
-                raise ValueError('Слишком много чатов: удалите ненужные')
+                raise ValueError(ui_text('text.create_too_many_chats_delete_unused'))
             now = time.time()
-            chat = dict(schema_version=SCHEMA_VERSION, id=uuid.uuid4().hex, title='Новый чат', title_auto=True, created=now, updated=now,
+            chat = dict(schema_version=SCHEMA_VERSION, id=uuid.uuid4().hex, title=ui_text('text.chat_new_conversation_default_title'), title_auto=True, created=now, updated=now,
                         system=self._system(system), model=str(model)[:200], think=bool(think), messages=[])
             if agent is not None:
                 chat.update(kind='agent', agent=dict(agent))
@@ -181,7 +182,7 @@ class ChatStore:
         with self.lock:
             chat = self.get(ident)
             if chat.get('kind') != 'agent':
-                raise ValueError('Это обычный чат, а не чат агента')
+                raise ValueError(ui_text('text.set_agent_regular_chat_not'))
             chat['agent'].update(changes)
             self._save(chat)
             return chat
@@ -189,7 +190,7 @@ class ChatStore:
     @staticmethod
     def _system(value):
         if not isinstance(value, str) or len(value) > MAX_SYSTEM:
-            raise ValueError('Системная инструкция: текст до %d символов' % MAX_SYSTEM)
+            raise ValueError(ui_text('text.system_instruction_up_characters') % MAX_SYSTEM)
         return value
 
     def get(self, ident):
@@ -197,11 +198,11 @@ class ChatStore:
             try:
                 return self._load(ident)
             except FileNotFoundError:
-                raise ValueError('Чат не найден') from None
+                raise ValueError(ui_text('text.get_chat_not_found')) from None
 
     def rename(self, ident, title):
         if not isinstance(title, str) or not title.strip():
-            raise ValueError('Введите название чата')
+            raise ValueError(ui_text('text.rename_enter_chat_title'))
         with self.lock:
             chat = self.get(ident)
             chat.update(title=_title_from(title), title_auto=False)
@@ -211,13 +212,13 @@ class ChatStore:
     def update(self, ident, system=None, think=None, model=None):
         with self.lock:
             if ident in self.active:
-                raise ValueError('Агент работает в этом чате: сначала остановите задачу')
+                raise ValueError(ui_text('text.update_agent_working_chat_stop_task_first'))
             chat = self.get(ident)
             if system is not None:
                 chat['system'] = self._system(system)
             if think is not None:
                 if not isinstance(think, bool):
-                    raise ValueError('Размышление: да или нет')
+                    raise ValueError(ui_text('text.update_reasoning_yes_no'))
                 chat['think'] = think
             if model is not None:
                 chat['model'] = str(model)[:200]
@@ -228,10 +229,10 @@ class ChatStore:
         with self.lock:
             if ident in self.active:
                 from gpu import Busy
-                raise Busy('Агент работает в этом чате: сначала остановите задачу')
+                raise Busy(ui_text('text.update_agent_working_chat_stop_task_first'))
             path = self._path(ident)
             if not path.is_file():
-                raise ValueError('Чат не найден')
+                raise ValueError(ui_text('text.get_chat_not_found'))
             path.unlink()
             shutil.rmtree(self._images(ident), ignore_errors=True)
             self._write_index([item for item in self._read_index() if item['id'] != ident])
@@ -242,7 +243,7 @@ class ChatStore:
     def image_path(self, ident, image_id):
         """Path of a stored image of this chat; ids and extensions come from the chat file, never from the request."""
         if not isinstance(image_id, str) or not ID_PATTERN.match(image_id):
-            raise ValueError('Некорректный номер изображения')
+            raise ValueError(ui_text('text.image_path_invalid_number'))
         with self.lock:
             for message in self.get(ident)['messages']:
                 for meta in message.get('images', []):
@@ -250,7 +251,7 @@ class ChatStore:
                         path = self._images(ident) / (image_id + ('.png' if meta['mime'] == 'image/png' else '.jpg'))
                         if path.is_file():
                             return path, meta['mime']
-        raise ValueError('Изображение не найдено')
+        raise ValueError(ui_text('text.image_path_not_found'))
 
     def images_b64(self, ident, message):
         """The message's images as base64 text, the form Ollama expects."""
@@ -263,15 +264,15 @@ class ChatStore:
     def add_user(self, ident, content, images=None, generation=None):
         images = images or []
         if not isinstance(content, str) or len(content) > MAX_CONTENT or not (content.strip() or images):
-            raise ValueError('Сообщение: текст до %d символов или хотя бы одно изображение' % MAX_CONTENT)
+            raise ValueError(ui_text('text.send_message_up_characters_least_one_image') % MAX_CONTENT)
         if len(images) > MAX_IMAGES_PER_MESSAGE:
-            raise ValueError('К сообщению можно прикрепить до %d изображений' % MAX_IMAGES_PER_MESSAGE)
+            raise ValueError(ui_text('text.send_up_images_attached_message') % MAX_IMAGES_PER_MESSAGE)
         with self.lock:
             chat = self.get(ident)
             if len(chat['messages']) + 2 > MAX_MESSAGES:
-                raise ValueError('В чате слишком много сообщений: начните новый чат')
+                raise ValueError(ui_text('text.add_user_too_many_messages_chat_start_new'))
             if sum(len(m.get('images', [])) for m in chat['messages']) + len(images) > MAX_IMAGES_PER_CHAT:
-                raise ValueError('В чате уже много изображений (не больше %d): начните новый чат' % MAX_IMAGES_PER_CHAT)
+                raise ValueError(ui_text('text.add_user_too_many_images_chat_maximum_start') % MAX_IMAGES_PER_CHAT)
             message = dict(id=uuid.uuid4().hex, role='user', content=content, created=time.time())
             if generation:
                 message['generation'] = dict(generation)
@@ -286,7 +287,7 @@ class ChatStore:
                     message.setdefault('images', []).append(meta)
                 chat['messages'].append(message)
                 if chat.get('title_auto') and sum(1 for m in chat['messages'] if m['role'] == 'user') == 1:
-                    chat['title'] = _title_from(content) or ('Изображение' if images else chat['title'])
+                    chat['title'] = _title_from(content) or (ui_text('text.attachment_image_fallback_label') if images else chat['title'])
                 self._save(chat)
             except BaseException:
                 for path in written:
@@ -317,7 +318,7 @@ class ChatStore:
                 chat['messages'].pop()
                 self._save(chat)
             if not chat['messages'] or chat['messages'][-1]['role'] != 'user':
-                raise ValueError('В чате нет вопроса, на который можно ответить')
+                raise ValueError(ui_text('text.prepare_regenerate_chat_has_no_question_answer'))
             return chat
 
     def add_assistant(self, ident, content, thinking='', model='', stats=None, stopped=False, error='', steps=None, generation=None):

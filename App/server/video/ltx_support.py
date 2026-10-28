@@ -1,4 +1,5 @@
 """Pinned LTX 2.5 assets, explicit inference plan and generated-audio acceptance."""
+from ui_strings import source as ui_text
 import json
 import math
 import os
@@ -46,11 +47,11 @@ def inference_plan(row):
 def validate_audio(streams,duration):
     audio=next((s for s in streams if s.get('codec_type')=='audio'),None)
     if not audio:
-        raise ValueError('LTX 2.5 не сохранил сгенерированный звук')
+        raise ValueError(ui_text('video.validate_audio_ltx_2_5_did_not_save'))
     try:
         actual=float(audio['duration'])
         valid=math.isfinite(actual) and abs(actual-duration)<=.2 and int(audio['channels'])==2 and int(audio['sample_rate'])==48000
     except (KeyError,ValueError,TypeError,OverflowError):
         valid=False
     if not valid:
-        raise ValueError('Аудиопоток LTX 2.5 не соответствует длительности видео или формату 48 кГц, стерео')
+        raise ValueError(ui_text('video.validate_audio_ltx_2_5_does_not_match'))

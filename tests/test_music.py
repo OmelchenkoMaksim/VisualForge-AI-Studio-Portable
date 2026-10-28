@@ -9,7 +9,7 @@ from unittest.mock import Mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from music.registry import validate
 from music.storage import publish, resolve_path, stored_path
-from music.manager import MusicManager
+from music.music_manager import MusicManager
 from music.routes import handle
 from gpu import GpuCoordinator
 

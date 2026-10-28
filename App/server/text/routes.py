@@ -1,9 +1,10 @@
 """HTTP endpoints of the Text module, served through the loopback bridge after its same-origin checks."""
+from ui_strings import source as ui_text
 import json
 from generation import begin as generation_begin, finish as generation_finish
 from urllib.parse import parse_qs
 
-from text.manager import Busy
+from text.text_manager import Busy
 from text.store import MAX_CONTENT, MAX_IMAGES_PER_MESSAGE, decode_image
 
 
@@ -21,7 +22,7 @@ def _stats(final, settings):
 def handle(handler, manager, store, route, data, query):
     """Everything except the streaming `send`."""
     if manager is None or store is None:
-        return handler.response_json(503, {'error': 'Модуль Text недоступен. Проверьте журнал запуска.'})
+        return handler.response_json(503, {'error': ui_text('text.routes_error_text_module_unavailable_check_startup_log')})
     ident = parse_qs(query.lstrip('?')).get('id', [''])[0]
     try:
         if data is None:
@@ -37,17 +38,17 @@ def handle(handler, manager, store, route, data, query):
                 return handler.response_json(404, {'error': 'Unknown Text endpoint'})
         elif route == 'chats':
             if set(data) - {'system', 'model', 'think'}:
-                raise ValueError('Запрос содержит неподдерживаемые параметры')
+                raise ValueError(ui_text('text.routes_request_contains_unsupported_parameters'))
             answer = store.create(data.get('system', ''), data.get('model') or manager.default_model(), data.get('think', True))
         elif route == 'chat-rename':
             answer = store.rename(data.get('id'), data.get('title'))
         elif route == 'chat-update':
             if set(data) - {'id', 'system', 'think', 'model'}:
-                raise ValueError('Запрос содержит неподдерживаемые параметры')
+                raise ValueError(ui_text('text.routes_request_contains_unsupported_parameters'))
             answer = store.update(data.get('id'), data.get('system'), data.get('think'), data.get('model'))
         elif route == 'chat-delete':
             if manager.active.get(data.get('id')) is not None:
-                raise Busy('Чат сейчас отвечает: сначала остановите ответ')
+                raise Busy(ui_text('text.routes_chat_responding_stop_response_first'))
             store.delete(data.get('id'))
             answer = dict(deleted=True)
         elif route == 'settings':
@@ -86,29 +87,29 @@ def image(handler, store, query):
 def send(handler, manager, store, data, admit):
     """Stream one answer as NDJSON events: status, delta, done, error. Raises Busy/ValueError before any byte is sent."""
     if manager is None or store is None:
-        raise ValueError('Модуль Text недоступен')
+        raise ValueError(ui_text('text.send_text_module_unavailable'))
     if not isinstance(data, dict) or set(data) - {'chat_id', 'content', 'regenerate', 'images'}:
-        raise ValueError('Запрос содержит неподдерживаемые параметры')
+        raise ValueError(ui_text('text.routes_request_contains_unsupported_parameters'))
     chat_id, regenerate = data.get('chat_id'), data.get('regenerate') is True
     chat = store.get(chat_id)
     if chat.get('kind') == 'agent':
-        raise ValueError('Это чат агента: задания ему отправляются в режиме «Агент»')
+        raise ValueError(ui_text('text.send_agent_chat_tasks_mode'))
     pictures = data.get('images') or []
     if regenerate and (pictures or data.get('content')):
-        raise ValueError('Перегенерация не принимает новый текст или изображения')
+        raise ValueError(ui_text('text.send_regeneration_does_not_accept_new_text'))
     if not isinstance(pictures, list) or len(pictures) > MAX_IMAGES_PER_MESSAGE:
-        raise ValueError('К сообщению можно прикрепить до %d изображений' % MAX_IMAGES_PER_MESSAGE)
+        raise ValueError(ui_text('text.send_up_images_attached_message') % MAX_IMAGES_PER_MESSAGE)
     images = [decode_image(item.get('data'), item.get('name')) if isinstance(item, dict) else decode_image(None) for item in pictures]
     question = data.get('content', '')
     if not regenerate and (not isinstance(question, str) or len(question) > MAX_CONTENT or not (question.strip() or images)):
-        raise ValueError('Сообщение: текст до %d символов или хотя бы одно изображение' % MAX_CONTENT)
+        raise ValueError(ui_text('text.send_message_up_characters_least_one_image') % MAX_CONTENT)
     model = chat.get('model') or manager.default_model()
     availability = manager.availability()
     usable = {m['name']: m for m in availability['models'] if m['ok']}
     if not availability['available'] or model not in usable:
-        raise ValueError(availability['reason'] or 'Выбранная модель не установлена')
+        raise ValueError(availability['reason'] or ui_text('text.send_selected_model_not_installed'))
     if images and not usable[model].get('vision'):
-        raise ValueError('Выбранная модель не умеет работать с изображениями')
+        raise ValueError(ui_text('text.attach_selected_model_does_not_support_images'))
     cancel = admit(chat_id)
     generation_info = generation_begin('Text')
     content, thinking, final = [], [], None
@@ -132,12 +133,12 @@ def send(handler, manager, store, data, admit):
         handler.end_headers()
         error = ''
         try:
-            emit(dict(type='status', phase='Подготовка ответа…', generation=generation_info))
+            emit(dict(type='status', phase=ui_text('text.send_preparing_response'), generation=generation_info))
             if not manager.alive():
-                emit(dict(type='status', phase='Запуск Ollama…'))
+                emit(dict(type='status', phase=ui_text('text.send_starting_ollama')))
             manager.start()
             if model not in [m['name'] for m in manager.loaded()]:
-                emit(dict(type='status', phase='Загрузка модели в память: первая загрузка с диска может занять несколько минут…'))
+                emit(dict(type='status', phase=ui_text('text.send_loading_model_into_memory_first_load')))
             history = [dict(role='system', content=chat['system'])] if chat.get('system', '').strip() else []
             for m in chat['messages']:
                 if m['content'].strip() or m.get('images'):
@@ -154,7 +155,7 @@ def send(handler, manager, store, data, admit):
         except Disconnected:
             pass
         except (OSError, ValueError, KeyError, TypeError) as failure:
-            error = str(failure)[:500] or 'Не удалось получить ответ от модели'
+            error = str(failure)[:500] or ui_text('text.send_get_model_response_failed')
         text, thought = ''.join(content), ''.join(thinking)
         stopped = cancel.is_set() and final is None
         generation_finish(generation_info, state='error' if error else 'cancelled' if stopped else 'done' if text.strip() or thought.strip() else 'error')
@@ -162,7 +163,7 @@ def send(handler, manager, store, data, admit):
             chat, saved = store.add_assistant(chat_id, text, thought, model, _stats(final, dict(num_ctx=manager.context_length(model))) if final else None, stopped, error, generation=generation_info)
             result = dict(type='done', message=saved, chat=dict(id=chat['id'], title=chat['title'], updated=chat['updated']))
         else:
-            result = dict(type='error', error=error or ('Ответ остановлен до первых слов' if stopped else 'Модель вернула пустой ответ'), generation=generation_info)
+            result = dict(type='error', error=error or (ui_text('text.send_response_stopped_before_first_words') if stopped else ui_text('text.send_model_returned_empty_response')), generation=generation_info)
         try:
             emit(dict(result, error=error) if result['type'] == 'done' and error else result)
         except Disconnected:
