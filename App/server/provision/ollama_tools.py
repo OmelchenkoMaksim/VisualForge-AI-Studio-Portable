@@ -15,7 +15,7 @@ import time
 from urllib.error import URLError
 from urllib.request import Request, build_opener, ProxyHandler
 
-from .steps import StepError
+from .install_steps import StepError
 
 DEFAULT_HOST = 'registry.ollama.ai'
 _OPENER = build_opener(ProxyHandler({}))

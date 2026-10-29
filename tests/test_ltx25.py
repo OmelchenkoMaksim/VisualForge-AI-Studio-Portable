@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'App/server'))
-from video.registry import validate
-from video.adapters import build_command
+from video.video_registry import validate
+from video.video_adapters import build_command
 from video.ltx_support import LTX_ID, ASSETS, model_root, inference_plan, validate_audio, engine_missing
 
 
@@ -68,9 +68,9 @@ class LtxTests(unittest.TestCase):
 
     def test_catalog_pins_every_asset_to_the_same_official_revision(self):
         root=Path(__file__).resolve().parents[1]
-        catalog=json.loads((root/'App/config/components.json').read_text('utf-8'))
+        catalog=json.loads((root/'App/config/component-catalog.json').read_text('utf-8'))
         component=next(c for c in catalog['components'] if c['id']=='video.model.ltx25')
-        self.assertIn('video.runtime',component['requires'])
+        self.assertIn('video.video_runtime',component['requires'])
         self.assertEqual({Path(f['path']).name for f in component['files']},{Path(f['path']).name for f in ASSETS})
         self.assertTrue(all(len(f['sha256'])==64 and '/49b093a39c19169a8a81721dcc541e07e945232f/' in f['urls'][0] for f in component['files']))
 

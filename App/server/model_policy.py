@@ -37,7 +37,7 @@ class ModelPolicy:
         component = COMPONENTS.get(module + ':' + ident, 'speech.model.' + ident if module == 'speech' else module + ':' + ident)
         if component in disabled:
             return False
-        path = self.root / 'App/config/components.json'
+        path = self.root / 'App/config/component-catalog.json'
         if not path.is_file():
             return True
         catalog = json.loads(path.read_text('utf-8-sig'))

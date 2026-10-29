@@ -1,0 +1,180 @@
+{
+  "20": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "z_image_turbo_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "21": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b_fp8_mixed.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    }
+  },
+  "22": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "25": {
+    "class_type": "ModelSamplingAuraFlow",
+    "inputs": {
+      "model": [
+        "20",
+        0
+      ],
+      "shift": 3
+    }
+  },
+  "40": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "21",
+        0
+      ],
+      "text": "__PROMPT__"
+    }
+  },
+  "41": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": [
+        "40",
+        0
+      ]
+    }
+  },
+  "50": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": [
+        "201",
+        0
+      ],
+      "vae": [
+        "22",
+        0
+      ]
+    }
+  },
+  "60": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "26",
+        0
+      ],
+      "positive": [
+        "40",
+        0
+      ],
+      "negative": [
+        "41",
+        0
+      ],
+      "latent_image": [
+        "50",
+        0
+      ],
+      "seed": 0,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "70": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "60",
+        0
+      ],
+      "vae": [
+        "22",
+        0
+      ]
+    }
+  },
+  "90": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "70",
+        0
+      ],
+      "filename_prefix": "Z_Image_Turbo_Tile"
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "__IMAGE1__"
+    }
+  },
+  "11": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": [
+        "10",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 16
+    }
+  },
+  "24": {
+    "class_type": "ModelPatchLoader",
+    "inputs": {
+      "name": "Z-Image-Turbo-Fun-Controlnet-Tile-2.1-lite-2601-8steps.safetensors"
+    }
+  },
+  "200": {
+    "class_type": "UpscaleModelLoader",
+    "inputs": {
+      "model_name": "RealESRGAN_x2plus.pth"
+    }
+  },
+  "201": {
+    "class_type": "ImageUpscaleWithModel",
+    "inputs": {
+      "image": [
+        "11",
+        0
+      ],
+      "upscale_model": [
+        "200",
+        0
+      ]
+    }
+  },
+  "26": {
+    "class_type": "ZImageFunControlnet",
+    "inputs": {
+      "model": [
+        "25",
+        0
+      ],
+      "model_patch": [
+        "24",
+        0
+      ],
+      "vae": [
+        "22",
+        0
+      ],
+      "strength": 0.85,
+      "image": [
+        "201",
+        0
+      ]
+    }
+  }
+}

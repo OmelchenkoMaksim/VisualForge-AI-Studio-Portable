@@ -1,6 +1,6 @@
 """Synthesizes the fragments of one voiceover job with VoxCPM2 (48 kHz), in one owned process, one fragment at a time.
 
-Same contract as worker.py (the Qwen3-TTS worker): the process exits when the job ends so the video card is free again, a fragment whose
+Same contract as qwen_tts_worker.py (the Qwen3-TTS worker): the process exits when the job ends so the video card is free again, a fragment whose
 cache file exists is skipped (that is what makes a stopped job resumable), and every file is written atomically. VoxCPM2 has no batch
 interface; its own speed is about 0.3 s of work per second of audio.
 """
@@ -13,7 +13,7 @@ import traceback
 
 # Run as a script by the manager, so the server folder is put on sys.path by hand before the shared helpers are imported.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from voiceover.worker import event, plausible  # noqa: E402
+from voiceover.qwen_tts_worker import event, plausible  # noqa: E402
 
 
 def main():
@@ -23,8 +23,8 @@ def main():
     for package in reversed(spec['packages']):
         sys.path.insert(0, package)
     try:
-        from generation import operation
-        from voiceover.storage import write_json
+        from generation_identity import operation
+        from voiceover.voiceover_storage import write_json
         cache = Path(spec['cache'])
         cache.mkdir(parents=True, exist_ok=True)
         for leftover in cache.glob('*.tmp'):
@@ -104,7 +104,7 @@ def main():
     except Exception as exc:
         traceback.print_exc(limit=12)
         try:
-            from voiceover.storage import write_json
+            from voiceover.voiceover_storage import write_json
             write_json(directory / 'error.json', {'error': str(exc)[:2000]})
         except Exception:
             pass

@@ -16,8 +16,8 @@ import traceback
 
 # Run as a script by the manager, so the server folder is put on sys.path by hand before the shared helpers are imported.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from voiceover.defaults import choose, median_pitch  # noqa: E402
-from voiceover.worker import event  # noqa: E402
+from voiceover.default_voices import choose, median_pitch  # noqa: E402
+from voiceover.qwen_tts_worker import event  # noqa: E402
 
 SAMPLE_RATE = 24000
 LISTEN_RATE = 16000
@@ -50,9 +50,9 @@ def main():
         import numpy as np
         import soundfile as sf
         import torch
-        from generation import operation
-        from voiceover.compare import compare
-        from voiceover.storage import write_json
+        from generation_identity import operation
+        from voiceover.voice_comparison import compare
+        from voiceover.voiceover_storage import write_json
         if not torch.cuda.is_available():
             raise RuntimeError('Озвучка требует доступную NVIDIA CUDA GPU')
         from voxcpm import VoxCPM
@@ -117,7 +117,7 @@ def main():
     except Exception as exc:
         traceback.print_exc(limit=12)
         try:
-            from voiceover.storage import write_json
+            from voiceover.voiceover_storage import write_json
             write_json(directory / 'error.json', {'error': str(exc)[:1000]})
         except Exception:
             pass

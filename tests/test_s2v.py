@@ -3,9 +3,9 @@ import argparse,base64,json,os,subprocess,sys,tempfile,unittest,wave
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'App/server'))
-from video.registry import validate
-from video.service import Jobs
-from video.adapters import build_command
+from video.video_registry import validate
+from video.video_service import Jobs
+from video.video_adapters import build_command
 from video.s2v_audio import prepare
 from video.wan_support import S2V_ID,WAN_ID,S2V_FILES,WAN_FILES,engine_missing
 
@@ -40,7 +40,7 @@ class S2VTests(unittest.TestCase):
                 self.assertTrue(engine_missing(runtime,h3,WAN_ID))
                 command=build_command(runtime,h3,folder,validate(self.request()))
                 self.assertIn('s2v_worker.py',str(command));self.assertIn(str(s2v.resolve()),command);self.assertIn(str(wan.resolve()),command)
-                self.assertNotIn('pipeline.py',str(command))
+                self.assertNotIn('video_pipeline.py',str(command))
 
     def test_audio_duration_and_receipt_excludes_payload(self):
         with tempfile.TemporaryDirectory() as temporary:

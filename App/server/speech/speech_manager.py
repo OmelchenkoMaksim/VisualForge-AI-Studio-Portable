@@ -14,9 +14,9 @@ import subprocess
 import sys
 import threading
 import time
-from generation import tracked, parent as generation_parent, scope as generation_scope
+from generation_identity import tracked, parent as generation_parent, scope as generation_scope
 
-from gpu import Busy
+from gpu_coordinator import Busy
 
 MODEL_PREFERENCE = ('whisper-turbo', 'whisper-large-v3', 'whisper-small')
 LABELS = {'whisper-turbo': 'Whisper large-v3-turbo', 'whisper-large-v3': 'Whisper large-v3', 'whisper-small': 'Whisper small'}
@@ -45,7 +45,7 @@ class SpeechManager:
         self.python = Path(os.environ.get('VISUALFORGE_SPEECH_PYTHON', paths.root / 'Runtime/Music/python/python.exe'))
         self.state = Path(os.environ.get('VISUALFORGE_SPEECH_STATE_ROOT', paths.cache / 'Speech'))
         self.settings_path = paths.settings / 'speech.settings.json'
-        self.worker_script = Path(__file__).with_name('worker.py')
+        self.worker_script = Path(__file__).with_name('speech_worker.py')
         self.command = command          # tests replace the whole worker command: command(model_dir, device) -> list
         self.free_vram = free_vram
         self.gpu_busy = gpu_busy
@@ -193,7 +193,7 @@ class SpeechManager:
             self.process = subprocess.Popen(command, cwd=str(self.paths.root), env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors,
                                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         try:
-            from video.owned import OwnedJob
+            from video.owned_processes import OwnedJob
             self.job = OwnedJob(self.process)
         except OSError:
             self.process.terminate()
@@ -271,7 +271,7 @@ class SpeechManager:
     def transcribe(self, audio, language=None, partial=False, enhance=False, parent_id=None):
         """Recognition, then (enhance=True, final recordings only) an edit by the local Gemma. The recognition lock is released before the
         edit, because Gemma needs the video card and the coordinator would otherwise see the voice worker as busy."""
-        from generation import begin, finish
+        from generation_identity import begin, finish
         started_at, clock = time.time(), time.monotonic()
         generation_info = None
         kind = 'SpeechRecognitionPreview' if partial else 'SpeechRecognition'

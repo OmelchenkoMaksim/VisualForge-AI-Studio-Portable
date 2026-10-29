@@ -1,7 +1,7 @@
 # Third-party components
 
 VisualForge AI Studio does not contain these components. The setup program downloads them from their original publishers into
-`Runtime/` and `Models/`, after checking the SHA-256 recorded in [App/config/components.json](App/config/components.json). Each keeps
+`Runtime/` and `Models/`, after checking the SHA-256 recorded in [App/config/component-catalog.json](App/config/component-catalog.json). Each keeps
 its own license; the texts that ship with this repository are in [Support/Licenses](Support/Licenses). Read the license of every model
 before using it: the descriptions below are a summary for orientation, not legal advice.
 

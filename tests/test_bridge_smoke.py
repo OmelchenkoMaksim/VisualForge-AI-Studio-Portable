@@ -1,7 +1,7 @@
 """The real bridge process on throw-away state: every route family must answer, and nothing may crash a request thread.
 
-server.py cannot be unit-tested piece by piece (it builds its managers on import), and a route that still called a changed
-function signature once went unnoticed. This starts the actual server.py from a copy of App and walks the routes."""
+studio_server.py cannot be unit-tested piece by piece (it builds its managers on import), and a route that still called a changed
+function signature once went unnoticed. This starts the actual studio_server.py from a copy of App and walks the routes."""
 import json
 import os
 from pathlib import Path
@@ -38,7 +38,7 @@ class BridgeSmoke(unittest.TestCase):
                'VISUALFORGE_VIDEO_PORT': str(sorted(ports)[1]), 'VISUALFORGE_TEXT_PORT': str(sorted(ports)[2]), 'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONIOENCODING': 'utf-8'}
         cls.log = cls.root / 'bridge.log'
         cls.stream = cls.log.open('wb')
-        cls.process = subprocess.Popen([sys.executable, '-u', str(cls.root / 'App/server/server.py')], cwd=str(cls.root), env=env, stdout=cls.stream, stderr=subprocess.STDOUT)
+        cls.process = subprocess.Popen([sys.executable, '-u', str(cls.root / 'App/server/studio_server.py')], cwd=str(cls.root), env=env, stdout=cls.stream, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             try:
@@ -76,7 +76,7 @@ class BridgeSmoke(unittest.TestCase):
         # The installed launcher starts the bridge with the embedded Python, which does not put the script's folder on
         # sys.path (isolated mode reproduces that); the other tests here use the system Python and cannot see such a failure.
         code = "import runpy, sys; runpy.run_path(sys.argv[1], run_name='probe')"
-        done = subprocess.run([sys.executable, '-I', '-c', code, str(self.root / 'App/server/server.py')], capture_output=True, text=True, timeout=120,
+        done = subprocess.run([sys.executable, '-I', '-c', code, str(self.root / 'App/server/studio_server.py')], capture_output=True, text=True, timeout=120,
                               env={**os.environ, 'VISUALFORGE_PORTABLE_ROOT': str(self.root), 'PYTHONIOENCODING': 'utf-8'})
         self.assertEqual(done.returncode, 0, done.stderr[-1500:])
 
@@ -122,14 +122,14 @@ class BridgeSmoke(unittest.TestCase):
         self.assertEqual(self.json('/api/event-history/session', {'action':'finish', 'id':'f'*64})[0], 400)
 
     def test_every_asset_linked_from_the_page_is_served(self):
-        # The bridge serves only an explicit STATIC list; a stylesheet or script added to index.html but not to that list would 404 silently.
-        page = (self.root / 'App/frontend/index.html').read_text(encoding='utf-8')
+        # The bridge serves only an explicit STATIC list; a stylesheet or script added to studio-index.html but not to that list would 404 silently.
+        page = (self.root / 'App/frontend/studio-index.html').read_text(encoding='utf-8')
         assets = sorted(set(re.findall(r'(?:href|src)="(/[^"/]+\.(?:css|js))"', page)))
-        self.assertIn('/theme.css', assets)
+        self.assertIn('/studio-theme.css', assets)
         self.assertEqual({path: self.call(path)[0] for path in assets}, {path: 200 for path in assets})
 
     def test_every_route_family_answers_and_no_request_thread_crashes(self):
-        reads = ['/api/hardware', '/hardware.js', '/hardware.css', '/model-requirements.js', '/health', '/api/busy', '/api/settings', '/api/history', '/api/favorites', '/api/video/availability', '/api/video/history',
+        reads = ['/api/hardware', '/hardware-panel.js', '/hardware-panel.css', '/model-requirements.js', '/health', '/api/busy', '/api/settings', '/api/history', '/api/favorites', '/api/video/availability', '/api/video/history',
                  '/api/music/availability', '/api/music/history', '/api/music/active', '/api/music/settings', '/api/text/availability',
                  '/api/text/status', '/api/text/chats', '/api/music/status?id=none', '/api/video/status?id=none', '/api/components', '/api/speech/availability']
         results = {path: self.call(path)[0] for path in reads}
@@ -141,8 +141,8 @@ class BridgeSmoke(unittest.TestCase):
         self.assertIn('cpu', hardware['hardware'])
         self.assertIn('video:ltx25-distilled', hardware['models'])
         self.assertIn(hardware['models']['video:ltx25-distilled']['status'], ('green','yellow','red'))
-        self.assertEqual(results['/hardware.js'], 200)
-        self.assertEqual(results['/hardware.css'], 200)
+        self.assertEqual(results['/hardware-panel.js'], 200)
+        self.assertEqual(results['/hardware-panel.css'], 200)
         self.assertEqual(results['/model-requirements.js'], 200)
         self.assertEqual(hardware['models']['video:ltx25-distilled']['profile']['storage']['model_bytes'], 41162142158)
         self.assertEqual(self.json('/api/busy'), (200, {'busy': False, 'modules': [], 'labels': []}))

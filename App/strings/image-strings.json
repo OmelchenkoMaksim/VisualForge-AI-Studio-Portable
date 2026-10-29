@@ -1,0 +1,1408 @@
+{
+  "image.qwen21_rgba_stage": {"ru":"Подготовка RGBA · Image {0}", "en":"Prepare RGBA · Image {0}"},
+  "image.qwen21_expansion_alpha_unavailable": {"ru":"Для запроса RGBA/прозрачности расширитель отключён: в двух проверках он заменил альфа-канал нарисованной шахматной подложкой, и уточнение инструкции не помогло. Qwen 2.1 создаёт прозрачность по вашему исходному тексту без расширителя.", "en":"Enhancement is disabled for RGBA/transparency requests: in two checks it replaced alpha with a painted checkerboard, and a stronger instruction did not fix it. Qwen 2.1 generates transparency from your original text without enhancement."},
+  "image.assessment_qwen21_strong_text": {"ru":"Предметные правки: перекраска, перенос материала и композиция из нескольких исходников. В проверке сохранила часы и надпись CLOCK, перенесла узор и добавила кактус. Создаёт прозрачный PNG и умеет убирать фон; нативный 2K работает.", "en":"Product edits: recoloring, material transfer and composition from several inputs. In testing it preserved the clock and CLOCK lettering, transferred a pattern and added a cactus. It generates transparent PNGs and can remove backgrounds; native 2K works."},
+  "image.assessment_qwen21_variable_text": {"ru":"Точный состав и расположение мелких объектов нестабильны: шестерёнки оказались на часах, отдельная карточка пропала. 40 шагов это не исправили. Цвет и стиль могут отклоняться; края и альфа после удаления фона не равны точному выделению.", "en":"Exact small-object content and placement are unstable: gears appeared on the clock and a separate card disappeared. Forty steps did not fix this. Color and style can drift; background-removal edges and alpha are not exact segmentation."},
+  "image.assessment_qwen21_limits_text": {"ru":"Нативно около 1 или 4 Мп; апскейл отдельно увеличивает готовый результат. Нет блокировки пикселей и слоёв. CFG 1 не использует негативный промпт. Расширитель исказил прозрачность в двух проверках — для явного запроса RGBA он отключён. UC не обещает большей точности.", "en":"Native output is about 1 or 4 MP; upscaling separately enlarges the finished result. No pixel lock or layers. CFG 1 does not use negative prompts. Enhancement distorted transparency in two checks, so it is disabled for explicit RGBA requests. UC does not promise greater accuracy."},
+  "image.assessment_qwen21_evidence_text": {"ru":"Проверено 29.10.2026: предметная сцена и плакат с EN/RU надписями, 1–3 исходника, 25/40 шагов, RGBA, 2K, апскейл 2×/4× и оба расширителя. Качество на десяти исходниках, лица и сложная типографика не оценивались; выборка небольшая.", "en":"Checked on 2026-10-29: product scene and EN/RU poster, 1–3 inputs, 25/40 steps, RGBA, 2K, 2×/4× upscaling and both enhancers. Ten-image quality, faces and complex typography were not evaluated; the sample is small."},
+  "image.qwen21_extra_images_hint": {"ru":"Добавьте от 1 до 8 референсов в порядке <image3>…<image10>. Общий размер исходников — до 100 МиБ. Каждый масштабируется к выбранному бюджету 1 или 4 Мп; несколько крупных референсов заметно увеличивают расход памяти и время.", "en":"Add 1 to 8 references in <image3>…<image10> order. Inputs total up to 100 MiB. Each is scaled to the selected 1 or 4 MP budget; several large references substantially increase memory use and time."},
+  "image.qwen21_expansion_hint": {"ru":"Необязательная Qwen3.5: для Prompt используется расширитель T2I, для правок — I2I с исходными изображениями. Переписанный текст показан под результатом. Может добавить лишние детали или изменить смысл — проверяйте его; для точной готовой инструкции можно отключить. Загрузка с HDD долгая.", "en":"Optional Qwen3.5: Prompt uses the T2I enhancer; edits use I2I with the source images. The rewritten text is shown under the result. It may add unwanted details or change intent, so review it; disable it for a precise finished instruction. HDD loading is slow."},
+  "image.qwen21_expansion_unavailable": {"ru":"Расширитель для этого режима недоступен: проверьте отдельный компонент Qwen 2.1 PE T2I или I2I и совместимость ComfyUI. Без расширителя модель работает с вашим исходным текстом.", "en":"The enhancer for this mode is unavailable: check the separate Qwen 2.1 PE T2I or I2I component and ComfyUI compatibility. Without it the model uses your original text."},
+  "image.qwen21_resolution_error": {"ru":"Для Qwen 2.1 выберите около 1 Мп или нативный 2K (около 4 Мп).", "en":"For Qwen 2.1 select about 1 MP or native 2K (about 4 MP)."},
+  "image.qwen21_model_capabilities": {"ru":"Нативная генерация и правки; 1–10 исходников; RGBA; около 1 Мп или нативный 2K", "en":"Native generation and editing; 1–10 inputs; RGBA; about 1 MP or native 2K"},
+  "image.qwen21_model_capabilities_two": {"ru":"Нативная генерация и правки; исходник и референс; RGBA; около 1 Мп или нативный 2K", "en":"Native generation and editing; source and reference; RGBA; about 1 MP or native 2K"},
+  "image.qwen21_resolution_label": {"ru":"Размер генерации Qwen 2.1", "en":"Qwen 2.1 generation size"},
+  "image.qwen21_resolution_hint": {"ru":"Модель рисует сразу в выбранном размере. При редактировании сохраняются пропорции Image 1; исходники масштабируются примерно к 1 или 4 Мп. 2K требует больше времени и памяти. AI Upscale отдельно увеличивает готовый результат.", "en":"The model generates directly at the selected size. Edits preserve Image 1's aspect ratio; references are scaled to about 1 or 4 MP. 2K needs more time and memory. AI Upscale separately enlarges the finished output."},
+  "image.qwen21_alpha_hint": {"ru":"Qwen 2.1 умеет создавать и редактировать прозрачный PNG. Прозрачность задаётся инструкцией и может быть неточной. Для генерации: «This is an RGBA image with transparency. … The image has alpha channel and the background is transparent.»", "en":"Qwen 2.1 can generate and edit transparent PNGs. Transparency is requested through instructions and may be imperfect. For generation: “This is an RGBA image with transparency. … The image has alpha channel and the background is transparent.”"},
+  "image.qwen21_remove_background": {"ru":"Подготовить удаление фона", "en":"Prepare background removal"},
+  "image.qwen21_prompt_hint": {"ru":"Нативная генерация по тексту, около 1 Мп или 2K. Для прозрачного PNG явно попросите RGBA и прозрачный фон. Пользовательские изображения в Prompt не передаются.", "en":"Native text-to-image at about 1 MP or 2K. Explicitly request RGBA and a transparent background for a transparent PNG. Prompt mode does not send uploaded user images."},
+  "image.qwen21_quality_explanation": {"ru":"25 шагов — стартовый workflow ComfyUI; 40 — больший бюджет исходной модели. Больше шагов не гарантирует лучший результат. Это обычный чекпойнт, не Turbo. CFG 1: негативный промпт не действует. UC не обещает большей точности.", "en":"25 steps is the starting ComfyUI workflow; 40 gives the original model a larger budget. More steps do not guarantee better results. This is the regular checkpoint, not Turbo. CFG 1 disables negative prompts. UC does not promise better accuracy."},
+  "image.qwen21_guide_single_title": {"ru":"Qwen 2.1 · правки и прозрачность", "en":"Qwen 2.1 · editing and transparency"},
+  "image.qwen21_guide_single_purpose": {"ru":"Image 1 — исходник. Назовите объект, правку и то, что сохранить. Для удаления фона попросите RGBA PNG с прозрачным фоном. Модель перерисовывает изображение; это не точное выделение по маске.", "en":"Image 1 is the source. Name the object, edit and what to preserve. For background removal request an RGBA PNG with a transparent background. The model redraws the image; this is not an exact masked cutout."},
+  "image.qwen21_guide_reference_title": {"ru":"Qwen 2.1 · исходник и референс", "en":"Qwen 2.1 · source and reference"},
+  "image.qwen21_guide_reference_purpose": {"ru":"Image 1 задаёт сцену, Image 2 — атрибут или объект. Обращайтесь к ним как <image1> и <image2>. Укажите, что перенести и что сохранить; RGBA исходников передаётся модели.", "en":"Image 1 supplies the scene; Image 2 supplies an attribute or object. Address them as <image1> and <image2>. State what to transfer and preserve; input RGBA is passed to the model."},
+  "image.qwen21_guide_prompt_title": {"ru":"Qwen 2.1 · нативная генерация", "en":"Qwen 2.1 · native generation"},
+  "image.qwen21_guide_prompt_purpose": {"ru":"Создание по тексту без исходника. Опишите объект, композицию, материалы и свет; точную надпись заключите в кавычки. Выберите формат и около 1 Мп или 2K. Для прозрачности явно попросите RGBA.", "en":"Generate from text without a source. Describe the subject, composition, materials and lighting; quote exact lettering. Select aspect ratio and about 1 MP or 2K. Explicitly request RGBA for transparency."},
+  "image.qwen21_guide_multi_title": {"ru":"Qwen 2.1 · несколько референсов", "en":"Qwen 2.1 · multiple references"},
+  "image.qwen21_guide_multi_purpose": {"ru":"От 3 до 10 исходников: сцена в <image1>, остальные по порядку <image2>…<image10>. Для каждого назовите роль. Формат результата задаёт Image 1. Общий размер файлов — до 100 МиБ; несколько референсов требуют больше памяти.", "en":"3 to 10 inputs: scene in <image1>, remaining inputs in order as <image2>…<image10>. Name each one's role. Image 1 sets output aspect ratio. Files total up to 100 MiB; multiple references require more memory."},
+  "image.qwen21_guide_structure": {"ru":"Объект → действие → нужные свойства → что сохранить. Для нескольких исходников явно задайте роли <image1>, <image2> и далее. Прозрачность — отдельное требование в тексте.", "en":"Subject → action → desired attributes → what to preserve. For multiple inputs explicitly assign <image1>, <image2> and later roles. State transparency separately in the prompt."},
+  "image.qwen21_guide_limits": {"ru":"Нет гарантии неизменных пикселей или идеальной альфы. Не задавайте противоречивые команды. Больше шагов, пикселей или слово UC само по себе не гарантирует лучшего качества. При CFG 1 негативный промпт не влияет на результат.", "en":"Unchanged pixels and perfect alpha are not guaranteed. Avoid contradictory instructions. More steps, pixels or the UC label alone do not guarantee better quality. At CFG 1 negative prompts do not affect the result."},
+  "image.qwen_model_capabilities_two": {"ru":"Редактирование по инструкции; исходник и референс; Prompt через нейтральный холст; стандартные 40 шагов и дополнительный Lightning", "en":"Instruction editing; source and reference; Prompt through a neutral canvas; standard 40 steps and optional Lightning"},
+  "image.assessment_qwen2511_strong_text": {"ru":"Перекраска предметов, замена коротких английских надписей и перенос узора по референсу. В проверке объединила сцену, узор и отдельный объект из трёх исходников.", "en":"Object recoloring, short English text replacement and reference pattern transfer. In testing it combined a scene, pattern and separate object from three inputs."},
+  "image.assessment_qwen2511_variable_text": {"ru":"Границы правок нестабильны: перекраска затронула колокольчики, а узор при сложной инструкции попал на циферблат. Материал и форму может переосмысливать.", "en":"Edit boundaries are unstable: recoloring affected the bells, and a pattern reached the clock face in a complex instruction. Materials and shapes can be reinterpreted."},
+  "image.assessment_qwen2511_limits_text": {"ru":"В студии работает примерно в 1 Мп и выдаёт RGB без прозрачности. Нет гарантии сохранения пикселей. Prompt через холст экспериментален. Lightning быстрее считает шаги, но при CFG 1 негативный промпт не действует; загрузка весов всё равно долгая.", "en":"The studio uses about 1 MP and outputs RGB without transparency. Pixel preservation is not guaranteed. Prompt through a canvas is experimental. Lightning samples faster, but CFG 1 disables negative prompts; weight loading is still slow."},
+  "image.assessment_qwen2511_evidence_text": {"ru":"Проверено 29.10.2026: предметная сцена и иллюстрация, 1–3 исходника, 40/4 шага и апскейл 2×/4×. Лица, китайские надписи и сложные сцены не оценивались; выборка небольшая.", "en":"Checked on 2026-10-29: a product scene and illustration, 1–3 inputs, 40/4 steps and 2×/4× upscaling. Faces, Chinese lettering and complex scenes were not evaluated; the sample is small."},
+  "image.qwen_quality_selection_error": {"ru":"Для Qwen 2511 выберите стандартные 40 шагов или Lightning на 4 шага.", "en":"For Qwen 2511 select standard 40 steps or Lightning 4 steps."},
+  "image.qwen_quality_legacy": {"ru":"Прежний профиль {0} · шаги: {1}", "en":"Previous profile {0} · steps: {1}"},
+  "image.qwen_guide_single_title": {"ru":"Qwen 2511 · правки по инструкции", "en":"Qwen 2511 · instruction editing"},
+  "image.qwen_guide_single_purpose": {"ru":"Image 1 задаёт исходную сцену. Назовите изменение, объект и его свойства; отдельно перечислите, что сохранить. Модель может менять детали и вне названного объекта.", "en":"Image 1 supplies the source scene. Name the edit, object and its attributes; separately state what to preserve. The model may change details outside the named object too."},
+  "image.qwen_guide_reference_title": {"ru":"Qwen 2511 · исходник и референс", "en":"Qwen 2511 · source and reference"},
+  "image.qwen_guide_reference_purpose": {"ru":"Image 1 — редактируемая сцена, Image 2 — образец. Укажите конкретный цвет, узор, материал или объект из второго изображения, который нужно перенести.", "en":"Image 1 is the edited scene; Image 2 is a reference. Name the particular color, pattern, material or object to transfer from the second image."},
+  "image.qwen_guide_prompt_title": {"ru":"Qwen 2511 · генерация через холст", "en":"Qwen 2511 · generation through a canvas"},
+  "image.qwen_guide_prompt_purpose": {"ru":"Экспериментальное редактирование нейтрального холста, а не отдельная text-to-image модель. Приложение просит полностью заменить холст; пользовательские изображения не отправляются.", "en":"Experimental editing of a neutral canvas, rather than a separate text-to-image model. The application asks to replace the canvas completely; user images are not sent."},
+  "image.qwen_guide_multi_title": {"ru":"Qwen 2511 · три изображения", "en":"Qwen 2511 · three images"},
+  "image.qwen_guide_multi_purpose": {"ru":"Назовите роли всех трёх исходников: например, сцена из Image 1, узор из Image 2, отдельный объект из Image 3. Результат использует формат первого изображения; точное совпадение элементов не гарантируется.", "en":"Name all three inputs' roles: for example the scene from Image 1, pattern from Image 2 and an object from Image 3. Output uses the first image's format; exact element matching is not guaranteed."},
+  "image.qwen_guide_structure": {"ru":"Действие → объект → нужные свойства → что сохранить. Точную надпись заключите в кавычки. Для сравнения меняйте одну настройку при одинаковом seed.", "en":"Action → object → desired attributes → what to preserve. Put exact lettering in quotes. For comparisons, change one setting with the same seed."},
+  "image.qwen_guide_language": {"ru":"Английский удобен для сравнения с примерами; русский тоже допустим. Возможности английских и китайских надписей не означают гарантии точного текста на любом языке.", "en":"English is convenient for comparison with examples; Russian is valid too. English/Chinese lettering capabilities do not guarantee exact text in every language."},
+  "image.qwen_guide_mistakes": {"ru":"Это не редактор с блокировкой пикселей и не восстановление утраченных деталей. Не смешивайте противоречивые правки. В Lightning негативный промпт отключён; RGB не сохраняет прозрачность.", "en":"This is not an editor with locked pixels or recovery of lost detail. Avoid conflicting edits. Lightning disables negative prompts; RGB does not preserve transparency."},
+  "image.qwen_model_capabilities": {"ru":"Редактирование по инструкции; 1–3 исходника; Prompt через нейтральный холст; стандартные 40 шагов и дополнительный Lightning", "en":"Instruction editing; 1–3 inputs; Prompt through a neutral canvas; standard 40 steps and optional Lightning"},
+  "image.qwen_multi_mode_label": {"ru":"Три изображения — композиция и референсы", "en":"Three images — composition and references"},
+  "image.qwen_third_image_label": {"ru":"Третье изображение · Image 3", "en":"Third image · Image 3"},
+  "image.qwen_third_image_hint": {"ru":"Добавьте ровно одно третье изображение. В инструкции укажите роли Image 1, Image 2 и Image 3. Общий размер трёх файлов — до 100 МиБ; установленный энкодер 2511 принимает максимум три исходника.", "en":"Add exactly one third image. Specify the roles of Image 1, Image 2 and Image 3 in your instruction. The three files total at most 100 MiB; the installed 2511 encoder accepts up to three inputs."},
+  "image.extra_images_count_error": {"ru":"Нужно от 1 до {0} дополнительных изображений; общий размер всех исходников — до 100 МиБ.", "en":"Provide 1 to {0} additional images; all source files must total at most 100 MiB."},
+  "image.qwen_options_wrong_engine": {"ru":"Эти настройки редактирования доступны только Qwen Image Edit 2511.", "en":"These edit settings are only available for Qwen Image Edit 2511."},
+  "image.qwen_options_invalid": {"ru":"Негативный промпт должен быть текстом до 2000 символов, переключатель LoRA — логическим значением.", "en":"The negative prompt must be text up to 2000 characters and the LoRA switch must be a boolean."},
+  "image.qwen_negative_requires_standard": {"ru":"Lightning использует CFG 1 и не применяет негативный промпт. Выберите стандартные 40 шагов или очистите негативный промпт.", "en":"Lightning uses CFG 1 and does not apply negative prompts. Select standard 40 steps or clear the negative prompt."},
+  "image.qwen_lightning_unavailable": {"ru":"Для профиля Lightning нужна включённая LoRA Qwen 2511 Lightning 4-step во вкладке «Компоненты».", "en":"The Lightning profile requires the enabled Qwen 2511 Lightning 4-step LoRA in Components."},
+  "image.qwen_community_unavailable": {"ru":"Дополнительная NSFW LoRA не установлена или отключена. Базовый Qwen 2511 работает без неё.", "en":"The optional NSFW LoRA is missing or disabled. Base Qwen 2511 works without it."},
+  "image.qwen_community_label": {"ru":"Дополнительная NSFW LoRA", "en":"Optional NSFW LoRA"},
+  "image.qwen_community_hint": {"ru":"Сторонняя LoRA для изменения поведения модели. Отключите её для работы Qwen 2511 без этого дополнения; Lightning настраивается отдельно.", "en":"A community LoRA that changes model behavior. Disable it to run Qwen 2511 without this adapter; Lightning is configured separately."},
+  "image.qwen_community_on": {"ru":"NSFW LoRA: включена", "en":"NSFW LoRA: on"},
+  "image.qwen_community_off": {"ru":"NSFW LoRA: выкл.", "en":"NSFW LoRA: off"},
+  "image.qwen_negative_label": {"ru":"Негативный промпт · чего избегать", "en":"Negative prompt · what to avoid"},
+  "image.qwen_negative_hint": {"ru":"Необязательно. Работает в стандартном профиле при CFG 4. Важные правки задавайте в основном промпте; запреты не гарантируют точного результата.", "en":"Optional. Active in the standard profile at CFG 4. Put important edits in the main prompt; exclusions do not guarantee an exact result."},
+  "image.qwen_negative_fast_hint": {"ru":"В Lightning (CFG 1) негативный промпт не отправляется. Введённый текст сохранён и снова доступен при выборе стандартных 40 шагов.", "en":"Lightning (CFG 1) does not send a negative prompt. Your text is retained and becomes available again with standard 40 steps."},
+  "image.qwen_quality_fast": {"ru":"Lightning · 4 шага", "en":"Lightning · 4 steps"},
+  "image.qwen_quality_standard": {"ru":"Стандарт · 40 шагов", "en":"Standard · 40 steps"},
+  "image.qwen_quality_explanation": {"ru":"Стандарт: 40 шагов, CFG 4. Lightning: отдельная ускоряющая LoRA, 4 шага, CFG 1. Сравнивайте скорость и точность на своём запросе.", "en":"Standard: 40 steps, CFG 4. Lightning: a separate acceleration LoRA, 4 steps, CFG 1. Compare speed and accuracy on your own request."},
+  "image.qwen_normalization_hint": {"ru":"Исходник или автоматически созданный холст приводится примерно к 1 Мп без обрезки краёв. Результат — RGB; исходная прозрачность не сохраняется.", "en":"The source or automatically created canvas is resized to about 1 MP without cropping its edges. Output is RGB; source transparency is not preserved."},
+  "image.flux_result_settings_template": {"ru":"{0} · исходников: {1} · профиль: {2}", "en":"{0} · sources: {1} · profile: {2}"},
+  "image.flux_guide_prompt_title": {"ru":"FLUX.3 Klein · Prompt — генерация по тексту", "en":"FLUX.3 Klein · Prompt — text-to-image"},
+  "image.flux_guide_prompt_purpose": {"ru":"Модель создаёт изображение по описанию. Размер генерации задаётся отдельно от апскейла. Upsampler разворачивает короткую идею в подробный текст, который можно проверить под результатом.", "en":"The model generates from a description. Native generation size is separate from upscaling. The upsampler expands a short idea into a detailed caption shown below the result."},
+  "image.flux_guide_single_title": {"ru":"FLUX.3 Klein · Single — редактирование исходника", "en":"FLUX.3 Klein · Single — source editing"},
+  "image.flux_guide_single_purpose": {"ru":"Image 1 задаёт содержание и пропорции, около 1 Мп. Назовите нужное изменение и важные элементы, которые следует сохранить. Upsampler видит исходник; его можно отключить для готовой подробной инструкции.", "en":"Image 1 anchors content and proportions at about 1 MP. State the edit and what to preserve. The upsampler sees the source; disable it when supplying a complete instruction yourself."},
+  "image.flux_guide_reference_title": {"ru":"FLUX.3 Klein · Reference — два изображения", "en":"FLUX.3 Klein · Reference — two images"},
+  "image.flux_guide_reference_purpose": {"ru":"Image 1 — основа, Image 2 — донор содержания или стиля. Укажите, что перенести и куда. Оба изображения получают и upsampler, и FLUX; совпадение пикселей не гарантируется.", "en":"Image 1 is the base; Image 2 supplies content or style. Specify what to transfer and where. Both the upsampler and FLUX receive both images; pixel identity is not guaranteed."},
+  "image.flux_guide_multi_purpose": {"ru":"Соберите сцену из 3–10 изображений. Назовите роль каждого по номеру: например, часы из первого, материал из второго, фон из третьего. Порядок дополнительных файлов показан в списке. На 16 ГБ начинайте с трёх исходников.", "en":"Compose a scene from 3–10 images. Name each role by number: for example the first image's clock, the second image's material and the third image's background. Additional files are listed in order. Start with three sources on a 16 GB GPU."},
+  "image.flux_guide_layout_purpose": {"ru":"Задайте объекты и рамки в процентах от холста. Координаты всех границ отсчитываются от верхнего левого угла. Рамки управляют положением и масштабом, но не обрезают объект по границе.", "en":"Describe objects and boxes as canvas percentages. All edge coordinates start at the top-left corner. Boxes guide position and scale without clipping objects at their edges."},
+  "image.flux_guide_structure": {"ru":"Уточняйте предметы, материал, свет, расположение и желаемый стиль. Надписи заключайте в кавычки. При отключённом upsampler ссылайтесь на исходники как <ref_image_0>, <ref_image_1> и далее.", "en":"Specify subjects, materials, light, placement and style. Quote requested lettering. Without upsampling, refer to sources as <ref_image_0>, <ref_image_1> and so on."},
+  "image.flux_guide_language": {"ru":"Для сопоставимости с примерами начните с английского. Русский допустим; расширитель может перевести и дополнить запрос, поэтому сверяйте его текст.", "en":"Start in English for comparison with examples. Russian is also valid; the upsampler may translate and elaborate, so inspect its output."},
+  "image.flux_guide_mistakes": {"ru":"Негативный промпт не используется. Точное число объектов, мелкий текст, идентичность и неизменность фона требуют проверки. Вариация — новая перерисовка, процент сходства не измеряется.", "en":"Negative prompts are unused. Inspect object counts, small lettering, identity and background preservation. A variation redraws the image; its similarity percentage is not measured."},
+  "image.flux_multi_mode_label": {"ru":"Несколько референсов · 3–10 изображений", "en":"Multiple references · 3–10 images"},
+  "image.flux_layout_mode_label": {"ru":"Компоновка — по рамкам", "en":"Layout — bounding boxes"},
+  "image.flux_model_capabilities": {"ru":"Генерация по тексту, редактирование и до 10 исходников; расширитель промпта; нативный 2K/4K", "en":"Text-to-image, editing and up to 10 source images; prompt upsampling; native 2K/4K"},
+  "image.flux_layout_capability_label": {"ru":"компоновка по рамкам", "en":"bounding-box layout"},
+  "image.flux_resolution_label": {"ru":"Размер генерации FLUX", "en":"FLUX generation size"},
+  "image.flux_resolution_one_label": {"ru":"Около 1 Мп", "en":"About 1 MP"},
+  "image.flux_resolution_four_label": {"ru":"2K · около 4 Мп", "en":"2K · about 4 MP"},
+  "image.flux_resolution_sixteen_label": {"ru":"4K · медленно, почти вся VRAM", "en":"4K · slow, nearly all VRAM"},
+  "image.flux_fourk_hint": {"ru":"4K проверен на 16 ГБ, но почти занимает всю видеопамять и заметно медленнее: один запуск занял около 5 минут. Закройте игры и другие задачи GPU. Дополнительный апскейл для 4K отключён.", "en":"4K was verified on 16 GB but uses nearly all VRAM and is much slower: one run took about 5 minutes. Close games and other GPU jobs. Additional upscaling is disabled for 4K."},
+  "image.flux_fourk_no_upscale_error": {"ru":"Для нативного 4K дополнительный AI Upscale отключён: выберите Off.", "en":"Additional AI Upscale is disabled for native 4K: choose Off."},
+  "image.flux_resolution_hint": {"ru":"FLUX рисует сразу в выбранном размере. Это отдельная настройка от AI Upscale; большие размеры требуют больше времени и памяти.", "en":"FLUX generates directly at the selected size. This is separate from AI Upscale; larger images need more time and memory."},
+  "image.flux_extra_images_label": {"ru":"Дополнительные референсы · Image 3–10", "en":"Additional references · Image 3–10"},
+  "image.flux_extra_images_hint": {"ru":"Загрузите от 1 до 8 дополнительных изображений. Порядок показан в списке; в промпте укажите роль каждого. Общий размер исходников — до 100 МиБ. Больше референсов требует больше памяти; каждый приводится примерно к 1 Мп.", "en":"Load 1 to 8 additional images. Their order is shown below; describe each image's role in the prompt. Source files total at most 100 MiB. More references need more memory; each is resized to about 1 MP."},
+  "image.flux_layout_title": {"ru":"Расположение объектов", "en":"Object layout"},
+  "image.flux_layout_hint": {"ru":"Опишите каждый объект и его рамку в процентах от холста, считая от верхнего левого угла. Это подсказка для положения и размера, а не жёсткая маска. В основном промпте задайте общий стиль и фон.", "en":"Describe each object and its box as canvas percentages measured from the top-left corner. Boxes guide position and size; they are not hard masks. Use the main prompt for overall style and background."},
+  "image.flux_layout_add_label": {"ru":"Добавить объект", "en":"Add object"},
+  "image.flux_layout_remove_label": {"ru":"Удалить объект", "en":"Remove object"},
+  "image.flux_layout_object_label": {"ru":"Объект {0}", "en":"Object {0}"},
+  "image.flux_layout_description_label": {"ru":"Что изобразить", "en":"What to depict"},
+  "image.flux_layout_top_label": {"ru":"Верхняя граница, %", "en":"Top edge, %"},
+  "image.flux_layout_left_label": {"ru":"Левая граница, %", "en":"Left edge, %"},
+  "image.flux_layout_bottom_label": {"ru":"Нижняя граница, %", "en":"Bottom edge, %"},
+  "image.flux_layout_right_label": {"ru":"Правая граница, %", "en":"Right edge, %"},
+  "image.flux_options_wrong_engine": {"ru":"Настройки компоновки, дополнительных референсов и нативного размера доступны только для FLUX.3 Klein.", "en":"Layout, additional references and native-size controls are only available for FLUX.3 Klein."},
+  "image.flux_options_wrong_mode": {"ru":"Эти настройки FLUX неприменимы к выбранному режиму.", "en":"These FLUX settings do not apply to the selected mode."},
+  "image.flux_extra_images_count_error": {"ru":"Для режима нескольких референсов нужны Image 1, Image 2 и ещё 1–8 изображений. Общий размер — до 100 МиБ.", "en":"Multiple-reference mode needs Image 1, Image 2 and 1–8 additional images, totaling at most 100 MiB."},
+  "image.flux_layout_count_error": {"ru":"Укажите от 1 до 8 объектов для компоновки.", "en":"Provide 1 to 8 layout objects."},
+  "image.flux_layout_box_error": {"ru":"У каждого объекта нужны уникальный id, описание до 600 символов и ненулевая рамка внутри холста: сверху и слева меньше, чем снизу и справа.", "en":"Each object needs a unique id, a description up to 600 characters and a nonempty box inside the canvas: top and left must precede bottom and right."},
+  "image.flux_resolution_error": {"ru":"Доступны нативные размеры FLUX около 1 Мп, 2K или 4K.", "en":"Available FLUX native sizes are about 1 MP, 2K or 4K."},
+  "image.flux_resolution_text_only_error": {"ru":"Нативные 2K/4K доступны в Prompt и Компоновке. При редактировании используется около 1 Мп с пропорциями Image 1.", "en":"Native 2K/4K are available in Prompt and Layout. Editing uses about 1 MP with Image 1's proportions."},
+  "image.flux_quality_explanation": {"ru":"Установлен distilled-вариант: 16 шагов, Euler / simple, CFG 1. Больше пресетов качества и негативного промпта у него нет. Для коротких запросов оставьте upsampler включённым; без него нужен подробный готовый текст.", "en":"The installed distilled checkpoint uses 16 steps, Euler / simple and CFG 1. It has no extra quality presets or negative prompt. Keep upsampling on for short requests; without it, provide a complete detailed caption."},
+  "image.control_mode_selector_label": {"ru":"ControlNet — по структуре", "en":"ControlNet — guided structure"},
+  "image.inpaint_mode_selector_label": {"ru":"Изменить область по маске", "en":"Edit a masked area"},
+  "image.tile_mode_selector_label": {"ru":"Tile 2K — управляемое увеличение", "en":"Tile 2K — guided enlargement"},
+  "image.inpaint_mask_input_label": {"ru":"Маска: белое изменить, чёрное сохранить · Image 2", "en":"Mask: white edits, black preserves · Image 2"},
+  "image.inpaint_mask_preview_label": {"ru":"Предпросмотр маски изменения", "en":"Edit mask preview"},
+  "image.inpaint_mask_paste_target_label": {"ru":"Выбрана маска · Image 2. ", "en":"Mask selected · Image 2. "},
+  "image.control_map_type_label": {"ru":"Как использовать исходник", "en":"How to use the source"},
+  "image.control_map_canny_option": {"ru":"Контуры — построить автоматически", "en":"Edges — extract automatically"},
+  "image.control_map_gray_option": {"ru":"Светотень — преобразовать в ч/б", "en":"Shading — convert to grayscale"},
+  "image.control_map_prepared_option": {"ru":"Готовая карта: поза, глубина или эскиз", "en":"Prepared map: pose, depth or sketch"},
+  "image.control_strength_control_label": {"ru":"Сила сохранения структуры", "en":"Structure guidance strength"},
+  "image.control_strength_loose_option": {"ru":"Свободнее · 0,65", "en":"Looser · 0.65"},
+  "image.control_strength_balanced_option": {"ru":"Средняя · 0,85", "en":"Balanced · 0.85"},
+  "image.control_strength_strict_option": {"ru":"Сильнее · 1,00", "en":"Stronger · 1.00"},
+  "image.control_control_usage_hint": {"ru":"Контуры и ч/б строятся из Image 1 автоматически. Для «Готовой карты» загрузите уже подготовленную карту позы, глубины, HED, линий или эскиз; автоматического определения позы и глубины здесь нет. Опишите желаемую сцену. Сохраняется структура, а не точные цвета и пиксели. Размер — около 1 Мп.", "en":"Edges and grayscale are derived from Image 1 automatically. For Prepared map, upload an existing pose, depth, HED, line or sketch map; pose and depth are not detected automatically here. Describe the desired scene. Guidance preserves structure rather than exact colors or pixels. Output is about 1 MP."},
+  "image.control_inpaint_usage_hint": {"ru":"Image 1 — исходник. Image 2 — непрозрачная чёрно-белая маска того же размера: белое изменить, чёрное сохранить. Опишите, что должно появиться в выбранной области. Результат накладывается только внутри маски; снаружи сохраняются исходные RGB-пиксели. Альфа-канал исходника не сохраняется.", "en":"Image 1 is the source. Image 2 is an opaque grayscale mask of the same dimensions: white edits, black preserves. Describe what should appear in the selected area. The result is composited only inside the mask; original RGB pixels outside are preserved. Source alpha is not preserved."},
+  "image.control_tile_usage_hint": {"ru":"Tile сохраняет общую структуру исходника при увеличении и перерисовке фактуры. Исходник приводится примерно к 1 Мп, затем увеличивается вдвое по сторонам (квадрат — 2048×2048). Опишите существующую сцену. Это генерация деталей, а не восстановление достоверной информации.", "en":"Tile guides structure during enlargement and texture redrawing. The source is resized to about 1 MP, then doubled in each dimension (square output: 2048×2048). Describe the existing scene. This generates details rather than recovering authentic information."},
+  "image.control_mode_effect_explanation": {"ru":"ControlNet направляет Z-Image по структуре изображения; увеличение силы обычно усиливает привязку, но не гарантирует сходство. Используются 8 шагов и CFG 1. Надписи, мелкие детали и края маски требуют проверки.", "en":"ControlNet guides Z-Image using image structure; stronger guidance usually increases adherence but does not guarantee similarity. Uses 8 steps and CFG 1. Inspect lettering, small details and mask boundaries."},
+  "image.tile_generate_button_label": {"ru":"Увеличить с Tile", "en":"Enlarge with Tile"},
+  "image.control_component_disabled_message": {"ru":"Дополнение отключено. Включите его в настройках → Компоненты.", "en":"The add-on is disabled. Enable it in Settings → Components."},
+  "image.control_capability_control_label": {"ru":"управление по структуре", "en":"structure guidance"},
+  "image.control_capability_inpaint_label": {"ru":"изменение по маске", "en":"masked editing"},
+  "image.control_capability_tile_label": {"ru":"Tile-увеличение", "en":"Tile enlargement"},
+  "image.control_settings_wrong_mode": {"ru":"Настройки ControlNet неприменимы к выбранному режиму.", "en":"ControlNet settings do not apply to this mode."},
+  "image.control_unknown_map_type": {"ru":"Неизвестный тип контрольной карты.", "en":"Unknown control map type."},
+  "image.control_strength_supported_range": {"ru":"Сила ControlNet должна быть числом от 0,65 до 1,00.", "en":"ControlNet strength must be a number between 0.65 and 1.00."},
+  "image.inpaint_preserves_source_resolution": {"ru":"Масочный режим сохраняет размер исходника; дополнительный апскейл отключён.", "en":"Masked editing preserves source dimensions; additional upscaling is disabled."},
+  "image.inpaint_mask_dimensions_message": {"ru":"Размеры маски должны совпадать с исходником; не более 8192 px по стороне и 32 Мп.", "en":"Mask dimensions must match the source; maximum 8192 px per side and 32 MP."},
+  "image.inpaint_mask_grayscale_message": {"ru":"Используйте непрозрачную чёрно-белую маску: белое изменить, чёрное сохранить.", "en":"Use an opaque grayscale mask: white edits, black preserves."},
+  "image.inpaint_mask_empty_message": {"ru":"На маске нет белой области для изменения.", "en":"The mask has no white edit area."},
+  "image.inpaint_mask_decode_message": {"ru":"Не удалось прочитать исходник или маску как изображение.", "en":"Could not decode the source or mask as an image."},
+  "image.assessment_block_title_label": {"ru":"Сильные стороны и ограничения", "en":"Strengths and limitations"},
+  "image.assessment_flux_strong_text": {"ru":"Предметные сцены, свет и фактура; перекраска и перенос узора по референсу. В проверке трёх исходников объединила нужные элементы в одну сцену.", "en":"Product scenes, lighting and texture; recoloring and reference pattern transfer. In a three-input test it combined the requested elements into one scene."},
+  "image.assessment_flux_variable_text": {"ru":"Точные количества, мелкие надписи и смена материала ненадёжны: узор ткани перенесла, но поверхность осталась похожа на металл. Рамки задают ориентир, а не точные границы.", "en":"Exact counts, small lettering and material changes are unreliable: the fabric pattern transferred, but the surface still looked metallic. Boxes guide placement rather than enforce exact boundaries."},
+  "image.assessment_flux_limits_text": {"ru":"Нет негативного промпта, прозрачности и гарантии сохранения пикселей исходника. Редактирование в студии — около 1 Мп. Нативный 4K медленный, почти заполняет 16 ГБ VRAM и не гарантирует лучшего результата.", "en":"No negative prompt, transparency or guaranteed preservation of source pixels. Studio editing uses about 1 MP. Native 4K is slow, nearly fills 16 GB VRAM and does not guarantee a better result."},
+  "image.assessment_flux_evidence_text": {"ru":"Проверено 29.10.2026: предметная сцена, геометрические объекты, 1–3 исходника и нативные 1/2K/4K. Для 4–10 исходников проверена сборка workflow; лица и сложные сцены не оценивались.", "en":"Checked on 2026-10-29: a product scene, geometric objects, 1–3 inputs and native 1 MP/2K/4K. For 4–10 inputs, workflow routing was checked; faces and complex scenes were not evaluated."},
+  "image.assessment_strong_heading_label": {"ru":"Хорошо получается", "en":"Works well"},
+  "image.assessment_variable_heading_label": {"ru":"Результат нестабилен", "en":"Variable results"},
+  "image.assessment_limits_heading_label": {"ru":"Ограничения", "en":"Limitations"},
+  "image.assessment_zimage_strong_text": {"ru":"Предметные сцены, материалы, свет и иллюстрации. Union помогает сохранять контуры и менять область по маске; детализация и Tile добавляют фактуру.", "en":"Product scenes, materials, lighting and illustration. Union guides edges and masked edits; Detail and Tile add texture."},
+  "image.assessment_zimage_variable_text": {"ru":"Точный текст, число объектов и мелкие детали ненадёжны. ControlNet может менять цвета; на границах маски возможны стыки.", "en":"Exact text, object counts and small details are unreliable. ControlNet can change colors; mask seams may be visible."},
+  "image.assessment_zimage_limits_text": {"ru":"Нет негативного промпта и переноса идентичности по референсу. Обычный img2img не даёт точечных правок. Апскейл не гарантирует восстановления деталей; поза и глубина требуют готовой карты.", "en":"No negative prompt or reference identity transfer. Plain img2img is not a precise editor. Upscaling cannot guarantee detail recovery; pose and depth require prepared maps."},
+  "image.assessment_zimage_evidence_text": {"ru":"Проверено 29.10.2026: предметная сцена и иллюстрация, все доступные режимы. Небольшая выборка; лица, позы и китайский текст не проверялись.", "en":"Checked on 2026-10-29: a product scene, an illustration and all available modes. Small sample; faces, poses and Chinese text were not tested."},
+  "image.detail_result_strength_label": {
+    "ru": "Детализация · сила {0}",
+    "en": "Detail refinement · strength {0}"
+  },
+  "image.detail_mode_selector_label": {
+    "ru": "Детализация 2K — по изображению",
+    "en": "2K detail — from image"
+  },
+  "image.detail_mode_description": {
+    "ru": "Увеличение изображения и перерисовка мелких деталей",
+    "en": "Enlarge an image and redraw fine details"
+  },
+  "image.detail_mode_short_label": {
+    "ru": "детализация 2K",
+    "en": "2K detail"
+  },
+  "image.detail_scene_description_label": {
+    "ru": "Описание исходной сцены",
+    "en": "Source scene description"
+  },
+  "image.detail_scene_description_placeholder": {
+    "ru": "Опишите объекты, материалы, освещение и текстуры исходника…",
+    "en": "Describe the source objects, materials, lighting and textures…"
+  },
+  "image.detail_generate_button_label": {
+    "ru": "Детализировать изображение",
+    "en": "Refine image details"
+  },
+  "image.detail_strength_control_label": {
+    "ru": "Перерисовка деталей",
+    "en": "Detail redrawing strength"
+  },
+  "image.detail_strength_gentle_option": {
+    "ru": "Бережная · 0,20",
+    "en": "Gentle · 0.20"
+  },
+  "image.detail_strength_textured_option": {
+    "ru": "Выразительная · 0,33",
+    "en": "More texture · 0.33"
+  },
+  "image.detail_input_output_resolution_hint": {
+    "ru": "Исходник приводится примерно к 1 Мп с сохранением пропорций, затем увеличивается вдвое по каждой стороне и обрабатывается Z-Image. Квадрат: 1024×1024 → 2048×2048. Очень крупный исходник будет уменьшен.",
+    "en": "The source is resized to about 1 MP while keeping its aspect ratio, then doubled in each dimension and refined by Z-Image. Square: 1024×1024 → 2048×2048. Very large inputs are reduced."
+  },
+  "image.detail_mode_effect_explanation": {
+    "ru": "Real-ESRGAN увеличивает исходник, затем Z-Image перерисовывает детали за 5 шагов. Это генеративная обработка: надписи, лица и мелкие объекты могут измениться. 0,20 сохраняет больше исходных деталей; 0,33 сильнее меняет фактуру. Точечное редактирование по команде и восстановление достоверных деталей не гарантируются.",
+    "en": "Real-ESRGAN enlarges the source, then Z-Image redraws details in 5 steps. This is generative processing: lettering, faces and small objects may change. 0.20 preserves more source detail; 0.33 changes texture more. Precise instruction edits and recovery of authentic detail are not guaranteed."
+  },
+  "image.zimage_prompt_quality_explanation": {
+    "ru": "Turbo использует один пресет: 8 шагов, CFG 1, без негативного промпта. Real-ESRGAN 2×/4× увеличивает готовый результат и меняет резкость и текстуры; 4× — два прохода 2×. Для перерисовки деталей самой Z-Image выберите режим «Детализация 2K».",
+    "en": "Turbo uses one preset: 8 steps, CFG 1, no negative prompt. Real-ESRGAN 2×/4× enlarges the finished result and changes sharpness and textures; 4× runs two 2× passes. Choose 2K detail to have Z-Image redraw details itself."
+  },
+  "image.detail_requires_twofold_output": {
+    "ru": "Детализация использует только увеличение 2×.",
+    "en": "Detail mode uses only 2× enlargement."
+  },
+  "image.detail_strength_only_detail_mode": {
+    "ru": "Сила перерисовки применяется только в режиме детализации.",
+    "en": "Redrawing strength applies only in detail mode."
+  },
+  "image.detail_strength_supported_range": {
+    "ru": "Сила детализации должна быть числом от 0,15 до 0,35.",
+    "en": "Detail strength must be a number between 0.15 and 0.35."
+  },
+  "image.detail_requires_upscale_model": {
+    "ru": "Для детализации нужны включённая модель Real-ESRGAN x2 и узлы увеличения ComfyUI.",
+    "en": "Detail mode requires the enabled Real-ESRGAN x2 model and ComfyUI upscaling nodes."
+  },
+  "image.zimage_base_capabilities": {
+    "ru": "Генерация по тексту; без обычного Single и Reference",
+    "en": "Text-to-image; no ordinary Single or Reference mode"
+  },
+  "image.zimage_guide_language_advice": {"ru":"Для сравнения с официальными примерами начните с английского. Русский тоже допустим; проверяйте смысл результата. Лучше конкретные детали, чем повторения.", "en":"Start in English to compare with official examples. Russian is also valid; inspect how the result follows your meaning. Prefer specific details over repetition."},
+  "image.zimage_guide_prompt_title": {"ru":"Z-Image Turbo · Prompt — быстрая генерация по тексту", "en":"Z-Image Turbo · Prompt — fast text-to-image"},
+  "image.zimage_guide_prompt_purpose": {"ru":"В режиме Prompt модель получает только текст и выбранный формат. Исходник и референс не используются.", "en":"Prompt mode receives only text and the selected canvas format. Source and reference images are not used."},
+  "image.zimage_guide_prompt_structure": {"ru":"Опишите главный объект, обстановку, композицию, ракурс, свет, цвета и стиль. Точную надпись заключите в кавычки.", "en":"Describe the subject, setting, composition, viewpoint, light, colors and style. Put requested lettering in quotation marks."},
+  "image.zimage_guide_prompt_mistakes": {"ru":"Негативный промпт не используется при CFG 1. Опишите желаемый результат; точный текст и количество объектов проверяйте отдельно.", "en":"Negative prompts are unused at CFG 1. Describe the desired result; inspect exact lettering and object counts separately."},
+  "image.detail_model_capabilities": {
+    "ru": "Генерация по тексту; детализация исходника до ≈4 Мп; без обычного Single и Reference",
+    "en": "Text-to-image; source detail refinement to ≈4 MP; no ordinary Single or Reference mode"
+  },
+  "image.detail_guide_title_label": {
+    "ru": "Z-Image Turbo · Детализация 2K",
+    "en": "Z-Image Turbo · 2K detail"
+  },
+  "image.detail_guide_scene_prompt_advice": {
+    "ru": "Загрузите исходник в Image 1 и опишите уже изображённую сцену: объекты, материалы, свет и фактуру. Описание направляет перерисовку мелких деталей; команды замены объектов могут не сработать.",
+    "en": "Load the source into Image 1 and describe the existing scene: objects, materials, lighting and texture. The caption guides fine detail redrawing; object replacement commands may not work."
+  },
+  "image.detail_guide_limitations_advice": {
+    "ru": "Не используйте этот режим для сохранения точных надписей, идентичности лица или восстановления доказательных деталей. Референс, негативный промпт и маска здесь не применяются.",
+    "en": "Do not use this mode to preserve exact lettering or facial identity, or to recover evidential detail. References, negative prompts and masks are not used here."
+  },
+  "image.mode_source_image_editing_instruction": {
+    "ru": "Исходное изображение и текстовая инструкция",
+    "en": "Source image and editing instruction"
+  },
+  "image.mode_base_image_reference": {
+    "ru": "Изображение-основа и референс",
+    "en": "Base image and reference"
+  },
+  "image.mode_create_image_text": {
+    "ru": "Создание изображения по тексту",
+    "en": "Create an image from text"
+  },
+  "image.prompt_what_should_created": {
+    "ru": "Что создать?",
+    "en": "What should be created?"
+  },
+  "image.prompt_what_should_change": {
+    "ru": "Что изменить?",
+    "en": "What should change?"
+  },
+  "image.prompt_describe_image_you_want": {
+    "ru": "Опишите желаемое изображение…",
+    "en": "Describe the image you want…"
+  },
+  "image.prompt_describe_what_change_preserve": {
+    "ru": "Опишите изменение и то, что нужно сохранить…",
+    "en": "Describe what to change and what to preserve…"
+  },
+  "image.generation_create_from_prompt_button_label": {
+    "ru": "Создать по промпту",
+    "en": "Create from prompt"
+  },
+  "image.generation_create_image_button_label": {
+    "ru": "Создать изображение",
+    "en": "Create image"
+  },
+  "image.app_engine_header_text_image_generation_flux_3_klein": {
+    "ru": "Генерация изображения по тексту (FLUX.3 Klein)",
+    "en": "Text-to-image generation (FLUX.3 Klein)"
+  },
+  "image.app_engine_prompt_hint_native_text_image_generation_single_editing": {
+    "ru": "Нативная генерация по тексту; Single редактирует исходник, Reference использует два изображения, отдельный режим — до 10. Короткий запрос расширяет Qwen3.5. Для Prompt и Компоновки доступны нативные 2K/4K; негативный промпт не используется.",
+    "en": "Native text-to-image; Single edits a source, Reference uses two images, and a separate mode accepts up to 10. Qwen3.5 expands short requests. Prompt and Layout support native 2K/4K; negative prompts are unused."
+  },
+  "image.app_engine_transparency_flux_3_klein_outputs_rgb_without": {
+    "ru": "FLUX.3 Klein выдаёт RGB без прозрачности. AI Upscale увеличивает готовое изображение.",
+    "en": "FLUX.3 Klein outputs RGB without transparency. AI Upscale enlarges the finished image."
+  },
+  "image.app_engine_header_text_image_generation_z_turbo": {
+    "ru": "Генерация изображения по тексту (Z-Image Turbo)",
+    "en": "Text-to-image generation (Z-Image Turbo)"
+  },
+  "image.app_engine_prompt_hint_native_text_image_generation_mode_up": {
+    "ru": "Нативная генерация по тексту, около 1 Мп: 1024×1024, 1152×768 или 768×1152. Негативный промпт не используется (CFG 1).",
+    "en": "Native text-to-image at about 1 MP: 1024×1024, 1152×768 or 768×1152. Negative prompts are not used (CFG 1)."
+  },
+  "image.app_engine_transparency_z_image_turbo_outputs_rgb_without": {
+    "ru": "Z-Image Turbo выдаёт RGB без прозрачности. AI Upscale увеличивает готовое изображение.",
+    "en": "Z-Image Turbo outputs RGB without transparency. AI Upscale enlarges the finished image."
+  },
+  "image.selection_notice_does_not_support_mode_selected_model": {
+    "ru": "{0} не поддерживает режим {1}. Выбрана модель {2}.",
+    "en": "{0} does not support {1} mode. Selected model: {2}."
+  },
+  "image.app_quality_hints_low_40_steps_verified_baseline": {
+    "ru": "40 шагов · проверенный базовый режим.",
+    "en": "40 steps · verified baseline."
+  },
+  "image.app_quality_hints_good_50_steps_more_computation_improvements_depend": {
+    "ru": "50 шагов · больше вычислений; улучшение зависит от изображения.",
+    "en": "50 steps · more computation; improvements depend on the image."
+  },
+  "image.app_quality_hints_high_60_steps_maximum_sampling_budget_slower": {
+    "ru": "60 шагов · максимальный бюджет sampling, медленнее.",
+    "en": "60 steps · maximum sampling budget, slower."
+  },
+  "image.engine_steps_cfg": {
+    "ru": "Шаги: {0} · {1} · CFG {2}{3}",
+    "en": "Steps: {0} · {1} · CFG {2}{3}"
+  },
+  "image.engine_model_s_preset": {
+    "ru": " · единственный пресет модели",
+    "en": " · the model's only preset"
+  },
+  "image.engine_experimental_preset": {
+    "ru": " · экспериментальный пресет",
+    "en": " · experimental preset"
+  },
+  "image.next_element_sibling_steps": {
+    "ru": "{0} шагов",
+    "en": "{0} steps"
+  },
+  "image.engine_installed_workflow_verified": {
+    "ru": "установлена, workflow проверен",
+    "en": "installed, workflow verified"
+  },
+  "image.model_availability_unavailable_label": {
+    "ru": "недоступна",
+    "en": "unavailable"
+  },
+  "image.engine_single_image": {
+    "ru": "одно изображение",
+    "en": "single image"
+  },
+  "image.engine_reference_mode_label": {
+    "ru": "с референсом",
+    "en": "with reference"
+  },
+  "image.engine_text_to_image_mode_label": {
+    "ru": "по тексту",
+    "en": "from text"
+  },
+  "image.transparency_hint_qwen_2_1_supports_rgba_but": {
+    "ru": "Qwen 2.1 поддерживает RGBA, но прозрачность исходника при редактировании не гарантируется. AI Upscale сохраняет полученный альфа-канал.",
+    "en": "Qwen 2.1 supports RGBA, but source transparency is not guaranteed when editing. AI Upscale preserves the resulting alpha channel."
+  },
+  "image.transparency_hint_qwen_2511_outputs_rgb_source_not": {
+    "ru": "Qwen 2511 выдаёт RGB. Прозрачность исходника при редактировании не гарантируется.",
+    "en": "Qwen 2511 outputs RGB. Source transparency is not guaranteed when editing."
+  },
+  "image.engine_generate_image_directly_text": {
+    "ru": "Генерация изображения непосредственно из текста",
+    "en": "Generate an image directly from text"
+  },
+  "image.engine_qwen_image_edit_blank_canvas": {
+    "ru": "Qwen Image Edit и пустой холст",
+    "en": "Qwen Image Edit and a blank canvas"
+  },
+  "image.prompt_engine_hint_native_text_image_generation_up_1024": {
+    "ru": "Нативная генерация по тексту. Размер до 1024×1024; усилитель промпта отключён.",
+    "en": "Native text-to-image generation. Up to 1024×1024; prompt expansion is disabled."
+  },
+  "image.prompt_engine_hint_qwen_image_edit_2511_receives_blank": {
+    "ru": "Qwen Image Edit 2511 получает пустой холст. Это экспериментальный способ генерации.",
+    "en": "Qwen Image Edit 2511 receives a blank canvas. This is an experimental generation method."
+  },
+  "image.engine_comfy_ui_dependencies_workflow_schema_available": {
+    "ru": "ComfyUI: зависимости и схема workflow доступны. GPU-проверка выполняется при генерации.",
+    "en": "ComfyUI: dependencies and workflow schema are available. GPU validation runs during generation."
+  },
+  "image.selection_notice_supports_mode_has_been_changed": {
+    "ru": "{0} не поддерживает прежний режим; выбран {1}.",
+    "en": "{0} does not support the previous mode; selected {1}."
+  },
+  "image.upscale_hint_no_original_qwen_resolution": {
+    "ru": "Без увеличения · исходное разрешение результата.",
+    "en": "No enlargement · original result resolution."
+  },
+  "image.upscale_hint_ai_2_width_height_4_pixels": {
+    "ru": "Real-ESRGAN: 2× по ширине и высоте · 4× пикселей. Меняет резкость и текстуры; достоверные детали не восстанавливает.",
+    "en": "Real-ESRGAN: 2× width and height · 4× pixels. Changes sharpness and textures; does not recover authentic detail."
+  },
+  "image.upscale_hint_ai_4_width_height_16_pixels": {
+    "ru": "Real-ESRGAN: два прохода 2× · 4× по сторонам, 16× пикселей. Больше размер файла и возможны обводки; улучшение деталей не гарантируется.",
+    "en": "Real-ESRGAN: two 2× passes · 4× dimensions, 16× pixels. Larger files and possible edge halos; better detail is not guaranteed."
+  },
+  "image.upscale_hint_model_has_not_yet_been_confirmed": {
+    "ru": " · Модель пока не подтверждена ComfyUI; сервер проверит её перед запуском.",
+    "en": " · The model has not yet been confirmed by ComfyUI; the server will check it before starting."
+  },
+  "image.generation_live_status_prefix": {
+    "ru": "Генерация: ",
+    "en": "Generation: "
+  },
+  "image.live_preparing_data": {
+    "ru": "подготовка данных",
+    "en": "preparing data"
+  },
+  "image.live_task_submitted_comfy_ui": {
+    "ru": "задача отправлена в ComfyUI",
+    "en": "task submitted to ComfyUI"
+  },
+  "image.live_waiting_queue": {
+    "ru": "ожидание в очереди",
+    "en": "waiting in queue"
+  },
+  "image.generation_queue_position_template": {
+    "ru": " · позиция {0}",
+    "en": " · position {0}"
+  },
+  "image.generation_queue_total_template": {
+    "ru": " из {0}",
+    "en": " of {0}"
+  },
+  "image.agent_step_running_status": {
+    "ru": "выполняется",
+    "en": "running"
+  },
+  "image.live_comfy_ui_finishing_interrupted_task": {
+    "ru": "ComfyUI завершает прерванную задачу…",
+    "en": "ComfyUI is finishing the interrupted task…"
+  },
+  "image.live_elapsed_comfy_ui_responded_s_ago": {
+    "ru": "Прошло: {0} · ответ ComfyUI: {1} с назад",
+    "en": "Elapsed: {0} · ComfyUI responded {1} s ago"
+  },
+  "image.variant_button_model_does_not_edit_images_change": {
+    "ru": "Эта модель не редактирует изображения. Для нового результата измените Seed и создайте заново.",
+    "en": "This model does not edit images. Change the seed and generate again for a new result."
+  },
+  "image.variant_button_generate_image_first": {
+    "ru": "Сначала сгенерируй изображение.",
+    "en": "Generate an image first."
+  },
+  "image.variant_button_create_similar_variation_latest_result_target": {
+    "ru": "Создать похожий вариант последнего результата. Перерисовка может изменить важные детали; процент сходства не измеряется.",
+    "en": "Create a similar variation of the latest result. Redrawing may alter important details; similarity is not measured as a percentage."
+  },
+  "image.cancel_button_stop_generation": {
+    "ru": "Остановить генерацию",
+    "en": "Stop generation"
+  },
+  "image.cancel_button_stopping": {
+    "ru": "Остановка…",
+    "en": "Stopping…"
+  },
+  "image.cancel_button_stopping_task": {
+    "ru": "Остановка задачи",
+    "en": "Stopping task"
+  },
+  "image.cancel_button_cancellation_requested": {
+    "ru": "Отмена запрошена",
+    "en": "Cancellation requested"
+  },
+  "image.cancel_button_task_almost_complete_checking_status_again": {
+    "ru": "Задача уже почти завершилась; перепроверяем статус",
+    "en": "The task is almost complete; checking its status again"
+  },
+  "image.cancel_button_cancellation_error": {
+    "ru": "Ошибка отмены: ",
+    "en": "Cancellation error: "
+  },
+  "image.cancel_button_generation_may_still_running": {
+    "ru": ". Генерация может продолжаться.",
+    "en": ". Generation may still be running."
+  },
+  "image.cancel_button_retry_stopping": {
+    "ru": "Повторить остановку",
+    "en": "Retry stopping"
+  },
+  "image.slot_button_paste_here_ctrl_v": {
+    "ru": "Вставлять сюда (Ctrl+V)",
+    "en": "Paste here (Ctrl+V)"
+  },
+  "image.slot_button_select_paste_target_ctrl_v": {
+    "ru": "Выбрать для вставки (Ctrl+V)",
+    "en": "Select as paste target (Ctrl+V)"
+  },
+  "image.paste_image_1_base_selected": {
+    "ru": "Выбрано Image 1 (основа).",
+    "en": "Image 1 (base) selected."
+  },
+  "image.paste_image_2_reference_selected": {
+    "ru": "Выбрано Image 2 (референс).",
+    "en": "Image 2 (reference) selected."
+  },
+  "image.paste_copy_image_browser_press_ctrl_v": {
+    "ru": " Скопируй картинку в браузере и нажми Ctrl+V в окне VisualForge.",
+    "en": " Copy an image in your browser and press Ctrl+V in VisualForge."
+  },
+  "image.paste_generation_running_stop_wait_finish_before": {
+    "ru": "Генерация идёт. Останови или дождись завершения перед заменой изображения.",
+    "en": "Generation is running. Stop it or wait for it to finish before replacing the image."
+  },
+  "image.paste_clipboard_format_not_supported_use_png": {
+    "ru": "Этот формат буфера не поддерживается. Используй PNG, JPEG или WebP.",
+    "en": "This clipboard format is not supported. Use PNG, JPEG or WebP."
+  },
+  "image.paste_rejected_empty_image_size_exceeds_100": {
+    "ru": "Вставка отклонена: пустое изображение или размер больше 100 МиБ.",
+    "en": "Paste rejected: empty image or size exceeds 100 MiB."
+  },
+  "image.paste_image_pasted_you_continue": {
+    "ru": "Изображение вставлено. Можно продолжить работу.",
+    "en": "Image pasted. You can continue."
+  },
+  "image.paste_clipboard_image_failed": {
+    "ru": "Не удалось вставить изображение из буфера: ",
+    "en": "Could not paste the clipboard image: "
+  },
+  "image.save_dir_results_saved_folder_automatically_after_successful": {
+    "ru": "Результаты автоматически сохраняются в эту папку после успешной генерации.",
+    "en": "Results are saved to this folder automatically after successful generation."
+  },
+  "image.save_dir_load_autosave_folder_failed": {
+    "ru": "Не удалось загрузить папку автосохранения: ",
+    "en": "Could not load the autosave folder: "
+  },
+  "image.save_dir_autosave_folder_saved_future_results_there": {
+    "ru": "Папка автосохранения сохранена. Следующие результаты будут сохраняться туда автоматически.",
+    "en": "Autosave folder saved. Future results will be saved there automatically."
+  },
+  "image.folder_picker_loading_folders": {
+    "ru": "Загружаем папки…",
+    "en": "Loading folders…"
+  },
+  "image.info_no_subfolders": {
+    "ru": "Вложенных папок нет.",
+    "en": "No subfolders."
+  },
+  "image.folder_picker_folders": {
+    "ru": " папок",
+    "en": " folders"
+  },
+  "image.folder_picker_showing_first_500": {
+    "ru": " · показаны первые 500",
+    "en": " · showing the first 500"
+  },
+  "image.folder_picker_open_failed": {
+    "ru": "Не удалось открыть папку: ",
+    "en": "Could not open the folder: "
+  },
+  "image.folder_picker_save_failed": {
+    "ru": "Не удалось сохранить папку: ",
+    "en": "Could not save the folder: "
+  },
+  "image.save_dir_autosave_folder_opened_file_explorer": {
+    "ru": "Папка автосохранения открыта в Проводнике.",
+    "en": "Autosave folder opened in File Explorer."
+  },
+  "image.selection_notice_saved_model_unavailable_qwen_image_edit": {
+    "ru": "Сохранённая модель недоступна. Выбран Qwen Image Edit 2511; режим сохранён.",
+    "en": "The saved model is unavailable. Qwen Image Edit 2511 selected; mode preserved."
+  },
+  "image.component_installation_installed_label": {
+    "ru": "установлена",
+    "en": "installed"
+  },
+  "image.model_readiness_ready_label": {
+    "ru": "готова",
+    "en": "ready"
+  },
+  "image.backend_preflight_comfy_ui_check_unavailable": {
+    "ru": "Проверка ComfyUI недоступна: ",
+    "en": "ComfyUI check unavailable: "
+  },
+  "image.select_preview_any_image_file_up_100_mi": {
+    "ru": "Любой файл изображения до 100 МиБ · прямые форматы сохраняются как есть, остальные конвертируются в PNG",
+    "en": "Any image file up to 100 MiB · supported formats are kept as is; others are converted to PNG"
+  },
+  "image.select_preview_mi_b": {
+    "ru": "{0} · {1} МиБ",
+    "en": "{0} · {1} MiB"
+  },
+  "image.reader_image_read_error": {
+    "ru": "Ошибка чтения изображения",
+    "en": "Image read error"
+  },
+  "image.reader_read_converted_image_failed": {
+    "ru": "Ошибка чтения изображения после конвертации",
+    "en": "Could not read the converted image"
+  },
+  "image.tag_format_not_directly_supported_could_decoded": {
+    "ru": "Формат не поддерживается напрямую и не удалось декодировать его для конвертации в PNG.",
+    "en": "This format is not directly supported and could not be decoded for PNG conversion."
+  },
+  "image.convert_unsupported_to_png_determine_image_dimensions_conversion_failed": {
+    "ru": "Не удалось определить размер изображения для конвертации.",
+    "en": "Could not determine image dimensions for conversion."
+  },
+  "image.convert_unsupported_to_png_canvas_unavailable_conversion_impossible": {
+    "ru": "Canvas недоступен; конвертация в PNG невозможна.",
+    "en": "Canvas is unavailable; PNG conversion is impossible."
+  },
+  "image.convert_unsupported_to_png_browser_could_not_image": {
+    "ru": "Браузер не смог конвертировать изображение в PNG.",
+    "en": "The browser could not convert the image to PNG."
+  },
+  "image.convert_unsupported_to_png_converted_exceeds_100_mi_b": {
+    "ru": "PNG после конвертации больше 100 МиБ.",
+    "en": "Converted PNG exceeds 100 MiB."
+  },
+  "image.encode_file_no_image_selected": {
+    "ru": "Не выбран файл изображения",
+    "en": "No image file selected"
+  },
+  "image.encode_file_image_exceeds_100_mi_b": {
+    "ru": "Изображение больше 100 МиБ",
+    "en": "Image exceeds 100 MiB"
+  },
+  "image.variant_retrieve_previous_result_variation_failed": {
+    "ru": "Не удалось получить предыдущий результат для варианта.",
+    "en": "Could not retrieve the previous result for a variation."
+  },
+  "image.variant_previous_result_empty": {
+    "ru": "Предыдущий результат пустой.",
+    "en": "The previous result is empty."
+  },
+  "image.variant_canvas_unavailable_creating_variation": {
+    "ru": "Canvas недоступен для создания варианта.",
+    "en": "Canvas is unavailable for creating a variation."
+  },
+  "image.variant_prepare_previous_result_variation_failed": {
+    "ru": "Не удалось подготовить предыдущий результат для варианта.",
+    "en": "Could not prepare the previous result for a variation."
+  },
+  "image.generation_error_notification_prefix": {
+    "ru": "Ошибка: ",
+    "en": "Error: "
+  },
+  "image.run_generation_preparing_similar_variation_latest_result": {
+    "ru": "подготовка похожего варианта из последнего результата",
+    "en": "preparing a similar variation of the latest result"
+  },
+  "image.run_generation_preparing_images_prompt": {
+    "ru": "подготовка изображений и prompt",
+    "en": "preparing images and prompt"
+  },
+  "image.run_generation_uploading_images_local_comfy_ui": {
+    "ru": "загрузка изображений в локальный ComfyUI",
+    "en": "uploading images to local ComfyUI"
+  },
+  "image.run_generation_task_accepted_comfy_ui": {
+    "ru": "Задание принято ComfyUI",
+    "en": "Task accepted by ComfyUI"
+  },
+  "image.run_generation_no_response_comfy_ui_retrying": {
+    "ru": "нет ответа от ComfyUI, повторяю…",
+    "en": "no response from ComfyUI, retrying…"
+  },
+  "image.run_generation_cancelled_you_start_another": {
+    "ru": "Генерация отменена. Можно запускать следующую.",
+    "en": "Generation cancelled. You can start another."
+  },
+  "image.run_generation_execution_error": {
+    "ru": "Ошибка исполнения",
+    "en": "Execution error"
+  },
+  "image.run_generation_done_result_received": {
+    "ru": "Готово: результат получен",
+    "en": "Done: result received"
+  },
+  "image.run_generation_autosave_failed_copy_remains_comfy_ui": {
+    "ru": "\nАвтосохранение не удалось: {0}. Копия осталась в ComfyUI.",
+    "en": "\nAutosave failed: {0}. A copy remains in ComfyUI."
+  },
+  "image.run_generation_autosaved_file_s": {
+    "ru": "\nАвтосохранено: {0} файл(ов) · {1}",
+    "en": "\nAutosaved: {0} file(s) · {1}"
+  },
+  "image.run_generation_checking_autosave": {
+    "ru": "\nАвтосохранение проверяется…",
+    "en": "\nChecking autosave…"
+  },
+  "image.run_generation_results": {
+    "ru": "{0}. Результатов: {1} · {2} / {3}{4}",
+    "en": "{0}. Results: {1} · {2} / {3}{4}"
+  },
+  "image.run_generation_new_variation_ready": {
+    "ru": "Новый вариант готов",
+    "en": "New variation ready"
+  },
+  "image.generation_completed_status_label": {
+    "ru": "Готово",
+    "en": "Done"
+  },
+  "image.run_generation_generated_image": {
+    "ru": "Сгенерированное изображение",
+    "en": "Generated image"
+  },
+  "image.link_save_result": {
+    "ru": "Сохранить результат",
+    "en": "Save result"
+  },
+  "image.summary_expanded_prompt_upsampler": {
+    "ru": "Расширенный промпт (upsampler)",
+    "en": "Expanded prompt (upsampler)"
+  },
+  "image.run_generation_image_created_but_autosave_failed": {
+    "ru": "Изображение создано, но автосохранение не удалось: ",
+    "en": "Image created, but autosave failed: "
+  },
+  "image.run_generation_image_created_saved": {
+    "ru": "Изображение создано и сохранено.",
+    "en": "Image created and saved."
+  },
+  "image.run_generation_no_result_hour_check_comfy_ui": {
+    "ru": "Нет результата в течение часа. Проверьте журнал ComfyUI.",
+    "en": "No result for an hour. Check the ComfyUI log."
+  },
+  "image.run_generation_waiting_comfy_ui_queue": {
+    "ru": "Ожидание в очереди ComfyUI",
+    "en": "Waiting in the ComfyUI queue"
+  },
+  "image.run_generation_live_comfy_ui_stage": {
+    "ru": "Live этап ComfyUI",
+    "en": "Live ComfyUI stage"
+  },
+  "image.run_generation_step": {
+    "ru": "{0} · шаг {1}/{2}",
+    "en": "{0} · step {1}/{2}"
+  },
+  "image.run_generation_comfy_ui_running_task": {
+    "ru": "ComfyUI выполняет задачу",
+    "en": "ComfyUI is running the task"
+  },
+  "image.read_fixed_seed_must_integer_0_281474976710655": {
+    "ru": "Seed должен быть целым числом от 0 до 281474976710655.",
+    "en": "Seed must be an integer from 0 to 281474976710655."
+  },
+  "image.history_tasks_showing_latest_files_remain_folders": {
+    "ru": "Заданий в истории: {0}. Показаны последние {1}. Файлы хранятся в выбранных при генерации папках.",
+    "en": "History tasks: {0}. Showing the latest {1}. Files remain in the folders selected during generation."
+  },
+  "image.history_new_saved_results_appear_here_persist": {
+    "ru": "Новые сохранённые результаты появятся здесь и останутся после перезапуска. История хранит до 100 заданий.",
+    "en": "New saved results will appear here and persist after restarting. History keeps up to 100 tasks."
+  },
+  "image.heading_saved_result": {
+    "ru": "Сохранённый результат",
+    "en": "Saved result"
+  },
+  "image.history_result_indexed_open_accessibility_template": {
+    "ru": "Открыть результат {0}",
+    "en": "Open result {0}"
+  },
+  "image.history_result_open_button_label": {
+    "ru": "Открыть результат",
+    "en": "Open result"
+  },
+  "image.missing_files_currently_unavailable_check_output_folder": {
+    "ru": "Файлы сейчас недоступны. Проверьте папку результатов или подключение диска.",
+    "en": "Files are currently unavailable. Check the output folder or drive connection."
+  },
+  "image.seed_button_use": {
+    "ru": "Использовать seed",
+    "en": "Use seed"
+  },
+  "image.history_currently_unavailable_generation_saved_files_remain": {
+    "ru": "История сейчас недоступна. Генерация и сохранённые файлы остаются доступными.",
+    "en": "History is currently unavailable. Generation and saved files remain available."
+  },
+  "image.logs_reading_recent_entries": {
+    "ru": "Читаем последние записи…",
+    "en": "Reading recent entries…"
+  },
+  "image.update_logs_panel_no_entries": {
+    "ru": "Нет записей.",
+    "en": "No entries."
+  },
+  "image.diagnostics_log_file_count_template": {
+    "ru": "Файлов: {0}",
+    "en": "Files: {0}"
+  },
+  "image.logs_showing_recent_excerpts": {
+    "ru": " · показаны последние фрагменты",
+    "en": " · showing recent excerpts"
+  },
+  "image.logs_local_never_sent_online": {
+    "ru": " · локально, без отправки в интернет",
+    "en": " · local only, never sent online"
+  },
+  "image.logs_output_read_failed": {
+    "ru": "Не удалось прочитать логи: ",
+    "en": "Could not read the logs: "
+  },
+  "image.logs_retrieve_failed": {
+    "ru": "Ошибка получения логов",
+    "en": "Could not retrieve the logs"
+  },
+  "image.logs_load_first": {
+    "ru": "Сначала получи логи.",
+    "en": "Load the logs first."
+  },
+  "image.logs_copied_clipboard": {
+    "ru": "Логи скопированы в буфер обмена.",
+    "en": "Logs copied to the clipboard."
+  },
+  "image.logs_copying_unavailable_select_log_text_manually": {
+    "ru": "Копирование недоступно: выдели текст журнала вручную (Ctrl+A / Ctrl+C внутри области).",
+    "en": "Copying is unavailable: select the log text manually (Ctrl+A / Ctrl+C inside the log area)."
+  },
+  "image.logs_txt_sent_browser_saving": {
+    "ru": "TXT передан браузеру для сохранения.",
+    "en": "TXT sent to the browser for saving."
+  },
+  "image.app_qwen_names_loading_source_image": {
+    "ru": "Загрузка исходного изображения",
+    "en": "Loading source image"
+  },
+  "image.app_qwen_names_loading_reference": {
+    "ru": "Загрузка референса",
+    "en": "Loading reference"
+  },
+  "image.app_qwen_names_loading_diffusion_model": {
+    "ru": "Загрузка Qwen diffusion model",
+    "en": "Loading Qwen diffusion model"
+  },
+  "image.app_qwen_names_loading_text_encoder": {
+    "ru": "Загрузка текстового энкодера",
+    "en": "Loading text encoder"
+  },
+  "image.app_qwen_names_loading_vae": {
+    "ru": "Загрузка VAE",
+    "en": "Loading VAE"
+  },
+  "image.app_qwen_names_applying_lo_ra": {
+    "ru": "Подключение LoRA",
+    "en": "Applying LoRA"
+  },
+  "image.app_qwen_names_configuring_sampling": {
+    "ru": "Настройка сэмплинга",
+    "en": "Configuring sampling"
+  },
+  "image.app_qwen_names_preparing_cfg": {
+    "ru": "Подготовка CFG",
+    "en": "Preparing CFG"
+  },
+  "image.app_qwen_names_scaling_input_image": {
+    "ru": "Масштабирование входного изображения",
+    "en": "Scaling input image"
+  },
+  "image.app_qwen_names_processing_prompt": {
+    "ru": "Обработка промпта",
+    "en": "Processing prompt"
+  },
+  "image.app_qwen_names_preparing_conditioning": {
+    "ru": "Подготовка conditioning",
+    "en": "Preparing conditioning"
+  },
+  "image.app_qwen_names_preparing_references": {
+    "ru": "Подготовка референсов",
+    "en": "Preparing references"
+  },
+  "image.app_qwen_names_encoding_input_image_vae": {
+    "ru": "Кодирование входного изображения (VAE)",
+    "en": "Encoding input image (VAE)"
+  },
+  "image.app_qwen_names_generating_image_k_sampler": {
+    "ru": "Генерация изображения · KSampler",
+    "en": "Generating image · KSampler"
+  },
+  "image.app_qwen_names_decoding_result_vae": {
+    "ru": "Декодирование результата (VAE)",
+    "en": "Decoding result (VAE)"
+  },
+  "image.app_qwen_names_loading_real_esrgan_model": {
+    "ru": "Загрузка модели Real-ESRGAN",
+    "en": "Loading Real-ESRGAN model"
+  },
+  "image.app_qwen_names_ai_upscale_first_pass": {
+    "ru": "AI Upscale · первый проход",
+    "en": "AI Upscale · first pass"
+  },
+  "image.app_qwen_names_ai_upscale_second_pass": {
+    "ru": "AI Upscale · второй проход",
+    "en": "AI Upscale · second pass"
+  },
+  "image.app_qwen_names_writing_output_file": {
+    "ru": "Запись готового файла",
+    "en": "Writing output file"
+  },
+  "image.qwen_stage_name_preparing_request": {
+    "ru": "Подготовка запроса",
+    "en": "Preparing request"
+  },
+  "image.qwen_progress_hint_real_comfy_ui_events_shown_step": {
+    "ru": "Показываем только реальные события ComfyUI. Процент шагов — не процент всей генерации.",
+    "en": "Only real ComfyUI events are shown. Step progress is not overall generation progress."
+  },
+  "image.qwen_stage_step": {
+    "ru": "Шаг {0}/{1}",
+    "en": "Step {0}/{1}"
+  },
+  "image.qwen_record_stage_k_sampler_step": {
+    "ru": "KSampler · шаг {0}/{1}",
+    "en": "KSampler · step {0}/{1}"
+  },
+  "image.qwen_socket_message_comfy_ui_started_execution": {
+    "ru": "ComfyUI начал выполнение",
+    "en": "ComfyUI started execution"
+  },
+  "image.qwen_progress_hint_live_unavailable_task_status_still_reliably": {
+    "ru": "Live-прогресс недоступен: остаётся надёжный опрос состояния задачи каждые 2 секунды.",
+    "en": "Live progress unavailable: task status is still reliably checked every 2 seconds."
+  },
+  "image.qwen_progress_hint_no_web_socket_http_status_checks": {
+    "ru": "Нет WebSocket-прогресса; работает HTTP-статус. Результат генерации не затронут.",
+    "en": "No WebSocket progress; HTTP status checks are active. The generation result is unaffected."
+  },
+  "image.qwen_progress_hint_comfy_ui_web_socket_could_not": {
+    "ru": "ComfyUI WebSocket не подключился, используется обычный HTTP-статус.",
+    "en": "ComfyUI WebSocket could not connect; using HTTP status checks."
+  },
+  "image.empty_no_matches": {
+    "ru": "По запросу ничего нет.",
+    "en": "No matches."
+  },
+  "image.empty_archive_save_prompt": {
+    "ru": "Архив пока пуст. Сохрани промпт кнопкой ♡.",
+    "en": "The archive is empty. Save a prompt with ♡."
+  },
+  "image.prompt_archive_entry_saved_date_template": {
+    "ru": "Сохранён: {0}",
+    "en": "Saved: {0}"
+  },
+  "image.prompt_archive_append_to_prompt_button_label": {
+    "ru": "Добавить к промпту",
+    "en": "Append to prompt"
+  },
+  "image.qwen_archive_combined_prompt_would_exceed_5000_characters": {
+    "ru": "После добавления получится больше 5000 символов. Сократи текущий промпт.",
+    "en": "The combined prompt would exceed 5000 characters. Shorten the current prompt."
+  },
+  "image.qwen_fav_archived_prompt_appended_text": {
+    "ru": "Промпт из архива добавлен в конец текста.",
+    "en": "Archived prompt appended to the text."
+  },
+  "image.del_delete_archive": {
+    "ru": "Удалить из архива",
+    "en": "Delete from archive"
+  },
+  "image.del_delete_archived_prompt_cannot_undone": {
+    "ru": "Удалить этот промпт из архива? Это нельзя отменить.",
+    "en": "Delete this archived prompt? This cannot be undone."
+  },
+  "image.qwen_archive_entry_deleted": {
+    "ru": "Запись удалена из архива.",
+    "en": "Entry deleted from the archive."
+  },
+  "image.qwen_archive_deletion_error": {
+    "ru": "Ошибка удаления: ",
+    "en": "Deletion error: "
+  },
+  "image.qwen_fav_enter_prompt_first": {
+    "ru": "Сначала введи промпт.",
+    "en": "Enter a prompt first."
+  },
+  "image.qwen_fav_prompt_already_archived": {
+    "ru": "Этот промпт уже есть в архиве.",
+    "en": "This prompt is already archived."
+  },
+  "image.qwen_fav_saved_portable_archive": {
+    "ru": "♡ Сохранено в portable-архив.",
+    "en": "♡ Saved to the portable archive."
+  },
+  "image.qwen_fav_save_error": {
+    "ru": "Ошибка сохранения: ",
+    "en": "Save error: "
+  },
+  "image.qwen_archive_loading": {
+    "ru": "Загружаем архив…",
+    "en": "Loading archive…"
+  },
+  "image.qwen_archive_saved_prompts": {
+    "ru": "Сохранено промптов: {0}",
+    "en": "Saved prompts: {0}"
+  },
+  "image.qwen_archive_read_failed": {
+    "ru": "Не удалось прочитать архив: ",
+    "en": "Could not read the archive: "
+  },
+  "image.engine_select_generation_model": {
+    "ru": "Модель генерации",
+    "en": "Generation model"
+  },
+  "image.form_model_selected_neural_network_different_models": {
+    "ru": "Модель — выбранная нейросеть: разные модели по-разному понимают описание и рисуют детали.",
+    "en": "Model is the selected neural network: different models interpret descriptions and draw details differently."
+  },
+  "image.generation_mode_selector_label": {
+    "ru": "Режим",
+    "en": "Mode"
+  },
+  "image.mode_select_single_one_image": {
+    "ru": "Single — одно изображение",
+    "en": "Single — one image"
+  },
+  "image.mode_select_reference": {
+    "ru": "Reference — с референсом",
+    "en": "Reference — with reference"
+  },
+  "image.mode_select_prompt_text": {
+    "ru": "Prompt — по тексту",
+    "en": "Prompt — from text"
+  },
+  "image.form_single_works_one_image_reference_adds": {
+    "ru": "Single — работа с одной картинкой. Reference — дополнительная картинка-образец. Prompt — создание по текстовому описанию; особенности выбранной модели указаны ниже.",
+    "en": "Single works with one image. Reference adds a reference image. Prompt creates from a text description; selected model details are shown below."
+  },
+  "image.engine_checking_models": {
+    "ru": "Проверка моделей…",
+    "en": "Checking models…"
+  },
+  "image.engine_dependency_details_summary_label": {
+    "ru": "Зависимости движков",
+    "en": "Engine dependencies"
+  },
+  "image.prompt_only_controls_create_scratch_using_description": {
+    "ru": "Создать с нуля по описанию",
+    "en": "Create from scratch using a description"
+  },
+  "image.prompt_engine_hint_mode_uses_qwen_image_edit_2511": {
+    "ru": "Режим использует Qwen-Image-Edit-2511: приложение подставляет пустой холст и просит модель полностью нарисовать сцену. Это экспериментальный способ, не отдельная text-to-image модель.",
+    "en": "This mode uses Qwen-Image-Edit-2511: the application supplies a blank canvas and asks the model to draw the whole scene. This is experimental, not a separate text-to-image model."
+  },
+  "image.prompt_only_controls_new_image_format": {
+    "ru": "Формат нового изображения",
+    "en": "New image format"
+  },
+  "image.prompt_only_controls_1_square": {
+    "ru": "1:1 · квадрат",
+    "en": "1:1 · square"
+  },
+  "image.prompt_only_controls_3_2_landscape": {
+    "ru": "3:2 · пейзаж",
+    "en": "3:2 · landscape"
+  },
+  "image.prompt_only_controls_2_3_portrait": {
+    "ru": "2:3 · портрет",
+    "en": "2:3 · portrait"
+  },
+  "image.expand_group_prompt_upsampler": {
+    "ru": "Расширять промпт (upsampler)",
+    "en": "Expand prompt (upsampler)"
+  },
+  "image.expand_group_official_qwen3_5_model_turns_short": {
+    "ru": "Официальная Qwen3.5 расширяет короткий запрос в подробное описание на английском и учитывает исходные изображения. Рекомендована для коротких идей; для готового подробного описания её можно отключить. Первая загрузка долгая; расширенный текст показан под результатом.",
+    "en": "The official Qwen3.5 expands short requests into detailed English descriptions and sees the input images. Recommended for short ideas; it can be disabled for a complete caption. First load is slow; expanded text is shown below the result."
+  },
+  "image.image1_source_image_1": {
+    "ru": "Исходное изображение · Image 1",
+    "en": "Source image · Image 1"
+  },
+  "image.preview1_source_image_preview": {
+    "ru": "Предпросмотр исходного изображения",
+    "en": "Source image preview"
+  },
+  "image.image2_reference_image_2": {
+    "ru": "Изображение-референс · Image 2",
+    "en": "Reference image · Image 2"
+  },
+  "image.preview2_reference_image_preview": {
+    "ru": "Предпросмотр изображения-референса",
+    "en": "Reference image preview"
+  },
+  "image.paste_copy_image_browser_select_field_above": {
+    "ru": "Скопируй изображение в браузере, выбери поле выше и нажми Ctrl+V.",
+    "en": "Copy an image in your browser, select the field above and press Ctrl+V."
+  },
+  "image.prompt_guide_tips_selected_model_mode": {
+    "ru": "Подсказка для выбранной модели и режима",
+    "en": "Tips for the selected model and mode"
+  },
+  "image.prompt_guide_common_mistakes": {
+    "ru": "Частые ошибки:",
+    "en": "Common mistakes:"
+  },
+  "image.guide_use_example_append_prompt": {
+    "ru": "Добавить пример к промпту",
+    "en": "Append example to prompt"
+  },
+  "image.qwen_favorite_save_prompt": {
+    "ru": "♡ Сохранить промпт",
+    "en": "♡ Save prompt"
+  },
+  "image.qwen_favorite_open_prompt_archive": {
+    "ru": "Архив промптов",
+    "en": "Prompt archive"
+  },
+  "image.quality_group_generation": {
+    "ru": "Качество генерации",
+    "en": "Generation quality"
+  },
+  "image.upscale_group_resolution": {
+    "ru": "Увеличение разрешения",
+    "en": "Resolution upscale"
+  },
+  "image.form_quality_low_baseline_good_enhanced_high": {
+    "ru": "Качество (Quality): Low — базовое, Good — повышенное, High — высокое. Эти варианты меняют число шагов — повторных уточнений изображения моделью. Больше шагов обычно требует больше времени и не всегда даёт лучший результат. AI Upscale — отдельное увеличение картинки с помощью ИИ: 2× удваивает ширину и высоту, 4× увеличивает их вчетверо; Off отключает увеличение. Для сравнения качества оставьте одинаковый Seed.",
+    "en": "Quality: Low is baseline, Good is enhanced, High is high quality. These choices change the step count: repeated model refinements. More steps usually take longer and do not always improve results. AI Upscale is a separate AI enlargement: 2× doubles width and height, 4× quadruples them; Off disables it. Keep the same seed when comparing quality."
+  },
+  "image.seed_randomness_value": {
+    "ru": "Seed — число случайности",
+    "en": "Seed — randomness value"
+  },
+  "image.seed_random_every_run": {
+    "ru": "Случайный при каждом запуске",
+    "en": "Random on every run"
+  },
+  "image.generation_seed_randomize_button_label": {
+    "ru": "Случайный",
+    "en": "Random"
+  },
+  "image.reuse_seed_last_result_s": {
+    "ru": "Seed последнего результата",
+    "en": "Last result's seed"
+  },
+  "image.seed_hint_determines_initial_randomness_leave_empty_new": {
+    "ru": "Seed (читается «сид») задаёт исходную случайность генерации. Пустое поле — новый случайный вариант. Одинаковый Seed при тех же модели, описании и настройках помогает повторить результат. Большее число не означает лучшее качество.",
+    "en": "Seed determines the initial randomness. Leave empty for a new random variation. The same seed with the same model, description and settings helps reproduce a result. A larger number does not mean better quality."
+  },
+  "image.form_result_autosave": {
+    "ru": "Автосохранение результата",
+    "en": "Result autosave"
+  },
+  "image.form_successful_results_always_saved_automatically_selected": {
+    "ru": "После успешной генерации результат всегда автоматически сохраняется в выбранную папку. Путь сохраняется между перезапусками.",
+    "en": "Successful results are always saved automatically to the selected folder. The path persists across restarts."
+  },
+  "image.save_dir_result_autosave_folder": {
+    "ru": "Папка автосохранения результата",
+    "en": "Result autosave folder"
+  },
+  "image.choose_save_dir": {
+    "ru": "Выбрать…",
+    "en": "Choose…"
+  },
+  "image.save_dir_folder": {
+    "ru": "Сохранить папку",
+    "en": "Save folder"
+  },
+  "image.open_save_dir_folder": {
+    "ru": "Открыть папку",
+    "en": "Open folder"
+  },
+  "image.use_internal_results": {
+    "ru": "Использовать внутреннюю Results",
+    "en": "Use internal Results"
+  },
+  "image.save_dir_loading_autosave_settings": {
+    "ru": "Загружаем настройки автосохранения…",
+    "en": "Loading autosave settings…"
+  },
+  "image.form_keep_window_open_during_generation_closing": {
+    "ru": "Во время генерации оставьте это окно открытым: его закрытие остановит задачу.",
+    "en": "Keep this window open during generation: closing it stops the task."
+  },
+  "image.variant_another_variation": {
+    "ru": "Ещё вариант",
+    "en": "Another variation"
+  },
+  "image.settings_summary_fp8_mcnl_lo_ra_40_steps": {
+    "ru": "FP8 · MCNL LoRA · 40 steps · CFG 4 · полностью локально",
+    "en": "FP8 · MCNL LoRA · 40 steps · CFG 4 · fully local"
+  },
+  "image.generation_output_region_label": {
+    "ru": "Результат",
+    "en": "Result"
+  },
+  "image.p_select_image_enter_prompt_click_create": {
+    "ru": "Выбери изображение, введи prompt и нажми «Создать изображение».",
+    "en": "Select an image, enter a prompt and click Create image."
+  },
+  "image.qwen_stage_name_preparation": {
+    "ru": "Подготовка",
+    "en": "Preparation"
+  },
+  "image.qwen_sampler_progress_k_step": {
+    "ru": "Прогресс шага KSampler",
+    "en": "KSampler step progress"
+  },
+  "image.qwen_progress_hint_stages_follow_comfy_ui_events_step": {
+    "ru": "Этапы отображаются по сигналам ComfyUI. Процент шагов — только для KSampler, не для всей задачи.",
+    "en": "Stages follow ComfyUI events. Step percentage applies only to KSampler, not the whole task."
+  },
+  "image.result_history_panel_title": {
+    "ru": "История результатов",
+    "en": "Result history"
+  },
+  "image.result_history_loading_status": {
+    "ru": "Загружаем историю…",
+    "en": "Loading history…"
+  },
+  "image.engine_readiness_text_image_no_editing_references": {
+    "ru": "Только текст → изображение; без редактирования и референсов",
+    "en": "Text → image only; no editing or references"
+  },
+  "image.engine_readiness_text_image_editing_two_images": {
+    "ru": "Текст → изображение; редактирование; два изображения",
+    "en": "Text → image; editing; two images"
+  },
+  "image.engine_readiness_editing_reference_prompt_through_blank_canvas": {
+    "ru": "Редактирование; референс; промпт через пустой холст",
+    "en": "Editing; reference; prompt through a blank canvas"
+  },
+  "image.engine_readiness_missing_comfy_ui_nodes": {
+    "ru": "Нет узлов ComfyUI: ",
+    "en": "Missing ComfyUI nodes: "
+  },
+  "image.engine_readiness_download_them_components": {
+    "ru": ". Скачайте их во вкладке «Компоненты».",
+    "en": ". Download them in Components."
+  },
+  "image.engine_readiness_incompatible_workflow": {
+    "ru": "Workflow несовместим: ",
+    "en": "Incompatible workflow: "
+  },
+  "image.engine_readiness_missing_models": {
+    "ru": "Нет моделей: ",
+    "en": "Missing models: "
+  },
+  "image.workflow_stage_source_image": {
+    "ru": "Исходное изображение",
+    "en": "Source image"
+  },
+  "image.source_reference_image_label": {
+    "ru": "Референс",
+    "en": "Reference"
+  },
+  "image.workflow_stage_loading_qwen_2511": {
+    "ru": "Загрузка Qwen 2511",
+    "en": "Loading Qwen 2511"
+  },
+  "image.workflow_stage_text_encoder": {
+    "ru": "Текстовый энкодер",
+    "en": "Text encoder"
+  },
+  "image.workflow_stage_image_size": {
+    "ru": "Размер изображения",
+    "en": "Image size"
+  },
+  "image.workflow_stage_prompt_processing_label": {
+    "ru": "Промпт",
+    "en": "Prompt"
+  },
+  "image.workflow_stage_references": {
+    "ru": "Референсы",
+    "en": "References"
+  },
+  "image.workflow_stage_saving": {
+    "ru": "Сохранение",
+    "en": "Saving"
+  },
+  "image.workflow_stage_source_image_image1": {
+    "ru": "Исходное изображение <image1>",
+    "en": "Source image <image1>"
+  },
+  "image.workflow_stage_reference_image2": {
+    "ru": "Референс <image2>",
+    "en": "Reference <image2>"
+  },
+  "image.workflow_stage_loading_qwen_2_1_fp8": {
+    "ru": "Загрузка Qwen 2.1 FP8",
+    "en": "Loading Qwen 2.1 FP8"
+  },
+  "image.workflow_stage_latent_dimensions": {
+    "ru": "Размер latent",
+    "en": "Latent dimensions"
+  },
+  "image.workflow_stage_saving_png": {
+    "ru": "Сохранение PNG",
+    "en": "Saving PNG"
+  },
+  "image.workflow_stage_loading_z_image_turbo_int8": {
+    "ru": "Загрузка Z-Image Turbo INT8",
+    "en": "Loading Z-Image Turbo INT8"
+  },
+  "image.workflow_stage_qwen3_4_b_text_encoder": {
+    "ru": "Текстовый энкодер Qwen3-4B",
+    "en": "Qwen3-4B text encoder"
+  },
+  "image.workflow_stage_zero_negative_conditioning": {
+    "ru": "Нулевой negative",
+    "en": "Zero negative conditioning"
+  },
+  "image.workflow_stage_loading_flux_3_klein_int8": {
+    "ru": "Загрузка FLUX.3 Klein INT8",
+    "en": "Loading FLUX.3 Klein INT8"
+  },
+  "image.workflow_stage_qwen3_vl_4_b_text_encoder": {
+    "ru": "Текстовый энкодер Qwen3-VL-4B",
+    "en": "Qwen3-VL-4B text encoder"
+  },
+  "image.workflow_stage_loading_qwen3_5_upsampler": {
+    "ru": "Загрузка upsampler Qwen3.5",
+    "en": "Loading Qwen3.5 upsampler"
+  },
+  "image.workflow_stage_upsampler_system_prompt": {
+    "ru": "Системный промпт upsampler",
+    "en": "Upsampler system prompt"
+  },
+  "image.workflow_stage_prompt_expansion": {
+    "ru": "Расширение промпта",
+    "en": "Prompt expansion"
+  },
+  "image.workflow_stage_expanded_prompt": {
+    "ru": "Расширенный промпт",
+    "en": "Expanded prompt"
+  },
+  "image.workflow_stage_upsampler_images": {
+    "ru": "Изображения для upsampler",
+    "en": "Upsampler images"
+  },
+  "image.workflow_stage_references_latent": {
+    "ru": "Референсы (latent)",
+    "en": "References (latent)"
+  },
+  "image.workflow_stage_empty_negative_prompt": {
+    "ru": "Пустой negative",
+    "en": "Empty negative prompt"
+  },
+  "image.get_engine_unknown": {
+    "ru": "Неизвестный движок",
+    "en": "Unknown engine"
+  },
+  "image.validate_mode_not_supported_engine": {
+    "ru": "Режим не поддерживается движком",
+    "en": "Mode not supported by the engine"
+  },
+  "image.validate_quality_must_low_good_high": {
+    "ru": "Quality должен быть Low, Good или High",
+    "en": "Quality must be Low, Good or High"
+  },
+  "image.validate_upscale_must_off_2_x_4": {
+    "ru": "Upscale должен быть Off, 2x или 4x",
+    "en": "Upscale must be Off, 2x or 4x"
+  },
+  "image.validate_prompt_must_contain_1_5000_characters": {
+    "ru": "Промпт должен содержать от 1 до 5000 символов",
+    "en": "Prompt must contain 1 to 5000 characters"
+  },
+  "image.validate_seed_must_integer_0_2_48": {
+    "ru": "Seed должен быть целым числом от 0 до 2^48-1",
+    "en": "Seed must be an integer from 0 to 2^48-1"
+  },
+  "image.validate_unknown_canvas_format": {
+    "ru": "Неизвестный формат холста",
+    "en": "Unknown canvas format"
+  },
+  "image.resolve_expansion_prompt_yes_no": {
+    "ru": "Расширение промпта: да или нет",
+    "en": "Prompt expansion: yes or no"
+  },
+  "image.resolve_expansion_model_does_not_expand_prompts": {
+    "ru": "Эта модель не расширяет промпт",
+    "en": "This model does not expand prompts"
+  },
+  "image.resolve_workflow_mode_unknown_generation_operation": {
+    "ru": "Неизвестная операция генерации",
+    "en": "Unknown generation operation"
+  },
+  "image.resolve_workflow_mode_operation_not_supported_engine": {
+    "ru": "Операция не поддерживается движком",
+    "en": "Operation not supported by the engine"
+  },
+  "image.build_workflow_loading_real_esrgan": {
+    "ru": "Загрузка Real-ESRGAN",
+    "en": "Loading Real-ESRGAN"
+  },
+  "image.qwen_archive_heading_favorite_prompts": {
+    "ru": "Избранные промпты",
+    "en": "Favorite prompts"
+  },
+  "image.qwen_archive_close": {
+    "ru": "Закрыть ✕",
+    "en": "Close ✕"
+  },
+  "image.qwen_archive_panel_click_append_prompt_add_entry_after": {
+    "ru": "Нажми «Добавить к промпту» — запись появится в конце уже введённого текста. Текущий текст не удаляется.",
+    "en": "Click Append to prompt to add the entry after the existing text. The current text is preserved."
+  },
+  "image.qwen_archive_search": {
+    "ru": "Поиск по архиву...",
+    "en": "Search archive..."
+  },
+  "image.qwen_archive_search_prompt": {
+    "ru": "Поиск промпта",
+    "en": "Search prompt"
+  }
+}

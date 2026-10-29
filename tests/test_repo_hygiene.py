@@ -146,8 +146,8 @@ class GitignoreTests(unittest.TestCase):
             ignored = ['Models/Video/H3/a.safetensors', 'Runtime/Music/python/python.exe', 'UserData/Settings/x.json', 'UserData/Text/Chats/c.json',
                        'Support/Diagnostics/InstalledRelease.json', 'Notes.txt', 'App/server/__pycache__/a.pyc', 'App/bin/tool.exe',
                        'App/frontend/clip.mp4', 'tools/cache/model.gguf', 'VisualForge AI Studio.exe', 'reports/x.json']
-            kept = ['README.md', 'Setup-VisualForge.cmd', 'App/server/server.py', 'App/frontend/app.js', 'App/frontend/visualforge-icon.png',
-                    'docs/Text.md', 'tests/test_text.py', 'tools/check_repo.py', 'Support/Licenses/ComfyUI.txt', '.githooks/pre-commit']
+            kept = ['README.md', 'Setup-VisualForge.cmd', 'App/server/studio_server.py', 'App/frontend/image-studio.js', 'App/frontend/visualforge-icon.png',
+                    'docs/VisualForge-Text-Chat.md', 'tests/test_text.py', 'tools/check_repo.py', 'Support/Licenses/ComfyUI-License.txt', '.githooks/pre-commit']
             for relative in ignored + kept:
                 path = work / relative
                 path.parent.mkdir(parents=True, exist_ok=True)

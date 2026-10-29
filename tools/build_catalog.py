@@ -1,4 +1,4 @@
-"""Generate App/config/components.json, the catalog the setup installer works from.
+"""Generate App/config/component-catalog.json, the catalog the setup installer works from.
 
 This is a maintainer tool, not part of a normal installation. It combines
   * a working reference installation (--installed): the manifests and lock files recorded when it was assembled,
@@ -7,7 +7,7 @@ This is a maintainer tool, not part of a normal installation. It combines
   * a few live lookups (GitHub release digests, PyPI wheel hashes, Hugging Face file listings),
 and writes one JSON document in which every downloadable file has an exact size and SHA-256.
 
-    python tools/build_catalog.py --installed "D:/VisualForge" --work "D:/work" --out App/config/components.json
+    python tools/build_catalog.py --installed "D:/VisualForge" --work "D:/work" --out App/config/component-catalog.json
 
 Review `git diff` before committing a regenerated catalog.
 """
@@ -168,12 +168,15 @@ def build_image(installed, skip_gated=False):
     uc = ('abenzerps/Qwen-Image-2.1-Uncensored-Quantized', '7959e658915f52274897fb573ffeda49de8dc16b')
     uc_mirror = [('Comfy-Org/Qwen-Image-2.1', '0217efd1d9c9452e84f6448903d6e21bfa171ffd')]
     edit = component(
-        id='image.model.qwen-edit-2511', module='image', kind='model', group='Image', title='Qwen Image Edit 2511 (FP8) with LoRA',
-        description='Editing one image, editing with a reference image, or a prompt on a neutral canvas.', license='Apache-2.0 (model); OpenRAIL++ (LoRA)',
+        id='image.model.qwen-edit-2511', module='image', kind='model', group='Image', title='Qwen Image Edit 2511 (FP8)',
+        description='Instruction editing with one to three images, or a prompt on a neutral canvas.', license='Apache-2.0',
         requires=['image.runtime'], files=[
             hf_file(*edit_repo, 'split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors', 'Models/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors'),
             hf_file(*base_repo, 'split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors', 'Models/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors'),
-            hf_file(*base_repo, 'split_files/vae/qwen_image_vae.safetensors', 'Models/vae/qwen_image_vae.safetensors'),
+            hf_file(*base_repo, 'split_files/vae/qwen_image_vae.safetensors', 'Models/vae/qwen_image_vae.safetensors')])
+    community = component(id='image.model.qwen-edit-uncensored', module='image', kind='model', group='Image',
+        title='Qwen 2511 optional NSFW LoRA', description='Optional community adapter; base Qwen 2511 does not require it.',
+        license='OpenRAIL++', requires=['image.runtime', 'image.model.qwen-edit-2511'], files=[
             hf_file(*lora, 'qwen-image-edit-plus-nsfw-lora.safetensors', 'Models/loras/qwen-image-edit-plus-nsfw-lora.safetensors', lora_mirrors)])
     quantized = component(
         id='image.model.qwen-image-21-uc', module='image', kind='model', group='Image', title='Qwen Image 2.1 Uncensored (FP8)',
@@ -210,7 +213,51 @@ def build_image(installed, skip_gated=False):
         description='Separate 2x/4x picture upscaling.', license='BSD-3-Clause (Real-ESRGAN)', requires=['image.runtime'],
         files=[dict(path='Models/upscale_models/RealESRGAN_x2plus.pth', bytes=67061725, sha256='49fafd45f8fd7aa8d31ab2a22d14d91b536c34494a5cfe31eb5d89c2fa266abb',
                     urls=['https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth'])])
-    return [runtime, edit, quantized, zimage_turbo] + ([flux3_klein] if flux3_klein else []) + [upscale]
+    return [runtime, edit, quantized, zimage_turbo] + ([flux3_klein] if flux3_klein else []) + [upscale, community] + build_zimage_addons() + build_qwen_lightning() + build_qwen21_enhancers()
+
+
+def build_qwen_lightning():
+    # Keep the step-distilled adapter independent: its absence must never disable standard 40-step editing.
+    revision = '107d238d68b8387e32843d0b4a2e24ceb0d3ad86'
+    filename = 'Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors'
+    return [component(id='image.model.qwen-edit-lightning', module='image', kind='model', group='Image',
+        title='Qwen Image Edit 2511 Lightning (4 steps)', description='Optional 4-step editing profile at CFG 1; negative prompts are unused.',
+        license='Apache-2.0', requires=['image.runtime', 'image.model.qwen-edit-2511'], files=[dict(
+            path='Models/loras/' + filename, bytes=849608296,
+            sha256='22226e8d05d354bb356627d428809f5afd7819399b077238a2b70a82883a904f',
+            urls=['https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/' + revision + '/' + filename])])]
+
+
+def build_qwen21_enhancers():
+    """Separate pinned T2I/I2I rewriters; neither is required for the installed base model."""
+    revision = '0217efd1d9c9452e84f6448903d6e21bfa171ffd'
+    hashes = {'t2i':'9182abae56fe05459840a86d22abd21f972061c92fce032630af680c8c5178d3',
+              'i2i':'32707d01b427e488af252b95c551989aad59f9fec611a694f5db6bde7f0f1f6c'}
+    result = []
+    for task, digest in hashes.items():
+        name = 'qwen3.5_9b_qwen_image_2.1_pe_' + task + '.int8_convrot.safetensors'
+        result.append(component(id='image.model.qwen21-pe-' + task, module='image', kind='model', group='Image',
+            title='Qwen Image 2.1 prompt enhancer (' + task.upper() + ')',
+            description='Optional official prompt rewriting for ' + ('text generation.' if task == 't2i' else 'image editing.'),
+            license='Qwen Research', requires=['image.runtime','image.model.qwen-image-21-uc'],
+            files=[dict(path='Models/text_encoders/' + name, bytes=9471072252, sha256=digest,
+                        urls=['https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/' + revision + '/text_encoders/' + name])]))
+    return result
+
+
+def build_zimage_addons():
+    """Optional distilled Lite patches: installing Turbo alone must not pull another four GB."""
+    repo = 'alibaba-pai/Z-Image-Turbo-Fun-Controlnet-Union-2.1'
+    revision = '5155fc56d17821007d6f62ac192c09e0f0e72016'
+    variants = [
+        ('union', 'Z-Image-Turbo-Fun-Controlnet-Union-2.1-lite-2602-8steps.safetensors',
+         'Z-Image Turbo: ControlNet Union Lite', 'Guided image generation and masked inpainting; accepts Canny, pose, depth, scribble and gray maps.'),
+        ('tile', 'Z-Image-Turbo-Fun-Controlnet-Tile-2.1-lite-2601-8steps.safetensors',
+         'Z-Image Turbo: ControlNet Tile Lite', 'Image-conditioned enlargement and detail refinement.')]
+    return [component(id='image.model.z-image-controlnet-' + ident, module='image', kind='model', group='Image', title=title,
+                      description=description, license='Apache-2.0', requires=['image.runtime', 'image.model.z-image-turbo'],
+                      files=[hf_file(repo, revision, filename, 'Models/model_patches/' + filename)])
+            for ident, filename, title, description in variants]
 
 
 # ---- Video ---------------------------------------------------------------------------------------------------------
@@ -256,7 +303,7 @@ def build_video(installed, work):
     changed, patches = patched_files(installed)
     python = 'Runtime/Video/python/python.exe'
     runtime = component(
-        id='video.runtime', module='video', kind='software', title='Video runtime: Python 3.12, PyTorch (CUDA 13), FreeVideo, ComfyUI-native Wan, ffmpeg',
+        id='video.video_runtime', module='video', kind='software', title='Video runtime: Python 3.12, PyTorch (CUDA 13), FreeVideo, ComfyUI-native Wan, ffmpeg',
         description='What the Video section and MiniMax Music run on: an isolated Python with PyTorch and SageAttention, the pinned FreeVideo / VDN / ComfyUI sources, ffmpeg 9.0.2 and the voice packages.',
         license='Open-source components, each under its own license (see Support/Licenses)',
         present=['Runtime/Video/python/python.exe', 'Runtime/Video/ffmpeg/bin/ffmpeg.exe', 'Runtime/Video/ffmpeg/bin/ffprobe.exe', 'Runtime/Video/vendor/FreeVideo/pyproject.toml',
@@ -316,13 +363,13 @@ def video_models(installed, voice, work):
         description='The main Video engine: 512x288 clips of 1.6 or 10 seconds with sound, up to three character references, speech and a 60-second multi-scene option.',
         license='Model: OpenVDN / MiniMax H3 license (text is downloaded into Models/Video/H3/LICENSE); code: Apache-2.0',
         note='LICENSE CHECK: the MiniMax H3 Community License limits its territory and excludes the European Union, the United Kingdom, South Korea and the United States. Read Models/Video/H3/LICENSE before using this model.',
-        requires=['video.runtime'], files=files, after=after,
+        requires=['video.video_runtime'], files=files, after=after,
         present=['Models/Video/H3/int8-convrot/cache/root.safetensors', 'Models/Video/H3/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors', 'Models/Video/H3/h3-base/vae/config.json'])
     tts_repo = ('Qwen/Qwen3-TTS-12Hz-0.6B-Base', voice['models'][0]['revision'])
     tts = component(
         id='video.model.qwen3-tts', module='video', kind='model', group='Video', title='Qwen3-TTS 0.6B (character speech, voice cloning)',
         description='Speech for FreeVideo characters from a 2 to 30 second voice sample and typed lines.', license='Apache-2.0',
-        requires=['video.runtime'], files=[hf_file(*tts_repo, row['file'], 'Models/Video/Qwen3TTS/' + row['file']) for row in voice['models']])
+        requires=['video.video_runtime'], files=[hf_file(*tts_repo, row['file'], 'Models/Video/Qwen3TTS/' + row['file']) for row in voice['models']])
 
     def manifest_files(name, strip_prefix):
         rows = read_json(installed / 'Support/Diagnostics' / name)['entries']
@@ -334,15 +381,15 @@ def video_models(installed, voice, work):
     s2v_only = [f for f in s2v_all if f['path'].startswith('Models/Video/Wan22S2V14B/')]
     shared = component(
         id='video.model.wan-text-encoder', module='video', kind='model', group='Video', title='UMT5-XXL text encoder (shared by both Wan models)',
-        description='Text encoder used by Wan 2.2 TI2V-5B and Wan 2.2 S2V-14B; downloaded once.', license='Apache-2.0', requires=['video.runtime'], files=encoder)
+        description='Text encoder used by Wan 2.2 TI2V-5B and Wan 2.2 S2V-14B; downloaded once.', license='Apache-2.0', requires=['video.video_runtime'], files=encoder)
     wan = component(
         id='video.model.wan-ti2v-5b', module='video', kind='model', group='Video', title='Wan 2.2 TI2V-5B: text/image to video (silent)',
         description='Silent 832x480 video from text or from a first image (81 or 121 frames).', license='Apache-2.0',
-        requires=['video.runtime', 'video.model.wan-text-encoder'], files=wan_only)
+        requires=['video.video_runtime', 'video.model.wan-text-encoder'], files=wan_only)
     s2v = component(
         id='video.model.wan-s2v-14b', module='video', kind='model', group='Video', title='Wan 2.2 S2V-14B: character video from a voice (experimental)',
         description='A character picture plus a voice sample (or finished speech) becomes a 512x512 talking video of up to 4.8 seconds.', license='Apache-2.0',
-        requires=['video.runtime', 'video.model.wan-text-encoder'], files=s2v_only)
+        requires=['video.video_runtime', 'video.model.wan-text-encoder'], files=s2v_only)
     return [h3, tts, shared, wan, s2v]
 
 
@@ -412,7 +459,7 @@ def build_music(installed):
         id='music.model.minimax-music3', module='music', kind='model', group='Music', title='MiniMax Music3 INT8 (songs with vocals)',
         description='A second Music engine: 32 kHz stereo WAV, up to 60 seconds. Runs on the Video runtime.', license='MiniMax Music3 Community License (read the LICENSE file)',
         note='Read the LICENSE file that is downloaded with the model: it is a community license with its own conditions.',
-        requires=['video.runtime'], files=mini_files)
+        requires=['video.video_runtime'], files=mini_files)
     # Public package of Comfy-Org (no token needed) plus the public Stability AI license text; the Gemma Terms file is gated and only linked.
     sa3_package = ('Comfy-Org/stable-audio-3', '75aad8836271cb5a5123fb58304fae5d3bb4b0f9')
     sa3_license = ('stabilityai/stable-audio-3-medium', 'd4d3579395a8ac0df4ab13b5b1d7138ce7290f81')
@@ -579,13 +626,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--installed', required=True, help='a complete reference installation to read manifests from')
     parser.add_argument('--work', required=True, help='folder holding video-cache/high-16-table-lock.json')
-    parser.add_argument('--out', default=str(REPO / 'App/config/components.json'))
+    parser.add_argument('--out', default=str(REPO / 'App/config/component-catalog.json'))
     parser.add_argument('--skip-gated', action='store_true', help='leave out components whose weights sit in a gated repository (their digests need HF_TOKEN)')
     arguments = parser.parse_args(argv)
     catalog = build_all(Path(arguments.installed), Path(arguments.work), arguments.skip_gated)
     sys.path.insert(0, str(REPO / 'App/server'))
-    from provision import catalog as catalog_module
-    from provision.sources import enrich
+    from provision import component_catalog as catalog_module
+    from provision.download_sources import enrich
     enrich(catalog)
     catalog_module.validate(catalog)
     Path(arguments.out).write_text(json.dumps(catalog, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

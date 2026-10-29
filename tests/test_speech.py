@@ -12,10 +12,10 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
-from gpu import Busy, GpuCoordinator
-from speech import routes
+from gpu_coordinator import Busy, GpuCoordinator
+from speech import speech_routes as routes
 from speech.speech_manager import SpeechError, SpeechManager
-from speech import worker
+from speech import speech_worker as worker
 
 FAKE = ROOT / 'tests/fake_speech_worker.py'
 

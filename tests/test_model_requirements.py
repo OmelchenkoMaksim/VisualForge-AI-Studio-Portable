@@ -8,15 +8,15 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'App/server'))
 from model_requirements import storage, enrich, facts
-from provision.engine import Engine, SPACE_MARGIN
-from provision.catalog import closure
-from hardware import profiles
+from provision.install_engine import Engine, SPACE_MARGIN
+from provision.component_catalog import closure
+from hardware_inventory import profiles
 
 
 class RequirementTests(unittest.TestCase):
     def test_ltx_all_six_assets_and_clean_installer_budget(self):
         with tempfile.TemporaryDirectory() as folder:
-            engine = Engine(folder, catalog_path=ROOT/'App/config/components.json')
+            engine = Engine(folder, catalog_path=ROOT/'App/config/component-catalog.json')
             status = engine.status()
             info = storage(engine, status, 'video.model.ltx25')
             assets = json.loads((ROOT/'App/config/ltx25-assets.json').read_text(encoding='utf-8'))
@@ -29,7 +29,7 @@ class RequirementTests(unittest.TestCase):
 
     def test_wan_includes_shared_encoder_but_not_the_other_wan_model(self):
         with tempfile.TemporaryDirectory() as folder:
-            engine = Engine(folder, catalog_path=ROOT/'App/config/components.json')
+            engine = Engine(folder, catalog_path=ROOT/'App/config/component-catalog.json')
             info = storage(engine, engine.status(), 'video.model.wan-ti2v-5b')
             expected = sum(f['bytes'] for ident in ('video.model.wan-ti2v-5b', 'video.model.wan-text-encoder') for f in engine.by_id[ident]['files'])
             self.assertEqual(info['model_bytes'], expected)

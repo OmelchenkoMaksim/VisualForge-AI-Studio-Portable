@@ -10,7 +10,7 @@ $ErrorActionPreference='Stop'
 $targetRoot=[IO.Path]::GetFullPath($Root).TrimEnd('\')
 if (-not (Test-Path -LiteralPath $targetRoot -PathType Container)) { throw 'Target installation does not exist.' }
 $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$allowed=@('App/frontend/app.js','App/frontend/index.html','App/frontend/style.css','App/server/server.py','App/server/job_history.py','Support/Diagnostics/ImageReliabilityValidation.json')
+$allowed=@('App/frontend/image-studio.js','App/frontend/studio-index.html','App/frontend/image-studio.css','App/server/studio_server.py','App/server/job_history.py','Support/Diagnostics/ImageReliabilityValidation.json')
 if ($manifest.schema_version -ne 1 -or @($manifest.files).Count -ne $allowed.Count -or @(Compare-Object ($manifest.files.path | Sort-Object) ($allowed | Sort-Object)).Count) { throw 'Unexpected update file list.' }
 
 function Assert-NoReparse([string]$path) {

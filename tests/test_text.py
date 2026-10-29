@@ -14,10 +14,10 @@ import unittest
 from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from text import routes
-from text import store as store_module
+from text import text_routes as routes
+from text import chat_store as store_module
 from text.text_manager import Busy, TextManager
-from text.store import ChatStore
+from text.chat_store import ChatStore
 
 FAKE = Path(__file__).with_name('fake_ollama.py')
 MODEL = 'demo-model:latest'

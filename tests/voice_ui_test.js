@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const source = fs.readFileSync(path.join(__dirname, '../App/frontend/voice.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../App/frontend/voice-input.js'), 'utf8');
 const key = 'visualforge.voice.enhance.v1';
 
 class Element {

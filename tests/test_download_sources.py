@@ -8,12 +8,12 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'App/server'))
-from provision.sources import enrich
+from provision.download_sources import enrich
 
 
 class SourceTests(unittest.TestCase):
     def test_catalog_has_cloud_sources_and_alternatives_without_changing_pins(self):
-        catalog = json.loads((ROOT/'App/config/components.json').read_text('utf-8'))
+        catalog = json.loads((ROOT/'App/config/component-catalog.json').read_text('utf-8'))
         before = copy.deepcopy(catalog)
         enrich(catalog)
         self.assertEqual(catalog, before, 'catalog generation must retain its reviewed alternatives')
@@ -46,7 +46,7 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(catalog, once)
 
     def test_node_and_npm_alternatives_point_at_the_same_file(self):
-        from provision.sources import alternatives
+        from provision.download_sources import alternatives
         self.assertEqual(alternatives('https://nodejs.org/dist/v24.21.0/node-v24.21.0-win-x64.zip'),
                          ['https://nodejs.org/download/release/v24.21.0/node-v24.21.0-win-x64.zip'])
         self.assertEqual(alternatives('https://registry.npmjs.org/@deepseek-ai/dsh/-/dsh-0.2.1-rc.2.tgz'),

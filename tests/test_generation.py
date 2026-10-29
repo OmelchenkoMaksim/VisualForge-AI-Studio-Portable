@@ -12,9 +12,9 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-import generation
+import generation_identity as generation
 from job_history import JobHistory
-from text.store import ChatStore
+from text.chat_store import ChatStore
 from agents.agent_manager import AgentManager
 from speech.speech_manager import SpeechManager
 
@@ -43,7 +43,7 @@ class GenerationTests(unittest.TestCase):
             self.assertIsNone(record['duration_sec'])
 
     def test_shape_and_monotonic_duration_survive_wall_clock_change(self):
-        with patch('generation.time.monotonic', side_effect=[100, 103.125]), patch('generation.time.time', return_value=10):
+        with patch('generation_identity.time.monotonic', side_effect=[100, 103.125]), patch('generation_identity.time.time', return_value=10):
             record = generation.begin('Image')
             self.assertRecord(record, 'Image', done=False)
             generation.finish(record)

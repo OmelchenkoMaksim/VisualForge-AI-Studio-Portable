@@ -23,12 +23,12 @@ import threading
 import time
 import uuid
 
-from generation import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, remove as remove_event
-from video.owned import OwnedJob
-from . import assemble, defaults, pronunciation
-from .normalize import changes as normalization_changes, normalize as spoken_form
-from .registry import DEFAULT_ENGINE, ENGINES, ID, QWEN_ID, VOXCPM_ID, validate
-from .storage import publish, read_json, resolve_path, stored_path, write_json
+from generation_identity import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, remove as remove_event
+from video.owned_processes import OwnedJob
+from . import audio_assembly as assemble, default_voices as defaults, pronunciation_rules as pronunciation
+from .speech_normalization import changes as normalization_changes, normalize as spoken_form
+from .voiceover_registry import DEFAULT_ENGINE, ENGINES, ID, QWEN_ID, VOXCPM_ID, validate
+from .voiceover_storage import publish, read_json, resolve_path, stored_path, write_json
 from .text_prep import clean, fragment_key, fragments, parse_input, summary
 
 TERMINAL = ('done', 'error', 'cancelled')
@@ -105,7 +105,7 @@ class VoiceoverManager:
         # first compilation, which is cached in the job state afterwards; the worker falls back to no compilation if it fails.
         self.voxcpm_optimize = os.environ.get('VISUALFORGE_VOICEOVER_VOXCPM_OPTIMIZE', '1') == '1'
         # Fragments synthesized together on the GPU: batch 8 was 4.4 times faster than one at a time with the same word accuracy
-        # (see docs/Voiceover.md); the worker lowers it to what the free video memory allows.
+        # (see docs/VisualForge-Voiceover-Guide.md); the worker lowers it to what the free video memory allows.
         self.batch = max(1, min(32, int(os.environ.get('VISUALFORGE_VOICEOVER_BATCH', '8'))))
         # Fragments are checked by speech recognition in the Music runtime (PyTorch and transformers are already there).
         self.verify_python = Path(os.environ.get('VISUALFORGE_VOICEOVER_VERIFY_PYTHON', paths.root / 'Runtime/Music/python/python.exe'))

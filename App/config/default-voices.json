@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "notes": "Built-in voices of the Voiceover section. Each one is a NEW voice made by VoxCPM2 Voice Design from the text description (no real person is imitated); the studio generates several takes, listens to them with Whisper and keeps the best one (see docs/Voiceover.md). The first sentence of 'text' is spoken in every take, so the voices are comparable.",
+  "notes": "Built-in voices of the Voiceover section. Each one is a NEW voice made by VoxCPM2 Voice Design from the text description (no real person is imitated); the studio generates several takes, listens to them with Whisper and keeps the best one (see docs/VisualForge-Voiceover-Guide.md). The first sentence of 'text' is spoken in every take, so the voices are comparable.",
   "text": "Утро выдалось тихим и ясным. Над рекой стелился лёгкий туман, а в саду пахло свежескошенной травой. Анна поставила чайник, открыла окно и, не торопясь, села к столу, чтобы дописать письмо.",
   "takes": 4,
   "voices": [

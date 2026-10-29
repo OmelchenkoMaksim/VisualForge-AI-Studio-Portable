@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const releases = {
-    'qwen-edit-2511': ['23.12.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/QwenLM/Qwen-Image'],
+    'qwen-edit-2511': ['23.12.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://huggingface.co/Qwen/Qwen-Image-Edit-2511'],
     'qwen-image-21-uc-fp8': ['23.09.2026', StudioI18n.t("settings.studio_ui_releases_fp8_publication"), 'https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-Quantized/commits/main'],
     'flux3-klein-int8': ['17.10.2026', StudioI18n.t("settings.studio_ui_releases_comfy_package_update"), 'https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/commits/main'],
     'z-image-turbo-int8': ['23.09.2026', StudioI18n.t("settings.studio_ui_releases_comfy_package_update"), 'https://huggingface.co/Comfy-Org/Z-Image-Turbo/commits/main'],
@@ -82,7 +82,7 @@
   }
   new MutationObserver(renderHeader).observe(document.body, {attributes:true, attributeFilter:['data-studio-module']});
   const seen = new Set();
-  // Melodies, volume and the audio unlock live in sounds.js; the user picks them in the gear menu under «Звуки».
+  // Melodies, volume and the audio unlock live in notification-sounds.js; the user picks them in the gear menu under «Звуки».
   function sound(error) {
     try { window.StudioSounds?.play(error ? 'error' : 'success'); } catch {}
   }
@@ -176,7 +176,7 @@
   }
   for (const option of document.querySelectorAll('#engineSelect option, #videoEngine option, #musicEngine option')) {
     const data=releases[option.value];
-    if (data) { StudioI18n.append(option, "textContent", () => (` · ${data[1]}: ${data[0]}`), true); StudioI18n.bind(option, "title", () => (data[2]), true); }
+    if (data) { StudioI18n.append(option, "textContent", () => (` · ${StudioI18n.remote(data[1])}: ${data[0]}`), true); StudioI18n.bind(option, "title", () => (data[2]), true); }
   }
   // ---- while any module generates, everything that would start or disturb a job is inert ----------------------------------
   // Tabs, engine and mode choices, settings and typing in prompt fields stay free; the buttons below (starting a generation or an export,
@@ -241,7 +241,8 @@
     parentFolder: path => { const text=String(path || ''); const index=Math.max(text.lastIndexOf('\\'),text.lastIndexOf('/')); return index<0?'':text.slice(0, index<=2?index+1:index); },
     // Engine names come from the server in Russian source form (e.g. "Wan 2.2 S2V-14B · речь → видео"); translate
     // them here, otherwise every selector that uses this label stays Russian after switching to English.
-    modelLabel: (id, name) => { const label = window.StudioI18n ? StudioI18n.remote(name) : name; return releases[id] ? `${label} · ${releases[id][1]}: ${releases[id][0]}` : label; },
+    // Release fragments were translated at startup; translate the fragment again before composing the dated label.
+    modelLabel: (id, name) => { const label = window.StudioI18n ? StudioI18n.remote(name) : name; return releases[id] ? `${label} · ${StudioI18n.remote(releases[id][1])}: ${releases[id][0]}` : label; },
     modelSource: id => releases[id]?.[2] || ''
   };
 })();

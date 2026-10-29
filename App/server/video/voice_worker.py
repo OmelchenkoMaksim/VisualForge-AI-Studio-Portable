@@ -14,7 +14,7 @@ def main():
     args = parser.parse_args()
     sys.path.insert(0, str(args.packages))
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-    from generation import operation
+    from generation_identity import operation
     data = json.loads(args.request.read_text(encoding='utf-8'))
     reference = args.request.with_suffix('.reference.wav')
     subprocess.run([args.ffmpeg, '-nostdin', '-v', 'error', '-n', '-i', data['voice_path'], '-t', '30', '-ac', '1', '-ar', '24000', str(reference)], check=True)

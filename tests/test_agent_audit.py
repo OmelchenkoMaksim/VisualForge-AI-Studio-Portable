@@ -17,14 +17,14 @@ import unittest
 from unittest.mock import patch
 
 from tests.test_agents import ROOT, FakeText, FakeGpu, paths_in, remove_tree
-from agents import loop, routes
-from agents.gateway import ResponseUsage
+from agents import agent_loop as loop, agent_routes as routes
+from agents.agent_gateway import ResponseUsage
 from agents.agent_manager import AgentManager
-from agents.opencode import clean_environment
-from generation import begin as generation_begin
-from gpu import Busy
-from text import store as store_module
-from text.store import ChatStore
+from agents.opencode_server import clean_environment
+from generation_identity import begin as generation_begin
+from gpu_coordinator import Busy
+from text import chat_store as store_module
+from text.chat_store import ChatStore
 
 
 class AuditRegressionTest(unittest.TestCase):

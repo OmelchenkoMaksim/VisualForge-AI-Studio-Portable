@@ -1,0 +1,9 @@
+Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT, Copyright (c) 2026 Hangzhou Tongyi Laboratory Technology Co., Ltd. All Rights Reserved.
+
+Qwen Image 2.1 weights are for non-commercial research/evaluation under the Qwen Research license. Commercial use requires a separate license.
+The selected UC quantization is sourced from abenzerps/Qwen-Image-2.1-Uncensored-Quantized at revision 7959e658915f52274897fb573ffeda49de8dc16b.
+API workflows in this project were adapted from Comfy-Org/workflow_templates, with prompt enhancement removed and UC weights selected. These files are modified adaptations, not original GUI workflows.
+ComfyUI is an independent third-party project; see ComfyUI-License.txt.
+The staged Python package metadata inventory is reports/third-party-license-inventory.json. Missing metadata is not permission to redistribute.
+Existing 2511 weights, LoRA and Real-ESRGAN were copied from the user's installation for local regression testing. Their redistribution terms have not been independently cleared by this upgrade.
+This evaluation bundle is not declared freely redistributable.

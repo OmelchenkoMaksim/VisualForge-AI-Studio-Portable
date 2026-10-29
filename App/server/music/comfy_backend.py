@@ -17,7 +17,7 @@ import urllib.request
 import uuid
 import wave
 
-WORKFLOW = 'stable-audio-3-medium/text.api.json'
+WORKFLOW = 'stable-audio-3-medium/stableaudio3-text.api.json'
 RESULT_NODE = '90'
 CHECKPOINT = ('checkpoints', 'stable_audio_3_medium.safetensors')
 TEXT_ENCODER = ('text_encoders', 't5gemma_b_b_ul2.safetensors')
@@ -146,12 +146,12 @@ class ComfyBackend:
 
     @staticmethod
     def _version():
-        from .registry import STABLE_AUDIO
+        from .music_registry import STABLE_AUDIO
         return STABLE_AUDIO['workflow_version']
 
     def preflight(self, request):
         """Refuse before any GPU work when ComfyUI cannot run this graph; the reasons are the same ones Image reports."""
-        from engines.preflight import combo_options, graph_errors, input_specs
+        from engines.image_preflight import combo_options, graph_errors, input_specs
         if self.client is None:
             raise ValueError(ui_text('music.preflight_image_comfy_ui_not_connected_restart'))
         try:
@@ -202,7 +202,7 @@ class ComfyBackend:
                 raise RuntimeError(ui_text('music.run_comfy_ui_rejected_graph') + str(answer)[:600])
             with self._lock:
                 self._prompt_id = prompt_id
-            from .storage import write_json
+            from .music_storage import write_json
             write_json(directory / 'comfy-artifacts.json', {'prompt_id': prompt_id})
             log(ui_text('music.run_graph_submitted_comfy_ui_prompt_id') + prompt_id)
             progress(ui_text('music.run_waiting_comfy_ui_queue'))

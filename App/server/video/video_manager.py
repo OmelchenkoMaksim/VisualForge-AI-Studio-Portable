@@ -10,8 +10,8 @@ import subprocess
 import threading
 import time
 from urllib.request import Request, build_opener, ProxyHandler
-from .delivery import public_presets
-from .registry import ENGINES
+from .video_delivery import public_presets
+from .video_registry import ENGINES
 from .wan_support import engine_missing
 
 class VideoManager:
@@ -87,18 +87,18 @@ class VideoManager:
                     probe.bind(('127.0.0.1', self.port))
                 except OSError:
                     raise ValueError(ui_text('video.start_video_port_occupied_another_application_change'))
-            from .runtime import environment
+            from .video_runtime import environment
             state = Path(os.environ.get('VISUALFORGE_VIDEO_STATE_ROOT', self.paths.cache / 'Video/State'))
             env = environment(self.root, self.models, state)
             env['VISUALFORGE_VIDEO_TOKEN'] = self.token
             log = self.paths.logs / 'video-backend.log'
             log.parent.mkdir(parents=True, exist_ok=True)
             with log.open('ab') as stream:
-                self.process = subprocess.Popen([str(self.root / 'python/python.exe'), '-u', str(Path(__file__).with_name('service.py')),
+                self.process = subprocess.Popen([str(self.root / 'python/python.exe'), '-u', str(Path(__file__).with_name('video_service.py')),
                     '--root', str(self.root), '--models', str(self.models), '--user', str(self.user), '--state', str(state),
                     '--port', str(self.port), '--parent', str(os.getpid())], env=env, stdout=stream, stderr=subprocess.STDOUT,
                     creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-            from .owned import OwnedJob
+            from .owned_processes import OwnedJob
             try:
                 self.job = OwnedJob(self.process)
             except OSError:

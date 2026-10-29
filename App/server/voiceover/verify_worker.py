@@ -50,9 +50,9 @@ def main():
     os.environ.setdefault('HF_HUB_OFFLINE', '1')
     os.environ.setdefault('TRANSFORMERS_OFFLINE', '1')
     try:
-        from generation import operation
-        from voiceover.compare import compare, heard_form, is_suspicious, suspect_words
-        from voiceover.storage import write_json
+        from generation_identity import operation
+        from voiceover.voice_comparison import compare, heard_form, is_suspicious, suspect_words
+        from voiceover.voiceover_storage import write_json
         import torch
         from transformers import pipeline
         free_mb = torch.cuda.mem_get_info()[0] // (1024 * 1024) if torch.cuda.is_available() else 0
@@ -83,7 +83,7 @@ def main():
     except Exception as exc:
         traceback.print_exc(limit=12)
         try:
-            from voiceover.storage import write_json
+            from voiceover.voiceover_storage import write_json
             write_json(directory / 'verify-error.json', {'error': str(exc)[:1000]})
         except Exception:
             pass

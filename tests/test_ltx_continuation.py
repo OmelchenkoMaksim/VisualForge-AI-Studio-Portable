@@ -12,8 +12,8 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'App/server'))
 from video.ltx_continuation import windows, assembly_command, LONG_FRAMES
-from video.registry import validate
-from video.adapters import build_command
+from video.video_registry import validate
+from video.video_adapters import build_command
 from video import ltx_long
 
 RUNTIME=Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME',ROOT/'Runtime/Video'))

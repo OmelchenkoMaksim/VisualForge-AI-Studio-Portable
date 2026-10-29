@@ -29,7 +29,7 @@
     const copy = document.createElement('button'); copy.type='button'; copy.className='secondary slim'; StudioI18n.bind(copy, "textContent", () => (StudioI18n.t("events.history_entry_copy_identity_button_label")), true);
     copy.onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(record,null,2));StudioI18n.bind(copy, "textContent", () => (StudioI18n.t("events.history_entry_identity_copy_success")), true);}catch{StudioI18n.bind(copy, "textContent", () => (StudioI18n.t("events.history_entry_identity_copy_failed")), true);}};
     card.append(title, id, kind, copy);
-    if (['ImagePromptExpansion','ImageUpscale'].includes(record.type)) {const timing=document.createElement('p');timing.className='muted';StudioI18n.bind(timing, "textContent", () => (StudioI18n.t("events.history_entry_shared_comfy_graph_duration_hint")), true);card.append(timing);}
+    if (['ImagePromptExpansion','ImageUpscale','ImageRefinement','ImageControlNet'].includes(record.type)) {const timing=document.createElement('p');timing.className='muted';StudioI18n.bind(timing, "textContent", () => (StudioI18n.t("events.history_entry_shared_comfy_graph_duration_hint")), true);card.append(timing);}
     if (row.parent_id) {const parent=document.createElement('p');parent.className='muted';StudioI18n.bind(parent, "textContent", () => (StudioI18n.t("events.history_entry_parent_operation_prefix")+row.parent_id), true);card.append(parent);}
     return card;
   }
@@ -50,7 +50,9 @@
       }
       rows.push(...value.entries);cursor=value.next;
       for(const row of value.entries)entries.append(render(row));
-      StudioI18n.bind(status, "textContent", () => (StudioI18n.remote(value.warning) || (rows.length ? StudioI18n.t("events.history_loaded_entries_count_prefix")+rows.length+StudioI18n.t("events.history_newest_first_order_suffix") : StudioI18n.t("events.history_entries_empty_state_hint"))), true);
+      // An empty filtered page does not mean the journal has never recorded events.
+      const emptyKey = ['scope','type','state'].some(key => query.get(key)) ? 'events.history_no_matching_events_hint' : 'events.history_entries_empty_state_hint';
+      StudioI18n.bind(status, "textContent", () => (StudioI18n.remote(value.warning) || (rows.length ? StudioI18n.t("events.history_loaded_entries_count_prefix")+rows.length+StudioI18n.t("events.history_newest_first_order_suffix") : StudioI18n.t(emptyKey))), true);
       el('eventHistoryMore').hidden=!cursor;el('eventHistoryMore').disabled=false;
     } catch(error) {
       if(ticket!==sequence || error.name==='AbortError')return;

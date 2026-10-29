@@ -1,4 +1,4 @@
-"""Stand-in for App/server/speech/worker.py: same line protocol, no model. Usage: fake_speech_worker.py <model dir> <device>."""
+"""Stand-in for App/server/speech/speech_worker.py: same line protocol, no model. Usage: fake_speech_worker.py <model dir> <device>."""
 import json
 import os
 import sys

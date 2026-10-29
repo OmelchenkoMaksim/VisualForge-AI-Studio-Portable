@@ -76,6 +76,7 @@ def build_filename_base(prompt, mode, submitted_at=None, *, operation='generate'
     try:title=clean_title(infer_title(prompt,mode))
     except Exception:title=''
     title=title or 'Generated Image'
+    if mode=='detail':title += ' - Detail'
     if operation=='variation':title += ' - Variant'
     if upscale in (2,4):title += f' - Upscale {upscale}x'
     stamp=time.strftime('%Y-%m-%d %H-%M-%S',time.localtime(time.time() if submitted_at is None else submitted_at))

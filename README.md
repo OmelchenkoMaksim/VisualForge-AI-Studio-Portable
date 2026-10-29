@@ -2,20 +2,28 @@
 
 A local, offline multimedia AI studio for Windows. One window, five tabs, one video card:
 
-Settings → Interface language switches the studio between Russian and English immediately, preserving inputs and active tasks. The preference is saved in the browser profile. See [localization](docs/Localization.md).
+Settings → Interface language switches the studio between Russian and English immediately, preserving inputs and active tasks. The preference is saved in the browser profile. See [localization](docs/VisualForge-Interface-Localization.md).
 
-Settings → «История событий» opens the [unified local event journal](docs/Event-History.md), including distinct technical operation types. Module logs stay separate; click analytics is not collected yet.
+Settings → «История событий» opens the [unified local event journal](docs/VisualForge-Event-History.md), including distinct technical operation types. Module logs stay separate; click analytics is not collected yet.
 
-Image, Video and Music history cards include a confirmed «Удалить» action for the recorded result, metadata, per-job scratch and dedicated log. Active jobs must finish first; shared backend logs remain. «Данные генерации» shows the [four-field generation identity](docs/Generations.md), including a copyable ID, start time and measured duration. See [deletion details and limits](docs/Interface.md#deleting-a-generation).
+Image, Video and Music history cards include a confirmed «Удалить» action for the recorded result, metadata, per-job scratch and dedicated log. Active jobs must finish first; shared backend logs remain. «Данные генерации» shows the [four-field generation identity](docs/VisualForge-Generation-Identity.md), including a copyable ID, start time and measured duration. See [deletion details and limits](docs/VisualForge-Interface-Guide.md#deleting-a-generation).
 
 | Tab | What it does | Engines |
 |---|---|---|
-| **Image** | edit a picture, edit with a reference picture, or draw from a prompt; 2x/4x upscaling | Qwen Image Edit 2511, Qwen Image 2.1 Uncensored (FP8), Z-Image Turbo INT8 (prompt only) on ComfyUI |
+| **Image** | edit a picture, edit with reference pictures, or draw from a prompt; 2x/4x upscaling | Qwen Image Edit 2511, Qwen Image 2.1 Uncensored (FP8), Z-Image Turbo INT8 (prompt, detail and optional Union/Tile guidance), FLUX.3 Klein INT8 on ComfyUI |
 | **Video** | text/image to video with sound, character references, speech, talking characters; export for Instagram/Reels, sound mixer | FreeVideo H3 (MiniMax H3 INT8), Wan 2.2 TI2V-5B, Wan 2.2 S2V-14B, Qwen3-TTS |
 | **Music** | songs from lyrics, instrumentals | ACE-Step 1.5 Turbo, MiniMax Music3 INT8, Stable Audio 3 Medium (music and sound effects) |
 | **Text** | private chat with pictures, history, thinking blocks | any model of the Ollama registry (default Gemma 4) |
 | **Components** | see what is installed, download missing models | - |
 | **Voice input** | a microphone button (or F9) in every text field; Russian and other languages, recognized locally | Whisper large-v3-turbo / small / large-v3 |
+
+Qwen Image Edit 2511 supports one to three inputs, Standard 40-step and optional Lightning 4-step editing. The community NSFW LoRA is a separate switch; negative prompts work in Standard. Inputs are resized to about 1 MP without cropping their edges. See [capabilities and measured checks](docs/Qwen-Image-Edit-2511.md).
+
+Qwen Image 2.1 offers native generation/editing at about 1 MP or 2K, RGBA inputs/output, background-removal instructions and up to ten ordered inputs. Optional official T2I/I2I prompt enhancers are independent components. The 25/40-step controls state their actual budget; more steps do not guarantee better composition. See [capabilities and scoped checks](docs/Qwen-Image-2.1.md).
+
+Z-Image Turbo has one 8-step text-generation preset. Optional **2K detail** combines Real-ESRGAN x2 and a 5-step refinement pass. Union/Tile add edge, grayscale or prepared-map guidance, masked editing and Tile enlargement. Refinement and Tile redraw texture and can change lettering and small features. Real-ESRGAN 2x/4x remains available separately in Prompt mode. See [capabilities, limitations and measured checks](docs/Z-Image-Turbo.md).
+
+FLUX.3 Klein supports text generation, instruction edits, 2–10 image references and object layout boxes. Text modes offer native 2K/4K separately from Real-ESRGAN enlargement. Editing uses about 1 MP; 4K needs nearly the entire 16 GB GPU and does not reliably improve composition. See [capabilities and measured checks](docs/FLUX-3-Klein.md).
 
 Everything runs on your computer and there is no cloud service behind it; the only network traffic is the download of the
 programs and models from their original publishers (the model libraries run in offline mode).
@@ -75,7 +83,7 @@ everything it installs lives inside the VisualForge folder.
 | Text models | 4.6 to 18.7 GB | same | Ollama registry |
 | Voice input models | 1 to 3.1 GB | same | Hugging Face |
 
-The authoritative list, with every URL, size and hash, is [App/config/components.json](App/config/components.json) (generated by
+The authoritative list, with every URL, size and hash, is [App/config/component-catalog.json](App/config/component-catalog.json) (generated by
 [tools/build_catalog.py](tools/build_catalog.py)). Hugging Face asks for a login on some repositories; if one of them does, set
 the environment variable `HF_TOKEN` before running the setup.
 
@@ -85,8 +93,8 @@ The Agent project-folder picker opens inside the studio window, above its conten
 
 `Start-VisualForge.cmd` opens the studio in its own window. While any generation runs (Image, Video, Music or a Text answer) the buttons
 that start or disturb a job are dimmed (tabs, engine choices and typing stay free), **Stop** works from every tab, and starting a generation releases the video memory held by the idle modules. Results are saved
-under `UserData/Results`. Features and folders are described in the [user guide](docs/User-Guide.md); installation details in [Setup](docs/Setup.md). More on each part in [docs](docs): [Delivery](docs/Delivery.md) (export for social networks),
-[Mixer](docs/Mixer.md), [Voice input](docs/Voice.md), [Text](docs/Text.md), [GPU coordination](docs/Gpu.md), [Music](docs/Music.md), [Wan](docs/Wan.md).
+under `UserData/Results`. Features and folders are described in the [user guide](docs/VisualForge-User-Guide.md); installation details in [Setup](docs/VisualForge-Component-Setup.md). More on each part in [docs](docs): [Delivery](docs/VisualForge-Video-Export.md) (export for social networks),
+[Mixer](docs/VisualForge-Audio-Mixer.md), [Voice input](docs/VisualForge-Voice-Input.md), [Text](docs/VisualForge-Text-Chat.md), [GPU coordination](docs/VisualForge-GPU-Coordination.md), [Music](docs/VisualForge-Music-Generation.md), [Wan](docs/Wan-2.2-Video.md).
 
 ## Folder layout after the setup
 
@@ -107,7 +115,7 @@ The commit hook reads staged blobs; the push hook checks every reachable tree in
 
 From the portable folder, after setting the intended GitHub `origin`, run `python tools/publish_source.py --prepare` to review the source snapshot and `python tools/publish_source.py --push` to publish it. Only `public-main:main` is sent. A neutral source-only public history is maintained separately from private local branches; the tool never force-pushes or publishes tags.
 
-Model switches and removal are in Settings → Components. Disabling keeps the files. Removal previews its scope, waits ten seconds on the server, then requires the exact word `REMOVE`. Shared model dependencies/Ollama blobs and user results/chats/prompts are preserved. Download alternatives retain the pinned versions and checksums; publisher aliases can share infrastructure and gated model terms still apply. See [Setup](docs/Setup.md).
+Model switches and removal are in Settings → Components. Disabling keeps the files. Removal previews its scope, waits ten seconds on the server, then requires the exact word `REMOVE`. Shared model dependencies/Ollama blobs and user results/chats/prompts are preserved. Download alternatives retain the pinned versions and checksums; publisher aliases can share infrastructure and gated model terms still apply. See [Setup](docs/VisualForge-Component-Setup.md).
 
 ## Developing
 

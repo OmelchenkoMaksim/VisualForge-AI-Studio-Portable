@@ -21,23 +21,23 @@ class LocalizationTests(unittest.TestCase):
         entries = builder.catalogs()
         self.assertGreater(len(entries), 1900)
         self.assertFalse(any('.msg_' in key for key in entries), 'Keys must describe their purpose and location')
-        self.assertEqual((ROOT / 'App/frontend/strings.js').read_bytes(), builder.bundle())
+        self.assertEqual((ROOT / 'App/frontend/interface-strings.js').read_bytes(), builder.bundle())
         self.assertTrue({'image', 'video', 'music', 'text', 'agent', 'speech', 'components', 'settings', 'hardware', 'events'} <= {key.split('.')[0] for key in entries})
 
     def test_all_frontend_resource_references_exist(self):
         entries = builder.catalogs()
         used = set()
         for file in (ROOT / 'App/frontend').glob('*.js'):
-            if file.name == 'strings.js':
+            if file.name == 'interface-strings.js':
                 continue
             used.update(re.findall(r'StudioI18n\.(?:t|source)\([\'"]([\w.]+)', file.read_text(encoding='utf-8-sig')))
-        page = (ROOT / 'App/frontend/index.html').read_text(encoding='utf-8-sig')
+        page = (ROOT / 'App/frontend/studio-index.html').read_text(encoding='utf-8-sig')
         used.update(re.findall(r'<!--i18n:([\w.]+)-->', page))
         for encoded in re.findall(r'data-i18n-attrs="([^"]+)"', page):
             from html import unescape
             used.update(json.loads(unescape(encoded)).values())
         self.assertFalse(used - entries.keys(), 'Unknown localization keys')
-        self.assertLess(page.index('/i18n.js'), page.index('/app.js'))
+        self.assertLess(page.index('/interface-i18n.js'), page.index('/image-studio.js'))
         self.assertIn('id="studioLanguage"', page)
 
     def test_server_keys_exist_and_source_messages_preserve_parameters(self):
@@ -61,7 +61,7 @@ class LocalizationTests(unittest.TestCase):
     def test_duplicate_and_opaque_resource_keys_are_rejected(self):
         with tempfile.TemporaryDirectory(prefix='vf-string-keys-') as folder:
             root = Path(folder)
-            section = root / 'App/strings/events.json'
+            section = root / 'App/strings/events-strings.json'
             section.parent.mkdir(parents=True)
             value = {'ru': 'Ошибка', 'en': 'Error'}
             for key in ('events.error', 'events.msg_bf22dfeeba8b'):
@@ -72,6 +72,19 @@ class LocalizationTests(unittest.TestCase):
             pair = json.dumps(key) + ':' + json.dumps(value)
             section.write_text('{' + pair + ',' + pair + '}', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Duplicate JSON field'):
+                builder.catalogs(root)
+
+    def test_legacy_catalog_names_cannot_hide_beside_the_renamed_catalog(self):
+        with tempfile.TemporaryDirectory(prefix='vf-string-names-') as folder:
+            root = Path(folder)
+            catalogs = root / 'App/strings'
+            catalogs.mkdir(parents=True)
+            value = {'events.history_entry_failed_status': {'ru': 'Ошибка', 'en': 'Error'}}
+            (catalogs / 'events-strings.json').write_text(json.dumps(value), encoding='utf-8')
+            self.assertEqual(builder.catalogs(root), value)
+            # A leftover generic file must be rejected, rather than silently ignored or loaded twice.
+            (catalogs / 'events.json').write_text(json.dumps(value), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'filename must end with'):
                 builder.catalogs(root)
 
     @unittest.skipUnless(shutil.which('node'), 'Node is required for the browser runtime test')

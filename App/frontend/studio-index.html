@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>VisualForge AI Studio</title><link rel="icon" href="/visualforge-icon.png"><script src="/theme-init.js"></script><script src="/interface-strings.js"></script><script src="/interface-i18n.js"></script><link rel="stylesheet" href="/studio-theme.css"><link rel="stylesheet" href="/color-palettes.css"><link rel="stylesheet" href="/image-studio.css"><link rel="stylesheet" href="/progress-save.css"><link rel="stylesheet" href="/video-panel.css"><link rel="stylesheet" href="/music-panel.css"><link rel="stylesheet" href="/voiceover-panel.css"><link rel="stylesheet" href="/text-chat.css"><link rel="stylesheet" href="/component-manager.css"><link rel="stylesheet" href="/voice-input.css"></head>
+<body><main>
+<header>
+<span class="brand-symbol" aria-hidden="true"><img src="/visualforge-icon.png" alt=""></span><h1 id="title">VisualForge AI Studio</h1>
+<div class="topbar-context"><p class="eyebrow" id="engineEyebrow">LOCAL AI CREATIVE SUITE</p><p class="description" id="subtitle"><!--i18n:settings.subtitle_edit_images_local_model-->Редактирование изображения с помощью локальной модели</p></div>
+<p id="preflight" class="status muted"><!--i18n:settings.preflight_checking_local_comfy_ui-->Проверка локального ComfyUI…</p>
+<div class="topbar-tools">
+<div class="hw-wrap">
+<button type="button" id="hardwareChip" aria-expanded="false" aria-controls="hardwarePanel"><span class="hw-dot" aria-hidden="true"></span><span class="hw-name"><!--i18n:hardware.computer_summary_chip_label-->Ваш компьютер</span></button>
+<aside id="hardwarePanel" class="hardware-panel" aria-label="Характеристики этого ПК" aria-busy="true" data-i18n-attrs="{&quot;aria-label&quot;:&quot;hardware.panel_pc_s_specifications&quot;}">
+  <div class="hardware-heading"><h2><!--i18n:hardware.computer_summary_chip_label-->Ваш компьютер</h2><button type="button" id="hardwareRefresh" class="secondary" title="Повторить проверку характеристик ПК" data-i18n-attrs="{&quot;title&quot;:&quot;hardware.refresh_check_pc_specifications_again&quot;}"><!--i18n:hardware.data_refresh_button_label-->Обновить</button></div>
+  <dl id="hardwareSpecs" class="hardware-specs"><dt><!--i18n:hardware.requirements_system_row_label-->Система</dt><dd><!--i18n:hardware.specs_detecting_specifications-->Определяем характеристики…</dd></dl>
+  <button type="button" id="hardwareCompatibility" data-status="yellow"><!--i18n:hardware.summary_checking_compatibility-->Проверяем совместимость…</button>
+  <p id="hardwareFootnote" class="hardware-footnote"><!--i18n:hardware.footnote_pc_s_data_local-->Данные этого ПК · только локально</p>
+</aside>
+</div>
+<button type="button" id="themeToggle" class="icon-button" aria-label="Включить светлую тему" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.theme_button_switch_light&quot;}">
+  <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
+  <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+</button>
+<div class="studio-settings">
+  <button type="button" id="studioSettingsToggle" class="secondary studio-settings-toggle" aria-label="Настройки" title="Настройки" aria-expanded="false" aria-controls="studioSettingsMenu" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.studio_settings_button_label&quot;,&quot;title&quot;:&quot;settings.studio_settings_button_label&quot;}">
+    <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m9.7 3-.5 2a7.4 7.4 0 0 0-1.6.9l-2-.6-2.3 4 1.5 1.4a7.5 7.5 0 0 0 0 1.8l-1.5 1.4 2.3 4 2-.6a7.4 7.4 0 0 0 1.6.9l.5 2h4.6l.5-2a7.4 7.4 0 0 0 1.6-.9l2 .6 2.3-4-1.5-1.4a7.5 7.5 0 0 0 0-1.8l1.5-1.4-2.3-4-2 .6a7.4 7.4 0 0 0-1.6-.9l-.5-2z"/><circle cx="12" cy="11.6" r="3"/></svg>
+  </button>
+  <div id="studioSettingsMenu" class="studio-settings-menu" role="group" aria-label="Разделы настроек" hidden data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.studio_menu_settings_sections&quot;}">
+    <label class="studio-language" for="studioLanguage"><span><!--i18n:settings.interface_language_setting_label-->Язык интерфейса</span><select id="studioLanguage" title="Применяется сразу и сохраняется на этом компьютере." data-i18n-attrs="{&quot;title&quot;:&quot;settings.interface_language_persistence_hint&quot;}"><option value="ru"><!--i18n:settings.speech_language_russian_option_label-->Русский</option><option value="en"><!--i18n:settings.interface_language_english_option_label-->English</option></select></label>
+    <button type="button" id="componentsTab" aria-selected="false"><!--i18n:components.components_section_button_label-->Компоненты</button>
+    <button type="button" id="openEventHistory"><!--i18n:settings.open_event_history-->История событий</button>
+    <button type="button" id="openLogs" title="Посмотреть локальные журналы запуска и ошибок" data-i18n-attrs="{&quot;title&quot;:&quot;settings.open_logs_view_local_startup_error&quot;}"><!--i18n:settings.diagnostic_logs_menu_button_label-->Логи</button>
+    <button type="button" id="openCompatibilitySettings" title="Показ карточек совместимости при выборе модели" data-i18n-attrs="{&quot;title&quot;:&quot;settings.open_compatibility_show_cards_when_selecting_model&quot;}"><!--i18n:settings.open_compatibility_model_tips-->Подсказки моделей</button>
+    <button type="button" id="openSounds" title="Выбрать мелодии, которые звучат по окончании генерации" data-i18n-attrs="{&quot;title&quot;:&quot;settings.open_sounds_choose_played_when_generation_finishes&quot;}"><!--i18n:settings.completion_sounds_settings_button_label-->Звуки</button>
+    <button type="button" id="openPalettes" title="Выбрать цветовую схему отдельно для тёмной и светлой темы" data-i18n-attrs="{&quot;title&quot;:&quot;settings.color_schemes_menu_button_hint&quot;}"><!--i18n:settings.color_schemes_menu_button_label-->Цветовые схемы</button>
+  </div>
+</div>
+</div>
+</header>
+<nav class="module-tabs" aria-label="Раздел студии" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.aria_studio_section&quot;}">
+<button type="button" id="imageTab" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg>Image</button>
+<button type="button" id="videoTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="13" height="14" rx="3"/><path d="M16 10l5-3v10l-5-3"/></svg>Video</button>
+<button type="button" id="musicTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>Music</button>
+<button type="button" id="textTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg>Text</button>
+<button type="button" id="voiceoverTab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/></svg><!--i18n:voiceover.tab_section_name_label-->Озвучка</button>
+</nav>
+<div id="imageWorkspace">
+<section class="panel"><form id="form">
+  <div class="engine-panel panel-inner">
+    <label for="engineSelect"><strong><!--i18n:image.engine_select_generation_model-->Модель генерации</strong></label>
+    <select id="engineSelect" aria-describedby="engineStatus engineCapabilities" disabled>
+      <option value="qwen-edit-2511">Qwen Image Edit 2511</option>
+      <option value="qwen-image-21-uc-fp8">Qwen Image 2.1 Uncensored FP8</option>
+      <option value="z-image-turbo-int8">Z-Image Turbo INT8</option>
+      <option value="flux3-klein-int8">FLUX.3 Klein INT8</option>
+    </select>
+    <p class="preset-hint"><!--i18n:image.form_model_selected_neural_network_different_models-->Модель — выбранная нейросеть: разные модели по-разному понимают описание и рисуют детали.</p>
+    <label for="modeSelect"><strong><!--i18n:image.generation_mode_selector_label-->Режим</strong></label>
+    <select id="modeSelect" aria-label="Режим" disabled data-i18n-attrs="{&quot;aria-label&quot;:&quot;image.generation_mode_selector_label&quot;}">
+      <option value="single"><!--i18n:image.mode_select_single_one_image-->Single — одно изображение</option>
+      <option value="reference"><!--i18n:image.mode_select_reference-->Reference — с референсом</option>
+      <option value="prompt"><!--i18n:image.mode_select_prompt_text-->Prompt — по тексту</option>
+      <option value="multi" hidden disabled><!--i18n:image.flux_multi_mode_label-->Несколько референсов · 3–10 изображений</option>
+      <option value="layout" hidden disabled><!--i18n:image.flux_layout_mode_label-->Компоновка — по рамкам</option>
+      <option value="detail" hidden disabled><!--i18n:image.detail_mode_selector_label-->Детализация 2K — по изображению</option>
+      <option value="control" hidden disabled><!--i18n:image.control_mode_selector_label-->ControlNet — по структуре</option>
+      <option value="inpaint" hidden disabled><!--i18n:image.inpaint_mode_selector_label-->Изменить область по маске</option>
+      <option value="tile" hidden disabled><!--i18n:image.tile_mode_selector_label-->Tile 2K — управляемое увеличение</option>
+    </select>
+    <p class="preset-hint"><!--i18n:image.form_single_works_one_image_reference_adds-->Single — работа с одной картинкой. Reference — дополнительная картинка-образец. Prompt — создание по текстовому описанию; особенности выбранной модели указаны ниже.</p>
+    <p id="selectionNotice" class="preset-hint" role="status"></p>
+    <p id="engineStatus" role="status"><!--i18n:image.engine_checking_models-->Проверка моделей…</p>
+    <p id="engineCapabilities" class="preset-hint"></p>
+    <details id="modelAssessment" class="model-assessment" hidden>
+      <summary><!--i18n:image.assessment_block_title_label-->Сильные стороны и ограничения</summary>
+      <dl>
+        <dt><strong><!--i18n:image.assessment_strong_heading_label-->Хорошо получается</strong></dt><dd id="assessmentStrong"></dd>
+        <dt><strong><!--i18n:image.assessment_variable_heading_label-->Результат нестабилен</strong></dt><dd id="assessmentVariable"></dd>
+        <dt><strong><!--i18n:image.assessment_limits_heading_label-->Ограничения</strong></dt><dd id="assessmentLimits"></dd>
+      </dl>
+      <p class="preset-hint" id="assessmentEvidence"></p>
+    </details>
+    <details id="engineDependencies"><summary><!--i18n:image.engine_dependency_details_summary_label-->Зависимости движков</summary><pre id="engineDependencyDetails"></pre></details>
+  </div>
+  <div id="controlControls" class="panel-inner" hidden>
+    <div id="controlTypeGroup">
+      <label for="controlType"><strong><!--i18n:image.control_map_type_label-->Как использовать исходник</strong></label>
+      <select id="controlType">
+        <option value="canny"><!--i18n:image.control_map_canny_option-->Контуры — построить автоматически</option>
+        <option value="gray"><!--i18n:image.control_map_gray_option-->Светотень — преобразовать в ч/б</option>
+        <option value="prepared"><!--i18n:image.control_map_prepared_option-->Готовая карта: поза, глубина или эскиз</option>
+      </select>
+    </div>
+    <label for="controlStrength"><strong><!--i18n:image.control_strength_control_label-->Сила сохранения структуры</strong></label>
+    <select id="controlStrength">
+      <option value="0.65"><!--i18n:image.control_strength_loose_option-->Свободнее · 0,65</option>
+      <option value="0.85" selected><!--i18n:image.control_strength_balanced_option-->Средняя · 0,85</option>
+      <option value="1"><!--i18n:image.control_strength_strict_option-->Сильнее · 1,00</option>
+    </select>
+    <p id="controlHint" class="preset-hint"></p>
+  </div>
+  <div id="detailControls" class="panel-inner" hidden>
+    <label for="detailStrength"><strong><!--i18n:image.detail_strength_control_label-->Перерисовка деталей</strong></label>
+    <select id="detailStrength">
+      <option value="0.2"><!--i18n:image.detail_strength_gentle_option-->Бережная · 0,20</option>
+      <option value="0.33" selected><!--i18n:image.detail_strength_textured_option-->Выразительная · 0,33</option>
+    </select>
+    <p class="preset-hint"><!--i18n:image.detail_input_output_resolution_hint-->Исходник приводится примерно к 1 Мп с сохранением пропорций, затем увеличивается вдвое по каждой стороне и обрабатывается Z-Image. Квадрат: 1024×1024 → 2048×2048. Очень крупный исходник будет уменьшен.</p>
+  </div>
+  <div id="promptOnlyControls" class="panel-inner" hidden>
+    <strong><!--i18n:image.prompt_only_controls_create_scratch_using_description-->Создать с нуля по описанию</strong>
+    <p class="save-subtitle" id="promptEngineHint"><!--i18n:image.prompt_engine_hint_mode_uses_qwen_image_edit_2511-->Режим использует Qwen-Image-Edit-2511: приложение подставляет пустой холст и просит модель полностью нарисовать сцену. Это экспериментальный способ, не отдельная text-to-image модель.</p>
+    <div class="preset-options" role="radiogroup" aria-label="Формат нового изображения" data-i18n-attrs="{&quot;aria-label&quot;:&quot;image.prompt_only_controls_new_image_format&quot;}">
+      <label class="preset-option"><input type="radio" name="canvas" value="square" checked><span><!--i18n:image.prompt_only_controls_1_square-->1:1 · квадрат</span></label>
+      <label class="preset-option"><input type="radio" name="canvas" value="landscape"><span><!--i18n:image.prompt_only_controls_3_2_landscape-->3:2 · пейзаж</span></label>
+      <label class="preset-option"><input type="radio" name="canvas" value="portrait"><span><!--i18n:image.prompt_only_controls_2_3_portrait-->2:3 · портрет</span></label>
+    </div>
+  </div>
+    <div id="fluxResolutionGroup" hidden>
+      <label for="fluxResolution" id="nativeResolutionLabel"><!--i18n:image.flux_resolution_label-->Размер генерации FLUX</label>
+      <select id="fluxResolution"><option value="1"><!--i18n:image.flux_resolution_one_label-->Около 1 Мп</option><option value="4"><!--i18n:image.flux_resolution_four_label-->2K · около 4 Мп</option><option value="16"><!--i18n:image.flux_resolution_sixteen_label-->4K · медленно, почти вся VRAM</option></select>
+      <p class="preset-hint" id="nativeResolutionHint"><!--i18n:image.flux_resolution_hint-->FLUX рисует сразу в выбранном размере. Это отдельная настройка от AI Upscale; большие размеры требуют больше времени и памяти.</p>
+      <p class="preset-hint" id="fluxFourKHint" hidden><!--i18n:image.flux_fourk_hint-->4K проверен на 16 ГБ, но почти занимает всю видеопамять и заметно медленнее: один запуск занял около 5 минут. Закройте игры и другие задачи GPU. Дополнительный апскейл для 4K отключён.</p>
+    </div>
+  <div id="qwen21Controls" class="panel-inner" hidden>
+    <p class="preset-hint"><!--i18n:image.qwen21_alpha_hint-->Qwen 2.1 умеет создавать и редактировать прозрачный PNG. Прозрачность задаётся инструкцией и может быть неточной.</p>
+    <button id="qwen21RemoveBackground" type="button" class="secondary slim"><!--i18n:image.qwen21_remove_background-->Подготовить удаление фона</button>
+  </div>
+    <div id="expandGroup" class="panel-inner" hidden>
+      <label class="preset-option"><input type="checkbox" id="expandPrompt" checked><span><!--i18n:image.expand_group_prompt_upsampler-->Расширять промпт (upsampler)</span></label>
+      <p class="preset-hint" id="imageExpansionHint"><!--i18n:image.expand_group_official_qwen3_5_model_turns_short-->Официальная Qwen3.5 расширяет короткий запрос в подробное описание на английском и учитывает исходные изображения. Рекомендована для коротких идей; для готового подробного описания её можно отключить. Первая загрузка долгая; расширенный текст показан под результатом.</p>
+    </div>
+  <div class="photos" id="photosBlock">
+    <div class="image-tile paste-selected" id="tile1" data-image-target="image1">
+      <label for="image1"><!--i18n:image.image1_source_image_1-->Исходное изображение · Image 1</label>
+      <input id="image1" type="file"  required>
+      <button class="paste-target" id="pick1" type="button" aria-pressed="true"><!--i18n:image.slot_button_paste_here_ctrl_v-->Вставлять сюда (Ctrl+V)</button>
+      <span id="name1"><!--i18n:image.select_preview_any_image_file_up_100_mi-->Любой файл изображения до 100 МиБ · прямые форматы сохраняются как есть, остальные конвертируются в PNG</span>
+      <img id="preview1" alt="Предпросмотр исходного изображения" hidden data-i18n-attrs="{&quot;alt&quot;:&quot;image.preview1_source_image_preview&quot;}">
+    </div>
+    <div class="image-tile" id="referenceBlock" data-image-target="image2">
+      <label for="image2" id="image2Label"><!--i18n:image.image2_reference_image_2-->Изображение-референс · Image 2</label>
+      <input id="image2" type="file" >
+      <button class="paste-target" id="pick2" type="button" aria-pressed="false"><!--i18n:image.slot_button_select_paste_target_ctrl_v-->Выбрать для вставки (Ctrl+V)</button>
+      <span id="name2"><!--i18n:image.select_preview_any_image_file_up_100_mi-->Любой файл изображения до 100 МиБ · прямые форматы сохраняются как есть, остальные конвертируются в PNG</span>
+      <img id="preview2" alt="Предпросмотр изображения-референса" hidden data-i18n-attrs="{&quot;alt&quot;:&quot;image.preview2_reference_image_preview&quot;}">
+    </div>
+  </div>
+  <p id="pasteStatus" class="paste-hint" role="status"><!--i18n:image.paste_copy_image_browser_select_field_above-->Скопируй изображение в браузере, выбери поле выше и нажми Ctrl+V.</p>
+  <div id="fluxExtraGroup" class="panel-inner" hidden>
+    <label for="fluxExtraImages" id="extraImagesLabel"><!--i18n:image.flux_extra_images_label-->Дополнительные референсы · Image 3–10</label>
+    <input id="fluxExtraImages" type="file" accept="image/*" multiple>
+    <ol id="fluxExtraNames" start="3"></ol>
+    <p class="preset-hint" id="extraImagesHint"><!--i18n:image.flux_extra_images_hint-->Загрузите от 1 до 8 дополнительных изображений. Порядок показан в списке; в промпте укажите роль каждого. Общий размер исходников — до 100 МиБ. Больше референсов требует больше памяти; каждый приводится примерно к 1 Мп.</p>
+  </div>
+  <div id="fluxLayoutGroup" class="panel-inner" hidden>
+    <strong><!--i18n:image.flux_layout_title-->Расположение объектов</strong>
+    <p class="preset-hint"><!--i18n:image.flux_layout_hint-->Опишите каждый объект и его рамку в процентах от холста. Это подсказка модели для положения и размера, а не жёсткая маска. В основном промпте задайте общий стиль и фон.</p>
+    <div id="fluxLayoutRows"></div>
+    <button id="fluxLayoutAdd" type="button" class="secondary"><!--i18n:image.flux_layout_add_label-->Добавить объект</button>
+  </div>
+  <label for="prompt" class="prompt-label"><span id="promptLabelText"><!--i18n:image.prompt_what_should_change-->Что изменить?</span><textarea id="prompt" required maxlength="5000" rows="5" placeholder="Describe the edit in detail. Preserve the original composition unless specified."></textarea></label>
+  <div id="qwenEditControls" class="panel-inner" hidden>
+    <p class="preset-hint"><!--i18n:image.qwen_normalization_hint-->Исходник или автоматически созданный холст приводится примерно к 1 Мп без обрезки краёв. Результат — RGB; исходная прозрачность не сохраняется.</p>
+    <label class="preset-option"><input type="checkbox" id="qwenCommunityLora" checked><span><!--i18n:image.qwen_community_label-->Дополнительная NSFW LoRA</span></label>
+    <p class="preset-hint" id="qwenCommunityHint"><!--i18n:image.qwen_community_hint-->Сторонняя LoRA для изменения поведения модели. Отключите её для работы Qwen 2511 без этого дополнения; Lightning настраивается отдельно.</p>
+    <label for="negativePrompt"><!--i18n:image.qwen_negative_label-->Негативный промпт · чего избегать</label>
+    <textarea id="negativePrompt" maxlength="2000" rows="2"></textarea>
+    <p class="preset-hint" id="negativePromptHint"></p>
+  </div>
+<!-- QWEN_UX_BUNDLE_V1: prompt guide & persistent favorites -->
+<details id="promptGuide" class="qwen-prompt-guide">
+  <summary id="promptGuideTitle"><!--i18n:image.prompt_guide_tips_selected_model_mode-->Подсказка для выбранной модели и режима</summary>
+  <div class="qwen-guide-body">
+    <p id="guidePurpose"></p><p id="guideStructure"></p><p id="guideLanguage"></p>
+    <p><b><!--i18n:image.prompt_guide_common_mistakes-->Частые ошибки:</b> <span id="guideMistakes"></span></p>
+    <div class="qwen-guide-example" id="guideExample"></div><p id="guideQuality"></p>
+    <button type="button" class="secondary" id="guideUseExample"><!--i18n:image.guide_use_example_append_prompt-->Добавить пример к промпту</button>
+  </div>
+</details>
+<div class="qwen-prompt-actions">
+  <button id="qwenFavoriteSave" type="button" class="secondary"><!--i18n:image.qwen_favorite_save_prompt-->♡ Сохранить промпт</button>
+  <button id="qwenFavoriteOpen" type="button" class="secondary"><!--i18n:image.qwen_favorite_open_prompt_archive-->Архив промптов</button>
+  <span id="qwenFavoriteStatus" role="status" class="qwen-muted"></span>
+</div>
+
+
+  <div class="render-controls">
+    <fieldset class="preset-group" id="qualityGroup">
+      <legend><!--i18n:image.quality_group_generation-->Качество генерации <span class="secondary-caption">Quality</span></legend>
+      <div class="preset-options" role="radiogroup" aria-label="Качество генерации" data-i18n-attrs="{&quot;aria-label&quot;:&quot;image.quality_group_generation&quot;}">
+        <label class="preset-option"><input type="radio" name="quality" value="low" checked><span>Low</span></label>
+        <label class="preset-option"><input type="radio" name="quality" value="good"><span>Good</span></label>
+        <label class="preset-option"><input type="radio" name="quality" value="high"><span>High</span></label>
+        <label class="preset-option" hidden><input type="radio" name="quality" value="fast"><span>Lightning · 4</span></label>
+      </div>
+      <p id="qualityHint" class="preset-hint"><!--i18n:image.app_quality_hints_low_40_steps_verified_baseline-->40 шагов · проверенный базовый режим.</p>
+    </fieldset>
+    <fieldset class="preset-group" id="upscaleGroup">
+      <legend><!--i18n:image.upscale_group_resolution-->Увеличение разрешения <span class="secondary-caption">AI Upscale</span></legend>
+      <div class="preset-options" role="radiogroup" aria-label="Увеличение разрешения" data-i18n-attrs="{&quot;aria-label&quot;:&quot;image.upscale_group_resolution&quot;}">
+        <label class="preset-option"><input type="radio" name="upscale" value="1" checked><span>Off · 1×</span></label>
+        <label class="preset-option"><input type="radio" name="upscale" value="2"><span>2×</span></label>
+        <label class="preset-option"><input type="radio" name="upscale" value="4"><span>4×</span></label>
+      </div>
+      <p id="upscaleHint" class="preset-hint"><!--i18n:image.upscale_hint_no_original_qwen_resolution-->Без upscale · исходное разрешение Qwen.</p>
+    </fieldset>
+  </div>
+  <p class="quality-explainer" id="qualityExplainer"><!--i18n:image.form_quality_low_baseline_good_enhanced_high-->Качество (Quality): Low — базовое, Good — повышенное, High — высокое. Эти варианты меняют число шагов — повторных уточнений изображения моделью. Больше шагов обычно требует больше времени и не всегда даёт лучший результат. AI Upscale — отдельное увеличение картинки с помощью ИИ: 2× удваивает ширину и высоту, 4× увеличивает их вчетверо; Off отключает увеличение. Для сравнения качества оставьте одинаковый Seed.</p>
+
+  <div class="panel-inner seed-controls">
+    <label for="seed"><strong><!--i18n:image.seed_randomness_value-->Seed — число случайности</strong></label>
+    <div class="save-row"><input id="seed" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" placeholder="Случайный при каждом запуске" aria-describedby="seedHint" data-i18n-attrs="{&quot;placeholder&quot;:&quot;image.seed_random_every_run&quot;}"><button id="randomSeed" type="button" class="secondary slim"><!--i18n:image.generation_seed_randomize_button_label-->Случайный</button><button id="reuseSeed" type="button" class="secondary slim" disabled><!--i18n:image.reuse_seed_last_result_s-->Seed последнего результата</button></div>
+    <p id="seedHint" class="preset-hint"><!--i18n:image.seed_hint_determines_initial_randomness_leave_empty_new-->Seed (читается «сид») задаёт исходную случайность генерации. Пустое поле — новый случайный вариант. Одинаковый Seed при тех же модели, описании и настройках помогает повторить результат. Большее число не означает лучшее качество.</p>
+  </div>
+  <p id="transparencyHint" class="preset-hint" role="note"><!--i18n:image.transparency_hint_qwen_2511_outputs_rgb_source_not-->Qwen 2511 выдаёт RGB. Прозрачность исходника при редактировании не гарантируется.</p>
+
+  <div class="save-settings panel-inner">
+    <div class="save-heading"><!--i18n:image.form_result_autosave-->Автосохранение результата</div>
+    <p class="save-subtitle"><!--i18n:image.form_successful_results_always_saved_automatically_selected-->После успешной генерации результат всегда автоматически сохраняется в выбранную папку. Путь сохраняется между перезапусками.</p>
+    <div class="save-row">
+      <input id="saveDir" type="text" spellcheck="false" placeholder="C:\Users\...\Pictures\VisualForge Results" aria-label="Папка автосохранения результата" data-i18n-attrs="{&quot;aria-label&quot;:&quot;image.save_dir_result_autosave_folder&quot;}">
+      <button id="chooseSaveDir" type="button" class="secondary slim"><!--i18n:image.choose_save_dir-->Выбрать…</button>
+      <button id="saveSaveDir" type="button" class="secondary slim"><!--i18n:image.save_dir_folder-->Сохранить папку</button>
+      <button id="openSaveDir" type="button" class="secondary slim"><!--i18n:image.open_save_dir_folder-->Открыть папку</button>
+    </div>
+    <button type="button" id="useInternalResults" class="secondary" hidden><!--i18n:image.use_internal_results-->Использовать внутреннюю Results</button><p id="saveDirStatus" class="save-hint"><!--i18n:image.save_dir_loading_autosave_settings-->Загружаем настройки автосохранения…</p>
+  </div>
+
+  <p class="preset-hint"><!--i18n:image.form_keep_window_open_during_generation_closing-->Во время генерации оставьте это окно открытым: его закрытие остановит задачу.</p>
+  <div class="actions"><button id="generate" type="submit"><!--i18n:image.generation_create_image_button_label-->Создать изображение</button><button id="variant" type="button" class="secondary" hidden disabled><!--i18n:image.variant_another_variation-->Ещё вариант</button><button id="cancel" data-allow-busy="1" type="button" class="cancel" hidden disabled><!--i18n:image.cancel_button_stop_generation-->Остановить генерацию</button><span class="small" id="settingsSummary"><!--i18n:image.settings_summary_fp8_mcnl_lo_ra_40_steps-->FP8 · MCNL LoRA · 40 steps · CFG 4 · полностью локально</span></div>
+</form></section>
+<section class="panel output"><h2><!--i18n:image.generation_output_region_label-->Результат</h2><p id="status" role="status"><!--i18n:image.p_select_image_enter_prompt_click_create-->Выбери изображение, введи prompt и нажми «Создать изображение».</p><!-- QWEN_UX_BUNDLE_V1: truthful progress, no invented percentages -->
+<div id="qwenStagePanel" class="qwen-stage-panel" hidden>
+  <div class="qwen-stage-head"><span id="qwenStageName"><!--i18n:image.qwen_stage_name_preparation-->Подготовка</span><span id="qwenStageStep"></span></div>
+  <progress id="qwenSamplerProgress" max="100" value="0" hidden aria-label="Прогресс шага KSampler" data-i18n-attrs="{&quot;aria-label&quot;:&quot;image.qwen_sampler_progress_k_step&quot;}"></progress>
+  <div id="qwenStageEvents" class="qwen-stage-events" aria-live="off"></div>
+  <p id="qwenProgressHint" class="qwen-muted"><!--i18n:image.qwen_progress_hint_stages_follow_comfy_ui_events_step-->Этапы отображаются по сигналам ComfyUI. Процент шагов — только для KSampler, не для всей задачи.</p>
+</div>
+<div id="images"></div>
+<details id="resultHistory"><summary><!--i18n:image.result_history_panel_title-->История результатов</summary><p id="historyStatus" class="preset-hint"><!--i18n:image.result_history_loading_status-->Загружаем историю…</p><div id="historyCards"></div></details></section>
+</div>
+<section id="videoWorkspace" hidden>
+  <div class="video-grid">
+    <section class="panel">
+      <h2><!--i18n:video.header_local_video_generation-->Локальная генерация видео</h2>
+      <p id="videoAvailability" class="status muted"><!--i18n:video.availability_checking_video_when_section_opens-->Проверка Video при открытии раздела…</p>
+      <p id="videoModelDetails" class="muted"></p><form id="videoForm">
+        <label for="videoEngine" title="Программа и модель, которые создают видео локально на вашем компьютере" data-i18n-attrs="{&quot;title&quot;:&quot;video.engine_software_model_create_videos_locally_computer&quot;}"><!--i18n:video.engine_video_model-->Движок — модель для видео</label><select id="videoEngine" disabled><option value="freevideo-h3-int8">FreeVideo · MiniMax H3 int8</option></select>
+        <label for="videoMode"><!--i18n:video.generation_mode_selection_label-->Режим</label><select id="videoMode"><option value="t2v"><!--i18n:video.mode_video_text-->Видео по тексту</option><option value="i2v"><!--i18n:video.mode_animate_image-->Оживить изображение</option><option value="first_last"><!--i18n:video.mode_first_last_frames-->Первый и последний кадр</option><option value="characters"><!--i18n:video.mode_characters_images_experimental-->Персонажи по изображениям · экспериментально</option><option value="s2v"><!--i18n:video.mode_talking_character_wan_s2_v-->Говорящий персонаж · Wan S2V</option></select>
+        <label for="videoPrompt" title="Текстовая инструкция модели: кто в кадре, что происходит и как движется камера" data-i18n-attrs="{&quot;title&quot;:&quot;video.prompt_text_instruction_who_frame_what_happens&quot;}"><!--i18n:video.prompt_desired_video_description-->Промпт — описание желаемого видео</label><textarea id="videoPrompt" rows="6" maxlength="5000" required placeholder="Опишите сцену, действие и движение камеры" data-i18n-attrs="{&quot;placeholder&quot;:&quot;video.prompt_describe_scene_action_camera_movement&quot;}"></textarea>
+        <div id="videoSourceBlock" hidden><label for="videoSource" title="Картинка, с которой начинается движение в ролике" data-i18n-attrs="{&quot;title&quot;:&quot;video.source_frame_motion_start_tooltip&quot;}"><!--i18n:video.source_frame_input_field_label-->Исходный кадр — начало видео</label><input id="videoSource" type="file" accept="image/*"><img id="videoSourcePreview" class="video-frame" alt="Исходный кадр Video" hidden data-i18n-attrs="{&quot;alt&quot;:&quot;video.preview_video_source_frame&quot;}"></div>
+        <div id="videoSpeechBlock" hidden>
+          <h3><!--i18n:video.speech_block_wan_s2_v-->Речь для Wan S2V</h3><p class="muted"><!--i18n:video.speech_block_drives_facial_body_motion_clear_front-->Речь управляет генерацией движений лица и тела. Чёткое лицо анфас и чистая речь помогают модели; точность губ не гарантируется.</p>
+          <label for="videoSpeechMode"><!--i18n:video.speech_mode_preparation_method-->Способ подготовки речи</label><select id="videoSpeechMode"><option value="clone"><!--i18n:video.speech_mode_voice_sample_text-->Образец голоса + текст</option><option value="audio"><!--i18n:video.speech_mode_recorded-->Готовая запись речи</option></select>
+          <div id="videoCloneBlock"><label for="videoVoiceSample"><!--i18n:video.voice_sample_2_30_s_up_8_mi-->Образец голоса · 2–30 с, до 8 МиБ</label><input id="videoVoiceSample" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg"><label for="videoSpeechText"><!--i18n:video.speech_short_dialogue-->Короткая реплика</label><textarea id="videoSpeechText" rows="3" maxlength="160" placeholder="Например: Привет! Как дела?" data-i18n-attrs="{&quot;placeholder&quot;:&quot;video.speech_example_hello_how_you&quot;}"></textarea><label for="videoSpeechLanguage"><!--i18n:video.character_dialogue_language_field_label-->Язык реплики</label><select id="videoSpeechLanguage"><option value="Russian"><!--i18n:video.speech_language_russian_option_label-->Русский</option><option value="English">English</option><option value="Auto"><!--i18n:video.add_character_detect_language-->Определить язык</option></select></div>
+          <div id="videoReadySpeechBlock" hidden><label for="videoReadySpeech"><!--i18n:video.ready_speech_recorded_0_1_4_8125_s-->Готовая речь · 0,1–4,8125 с, до 8 МиБ</label><input id="videoReadySpeech" type="file" accept="audio/*,.wav,.mp3,.flac,.m4a,.ogg"></div>
+          <p class="muted"><!--i18n:video.speech_block_currently_one_short_4_8125_s-->Пока один короткий фрагмент на 4,8125 с. Длинная речь отклоняется без обрезки; короткая дополняется тишиной. Образец голоса служит только образцом: произносится введённая реплика.</p>
+        </div>
+        <div id="videoEndBlock" hidden><label for="videoEnd" title="Картинка, к которой должна прийти сцена в конце ролика" data-i18n-attrs="{&quot;title&quot;:&quot;video.end_image_scene_should_reach&quot;}"><!--i18n:video.end_ending_frame_video_finish-->Конечный кадр — завершение видео</label><input id="videoEnd" type="file" accept="image/*"><img id="videoEndPreview" class="video-frame" alt="Конечный кадр Video" hidden data-i18n-attrs="{&quot;alt&quot;:&quot;video.end_preview_video_ending_frame&quot;}"></div>
+        <div id="videoCharacterBlock" hidden><h3><!--i18n:video.character_block_characters_dialogue-->Персонажи и реплики</h3><p class="muted"><!--i18n:video.character_block_up_three_characters_upload_image_paste-->До трёх персонажей. Загрузите картинку или вставьте её из буфера в карточку. Укажите имена в описании сцены. Референс — картинка-образец внешности персонажа. Внешность по таким образцам может меняться.</p><div id="videoCharacters"></div><button type="button" id="videoAddCharacter" class="secondary"><!--i18n:video.character_reference_add_button_label-->Добавить персонажа</button><p id="videoVoiceAvailability" class="muted"></p><p class="muted"><!--i18n:video.character_block_speech_2_30_s_voice_sample-->Для речи: образец голоса 2–30 с (до 8 МиБ) и текст. Реплики звучат последовательно, по порядку карточек. Короткие записи без шума дают лучший результат. Движение губ с речью не синхронизируется.</p></div>
+        <div class="video-controls"><div><label for="videoQuality" title="Шаг — одно уточнение результата моделью. 8 + 3 означает основной проход из 8 шагов и дополнительное уточнение из 3" data-i18n-attrs="{&quot;title&quot;:&quot;video.quality_step_one_model_refinement_8_3&quot;}"><!--i18n:video.quality_step_count-->Качество — число шагов</label><select id="videoQuality"><option value="preview"><!--i18n:video.quality_preview_8_steps-->Предпросмотр · 8 шагов</option><option value="standard"><!--i18n:video.quality_standard_8_3_steps-->Стандартное · 8 + 3 шага</option><option value="high"><!--i18n:video.quality_high_16_steps-->Высокое · 16 шагов</option></select><p id="videoQualityHelp" class="muted"><!--i18n:video.quality_help_step_one_scene_refinement_8_3-->Шаг — одно уточнение сцены моделью. «8 + 3» — основной проход и дополнительное уточнение. Предпросмотр быстрее; больше шагов требует больше времени.</p></div><div><label for="videoSeed"><!--i18n:video.seed_randomness_value-->Seed — число случайности</label><input id="videoSeed" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Оставьте пустым для нового варианта" aria-describedby="videoSeedHelp" data-i18n-attrs="{&quot;placeholder&quot;:&quot;video.seed_leave_empty_new_variation&quot;}"><p id="videoSeedHelp" class="muted"><!--i18n:video.seed_help_helps_reproduce_result_same_description_model-->Seed («сид») помогает повторить результат при тех же описании, модели и настройках. Пустое поле — случайный вариант. Это не показатель качества.</p></div></div>
+        <label for="videoDuration"><!--i18n:video.generation_identity_duration_field_label-->Длительность</label><select id="videoDuration"><option value="39"><!--i18n:video.duration_1_625_s_39_frames-->1,625 с · 39 кадров</option><option value="243"><!--i18n:video.duration_10_125_s_243_frames-->10,125 с · 243 кадра</option><option value="1440"><!--i18n:video.configure_engine_1_minute_6_scenes_1440_frames-->1 минута · 6 сцен · 1440 кадров</option></select>
+        <label for="videoResolution"><!--i18n:video.resolution_frame_size-->Размер кадра</label><select id="videoResolution"><option value="512x288">512 × 288</option></select><p id="videoProfileHint" class="muted"><!--i18n:video.profile_hint_16_9_aspect_ratio_512_288-->16:9 — форма кадра. 512 × 288 — ширина и высота в пикселях. 24 FPS — 24 кадра за секунду. MP4 — формат файла, H.264 — способ сжатия для обычных видеоплееров. Минута собирается из шести новых сцен; на стыках возможны изменения. Длинные ролики: по тексту или персонажам, 8 шагов.</p>
+        <div class="actions"><button id="videoGenerate" type="submit" disabled><!--i18n:video.generate_create_video-->Создать видео</button><button id="videoCancel" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:video.task_cancel_button_label-->Отменить</button></div>
+        <p id="videoStatus" class="status" role="status" aria-live="polite"><!--i18n:video.p_ready_check_video-->Готово к проверке Video</p>
+      </form>
+      <details><summary><!--i18n:video.workspace_how_describe_video-->Как описать видео</summary><p><!--i18n:video.workspace_specify_scene_main_subject_one_clear-->Укажите сцену и главного героя, затем одно понятное движение. Опишите положение и движение камеры, освещение, последовательность действия и детали, которые должны оставаться постоянными. Для короткого ролика достаточно одного непрерывного действия. При заданных кадрах промпт описывает переход между ними.</p><p id="videoPromptGuide"><!--i18n:video.prompt_guide_h3_start_simple_english_description_example-->Для H3 начните с простого английского описания. Например: A red ball rolls slowly across a matte gray floor. Locked camera, soft studio lighting, stable background. One continuous shot.</p></details>
+      <details open><summary><!--i18n:video.workspace_video_autosave_folder-->Папка автосохранения Video</summary><p class="muted"><!--i18n:video.workspace_finished_mp4_saved_folder_automatically-->Готовый MP4 сохраняется автоматически в эту папку.</p><label for="videoSaveDir"><!--i18n:video.save_dir_full_path-->Полный путь</label><input id="videoSaveDir" type="text"><button id="videoChooseSaveDir" type="button" class="secondary"><!--i18n:video.choose_save_dir-->Выбрать…</button><button id="videoOpenSaveDir" type="button" class="secondary"><!--i18n:video.open_save_dir_folder-->Открыть папку</button><button id="videoSaveSettings" type="button" class="secondary"><!--i18n:video.save_settings_folder-->Сохранить папку</button><button id="videoCopySaveDir" type="button" class="secondary"><!--i18n:video.copy_save_dir_path-->Скопировать путь</button></details>
+      <details><summary><!--i18n:video.workspace_video_prompt_archive-->Архив промптов Video</summary><button id="videoSavePrompt" type="button" class="secondary"><!--i18n:video.save_prompt_current-->Сохранить текущий промпт</button><div id="videoPrompts"></div></details>
+    </section>
+    <section class="panel"><h2><!--i18n:video.generation_output_region_label-->Результат</h2><video id="videoPlayer" controls preload="metadata" hidden></video><p id="videoResultMeta" class="muted"></p><p id="videoSavedPath" class="muted video-path"></p><a id="videoDownload" class="button" download hidden><!--i18n:video.download_mp4_copy-->Скачать копию MP4</a>
+      <details id="videoMixBlock" open hidden><summary><!--i18n:video.mix_block_music_sound-->Музыка и звук</summary>
+        <p class="muted"><!--i18n:video.mix_block_adds_music_under_finished_clip_saves-->Кладёт музыку из раздела Music под готовый ролик и сохраняет новый MP4 рядом с ним. Исходный файл не меняется, картинка копируется без пережатия, а звук пересобирается заново. Работает на процессоре и не занимает видеокарту. Музыку сначала создайте в разделе Music.</p>
+        <div id="videoMixNativeBlock"><label for="videoMixNative"><!--i18n:video.mix_native_original_clip_audio-->Собственный звук ролика</label><select id="videoMixNative"><option value="keep"><!--i18n:video.mix_native_keep-->Оставить</option><option value="mute"><!--i18n:video.mix_native_remove-->Убрать</option></select>
+        <label for="videoMixNativeGain" title="0 — как в ролике; минус — тише, плюс — громче" data-i18n-attrs="{&quot;title&quot;:&quot;video.mix_native_gain_0_keeps_original_level_negative_quieter&quot;}"><!--i18n:video.mix_native_gain_clip_audio_volume_d_b-->Громкость звука ролика, дБ</label><input id="videoMixNativeGain" type="number" min="-40" max="12" step="1" value="0"></div>
+        <div id="videoMixTracks"></div>
+        <div class="actions"><button id="videoMixAdd" type="button" class="secondary"><!--i18n:video.mix_add_music_track-->Добавить дорожку музыки</button><button id="videoMixRefresh" type="button" class="secondary"><!--i18n:video.mix_refresh_music_list-->Обновить список музыки</button></div>
+        <label class="mix-check" for="videoMixDucking"><input id="videoMixDucking" type="checkbox"><!--i18n:video.mix_ducking_duck_music_while_clip_s_original-->Приглушать музыку, пока в ролике звучит собственный звук (речь)</label>
+        <canvas id="videoMixCanvas" role="img" aria-label="Схема по времени: видео, звук ролика и дорожки музыки" data-i18n-attrs="{&quot;aria-label&quot;:&quot;video.mix_canvas_timeline_video_original_audio_music_tracks&quot;}"></canvas><ul id="videoMixFacts" class="export-facts"></ul>
+        <div class="actions"><button id="videoMixStart" type="button" disabled><!--i18n:video.mix_start_save-->Свести и сохранить</button><button id="videoMixCancel" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:video.task_cancel_button_label-->Отменить</button></div>
+        <progress id="videoMixProgress" max="1" value="0" hidden></progress>
+        <p id="videoMixStatus" class="status" role="status" aria-live="polite"></p>
+      </details>
+      <details id="videoExportBlock" open hidden><summary><!--i18n:video.export_block_social_media-->Экспорт для соцсетей</summary>
+        <p class="muted"><!--i18n:video.export_block_saves_finished_clip_selected_frame_format-->Пересохраняет готовый ролик в выбранный формат кадра: исходный файл не меняется, новый MP4 появляется рядом, в папке автосохранения Video. Нейросетевого улучшения здесь нет: маленький кадр только увеличивается, деталей от этого не прибавляется. Работает на процессоре и не занимает видеокарту.</p>
+        <label for="videoExportPreset"><!--i18n:video.export_preset_format_frame_dimensions_aspect_ratio-->Формат — размер и пропорции кадра</label><select id="videoExportPreset"></select>
+        <label for="videoExportAudio" title="Instagram и другие площадки лучше принимают ролики со звуковой дорожкой, даже тихой" data-i18n-attrs="{&quot;title&quot;:&quot;video.export_audio_instagram_other_platforms_handle_clips_track&quot;}"><!--i18n:video.export_audio_mode_field_label-->Звук</label><select id="videoExportAudio"><option value="keep"><!--i18n:video.export_audio_keep_original-->Оставить как в ролике</option><option value="fill"><!--i18n:video.export_audio_add_silent_track_if_no_exists-->Добавить тихую дорожку, если звука нет</option><option value="require"><!--i18n:video.export_audio_require_clip-->Требовать звук в ролике</option></select>
+        <div class="export-preview"><canvas id="videoExportCanvas" role="img" aria-label="Предпросмотр: как кадр ляжет в выбранный формат, чёрные поля — пустое место" data-i18n-attrs="{&quot;aria-label&quot;:&quot;video.export_canvas_preview_frame_placement_selected_format_black&quot;}"></canvas><ul id="videoExportFacts" class="export-facts"></ul></div>
+        <div class="actions"><button id="videoExportStart" type="button" disabled><!--i18n:video.export_start_button_label-->Экспортировать</button><button id="videoExportCancel" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:video.export_cancel_button_label-->Отменить экспорт</button></div>
+        <progress id="videoExportProgress" max="1" value="0" hidden></progress>
+        <p id="videoExportStatus" class="status" role="status" aria-live="polite"></p>
+      </details><details open><summary><!--i18n:video.workspace_video_history-->История Video</summary><div id="videoHistory"></div></details><details><summary><!--i18n:video.workspace_video_logs-->Логи Video</summary><button id="videoRefreshLogs" type="button" class="secondary"><!--i18n:video.data_refresh_button_label-->Обновить</button><button id="videoCopyLogs" type="button" class="secondary"><!--i18n:video.clipboard_copy_button_label-->Скопировать</button><pre id="videoLogs"></pre></details></section>
+  </div>
+</section>
+<div id="musicWorkspace" hidden>
+  <section class="panel">
+    <p class="eyebrow"><!--i18n:music.workspace_local_music_studio-->ЛОКАЛЬНАЯ МУЗЫКАЛЬНАЯ МАСТЕРСКАЯ</p><h2>Music</h2>
+    <p id="musicAvailability" class="muted"><!--i18n:music.availability_checking_music-->Проверка Music…</p>
+    <form id="musicForm">
+      <div class="music-grid">
+        <label><!--i18n:music.chat_message_model_author_label-->Модель<select id="musicEngine"><option value="ace-step-15-turbo">ACE-Step 1.5 Turbo</option><option value="minimax-music3-int8">MiniMax Music3 · INT8</option><option value="stable-audio-3-medium">Stable Audio 3 Medium</option></select></label>
+        <label id="musicModeBlock"><!--i18n:music.mode_block_what_create-->Что создаём<select id="musicMode"><option value="instrumental"><!--i18n:music.mode_instrumental_no_vocals-->Инструментал — без вокала</option><option value="song"><!--i18n:music.mode_song_my_lyrics-->Песня — по моему тексту</option></select></label>
+      </div>
+      <label for="musicCaption"><!--i18n:music.caption_music_description-->Описание музыки</label>
+      <textarea id="musicCaption" rows="4" maxlength="2000" required placeholder="Жанр, настроение, инструменты, ритм и развитие композиции. Например: Warm cinematic ambient, gentle piano, soft strings, slow evolving melody, peaceful atmosphere." data-i18n-attrs="{&quot;placeholder&quot;:&quot;music.caption_genre_mood_instruments_rhythm_progression_example&quot;}"></textarea>
+      <div id="musicLyricsBlock" hidden><label for="musicLyrics"><!--i18n:music.song_lyrics_input_field_label-->Текст песни</label><textarea id="musicLyrics" rows="8" maxlength="6000" placeholder="[Verse]
+Ваш куплет
+
+[Chorus]
+Ваш припев" data-i18n-attrs="{&quot;placeholder&quot;:&quot;music.lyrics_verse_chorus&quot;}"></textarea><p class="muted"><!--i18n:music.lyrics_block_write_singing_language_verse_chorus_bridge-->Напишите слова на языке исполнения. Метки [Verse], [Chorus], [Bridge] помогают задать структуру. Music создаёт новый вокал; клонирование голоса здесь не предусмотрено.</p></div>
+      <div class="music-grid">
+        <label><span id="musicDurationLabel"><!--i18n:music.generation_duration_seconds_field_label-->Длительность, секунды</span><input id="musicDuration" type="number" min="10" max="180" step="1" value="30" required></label>
+        <label id="musicBpmBlock"><!--i18n:music.bpm_block_tempo_beats_per_minute-->Темп, ударов в минуту<input id="musicBpm" type="number" min="30" max="300" step="1" placeholder="Автоматически" data-i18n-attrs="{&quot;placeholder&quot;:&quot;music.generation_automatic_setting_label&quot;}"></label>
+        <label id="musicLanguageBlock"><!--i18n:music.language_block_vocal-->Язык вокала<select id="musicLanguage"><option value="unknown"><!--i18n:music.language_detect_lyrics-->Определить по тексту</option><option value="ru"><!--i18n:music.speech_language_russian_option_label-->Русский</option><option value="en"><!--i18n:music.speech_language_english_option_label-->Английский</option><option value="zh"><!--i18n:music.vocal_language_chinese_option_label-->Китайский</option><option value="ja"><!--i18n:music.vocal_language_japanese_option_label-->Японский</option><option value="ko"><!--i18n:music.vocal_language_korean_option_label-->Корейский</option><option value="es"><!--i18n:music.vocal_language_spanish_option_label-->Испанский</option><option value="fr"><!--i18n:music.vocal_language_french_option_label-->Французский</option><option value="de"><!--i18n:music.vocal_language_german_option_label-->Немецкий</option><option value="it"><!--i18n:music.vocal_language_italian_option_label-->Итальянский</option><option value="pt"><!--i18n:music.vocal_language_portuguese_option_label-->Португальский</option></select></label>
+        <label><!--i18n:music.form_seed_variation_number-->Seed — номер варианта<input id="musicSeed" type="text" inputmode="numeric" maxlength="10" placeholder="Пусто — новый вариант" data-i18n-attrs="{&quot;placeholder&quot;:&quot;music.seed_empty_new_variation&quot;}"></label>
+      </div>
+      <p id="musicDurationHint" class="muted"></p><label id="musicPlannerBlock" class="music-check"><input id="musicPlanner" type="checkbox" checked><!--i18n:music.planner_block_music_helps_structure_track-->Музыкальный планировщик — помогает выстроить композицию</label>
+      <p id="musicPlannerHint" class="muted"><!--i18n:music.planner_hint_ace_step_helps_structure_track_takes-->Планировщик ACE-Step помогает выстроить композицию и требует дополнительного времени.</p><p class="muted"><!--i18n:music.form_tempo_controls_rhythm_speed_seed_sets-->Темп определяет скорость ритма. Seed задаёт исходную случайность: сохраните его вместе с настройками для похожего повторного результата. Планировщик требует дополнительного времени; без него доступна прямая генерация.</p>
+      <div class="music-actions"><button id="musicGenerate" type="submit" disabled><!--i18n:music.generate_create_music-->Создать музыку</button><button id="musicCancel" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:music.task_cancel_button_label-->Отменить</button></div>
+      <p id="musicStatus" role="status" aria-live="polite"><!--i18n:music.p_checking_readiness-->Готовность проверяется…</p>
+      <p class="muted"><!--i18n:music.form_image_video_music_share_gpu_sequentially-->Image, Video и Music используют видеокарту по очереди. Первая загрузка модели может занять несколько минут. Для начала выберите 30 секунд.</p>
+    </form>
+    <details><summary><!--i18n:music.workspace_how_describe_music-->Как описывать музыку</summary><p id="musicPromptGuide"><!--i18n:music.default_guide_start_genre_mood_add_2_3-->Начните с жанра и настроения, добавьте 2–3 главных инструмента, темп и характер звучания. Лучше использовать конкретное английское описание стиля; слова песни можно написать по-русски. Для инструментала не просите вокал в описании.</p><p><!--i18n:music.workspace_songs_match_lyric_length_duration_long-->Для песни согласуйте объём текста с длительностью. Длинный текст может не поместиться; точность слов и структуры зависит от модели.</p><button id="musicExample" type="button" class="secondary"><!--i18n:music.example_insert_description-->Вставить пример описания</button></details>
+    <details><summary><!--i18n:music.workspace_music_model_checks-->Проверки модели Music</summary><p id="musicRequirements" hidden></p><p id="musicModelLimitations" hidden></p><p id="musicEvidence" class="muted"></p></details>
+    <details><summary><!--i18n:music.workspace_music_output_folder-->Папка результатов Music</summary><label for="musicSaveDir"><!--i18n:music.save_dir_absolute_path_within_portable_folder-->Абсолютный путь или путь внутри portable-папки</label><input id="musicSaveDir" type="text"><button id="musicChooseSaveDir" type="button" class="secondary"><!--i18n:music.choose_save_dir-->Выбрать…</button><button id="musicOpenSaveDir" type="button" class="secondary"><!--i18n:music.open_save_dir_folder-->Открыть папку</button><button id="musicSaveSettings" type="button" class="secondary"><!--i18n:music.save_settings_apply_folder-->Применить папку</button><p id="musicOutputLocation" class="muted music-path"></p><p class="muted"><!--i18n:music.workspace_every_result_saved_automatically_unique_name-->Каждый результат сохраняется автоматически под уникальным именем вместе с настройками генерации. Настройки папки Image не меняются.</p></details>
+  </section>
+  <section class="panel"><h2><!--i18n:music.workspace_music_result-->Результат Music</h2><audio id="musicPlayer" controls preload="metadata" hidden></audio><p id="musicResultMeta" class="muted"></p><p id="musicSavedPath" class="muted music-path"></p><a id="musicDownload" download hidden><!--i18n:music.download_wav_copy-->Скачать копию WAV</a>
+    <details open><summary><!--i18n:music.workspace_music_history-->История Music</summary><div id="musicHistory"></div></details>
+    <details><summary><!--i18n:music.workspace_music_logs-->Логи Music</summary><p class="muted"><!--i18n:music.workspace_stages_errors_selected_task_without_detailed-->Только этапы и ошибки выбранной задачи, без подробного журнала каждого шага.</p><button id="musicRefreshLogs" type="button" class="secondary"><!--i18n:music.data_refresh_button_label-->Обновить</button><button id="musicCopyLogs" type="button" class="secondary"><!--i18n:music.clipboard_copy_button_label-->Скопировать</button><pre id="musicLogs"><!--i18n:music.logs_select_task_history_start_generation-->Выберите задачу в истории или запустите генерацию.</pre></details>
+  </section>
+</div>
+<div id="voiceoverWorkspace" hidden>
+  <section class="panel">
+    <p class="eyebrow"><!--i18n:voiceover.workspace_local_voiceover_eyebrow-->ЛОКАЛЬНАЯ ОЗВУЧКА ТЕКСТА</p><h2><!--i18n:voiceover.workspace_heading_voiceover_title-->Озвучка</h2>
+    <p id="voiceoverAvailability" class="muted"><!--i18n:voiceover.availability_checking_voiceover_label-->Проверка Озвучки…</p>
+    <form id="voiceoverForm">
+      <h3><!--i18n:voiceover.step_text_heading_label-->1. Текст</h3>
+      <label for="voiceoverText"><!--i18n:voiceover.text_input_field_label-->Текст для озвучки</label>
+      <textarea id="voiceoverText" rows="6" maxlength="2000000" placeholder="Вставьте текст сюда или выберите файл книги ниже." data-i18n-attrs="{&quot;placeholder&quot;:&quot;voiceover.text_input_placeholder_text&quot;}"></textarea>
+      <label for="voiceoverFile"><!--i18n:voiceover.text_file_field_label-->Или файл: TXT, EPUB, FB2, DOCX</label>
+      <input id="voiceoverFile" type="file" accept=".txt,.epub,.fb2,.docx">
+      <label for="voiceoverTitle"><!--i18n:voiceover.text_title_field_label-->Название (необязательно)</label>
+      <input id="voiceoverTitle" type="text" maxlength="200">
+      <div class="voiceover-actions"><button id="voiceoverPrepare" type="button" class="secondary"><!--i18n:voiceover.text_prepare_button_label-->Подготовить текст</button></div>
+      <p class="muted"><!--i18n:voiceover.text_hint_paragraph_label-->Главы определяются по заголовкам файла или по строкам вида «Глава 3», «Пролог». Текст без заголовков озвучивается как одна часть.</p>
+      <div id="voiceoverSummary" hidden><p id="voiceoverTotals"></p><ul id="voiceoverChapters"></ul>
+        <details id="voiceoverExamples" hidden open><summary id="voiceoverExamplesSummary"></summary><ul id="voiceoverExamplesList"></ul></details></div>
+      <h3><!--i18n:voiceover.step_voice_heading_label-->2. Голос</h3>
+      <label for="voiceoverVoice"><!--i18n:voiceover.voice_select_field_label-->Голос</label>
+      <select id="voiceoverVoice"></select>
+      <div id="voiceoverDefaults" class="voiceover-defaults" hidden>
+        <p id="voiceoverDefaultsStatus" class="muted"></p>
+        <progress id="voiceoverDefaultsProgress" max="1" value="0" hidden></progress>
+        <div class="voiceover-actions"><button id="voiceoverDefaultsBuild" type="button" class="secondary" disabled><!--i18n:voiceover.defaults_build_button_label-->Создать встроенные голоса</button><button id="voiceoverDefaultsCancel" type="button" class="cancel" hidden><!--i18n:voiceover.defaults_cancel_button_label-->Отмена</button></div>
+        <p class="muted"><!--i18n:voiceover.defaults_hint_paragraph_label-->Встроенные голоса студия создаёт сама: VoxCPM2 придумывает новые голоса по описанию (это не чьи-то реальные голоса), затем распознавание речи выбирает лучший дубль каждого. Это делается один раз, занимает несколько минут и требует VoxCPM2 (Настройки → Компоненты).</p>
+      </div>
+      <audio id="voiceoverVoicePlayer" controls preload="none" hidden></audio>
+      <div class="voiceover-actions"><button id="voiceoverVoiceDelete" type="button" class="secondary" disabled hidden><!--i18n:voiceover.voice_delete_button_label-->Удалить голос</button></div>
+      <div id="voiceoverOwn" class="voiceover-own" hidden>
+        <label for="voiceoverVoiceName"><!--i18n:voiceover.voice_name_field_label-->Название голоса</label>
+        <input id="voiceoverVoiceName" type="text" maxlength="60">
+        <label for="voiceoverVoiceFile"><!--i18n:voiceover.voice_file_field_label-->Образцы: одна или несколько чистых записей (до 5 файлов, вместе 10–45 секунд), без музыки</label>
+        <input id="voiceoverVoiceFile" type="file" multiple accept="audio/*,.wav,.mp3,.m4a,.flac,.ogg">
+        <label for="voiceoverVoiceTranscript"><!--i18n:voiceover.voice_transcript_field_label-->Что сказано в образце (необязательно)</label>
+        <textarea id="voiceoverVoiceTranscript" rows="2" maxlength="1000"></textarea>
+        <p class="muted"><!--i18n:voiceover.voice_transcript_hint_paragraph_label-->Нужна только VoxCPM2: с точной расшифровкой он продолжает образец и ближе повторяет манеру речи, но в пробе читал слова немного хуже и медленнее, чем без неё. Обычно поле лучше оставить пустым. Qwen3-TTS расшифровку не использует.</p>
+        <label class="voiceover-check" for="voiceoverVoiceConsent"><input id="voiceoverVoiceConsent" type="checkbox"><!--i18n:voiceover.voice_consent_checkbox_label-->У меня есть право использовать этот голос</label>
+        <div class="voiceover-actions"><button id="voiceoverVoiceAdd" type="button" class="secondary"><!--i18n:voiceover.voice_add_button_label-->Сохранить голос</button></div>
+        <p class="muted"><!--i18n:voiceover.voice_add_hint_paragraph_label-->Образец сохраняется в папке UserData/Voiceover/Voices этой установки и никуда не отправляется. Чужой голос без согласия использовать нельзя.</p>
+      </div>
+      <h3><!--i18n:voiceover.step_options_heading_label-->3. Параметры</h3>
+      <label for="voiceoverEngine"><!--i18n:voiceover.engine_field_label-->Движок озвучки</label>
+      <select id="voiceoverEngine"></select>
+      <div class="voiceover-grid">
+        <label><!--i18n:voiceover.language_field_label-->Язык текста<select id="voiceoverLanguage"><option value="Russian">Русский</option><option value="English">English</option><option value="German">Deutsch</option><option value="French">Français</option><option value="Spanish">Español</option><option value="Italian">Italiano</option><option value="Portuguese">Português</option><option value="Chinese">中文</option><option value="Japanese">日本語</option><option value="Korean">한국어</option></select></label>
+        <label><!--i18n:voiceover.format_field_label-->Формат файла<select id="voiceoverFormat"><option value="m4b"><!--i18n:voiceover.format_m4b_option_label-->M4B — аудиокнига с главами</option><option value="mp3"><!--i18n:voiceover.format_mp3_option_label-->MP3 — компактный файл</option><option value="wav"><!--i18n:voiceover.format_wav_option_label-->WAV — без сжатия</option></select></label>
+        <label><!--i18n:voiceover.seed_field_label-->Seed — номер варианта<input id="voiceoverSeed" type="text" inputmode="numeric" maxlength="10" placeholder="Пусто — случайный" data-i18n-attrs="{&quot;placeholder&quot;:&quot;voiceover.seed_placeholder_text&quot;}"></label>
+      </div>
+      <details><summary><!--i18n:voiceover.dictionary_summary_label-->Словарь произношения</summary>
+        <label for="voiceoverDictionary"><!--i18n:voiceover.dictionary_field_label-->Одна замена на строку: слово=как читать</label>
+        <textarea id="voiceoverDictionary" rows="4" maxlength="20000"></textarea>
+        <p class="muted"><!--i18n:voiceover.dictionary_hint_paragraph_label-->Модель сама не расставляет ударения. Впишите, как читать трудное слово, например: Ёлкин=Йолкин. Замены учитывают регистр и применяются до озвучки.</p>
+      </details>
+      <label class="voiceover-check" for="voiceoverBuiltin"><input id="voiceoverBuiltin" type="checkbox" checked><!--i18n:voiceover.builtin_dictionary_checkbox_label-->Встроенный словарь произношения (слова, которые движок читает неверно)</label>
+      <p class="muted"><!--i18n:voiceover.builtin_dictionary_hint_paragraph_label-->Небольшой список слов, найденных по измерениям: для таких слов подставляется написание, которое выбранный движок читает правильно. Он действует после вашего словаря и только для русского языка; проверка по распознаванию его учитывает, а в отчёте остаётся ваш текст.</p>
+      <label class="voiceover-check" for="voiceoverNormalize"><input id="voiceoverNormalize" type="checkbox" checked><!--i18n:voiceover.normalize_checkbox_label-->Записывать числа и сокращения словами (русский язык)</label>
+      <p class="muted"><!--i18n:voiceover.normalize_hint_paragraph_label-->Числа, годы, проценты, «т.д.», «стр.» и подобное заменяются тем, как их произносят: модель читает цифры и сокращения ненадёжно. Окончания подбираются по соседним словам и в редких случаях могут быть неточными; пример после подготовки текста показывает, что изменится. Ваш словарь произношения применяется раньше.</p>
+      <label class="voiceover-check" for="voiceoverVerify"><input id="voiceoverVerify" type="checkbox" checked><!--i18n:voiceover.verify_checkbox_label-->Проверять каждый фрагмент распознаванием и переозвучивать ошибки</label>
+      <p id="voiceoverVerifyHint" class="muted"><!--i18n:voiceover.verify_hint_paragraph_label-->После озвучки Whisper слушает каждый фрагмент и сверяет слова с текстом. Фрагмент с лишними, пропущенными или чужими словами переозвучивается (до двух раз); что не удалось исправить, попадает в список. Это добавляет около минуты на каждые 10 минут речи.</p>
+      <div class="voiceover-actions"><button id="voiceoverGenerate" type="submit" disabled><!--i18n:voiceover.generate_button_label-->Озвучить</button><button id="voiceoverCancel" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:voiceover.cancel_button_label-->Отменить</button></div>
+      <progress id="voiceoverProgress" max="1" value="0" hidden></progress>
+      <p id="voiceoverStatus" role="status" aria-live="polite"><!--i18n:voiceover.status_ready_label-->Выберите текст и голос.</p>
+      <p class="muted"><!--i18n:voiceover.shared_gpu_hint_paragraph_label-->Озвучка использует видеокарту по очереди с Image, Video, Music и Text. Остановленную задачу можно запустить снова: готовые фрагменты не пересчитываются.</p>
+    </form>
+    <details><summary><!--i18n:voiceover.requirements_summary_label-->Проверки модели Озвучки</summary><p id="voiceoverEngineInfo" class="muted"></p><p class="muted"><!--i18n:voiceover.limitations_paragraph_label-->Голос клонируется по образцу, а не обучается. Качество и ударения на часовом тексте ещё не проверялись на этой машине; автоматическая проверка распознаванием появится позже.</p></details>
+    <details><summary><!--i18n:voiceover.output_folder_summary_label-->Папка результатов Озвучки</summary><label for="voiceoverSaveDir"><!--i18n:voiceover.save_dir_path_field_label-->Абсолютный путь или путь внутри portable-папки</label><input id="voiceoverSaveDir" type="text"><button id="voiceoverChooseSaveDir" type="button" class="secondary"><!--i18n:voiceover.save_dir_choose_button_label-->Выбрать…</button><button id="voiceoverOpenSaveDir" type="button" class="secondary"><!--i18n:voiceover.save_dir_open_button_label-->Открыть папку</button><button id="voiceoverSaveSettings" type="button" class="secondary"><!--i18n:voiceover.save_dir_apply_button_label-->Применить папку</button><p id="voiceoverOutputLocation" class="muted voiceover-path"></p><p class="muted"><!--i18n:voiceover.save_dir_auto_save_hint_paragraph_label-->Каждый результат сохраняется автоматически под уникальным именем вместе с настройками.</p></details>
+    <details><summary><!--i18n:voiceover.cache_summary_label-->Кэш фрагментов</summary><p class="muted"><!--i18n:voiceover.cache_hint_paragraph_label-->Готовые фрагменты хранятся на системном диске, чтобы остановленная озвучка продолжалась с того же места. Это около 170 МБ на час речи.</p><button id="voiceoverClearCache" type="button" class="secondary"><!--i18n:voiceover.cache_clear_button_label-->Очистить кэш фрагментов</button><p id="voiceoverCacheStatus" class="muted"></p></details>
+  </section>
+  <section class="panel"><h2><!--i18n:voiceover.result_heading_label-->Результат Озвучки</h2><audio id="voiceoverPlayer" controls preload="metadata" hidden></audio><p id="voiceoverResultMeta" class="muted"></p><p id="voiceoverSavedPath" class="muted voiceover-path"></p><a id="voiceoverDownload" download hidden><!--i18n:voiceover.result_download_label-->Скачать копию</a>
+    <p id="voiceoverVerification" class="muted" hidden></p>
+    <details id="voiceoverFlagged" open hidden><summary id="voiceoverFlaggedSummary"></summary><p class="muted"><!--i18n:voiceover.flagged_hint_paragraph_label-->Исправьте слово в словаре произношения («слово=как читать») или в тексте и запустите озвучку снова: пересчитаются только изменённые фрагменты. Распознавание тоже ошибается, поэтому сначала послушайте.</p><div id="voiceoverFlaggedList"></div></details>
+    <details open><summary><!--i18n:voiceover.history_heading_label-->История Озвучки</summary><div id="voiceoverHistory"></div></details>
+    <details><summary><!--i18n:voiceover.logs_heading_label-->Логи Озвучки</summary><p class="muted"><!--i18n:voiceover.logs_hint_paragraph_label-->Только этапы и ошибки выбранной задачи.</p><button id="voiceoverRefreshLogs" type="button" class="secondary"><!--i18n:voiceover.logs_refresh_button_label-->Обновить</button><button id="voiceoverCopyLogs" type="button" class="secondary"><!--i18n:voiceover.logs_copy_button_label-->Скопировать</button><pre id="voiceoverLogs"><!--i18n:voiceover.logs_select_task_hint_label-->Выберите задачу в истории или запустите озвучку.</pre></details>
+  </section>
+</div>
+<div id="componentsWorkspace" hidden>
+  <section class="panel">
+    <div class="components-head">
+      <div><h2><!--i18n:components.components_section_button_label-->Компоненты</h2><p class="description"><!--i18n:components.workspace_software_comfy_ui_video_music_text-->Программы (ComfyUI, Video, Music, Text) устанавливаются всегда. Модели нужны не всем: скачайте только то, что хотите использовать, остальное можно докачать позже.</p></div>
+      <button id="componentsRefresh" type="button" class="secondary"><!--i18n:components.data_refresh_button_label-->Обновить</button>
+    </div>
+    <p id="componentsSoftware" hidden></p>
+    <div id="componentsModules"></div>
+    <div class="components-actions"><button id="componentsStart" type="button" disabled><!--i18n:components.start_download_selected-->Скачать выбранное</button><span id="componentsTotal" class="small"></span></div>
+    <p id="componentsError" class="small" role="alert"></p>
+    <p id="componentsModelStatus" class="small" role="status"></p>
+  </section>
+  <section id="componentsProgress" hidden aria-live="polite">
+    <h3 id="componentsCurrent"></h3>
+    <progress id="componentsBar" max="1"></progress>
+    <p id="componentsFile" class="small"></p>
+    <pre id="componentsLog"></pre>
+    <div><button id="componentsCancel" type="button" class="cancel" hidden><!--i18n:components.cancel_stop_download-->Остановить загрузку</button></div>
+  </section>
+</div>
+<div id="textWorkspace" hidden>
+  <section class="panel text-layout">
+    <aside class="text-side" aria-label="Чаты" data-i18n-attrs="{&quot;aria-label&quot;:&quot;text.chat_sidebar_conversations_title&quot;}">
+      <button id="textNewChat" type="button"><!--i18n:text.chat_new_conversation_default_title-->Новый чат</button>
+      <input id="textSearch" type="search" placeholder="Поиск по названиям" aria-label="Поиск по чатам" autocomplete="off" data-i18n-attrs="{&quot;placeholder&quot;:&quot;text.chat_sidebar_title_search_placeholder&quot;,&quot;aria-label&quot;:&quot;text.chat_sidebar_search_accessibility_label&quot;}">
+      <div id="textChats" role="list"></div>
+    </aside>
+    <div class="text-main">
+      <header class="text-head"><div><p class="eyebrow"><!--i18n:text.workspace_local_text_assistant-->Локальный текстовый ассистент</p><h2 id="textTitle"><!--i18n:text.chat_new_conversation_default_title-->Новый чат</h2></div>
+        <div class="actions"><button id="textRename" type="button" class="secondary" disabled><!--i18n:text.chat_sidebar_rename_button_label-->Переименовать</button><button id="textDelete" type="button" class="secondary" disabled><!--i18n:text.chat_sidebar_delete_button_label-->Удалить чат</button></div></header>
+      <div class="text-mode preset-options" role="radiogroup" aria-label="Режим работы" data-i18n-attrs="{&quot;aria-label&quot;:&quot;text.workspace_operating_mode&quot;}">
+        <label class="preset-option" title="Обычный разговор с моделью" data-i18n-attrs="{&quot;title&quot;:&quot;text.workspace_regular_model_conversation&quot;}"><input type="radio" name="textMode" value="chat" checked><span><!--i18n:text.conversation_mode_chat_button_label-->Чат</span></label>
+        <label class="preset-option" title="Модель работает с файлами проекта, командами и git — с вашего разрешения" data-i18n-attrs="{&quot;title&quot;:&quot;text.workspace_model_works_project_files_commands_git&quot;}"><input type="radio" name="textMode" value="agent"><span><!--i18n:text.chat_message_agent_author_label-->Агент</span></label>
+      </div>
+      <label for="textModel"><!--i18n:text.chat_message_model_author_label-->Модель</label><select id="textModel" title="Полное имя модели показывается при наведении" data-i18n-attrs="{&quot;title&quot;:&quot;text.model_hover_see_full_name&quot;}"></select>
+      <div id="agentPanel" class="agent-panel" hidden>
+        <div class="agent-grid">
+          <label for="agentKind"><!--i18n:agent.chat_message_agent_author_label-->Агент<select id="agentKind"></select></label>
+          <label for="agentPermission"><!--i18n:agent.permission_agent_permissions-->Права агента<select id="agentPermission"></select></label>
+        </div>
+        <label for="agentWorkspace"><!--i18n:agent.workspace_project_folder_agent_works_inside-->Папка проекта — агент работает только внутри неё</label>
+        <div class="agent-folder"><input id="agentWorkspace" type="text" placeholder="Например, D:\Projects\my-app" autocomplete="off" spellcheck="false" data-i18n-attrs="{&quot;placeholder&quot;:&quot;agent.workspace_example_d_projects_my_app&quot;}"><button id="agentChoose" type="button" class="secondary"><!--i18n:agent.project_folder_picker_button_label-->Выбрать папку…</button></div>
+        <p id="agentInfo" class="muted"></p>
+        <label class="text-check" for="agentLoop" title="Для задач, которые не помещаются в контекст модели: каждая итерация начинается со свежим контекстом, а перед её концом агент пишет итог в файл .visualforge/loop/… в папке проекта; следующая итерация продолжает с него." data-i18n-attrs="{&quot;title&quot;:&quot;agent.loop_tasks_exceeding_model_context_each_iteration&quot;}"><input id="agentLoop" type="checkbox"><!--i18n:agent.loop_large_tasks_iterations_fresh_context-->Цикл для большой задачи — итерациями со свежим контекстом</label>
+        <div id="agentLoopOptions" class="agent-loop" hidden>
+          <label for="agentLoopThreshold" title="Когда контекст модели заполнится на столько процентов, студия прервёт агента и попросит записать итог итерации" data-i18n-attrs="{&quot;title&quot;:&quot;agent.loop_threshold_when_context_reaches_percentage_studio_interrupts&quot;}"><!--i18n:agent.loop_threshold_context-->Порог контекста, %<input id="agentLoopThreshold" type="number" min="30" max="95" step="5" inputmode="numeric"></label>
+          <label for="agentLoopIterations" title="Цикл остановится после стольких итераций, даже если задача не закончена" data-i18n-attrs="{&quot;title&quot;:&quot;agent.loop_iterations_stops_after_many_even_if_task&quot;}"><!--i18n:agent.loop_iterations_maximum-->Итераций, не больше<input id="agentLoopIterations" type="number" min="1" max="100" step="1" inputmode="numeric"></label>
+          <label for="agentLoopCheck" class="agent-loop-wide" title="Студия сама запускает её в папке проекта после каждой итерации; агент считается закончившим только если она проходит" data-i18n-attrs="{&quot;title&quot;:&quot;agent.loop_check_studio_runs_project_folder_after_each&quot;}"><!--i18n:agent.loop_check_command_after_each_iteration_optional-->Команда проверки после итерации — необязательно<input id="agentLoopCheck" type="text" maxlength="500" placeholder="Например, python -m unittest или gradlew test" autocomplete="off" spellcheck="false" data-i18n-attrs="{&quot;placeholder&quot;:&quot;agent.loop_check_example_python_m_unittest_gradlew_test&quot;}"></label>
+        </div>
+        <p id="agentContext" class="muted" hidden></p>
+      </div>
+      <p id="textAvailability" class="muted"><!--i18n:text.availability_checking_text_when_section_opens-->Проверка Text при открытии раздела…</p>
+      <div id="textMessages" class="text-messages" role="log" aria-live="off" aria-label="Переписка" data-i18n-attrs="{&quot;aria-label&quot;:&quot;text.chat_conversation_region_label&quot;}"></div>
+      <form id="textForm">
+        <label for="textInput" class="sr-only"><!--i18n:text.chat_input_message_accessibility_label-->Сообщение</label>
+        <textarea id="textInput" rows="3" maxlength="100000" placeholder="Напишите сообщение. Enter — отправить, Shift+Enter — новая строка" disabled data-i18n-attrs="{&quot;placeholder&quot;:&quot;text.input_write_message_enter_send_shift_new&quot;}"></textarea>
+        <div id="textAttachments" class="text-attachments" hidden></div>
+        <input id="textFile" type="file" accept="image/*" multiple hidden>
+        <div class="actions"><button id="textAttach" type="button" class="secondary" disabled><!--i18n:text.chat_attach_image_button_label-->Прикрепить изображение</button><button id="textSend" type="submit" disabled><!--i18n:text.chat_message_send_button_label-->Отправить</button><button id="textStop" data-allow-busy="1" type="button" class="secondary" disabled><!--i18n:text.generation_stop_button_label-->Остановить</button><button id="textRegenerate" type="button" class="secondary" disabled><!--i18n:text.chat_regenerate_response_button_label-->Ответить заново</button></div>
+      </form>
+      <p id="textStatus" class="status" role="status" aria-live="polite"></p>
+      <details><summary><!--i18n:text.workspace_chat_model_settings-->Настройки чата и модели</summary>
+        <label class="text-check" for="textThink" title="Модель сначала рассуждает, потом отвечает: ответы точнее, но дольше. Рассуждения показываются в свёрнутом блоке над ответом." data-i18n-attrs="{&quot;title&quot;:&quot;text.think_model_reasons_before_answering_responses_may&quot;}"><input id="textThink" type="checkbox" checked><!--i18n:text.think_before_answering_chat-->Размышлять перед ответом (для этого чата)</label>
+        <label for="textSystem" title="Если оставить пустым, действует инструкция, встроенная в саму модель" data-i18n-attrs="{&quot;title&quot;:&quot;text.system_leave_empty_use_model_s_built&quot;}"><!--i18n:text.system_instruction_chat_empty_uses_model_default-->Системная инструкция этого чата — пусто: инструкция модели по умолчанию</label><textarea id="textSystem" rows="4" maxlength="8000" disabled></textarea>
+        <label class="text-check" for="textNative"><input id="textNative" type="checkbox" checked><!--i18n:text.native_use_ollama_settings-->Настройки из Ollama</label>
+        <p class="muted"><!--i18n:text.workspace_preserves_selected_model_s_parameters_template-->Сохраняет параметры, шаблон и встроенную инструкцию выбранной модели. Отключите для ручной настройки параметров ниже.</p>
+        <div class="text-params">
+          <label for="textP-num_ctx" title="Сколько слов-токенов модель помнит в разговоре. Больше — длиннее память, но больше видеопамяти и медленнее" data-i18n-attrs="{&quot;title&quot;:&quot;text.p_num_ctx_how_many_tokens_model_remembers_conversation&quot;}"><!--i18n:text.p_num_ctx_conversation_memory_context_tokens-->Память разговора (контекст), токенов<input id="textP-num_ctx" type="number" min="2048" max="131072" step="1024"></label>
+          <label for="textP-num_predict" title="Предел длины одного ответа" data-i18n-attrs="{&quot;title&quot;:&quot;text.p_num_predict_maximum_length_one_response&quot;}"><!--i18n:text.p_num_predict_maximum_response_length_tokens-->Макс. длина ответа, токенов<input id="textP-num_predict" type="number" min="16" max="32768" step="16"></label>
+          <label for="textP-temperature" title="Выше — разнообразнее и смелее, ниже — строже и предсказуемее" data-i18n-attrs="{&quot;title&quot;:&quot;text.p_temperature_higher_more_varied_adventurous_lower_stricter&quot;}"><!--i18n:text.chat_model_temperature_parameter_label-->Температура<input id="textP-temperature" type="number" min="0" max="2" step="0.05"></label>
+          <label for="textP-top_p" title="Отсекает маловероятные слова: ближе к 1 — шире выбор" data-i18n-attrs="{&quot;title&quot;:&quot;text.p_top_filters_unlikely_words_closer_1_means&quot;}">Top-p<input id="textP-top_p" type="number" min="0.05" max="1" step="0.01"></label>
+          <label for="textP-top_k" title="Сколько самых вероятных слов рассматривать на каждом шаге" data-i18n-attrs="{&quot;title&quot;:&quot;text.p_top_k_how_many_most_likely_words_consider&quot;}">Top-k<input id="textP-top_k" type="number" min="1" max="200" step="1"></label>
+          <label for="textP-keep_alive" title="Через сколько минут простоя модель сама выгрузится и освободит видеокарту" data-i18n-attrs="{&quot;title&quot;:&quot;text.p_keep_alive_minutes_inactivity_before_model_unloads_frees&quot;}"><!--i18n:text.p_keep_alive_unload_memory_after-->Выгружать из памяти через<select id="textP-keep_alive"><option value="2m"><!--i18n:text.p_keep_alive_2_minutes-->2 минуты</option><option value="10m"><!--i18n:text.p_keep_alive_10_minutes-->10 минут</option><option value="30m"><!--i18n:text.p_keep_alive_30_minutes-->30 минут</option><option value="60m"><!--i18n:text.p_keep_alive_60_minutes-->60 минут</option></select></label>
+        </div>
+        <div class="actions"><button id="textSaveSettings" type="button" class="secondary"><!--i18n:text.save_settings_parameters-->Сохранить параметры</button><button id="textUnload" type="button" class="secondary"><!--i18n:text.unload_model_memory-->Выгрузить модель из памяти</button></div>
+        <p class="muted"><!--i18n:text.workspace_text_image_video_music_share_gpu-->Text, Image, Video и Music используют видеокарту по очереди. Пока модель отвечает, запуск других задач откладывается; перед их запуском модель выгружается автоматически.</p>
+      </details>
+    </div>
+  </section>
+</div>
+<dialog id="componentRemoveDialog" class="component-remove-dialog" aria-labelledby="componentRemoveTitle">
+  <h2 id="componentRemoveTitle"><!--i18n:components.component_remove_complete_model_removal-->Полное удаление модели</h2>
+  <p id="componentRemoveName"></p><p id="componentRemoveSummary"></p>
+  <details><summary><!--i18n:components.component_remove_dialog_files_deleted-->Какие файлы будут удалены</summary><pre id="componentRemoveFiles"></pre></details>
+  <p id="componentRemoveWait" role="status"></p>
+  <label for="componentRemoveInput"><!--i18n:components.component_remove_input_type_confirm-->Введите REMOVE для подтверждения</label>
+  <input id="componentRemoveInput" type="text" autocomplete="off" spellcheck="false" disabled>
+  <p id="componentRemoveError" role="alert"></p>
+  <div class="actions"><button id="componentRemoveCancel" type="button" class="secondary"><!--i18n:components.task_cancel_button_label-->Отмена</button><button id="componentRemoveConfirm" type="button" class="cancel" disabled><!--i18n:components.component_remove_confirm_delete_permanently-->Удалить безвозвратно</button></div>
+</dialog>
+<dialog id="compatibilitySettingsDialog" class="compatibility-settings-dialog" aria-labelledby="compatibilitySettingsTitle">
+  <div class="compatibility-settings-head"><h2 id="compatibilitySettingsTitle"><!--i18n:hardware.compatibility_settings_model_tips-->Подсказки моделей</h2><button type="button" id="compatibilitySettingsClose" class="icon-button" aria-label="Закрыть" data-i18n-attrs="{&quot;aria-label&quot;:&quot;hardware.dialog_close_button_label&quot;}">✕</button></div>
+  <p><!--i18n:hardware.compatibility_settings_dialog_estimate_computer_when_choosing_model_image-->Оценка совместимости с вашим компьютером при выборе модели в Image, Video, Music и Text.</p>
+  <label class="compatibility-settings-toggle" for="compatibilityPopupEnabled"><span><!--i18n:hardware.compatibility_popup_enabled_show_automatically-->Показывать автоматически</span><input id="compatibilityPopupEnabled" class="compatibility-settings-switch" type="checkbox" role="switch" checked></label>
+  <div class="compatibility-settings-duration"><label for="compatibilityPopupSeconds"><!--i18n:hardware.compatibility_popup_seconds_display_duration-->Время показа</label><input id="compatibilityPopupSeconds" type="range" min="1" max="30" step="1" value="3"><output id="compatibilityPopupSecondsValue" for="compatibilityPopupSeconds"><!--i18n:hardware.compatibility_popup_seconds_3_s-->3 с</output></div>
+  <p class="compatibility-settings-note"><!--i18n:hardware.compatibility_settings_dialog_setting_applies_all_sections_card_opened-->Настройка общая для всех разделов. Карточка, открытая вручную через оценку совместимости в «Ваш компьютер», остаётся до закрытия.</p>
+  <div class="actions"><button type="button" id="compatibilitySettingsDone"><!--i18n:hardware.generation_completed_status_label-->Готово</button></div>
+</dialog>
+<dialog id="soundsDialog" class="sounds-dialog" aria-labelledby="soundsTitle">
+  <div class="sounds-head"><h2 id="soundsTitle"><!--i18n:settings.completion_sounds_dialog_title-->Звуки окончания</h2><button type="button" id="soundsClose" class="icon-button" aria-label="Закрыть" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.dialog_close_button_label&quot;}">✕</button></div>
+  <p class="muted"><!--i18n:settings.sounds_dialog_play_when_generation_finishes_so_you-->Звучат, когда генерация закончилась, — можно заниматься своими делами и не следить за экраном. Мелодии создаются прямо в студии и длятся до 7 секунд.</p>
+  <div class="sounds-row"><label for="soundSuccess"><!--i18n:settings.completion_success_sound_selector_label-->Успешно готово</label><select id="soundSuccess"></select><button type="button" id="soundSuccessPlay" class="secondary sounds-play" aria-label="Прослушать мелодию успеха" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.completion_success_sound_preview_accessibility_label&quot;}"><!--i18n:settings.completion_sound_preview_button_label-->▶ Прослушать</button></div>
+  <div class="sounds-row"><label for="soundError"><!--i18n:settings.generation_failed_status_label-->Ошибка</label><select id="soundError"></select><button type="button" id="soundErrorPlay" class="secondary sounds-play" aria-label="Прослушать мелодию ошибки" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.sound_error_play_preview&quot;}"><!--i18n:settings.completion_sound_preview_button_label-->▶ Прослушать</button></div>
+  <div class="sounds-row"><label for="soundVolume"><!--i18n:settings.completion_sound_volume_slider_label-->Громкость</label><input id="soundVolume" type="range" min="0" max="100" step="5"><output id="soundVolumeValue" for="soundVolume"></output></div>
+  <p class="muted sounds-note"><!--i18n:settings.sounds_dialog_no_sound_check_windows_volume_ensure-->Не слышно? Проверьте громкость Windows и что звук этого окна не выключен в микшере.</p>
+  <div class="actions"><button type="button" id="soundsDone"><!--i18n:settings.generation_completed_status_label-->Готово</button></div>
+</dialog>
+<dialog id="palettesDialog" class="palettes-dialog" aria-labelledby="palettesTitle">
+  <div class="sounds-head"><h2 id="palettesTitle"><!--i18n:settings.color_schemes_dialog_title-->Цветовые схемы</h2><button type="button" id="palettesClose" class="icon-button" aria-label="Закрыть" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.dialog_close_button_label&quot;}">✕</button></div>
+  <p class="muted"><!--i18n:settings.color_schemes_dialog_intro_paragraph-->Схема выбирается отдельно для тёмной и светлой темы и применяется сразу. Переключатель с солнцем и луной меняет саму тему; выбор схем сохраняется на этом компьютере.</p>
+  <fieldset class="palette-group"><legend><!--i18n:settings.color_schemes_dark_group_label-->Тёмная тема<span class="palette-badge"><!--i18n:settings.color_schemes_active_theme_badge-->Сейчас на экране</span></legend><div id="palettesDark" class="palette-grid" role="radiogroup" aria-label="Тёмная тема" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.color_schemes_dark_group_label&quot;}"></div></fieldset>
+  <fieldset class="palette-group"><legend><!--i18n:settings.color_schemes_light_group_label-->Светлая тема<span class="palette-badge"><!--i18n:settings.color_schemes_active_theme_badge-->Сейчас на экране</span></legend><div id="palettesLight" class="palette-grid" role="radiogroup" aria-label="Светлая тема" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.color_schemes_light_group_label&quot;}"></div></fieldset>
+  <div class="actions"><button type="button" id="palettesReset" class="secondary"><!--i18n:settings.color_schemes_reset_button_label-->Сбросить</button><button type="button" id="palettesDone"><!--i18n:settings.generation_completed_status_label-->Готово</button></div>
+</dialog>
+<details class="panel" id="studioTerms"><summary><!--i18n:settings.studio_terms_what_do_special_settings_mean-->Что означают специальные слова и настройки?</summary>
+<dl>
+<dt><strong>Image / Video</strong></dt><dd><!--i18n:settings.studio_terms_sections_images_video-->Разделы для изображений и видео.</dd>
+<dt><strong><!--i18n:settings.studio_terms_prompt-->Промпт / Prompt</strong></dt><dd><!--i18n:settings.studio_terms_text_description_what_create_change_specify-->Текстовое описание того, что нужно создать или изменить. Укажите героя, действие, обстановку и желаемые детали.</dd>
+<dt><strong><!--i18n:settings.source_reference_image_label-->Референс / Reference</strong></dt><dd><!--i18n:settings.studio_terms_example_image_helps_convey_character_s-->Картинка-образец: она помогает передать внешность персонажа, предмет, стиль или композицию.</dd>
+<dt><strong>Seed</strong></dt><dd><!--i18n:settings.studio_terms_number_defining_initial_randomness_save_description-->Число, задающее начальную случайность. Сохраните его вместе с описанием и настройками, если хотите повторить похожий результат. Пустое поле выбирает новое число.</dd>
+<dt><strong><!--i18n:settings.studio_terms_steps_sampling-->Шаги / Steps, сэмплинг / Sampling</strong></dt><dd><!--i18n:settings.studio_terms_consecutive_refinements_used_model_build_result-->Последовательные уточнения, из которых модель собирает результат. Большее число шагов обычно увеличивает время работы.</dd>
+<dt><strong><!--i18n:settings.studio_terms_two_passes_8_3-->Два прохода / 8 + 3</strong></dt><dd><!--i18n:settings.studio_terms_first_base_created_8_steps_refined-->Сначала создаётся основа за 8 шагов, затем она дополнительно уточняется за 3 шага. Предпросмотр останавливается после основного прохода.</dd>
+<dt><strong><!--i18n:settings.studio_terms_resolution_pixels_512_288-->Разрешение, пиксели, 512 × 288</strong></dt><dd><!--i18n:settings.studio_terms_image_dimensions_width_height_individual_pixels-->Размер картинки: ширина × высота в отдельных точках-пикселях. Высокое разрешение требует больше памяти и времени.</dd>
+<dt><strong><!--i18n:settings.studio_terms_aspect_ratio_16_9_1_2-->Соотношение сторон, 16:9 / 1:1 / 2:3</strong></dt><dd><!--i18n:settings.studio_terms_frame_shape_wide_rectangle_square_vertical-->Форма кадра: широкий прямоугольник, квадрат или вертикальный прямоугольник.</dd>
+<dt><strong><!--i18n:settings.studio_terms_fps_frames-->FPS и кадры</strong></dt><dd><!--i18n:settings.studio_terms_fps_frames_per_second_24_one-->FPS — количество кадров за секунду. При 24 FPS минута видео содержит 1440 кадров.</dd>
+<dt><strong>AI Upscale, 2× / 4×</strong></dt><dd><!--i18n:settings.studio_terms_increasing_width_height_using_neural_network-->Увеличение ширины и высоты с помощью нейросети, которая дорисовывает детали. Оно не гарантирует восстановление точных деталей оригинала.</dd>
+<dt><strong>FP8 / int8</strong></dt><dd><!--i18n:settings.studio_terms_ways_store_compute_models_reduced_precision-->Способы хранения и вычисления модели с уменьшенной точностью, чтобы ей требовалось меньше видеопамяти. Это характеристика модели, а не размер итогового файла.</dd>
+<dt><strong>LoRA</strong></dt><dd><!--i18n:settings.studio_terms_small_add_main_model_changes_capabilities-->Небольшое дополнение к основной модели, которое меняет её возможности или стиль. Установленные дополнения подбираются профилем модели.</dd>
+<dt><strong>CFG</strong></dt><dd><!--i18n:settings.studio_terms_how_strongly_model_follows_text_description-->Параметр силы следования текстовому описанию. В этой студии он уже выбран для каждой модели; большее значение не обязательно лучше.</dd>
+<dt><strong><!--i18n:settings.studio_terms_comfy_ui_engine_backend-->ComfyUI, движок / backend</strong></dt><dd><!--i18n:settings.studio_terms_local_software_performs_generation_manages_automatically-->Локальная программа, которая выполняет генерацию. Студия управляет ею автоматически.</dd>
+<dt><strong>GPU / VRAM</strong></dt><dd><!--i18n:settings.studio_terms_graphics_card_dedicated_memory_models_use-->Видеокарта и её собственная память. Модели используют её во время генерации; если памяти не хватает, задача может завершиться ошибкой.</dd>
+<dt><strong><!--i18n:settings.studio_terms_rgb_rgba_alpha_channel-->RGB / RGBA, альфа-канал</strong></dt><dd><!--i18n:settings.studio_terms_rgb_stores_color_rgba_also_transparency-->RGB хранит цвет. RGBA дополнительно хранит прозрачность — её называют альфа-каналом. Не каждая модель сохраняет прозрачность исходника.</dd>
+<dt><strong>MP4 / H.264 / AAC</strong></dt><dd><!--i18n:settings.studio_terms_mp4_video_file_h_264_compresses-->MP4 — видеофайл; H.264 сжимает изображение, AAC сжимает звук. Эти форматы подходят большинству обычных плееров.</dd>
+<dt><strong><!--i18n:settings.studio_terms_voice_sample_lip_synchronization-->Образец голоса и синхронизация губ</strong></dt><dd><!--i18n:settings.studio_terms_sample_helps_speak_entered_text_similar-->Образец помогает озвучить введённый текст похожим тембром. Совпадение движений рта с речью — отдельная функция; сейчас она не реализована.</dd>
+<dt><strong><!--i18n:settings.studio_terms_logs_eta-->Логи / Logs, ETA</strong></dt><dd><!--i18n:settings.studio_terms_logs_record_stages_errors_eta_estimated-->Логи — журнал этапов и ошибок. ETA — приблизительное оставшееся время, если программа может его оценить.</dd>
+</dl></details>
+<dialog id="componentRecoveryDialog" aria-labelledby="componentRecoveryTitle">
+<h2 id="componentRecoveryTitle"><!--i18n:components.component_recovery_download_dependency_failed-->Не удалось скачать зависимость</h2>
+<p id="componentRecoveryName"></p><p id="componentRecoveryWait" role="status"></p>
+<p><!--i18n:components.component_recovery_dialog_paste_direct_link_select_downloaded_file-->Вставьте прямую ссылку или укажите скачанный файл той же версии. Размер и SHA-256 должны совпасть. Без ответа файл будет пропущен, установка продолжится.</p>
+<label for="componentRecoveryUrl"><!--i18n:components.component_recovery_url_download_link-->Ссылка для скачивания</label><input id="componentRecoveryUrl" type="url" autocomplete="off" spellcheck="false">
+<button id="componentRecoveryDownload" type="button"><!--i18n:components.component_recovery_download_link-->Скачать по ссылке</button>
+<label for="componentRecoveryPath"><!--i18n:components.component_recovery_path_file_disk-->Файл на диске</label><input id="componentRecoveryPath" type="text" autocomplete="off" spellcheck="false">
+<button id="componentRecoveryBrowse" type="button" class="secondary"><!--i18n:components.component_recovery_browse_choose_file-->Выбрать файл…</button><button id="componentRecoveryImport" type="button"><!--i18n:components.component_recovery_import_use_file-->Использовать файл</button>
+<p id="componentRecoveryError" role="alert"></p><button id="componentRecoverySkip" type="button" class="secondary"><!--i18n:components.component_recovery_skip-->Пропустить</button>
+</dialog>
+<footer><strong>VisualForge AI Studio</strong> · <span id="productVersion">2026.10.26-redesign.2</span> · Local AI Creative Suite<br><!--i18n:settings.footer_local_generation_computer_cloud_ap_not-->Локальная генерация на этом компьютере. Во время генерации не используются облачные API; дополнительная AI-upscale модель устанавливается отдельно.</footer>
+</main><div id="folderPicker" class="folder-picker" role="dialog" aria-modal="true" aria-labelledby="folderPickerTitle" hidden>
+  <div class="folder-picker-window" tabindex="-1">
+    <div class="folder-picker-heading"><h2 id="folderPickerTitle"><!--i18n:settings.folder_picker_choose_autosave-->Выбор папки автосохранения</h2><button type="button" id="folderPickerClose" class="secondary slim" aria-label="Закрыть" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.dialog_close_button_label&quot;}">✕</button></div>
+    <p id="folderPickerHint" class="save-subtitle"><!--i18n:settings.folder_picker_select_drive_create_new_type_path-->Выбери диск и папку. Чтобы создать новую, введи путь вручную в поле автосохранения.</p>
+    <div class="folder-picker-path-row">
+      <label for="folderPickerPath"><!--i18n:settings.folder_picker_path_field_label-->Путь</label>
+      <input id="folderPickerPath" type="text" spellcheck="false" autocomplete="off">
+      <button type="button" id="folderPickerGo" class="secondary slim"><!--i18n:settings.folder_picker_go-->Перейти</button>
+    </div>
+    <div id="folderPickerDrives" class="folder-picker-drives" aria-label="Диски" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.folder_picker_drives&quot;}"></div>
+    <button type="button" id="folderPickerUp" class="secondary slim"><!--i18n:settings.folder_picker_up_parent-->↑ На уровень выше</button>
+    <div id="folderPickerItems" class="folder-picker-items" aria-label="Папки" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.folder_picker_items_folders&quot;}"></div>
+    <p id="folderPickerStatus" class="save-hint" role="status"></p>
+    <div class="folder-picker-actions">
+      <button type="button" id="folderPickerCancel" class="secondary slim"><!--i18n:settings.task_cancel_button_label-->Отмена</button>
+      <button type="button" id="folderPickerSelect" class="slim"><!--i18n:settings.folder_picker_select-->Выбрать эту папку</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="eventHistoryDialog" class="event-history-dialog" aria-labelledby="eventHistoryTitle">
+  <div class="event-history-heading"><h2 id="eventHistoryTitle"><!--i18n:events.history_dialog_title-->История событий</h2><button id="eventHistoryClose" type="button" class="secondary" aria-label="Закрыть историю событий" data-i18n-attrs="{&quot;aria-label&quot;:&quot;events.history_dialog_close_button_label&quot;}">✕</button></div>
+  <p class="muted"><!--i18n:events.history_dialog_purpose_description-->Общий локальный журнал генераций и технических операций, сначала новые. Журналы разделов доступны отдельно через «Логи».</p>
+  <div class="event-history-controls">
+    <label for="eventHistoryScope"><!--i18n:events.history_scope_filter_label-->События<select id="eventHistoryScope"><option value=""><!--i18n:events.history_scope_all_option_label-->Все</option><option value="main"><!--i18n:events.history_scope_generations_option_label-->Генерации и результаты</option><option value="technical"><!--i18n:events.history_scope_technical_option_label-->Технические операции</option></select></label>
+    <label for="eventHistoryType"><!--i18n:events.history_type_filter_label-->Тип<select id="eventHistoryType"><option value=""><!--i18n:events.history_type_all_option_label-->Все типы</option></select></label>
+    <label for="eventHistoryState"><!--i18n:events.history_state_filter_label-->Состояние<select id="eventHistoryState"><option value=""><!--i18n:events.history_scope_all_option_label-->Все</option><option value="running"><!--i18n:events.history_state_unfinished_option_label-->Без завершения</option><option value="done"><!--i18n:events.history_entry_completed_status-->Завершено</option><option value="error"><!--i18n:events.history_entry_failed_status-->Ошибка</option><option value="cancelled"><!--i18n:events.history_entry_cancelled_status-->Отменено</option><option value="interrupted"><!--i18n:events.history_entry_incomplete_status-->Не завершено</option></select></label>
+    <button id="eventHistoryRefresh" type="button" class="secondary"><!--i18n:events.history_refresh_button_label-->Обновить</button>
+  </div>
+  <p id="eventHistoryStatus" role="status"></p><div id="eventHistoryEntries"></div>
+  <button id="eventHistoryMore" type="button" class="secondary" hidden><!--i18n:events.history_load_earlier_button_label-->Показать более ранние</button>
+</dialog>
+
+<div id="logsPanel" class="logs-panel" role="dialog" aria-modal="true" aria-labelledby="logsTitle" hidden>
+  <div class="logs-window" tabindex="-1">
+    <div class="logs-heading"><h2 id="logsTitle"><!--i18n:settings.logs_visual_forge_ai_studio-->Логи · VisualForge AI Studio</h2><button id="logsClose" type="button" class="secondary" aria-label="Закрыть окно логов" data-i18n-attrs="{&quot;aria-label&quot;:&quot;settings.logs_close_log_window&quot;}">✕</button></div>
+    <p class="logs-help"><!--i18n:settings.logs_panel_local_visual_forge_ai_studio_shown-->Здесь отображаются только локальные журналы VisualForge AI Studio. Можно скопировать текст или сохранить TXT для диагностики. Перед отправкой проверь данные на приватность.</p>
+    <div class="logs-controls">
+      <label for="logsScope"><!--i18n:settings.logs_scope_show-->Показать</label>
+      <select id="logsScope">
+        <option value="errors"><!--i18n:settings.logs_scope_errors-->Ошибки</option>
+        <option value="all"><!--i18n:settings.logs_scope_all-->Все</option>
+        <option value="ui"><!--i18n:settings.logs_scope_interface_python-->Интерфейс / Python</option>
+        <option value="comfy">ComfyUI / GPU</option>
+        <option value="launcher"><!--i18n:settings.logs_scope_startup_shutdown-->Запуск / закрытие</option>
+      </select>
+      <button id="logsRefresh" type="button" class="secondary"><!--i18n:settings.data_refresh_button_label-->Обновить</button>
+      <button id="logsCopy" type="button" class="secondary"><!--i18n:settings.clipboard_copy_button_label-->Копировать</button>
+      <button id="logsSaveTxt" type="button" class="secondary"><!--i18n:settings.logs_save_txt-->Сохранить TXT</button>
+    </div>
+    <p id="logsStatus" class="logs-status" role="status"></p>
+    <pre id="logsOutput" class="logs-output" tabindex="0"><!--i18n:settings.logs_output_click_refresh_view-->Нажми «Обновить» для просмотра журналов.</pre>
+  </div>
+</div>
+
+<!-- QWEN_UX_BUNDLE_V1: persisted prompt archive -->
+<div id="qwenArchivePanel" class="qwen-archive-panel" role="dialog" aria-modal="true" aria-labelledby="qwenArchiveHeading" hidden>
+  <div class="qwen-archive-window" tabindex="-1">
+    <div class="qwen-archive-heading"><h2 id="qwenArchiveHeading"><!--i18n:image.qwen_archive_heading_favorite_prompts-->Избранные промпты</h2><button id="qwenArchiveClose" type="button" class="secondary"><!--i18n:image.qwen_archive_close-->Закрыть ✕</button></div>
+    <p class="qwen-muted"><!--i18n:image.qwen_archive_panel_click_append_prompt_add_entry_after-->Нажми «Добавить к промпту» — запись появится в конце уже введённого текста. Текущий текст не удаляется.</p>
+    <input id="qwenArchiveSearch" placeholder="Поиск по архиву..." aria-label="Поиск промпта" data-i18n-attrs="{&quot;placeholder&quot;:&quot;image.qwen_archive_search&quot;,&quot;aria-label&quot;:&quot;image.qwen_archive_search_prompt&quot;}">
+    <div id="qwenArchiveEntries" class="qwen-archive-entries"></div>
+    <p id="qwenArchiveStatus" class="qwen-muted" role="status"></p>
+  </div>
+</div>
+<section id="compatibilityCard" class="compatibility-card" data-status="yellow" role="region" aria-label="Совместимость выбранной модели" aria-live="polite" hidden data-i18n-attrs="{&quot;aria-label&quot;:&quot;hardware.compatibility_card_selected_model&quot;}">
+  <div class="compatibility-top"><h2 id="compatibilityTitle"></h2><button type="button" id="compatibilityClose" aria-label="Закрыть карточку совместимости" data-i18n-attrs="{&quot;aria-label&quot;:&quot;hardware.compatibility_close_card&quot;}">×</button></div>
+  <p id="compatibilityModel" class="compatibility-model"></p>
+  <ul id="compatibilityReasons"></ul>
+  <table aria-label="Сравнение требований с вашим ПК" data-i18n-attrs="{&quot;aria-label&quot;:&quot;hardware.compatibility_card_requirements_compared_pc&quot;}"><thead><tr><th scope="col"><!--i18n:hardware.requirements_memory_column_label-->Память</th><th scope="col"><!--i18n:hardware.compatibility_card_recommended-->Рекомендуется</th><th scope="col"><!--i18n:hardware.compatibility_card_installed-->Установлено</th></tr></thead><tbody id="compatibilityMetrics"></tbody></table>
+  <p id="compatibilityGpu" class="compatibility-note"></p><p id="compatibilityProfile" class="compatibility-note"></p><p id="compatibilityCaveat"></p>
+</section>
+<link rel="stylesheet" href="/hardware-panel.css"><script src="/hardware-panel.js" defer></script><script src="/model-requirements.js" defer></script>
+<link rel="stylesheet" href="/studio-ui.css">
+<link rel="stylesheet" href="/agent-panel.css">
+<script src="/notification-sounds.js" defer></script>
+<script src="/studio-ui.js" defer></script>
+<link rel="stylesheet" href="/event-history.css"><script src="/event-history.js" defer></script>
+<script src="/color-palettes.js" defer></script>
+<script src="/studio-shell.js" defer></script>
+<script src="/engine-state.js" defer></script>
+<script src="/flux-controls.js" defer></script>
+<script src="/prompt-guides.js"></script><script src="/image-studio.js" defer></script><script src="/video-panel.js" defer></script><script src="/music-panel.js" defer></script><script src="/voiceover-panel.js" defer></script><script src="/agent-panel.js" defer></script><script src="/text-chat.js" defer></script><script src="/component-manager.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice-input.js" defer></script></body></html>

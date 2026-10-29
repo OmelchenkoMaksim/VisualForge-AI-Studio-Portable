@@ -22,9 +22,13 @@ def unique_object(pairs):
 def catalogs(root=ROOT):
     result = {}
     for path in sorted((root / 'App/strings').glob('*.json')):
+        if not path.stem.endswith('-strings'):
+            raise ValueError('Translation catalog filename must end with -strings.json: ' + path.name)
         entries = json.loads(path.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
+        # Catalog filenames describe their role; resource namespaces stay stable across renames.
+        section = path.stem.removesuffix('-strings')
         for key, value in entries.items():
-            if not KEY.fullmatch(key) or '.msg_' in key or not key.startswith(path.stem + '.') or key in result:
+            if not KEY.fullmatch(key) or '.msg_' in key or not key.startswith(section + '.') or key in result:
                 raise ValueError('Invalid or duplicate translation key: ' + key)
             if set(value) != {'ru', 'en'} or not all(isinstance(s, str) and s for s in value.values()):
                 raise ValueError('Both languages are required: ' + key)
@@ -50,11 +54,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    path = ROOT / 'App/frontend/strings.js'
+    path = ROOT / 'App/frontend/interface-strings.js'
     expected = bundle()
     if args.check:
         if not path.is_file() or path.read_bytes() != expected:
-            raise SystemExit('strings.js is stale; run python tools/build_strings.py')
+            raise SystemExit('interface-strings.js is stale; run python tools/build_strings.py')
     else:
         path.write_bytes(expected)
     print('String catalogs valid:', len(catalogs()), 'keys')

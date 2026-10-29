@@ -13,7 +13,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
-from provision.net import download, sha256_file
+from provision.download_transport import download, sha256_file
 from provision.software_bundle import MAX_BYTES, asset_name
 
 
@@ -43,7 +43,7 @@ def main():
     if output.is_relative_to(ROOT):
         parser.error('Release assets must be outside the source checkout')
     output.mkdir(parents=True, exist_ok=True)
-    rows = artifacts(json.loads((ROOT / 'App/config/components.json').read_text('utf-8')))
+    rows = artifacts(json.loads((ROOT / 'App/config/component-catalog.json').read_text('utf-8')))
     def prepare(row):
         path = output / row['name']
         row['verified'] = False

@@ -19,8 +19,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
-from voiceover import assemble, text_prep
-from voiceover.registry import ENGINE, validate
+from voiceover import audio_assembly as assemble, text_prep
+from voiceover.voiceover_registry import ENGINE, validate
 
 FFMPEG = ROOT / 'Runtime/Video/ffmpeg/bin/ffmpeg.exe'
 FFPROBE = ROOT / 'Runtime/Video/ffmpeg/bin/ffprobe.exe'
@@ -163,11 +163,11 @@ class Validation(unittest.TestCase):
 
 class Normalization(unittest.TestCase):
     def say(self, text):
-        from voiceover.normalize import normalize
+        from voiceover.speech_normalization import normalize
         return normalize(text)
 
     def test_cardinals(self):
-        from voiceover.normalize import cardinal
+        from voiceover.speech_normalization import cardinal
         for number, words in ((0, 'ноль'), (5, 'пять'), (11, 'одиннадцать'), (21, 'двадцать один'), (100, 'сто'), (112, 'сто двенадцать'),
                               (1000, 'тысяча'), (1998, 'тысяча девятьсот девяносто восемь'), (21000, 'двадцать одна тысяча'),
                               (2000000, 'два миллиона'), (1000001, 'один миллион один'), (5000, 'пять тысяч')):
@@ -175,7 +175,7 @@ class Normalization(unittest.TestCase):
         self.assertEqual((cardinal(2, 'f'), cardinal(1, 'n'), cardinal(21, 'fa')), ('две', 'одно', 'двадцать одну'))
 
     def test_ordinals_in_every_case(self):
-        from voiceover.normalize import ordinal
+        from voiceover.speech_normalization import ordinal
         self.assertEqual(ordinal(1998), 'тысяча девятьсот девяносто восьмой')
         self.assertEqual(ordinal(1998, 'prep'), 'тысяча девятьсот девяносто восьмом')
         self.assertEqual(ordinal(2005, 'gen'), 'две тысячи пятого')
@@ -185,7 +185,7 @@ class Normalization(unittest.TestCase):
         self.assertIsNone(ordinal(12000))
 
     def test_plural_forms(self):
-        from voiceover.normalize import plural
+        from voiceover.speech_normalization import plural
         self.assertEqual([plural(n, 'рубль', 'рубля', 'рублей') for n in (1, 2, 5, 11, 12, 21, 22, 25, 101, 111)],
                          ['рубль', 'рубля', 'рублей', 'рублей', 'рублей', 'рубль', 'рубля', 'рублей', 'рубль', 'рублей'])
 
@@ -249,49 +249,49 @@ class Normalization(unittest.TestCase):
                          'а также другие необходимые мелочи.')
 
     def test_changes_lists_only_rewritten_sentences(self):
-        from voiceover.normalize import changes
+        from voiceover.speech_normalization import changes
         places, examples = changes('Первое предложение обычное. Во втором 5 яблок. В третьем нет ничего.\n\nА в 1998 году было иначе.')
         self.assertEqual(places, 2)
         self.assertEqual([item['before'] for item in examples], ['Во втором 5 яблок.', 'А в 1998 году было иначе.'])
         self.assertEqual(examples[0]['after'], 'Во втором пять яблок.')
 
     def test_recognition_writing_abbreviations_does_not_count_as_errors(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         spoken = 'олифа и так далее и тому подобное, смотри рисунок пять на странице семнадцать'
         heard = 'олифа и т.д. и т.п., смотри рисунок 5 на странице 17'
         self.assertGreater(compare(spoken, heard)[0], 0, 'without expansion the abbreviations look like wrong words')
         self.assertEqual(compare(spoken, heard, expand=True), (0, 11))
 
     def test_number_words_are_known_to_the_comparison(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         self.assertEqual(compare('в тысяча девятьсот девяносто восьмом году он ушёл', 'в 1998 году он ушел'), (0, 4))
         self.assertEqual(compare('в тысяча девятьсот девяносто восьмом году он ушёл', 'в 1998 году он ушли'), (1, 4))
 
 
 class Comparison(unittest.TestCase):
     def test_case_punctuation_and_yo_are_ignored(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         self.assertEqual(compare('Пришёл ЕЁ брат, и всё.', 'пришел её брат и все'), (0, 5))
 
     def test_wrong_and_missing_words_are_counted(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         self.assertEqual(compare('он купил хлеб и молоко', 'он купил хлеб молоко'), (1, 5))
         self.assertEqual(compare('он купил хлеб и молоко', 'она купила хлеб и молоко'), (2, 5))
 
     def test_digits_are_not_compared_so_a_number_never_causes_an_error(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         self.assertEqual(compare('по ГОСТу 8486-86 на стр. 17', 'по ГОСТу 804 на стр. 7'), (0, 4))
         self.assertEqual(compare('в 1998 году', 'в 1998 году'), (0, 2))
 
     def test_a_real_misreading_next_to_numbers_is_still_counted(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         # The real case that exposed an earlier, too forgiving rule: «стр. 17» came out as «стрер, 7 си цить».
         wrong, words = compare('материалы: доски по ГОСТу 8486-86, см. рис. 5 на стр. 17, а также др. мелочи',
                                'материалы доски по ГОСТу 804 с 86 см рис 5 на стрер 7 си цить а также дрер мелочи')
         self.assertEqual((wrong, words), (5, 12))
 
     def test_the_threshold_and_silence(self):
-        from voiceover.compare import is_suspicious
+        from voiceover.voice_comparison import is_suspicious
         self.assertFalse(is_suspicious(1, 10, 'текст'))
         self.assertTrue(is_suspicious(2, 10, 'текст'))
         self.assertFalse(is_suspicious(3, 26, 'текст'), 'a few small slips in a long fragment are normal')
@@ -306,44 +306,44 @@ class Pronunciation(unittest.TestCase):
     STEM = {'match': 'подар', 'kind': 'stem', 'replace': 'падар', 'engines': ['qwen3-tts-12hz-0.6b-base']}
 
     def test_stem_rule_keeps_the_ending_and_the_capital_letter(self):
-        from voiceover.pronunciation import apply_rules
+        from voiceover.pronunciation_rules import apply_rules
         self.assertEqual(apply_rules('Подарок, подарки и ПОДАРКОМ.', [self.STEM]), 'Падарок, падарки и ПАДАРКОМ.')
 
     def test_word_rule_matches_whole_words_only(self):
-        from voiceover.pronunciation import apply_rules
+        from voiceover.pronunciation_rules import apply_rules
         rule = {'match': 'мука', 'replace': 'мука', 'kind': 'word'}
         self.assertEqual(apply_rules('мука и мукаму', [dict(rule, replace='мука́')]), 'мука́ и мукаму')
 
     def test_keep_case_false_writes_the_replacement_as_given(self):
-        from voiceover.pronunciation import apply_rules
+        from voiceover.pronunciation_rules import apply_rules
         rule = {'match': 'подарок', 'replace': 'подаррок', 'keep_case': False}
         self.assertEqual(apply_rules('Подарок и подарок, но не подарки', [rule]), 'подаррок и подаррок, но не подарки')
 
     def test_the_shipped_rule_for_podarok_is_for_qwen_only(self):
-        from voiceover.pronunciation import apply_rules, for_engine, load_rules
+        from voiceover.pronunciation_rules import apply_rules, for_engine, load_rules
         rules = load_rules()
         self.assertEqual(apply_rules('Подарок лежал на столе.', for_engine(rules, 'qwen3-tts-12hz-0.6b-base')), 'подаррок лежал на столе.')
         self.assertEqual(apply_rules('Подарок лежал на столе.', for_engine(rules, 'voxcpm2')), 'Подарок лежал на столе.')
 
     def test_a_stem_does_not_match_in_the_middle_of_a_word(self):
-        from voiceover.pronunciation import apply_rules
+        from voiceover.pronunciation_rules import apply_rules
         self.assertEqual(apply_rules('Неподарок и подарок', [self.STEM]), 'Неподарок и падарок')
 
     def test_rules_are_chosen_by_engine(self):
-        from voiceover.pronunciation import for_engine
+        from voiceover.pronunciation_rules import for_engine
         anywhere = {'match': 'x', 'replace': 'y'}
         self.assertEqual(for_engine([self.STEM, anywhere], 'voxcpm2'), [anywhere])
         self.assertEqual(for_engine([self.STEM, anywhere], 'qwen3-tts-12hz-0.6b-base'), [self.STEM, anywhere])
 
     def test_the_shipped_file_is_valid_and_every_rule_names_a_known_engine(self):
-        from voiceover.pronunciation import load_rules
-        from voiceover.registry import ENGINES
+        from voiceover.pronunciation_rules import load_rules
+        from voiceover.voiceover_registry import ENGINES
         for rule in load_rules():
             self.assertTrue(set(rule.get('engines', [])) <= set(ENGINES), rule)
             self.assertEqual(rule['match'], rule['match'].lower())
 
     def test_a_damaged_rules_file_is_refused(self):
-        from voiceover.pronunciation import load_rules
+        from voiceover.pronunciation_rules import load_rules
         folder = Path(tempfile.mkdtemp(prefix='vf-rules-'))
         self.addCleanup(shutil.rmtree, folder, True)
         for text in ('{"version": 2, "rules": []}', '{"version": 1, "rules": [{"match": "", "replace": "x"}]}', '{"version": 1, "rules": [{"match": "a", "kind": "regex", "replace": "x"}]}'):
@@ -352,14 +352,14 @@ class Pronunciation(unittest.TestCase):
                 load_rules(folder / 'rules.json')
 
     def test_recognition_is_compared_in_the_same_respelled_form(self):
-        from voiceover.compare import compare
+        from voiceover.voice_comparison import compare
         spoken = 'падарок для тебя и ёлкин'
         heard = 'Подарок для тебя и Елкин'
         self.assertGreater(compare(spoken, heard, expand=True)[0], 0)
         self.assertEqual(compare(spoken, heard, expand=True, replacements=[['Елкин', 'ёлкин']], rules=[Pronunciation.STEM]), (0, 5))
 
     def test_suspect_words_are_the_source_words_recognition_lost(self):
-        from voiceover.compare import suspect_words
+        from voiceover.voice_comparison import suspect_words
         self.assertEqual(suspect_words('Все дети радовались, а ёж ушёл в лес.', 'Все дети радовались а еж ушел в лес'), [])
         self.assertEqual(suspect_words('Подарок, сказала она, нельзя прятать.', 'По дорог, сказала она, нельзя прятать.'), ['подарок'])
         self.assertEqual(suspect_words('я и он идут', 'идут'), [], 'words of one or two letters are not offered')
@@ -367,9 +367,9 @@ class Pronunciation(unittest.TestCase):
 
 class BuiltinVoiceDescriptions(unittest.TestCase):
     def test_the_shipped_description_is_valid_and_every_voice_is_named_in_both_languages(self):
-        from voiceover import defaults
+        from voiceover import default_voices as defaults
         config = defaults.load_config()
-        catalog = json.loads((ROOT / 'App/strings/voiceover.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/strings/voiceover-strings.json').read_text(encoding='utf-8'))
         self.assertEqual(len(config['voices']), 8)
         self.assertEqual({voice['gender'] for voice in config['voices']}, {'female', 'male'})
         for voice in config['voices']:
@@ -378,7 +378,7 @@ class BuiltinVoiceDescriptions(unittest.TestCase):
         self.assertEqual(len({defaults.voice_id(voice['slug']) for voice in config['voices']}), 8)
 
     def test_an_invalid_description_is_refused(self):
-        from voiceover import defaults
+        from voiceover import default_voices as defaults
         folder = Path(tempfile.mkdtemp(prefix='vf-defaults-'))
         self.addCleanup(shutil.rmtree, folder, True)
         good = dict(slug='a', gender='female', name_key='k', description='d', seed=1)
@@ -389,7 +389,7 @@ class BuiltinVoiceDescriptions(unittest.TestCase):
                 defaults.load_config(folder / 'v.json')
 
     def test_the_best_take_is_the_acceptable_one_with_the_calmest_pace(self):
-        from voiceover.defaults import choose
+        from voiceover.default_voices import choose
         take = dict(wrong=0, pitch=210.0, seconds=13.0, peak=0.7, rate=14.0)
         self.assertEqual(choose([dict(take, rate=19.0), dict(take, rate=14.5), dict(take, rate=11.0)], 'female'), 1)
         self.assertEqual(choose([dict(take, wrong=1, rate=14.0), dict(take, rate=17.0)], 'female'), 1, 'a take heard back wrongly is never chosen')
@@ -403,7 +403,7 @@ class BuiltinVoiceDescriptions(unittest.TestCase):
             import numpy as np
         except ImportError:
             raise unittest.SkipTest('numpy is not installed for the test interpreter') from None
-        from voiceover.defaults import median_pitch
+        from voiceover.default_voices import median_pitch
         rate = 16000
         t = np.arange(rate * 2) / rate
         voiced = (np.sin(2 * np.pi * 120 * t) + 0.5 * np.sin(2 * np.pi * 240 * t)).astype(np.float32)
@@ -415,7 +415,7 @@ class CatalogParity(unittest.TestCase):
     """The installer must put the files exactly where the engine looks for them, with pinned hashes."""
 
     def setUp(self):
-        self.catalog = {row['id']: row for row in json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))['components']}
+        self.catalog = {row['id']: row for row in json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))['components']}
         self.manifest = {row['id']: row for row in json.loads((ROOT / 'App/config/voiceover-assets.json').read_text(encoding='utf-8'))['components']}
 
     def test_manifest_and_catalog_agree(self):
@@ -426,7 +426,7 @@ class CatalogParity(unittest.TestCase):
             self.assertEqual(pins(self.catalog[ident][key]), pins(row[key]))
 
     def test_voxcpm_model_files_land_where_the_engine_looks_and_are_pinned(self):
-        from voiceover.registry import ENGINES
+        from voiceover.voiceover_registry import ENGINES
         spec = ENGINES['voxcpm2']
         model = self.catalog[spec['component']]
         paths = {row['path'] for row in model['files']}
@@ -439,13 +439,13 @@ class CatalogParity(unittest.TestCase):
         self.assertEqual(model['license'], spec['license'])
 
     def test_voxcpm_packages_are_unpacked_where_the_worker_puts_them_on_sys_path(self):
-        from voiceover.registry import ENGINES
+        from voiceover.voiceover_registry import ENGINES
         spec = ENGINES['voxcpm2']
         runtime = self.catalog['voiceover.runtime']
         step = runtime['steps'][0]
         self.assertEqual((step['op'], step['to']), ('unpack_wheels', 'Runtime/Video/' + spec['packages'][0]))
         self.assertIn('Runtime/Video/' + spec['package_check'], runtime['present'])
-        self.assertEqual(runtime['requires'], ['video.runtime'])
+        self.assertEqual(runtime['requires'], ['video.video_runtime'])
         self.assertIn('voxcpm-2.0.3', ' '.join(item['filename'] for item in runtime['downloads']))
         for item in runtime['downloads']:
             self.assertRegex(item['sha256'], r'^[0-9a-f]{64}$')
@@ -455,11 +455,11 @@ class Batching(unittest.TestCase):
     ITEMS = [{'key': str(n), 'text': 'x' * length} for n, length in enumerate((30, 250, 90, 260, 120, 40, 200))]
 
     def test_batch_size_one_keeps_the_reading_order(self):
-        from voiceover.worker import make_batches
+        from voiceover.qwen_tts_worker import make_batches
         self.assertEqual([[item['key']] for item in self.ITEMS], [[group[0]['key']] for group in make_batches(self.ITEMS, 1)])
 
     def test_batch_fits_the_free_video_memory(self):
-        from voiceover.worker import fit_batch
+        from voiceover.qwen_tts_worker import fit_batch
         self.assertEqual(fit_batch(8, 13000), 8)
         self.assertEqual(fit_batch(8, 5000), 6)
         self.assertEqual(fit_batch(8, 3000), 3)
@@ -468,7 +468,7 @@ class Batching(unittest.TestCase):
         self.assertEqual(fit_batch(1, 13000), 1, 'a request for one is never raised')
 
     def test_batches_group_fragments_of_similar_length_and_lose_nothing(self):
-        from voiceover.worker import make_batches
+        from voiceover.qwen_tts_worker import make_batches
         groups = make_batches(self.ITEMS, 3)
         self.assertEqual([len(group) for group in groups], [3, 3, 1])
         self.assertEqual(sorted(item['key'] for group in groups for item in group), sorted(item['key'] for item in self.ITEMS))
@@ -662,7 +662,7 @@ class Manager(unittest.TestCase):
         return self.manager.defaults_state()
 
     def test_building_the_builtin_voices_gives_usable_undeletable_voices(self):
-        from voiceover import defaults
+        from voiceover import default_voices as defaults
         self.install_voxcpm()
         state = self.build()
         self.assertEqual((state['state'], state['ready'], state['failed']), ('done', 8, []), state)
@@ -680,7 +680,7 @@ class Manager(unittest.TestCase):
         self.assertEqual(len(self.manager.voices()['voices']), 1, 'the built-in voices are not listed among the saved ones')
 
     def test_a_second_build_makes_only_the_voices_that_are_missing(self):
-        from voiceover import defaults
+        from voiceover import default_voices as defaults
         self.install_voxcpm()
         self.build()
         gone = defaults.voice_id('man-deep')
@@ -759,7 +759,7 @@ class Manager(unittest.TestCase):
         self.install_voxcpm()
         book = self.manager.prepare(dict(text='Глава 1\n\nПодарок лежал на столе. Это был лучший подарок.', title='Дары'))
         job = dict(self.request(), book_id=book['book_id'])
-        with mock.patch('voiceover.pronunciation.load_rules', return_value=[Pronunciation.STEM]):
+        with mock.patch('voiceover.pronunciation_rules.load_rules', return_value=[Pronunciation.STEM]):
             qwen = self.finish(self.manager.submit(job)['id'])
             vox = self.finish(self.manager.submit(dict(job, engine='voxcpm2'))['id'])
             off = self.finish(self.manager.submit(dict(job, dictionary=False, seed=8))['id'])
@@ -777,7 +777,7 @@ class Manager(unittest.TestCase):
         self.assertEqual([self.written_and_spoken(item)[1] for item in (qwen,)], ['Падарок лежал на столе. Это был лучший падарок.'])
 
     def test_a_damaged_rules_file_does_not_stop_the_job(self):
-        with mock.patch('voiceover.pronunciation.load_rules', side_effect=ValueError('broken')):
+        with mock.patch('voiceover.pronunciation_rules.load_rules', side_effect=ValueError('broken')):
             row = self.finish(self.manager.submit(self.request())['id'])
         self.assertEqual(row['state'], 'done', row.get('error'))
 

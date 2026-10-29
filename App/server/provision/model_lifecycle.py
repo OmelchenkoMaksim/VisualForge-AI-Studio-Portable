@@ -10,7 +10,7 @@ import stat
 import time
 
 from model_policy import ModelPolicy
-from .engine import Busy, ProvisionError
+from .install_engine import Busy, ProvisionError
 from .ollama_tools import manifest_path, blob_path
 
 

@@ -22,7 +22,7 @@ class VoiceGateTests(unittest.TestCase):
     def test_the_bar_cannot_hide_while_waiting_for_the_microphone(self):
         # Regression: the browser's permission dialog takes the focus away from the field, which used to hide the bar (and its stop button)
         # while the recording had already started. Every non-idle state must keep it visible.
-        source = (ROOT / 'App/frontend/voice.js').read_text(encoding='utf-8')
+        source = (ROOT / 'App/frontend/voice-input.js').read_text(encoding='utf-8')
         self.assertIn("if (next !== 'idle') {clearTimeout(hideTimer);bar.hidden = false;}", source)
         self.assertIn("setState('starting'", source)
 

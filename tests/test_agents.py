@@ -17,12 +17,12 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from agents import agent_manager as manager_module
-from agents.gateway import ModelGateway
+from agents.agent_gateway import ModelGateway
 from agents.agent_manager import AgentManager, workspace_path
-from agents.opencode import OpenCodeServer, permission_rules
-from gpu import Busy
-from text import routes as text_routes
-from text.store import ChatStore
+from agents.opencode_server import OpenCodeServer, permission_rules
+from gpu_coordinator import Busy
+from text import text_routes as text_routes
+from text.chat_store import ChatStore
 
 ROOT = Path(__file__).resolve().parents[1]
 FAKE_MODEL = Path(__file__).with_name('fake_openai.py')
@@ -197,7 +197,7 @@ class GatewayTest(unittest.TestCase):
 
 class LoopUnitTest(unittest.TestCase):
     def test_options_are_validated(self):
-        from agents import loop
+        from agents import agent_loop as loop
         self.assertEqual(loop.options({}), dict(threshold=75, iterations=10, check=''))
         self.assertEqual(loop.options(dict(threshold='60', iterations=3, check=' make test ')), dict(threshold=60, iterations=3, check='make test'))
         for bad in (dict(threshold=20), dict(threshold=99), dict(iterations=0), dict(iterations=101), dict(check='a\nb'), dict(other=1)):
@@ -205,14 +205,14 @@ class LoopUnitTest(unittest.TestCase):
                 loop.options(bad)
 
     def test_note_status_and_next_step(self):
-        from agents import loop
+        from agents import agent_loop as loop
         note = '## Done\n- x\n\n## Next step\n- Write   the parser\n\n## Status\n**DONE**\n'
         self.assertEqual(loop.status_of(note), 'DONE')
         self.assertEqual(loop.next_step_of(note), '- write the parser')
         self.assertEqual(loop.status_of('no sections at all'), 'CONTINUE')
 
     def test_usage_is_read_from_the_end_of_a_stream_or_a_body(self):
-        from agents.gateway import usage_from
+        from agents.agent_gateway import usage_from
         stream = (b'HTTP/1.1 200 OK\r\n\r\n1a\r\ndata: {"choices":[]}\n\n\r\n'
                   b'data: {"choices":[],"usage":{"prompt_tokens":900,"completion_tokens":40}}\n\ndata: [DONE]\n\n')
         self.assertEqual(usage_from(stream), (900, 40))
@@ -267,9 +267,9 @@ class StoreAndRulesTest(unittest.TestCase):
         self.assertEqual(json.loads(env['OPENCODE_CONFIG_CONTENT'])['enabled_providers'], ['visualforge'])
 
     def test_catalog_installs_opencode_where_the_studio_looks_for_it(self):
-        from agents.registry import AGENTS
-        from provision import catalog
-        data = catalog.load(ROOT / 'App/config/components.json')
+        from agents.agent_registry import AGENTS
+        from provision import component_catalog as catalog
+        data = catalog.load(ROOT / 'App/config/component-catalog.json')
         component = catalog.index(data)['text.agent.opencode']
         self.assertEqual((component['kind'], component['requires']), ('software', ['text.runtime']))
         self.assertIn(component['id'], next(m['components'] for m in data['modules'] if m['id'] == 'text'))

@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 from model_policy import ModelPolicy
 from provision.model_lifecycle import ModelLifecycle
-from provision.engine import Busy
+from provision.install_engine import Busy
 
 
 class LifecycleTests(unittest.TestCase):
@@ -86,7 +86,7 @@ class LifecycleTests(unittest.TestCase):
             self.lifecycle.toggle('video.model.test', False)
         self.manager.running = lambda:False
         with self.assertRaises(ValueError):
-            self.lifecycle.prepare('video.runtime')
+            self.lifecycle.prepare('video.video_runtime')
 
     def test_shared_dependency_cannot_be_removed_while_a_model_needs_it(self):
         other = dict(id='video.model.dependent', title='Dependent model', kind='model', requires=['video.model.test'], files=[dict(path='Models/Video/Dependent/weight.bin')])
@@ -126,7 +126,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_disabled_dependency_disables_the_engine(self):
         catalog = dict(components=[dict(id='video.model.wan-ti2v-5b', requires=['video.model.wan-text-encoder']), dict(id='video.model.wan-text-encoder')])
-        self.put('App/config/components.json', json.dumps(catalog).encode())
+        self.put('App/config/component-catalog.json', json.dumps(catalog).encode())
         policy = ModelPolicy(self.root)
         policy.set_enabled('video.model.wan-text-encoder', False)
         self.assertFalse(policy.enabled('video', 'wan22-ti2v-5b'))

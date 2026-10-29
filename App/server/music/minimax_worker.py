@@ -14,7 +14,7 @@ def main():
     spec = json.loads(spec_path.read_text(encoding='utf-8'))
     directory = spec_path.parent
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from music.storage import write_json
+    from music.music_storage import write_json
     started = time.monotonic()
     last_phase = [None]
 

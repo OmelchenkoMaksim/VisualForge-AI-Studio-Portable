@@ -61,7 +61,7 @@ if ($layoutPaths.Count -gt 0) {
     $profileBase = Join-Path $root 'browser-profiles'
 }
 $main = Join-Path $comfy 'main.py'
-$service = Join-Path $app 'server.py'
+$service = Join-Path $app 'studio_server.py'
 New-Item -ItemType Directory -Path $logDir -Force | Out-Null
 $runLog = Join-Path $logDir ('desktop-v3-' + $Mode + '-' + (Get-Date -Format 'yyyy-MM-dd_HHmmss_fff') + '.txt')
 $serverOwner = Join-Path $root 'DesktopApp-ServerOwner-v3.json'
@@ -454,7 +454,8 @@ try {
     $workflowBase = $app
     $engineWorkflowBase = Join-Path $app 'workflows'
     if ($layoutPaths.Count -gt 0) { $workflowBase = $layoutPaths.workflows; $engineWorkflowBase = $layoutPaths.workflows }
-    foreach ($path in @($python,$main,$service,(Join-Path $workflowBase 'single.api.json'),(Join-Path $workflowBase 'reference.api.json'),(Join-Path $app 'engines\registry.py'),(Join-Path $engineWorkflowBase 'qwen-image-21-uc-fp8\prompt.api.json'))) {
+    # Preflight must use the same model-prefixed filenames as the bridge's workflow loader.
+    foreach ($path in @($python,$main,$service,(Join-Path $workflowBase 'qwen2511-single.api.json'),(Join-Path $workflowBase 'qwen2511-reference.api.json'),(Join-Path $app 'engines\image_registry.py'),(Join-Path $engineWorkflowBase 'qwen-image-21-uc-fp8\qwen21-prompt.api.json'))) {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {throw ('Missing file: '+$path)}
     }
     if ($Mode -ne 'Cleanup') { $browser=Get-BrowserExecutable }

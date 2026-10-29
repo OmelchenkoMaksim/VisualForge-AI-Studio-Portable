@@ -7,8 +7,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'App/server'))
-from video.registry import validate
-from video.adapters import build_command
+from video.video_registry import validate
+from video.video_adapters import build_command
 from video.wan_support import archive_log, engine_missing, WAN_ID, WAN_FILES
 
 class WanTests(unittest.TestCase):

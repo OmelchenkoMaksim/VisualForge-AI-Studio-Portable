@@ -17,8 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 sys.path.insert(0, str(ROOT / 'tests'))
 from fake_web import FakeWeb
-from provision import archives, catalog, cli, engine as engine_module, net, steps, vcredist
-from provision.engine import Engine
+from provision import install_archives as archives, component_catalog as catalog, setup_cli as cli, install_engine as engine_module, download_transport as net, install_steps as steps, vcredist_runtime as vcredist
+from provision.install_engine import Engine
 
 
 def make_zip(entries):
@@ -238,7 +238,7 @@ class CatalogRuleTests(unittest.TestCase):
                 catalog.validate(broken)
 
     def test_shipped_catalog_is_consistent(self):
-        path = ROOT / 'App/config/components.json'
+        path = ROOT / 'App/config/component-catalog.json'
         if not path.is_file():
             self.skipTest('catalog not generated yet')
         data = catalog.load(path)
@@ -267,7 +267,7 @@ class EngineTests(TempCase):
         super().setUp()
         self.web = FakeWeb().__enter__()
         self.data, self.model_a, self.model_b = tiny_catalog(self.web)
-        self.catalog_path = self.root / 'App/config/components.json'
+        self.catalog_path = self.root / 'App/config/component-catalog.json'
         self.catalog_path.parent.mkdir(parents=True)
         self.catalog_path.write_text(json.dumps(self.data), encoding='utf-8')
         self.events = []
@@ -429,7 +429,7 @@ class OllamaToolTests(TempCase):
                        downloads=[dict(id='z', urls=[archive['url']], filename='ollama.zip', bytes=archive['bytes'], sha256=archive['sha256'])],
                        steps=[dict(op='extract', download='z', to='Runtime/Text/ollama', skip=['lib/ollama/rocm/*'])])
         data = dict(schema_version=1, catalog_version='t', modules=[dict(id='text', title='Text', components=['text.runtime'])], presets={}, components=[runtime])
-        self.catalog_path = self.root / 'components.json'
+        self.catalog_path = self.root / 'component-catalog.json'
         self.catalog_path.write_text(json.dumps(data), encoding='utf-8')
         self.install_root = self.root / 'inst'
         self.events = []
@@ -567,7 +567,7 @@ class CommandLineTests(TempCase):
         super().setUp()
         self.web = FakeWeb().__enter__()
         self.data, self.model_a, self.model_b = tiny_catalog(self.web)
-        self.catalog_path = self.root / 'components.json'
+        self.catalog_path = self.root / 'component-catalog.json'
         self.catalog_path.write_text(json.dumps(self.data), encoding='utf-8')
         self.install_root = self.root / 'inst'
 

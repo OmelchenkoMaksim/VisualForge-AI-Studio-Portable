@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 def standalone(root):
     def request(item, cancel):
         if cancel():
-            from .net import Cancelled
+            from .download_transport import Cancelled
             raise Cancelled()
         try:
             result = subprocess.run(['powershell.exe', '-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File',

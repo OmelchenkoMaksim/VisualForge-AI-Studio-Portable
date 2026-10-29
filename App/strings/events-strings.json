@@ -1,0 +1,309 @@
+{
+  "events.history_no_matching_events_hint": {"ru":"Нет событий по выбранным фильтрам.", "en":"No events match the selected filters."},
+  "events.operation_type_image_refinement_label": {"ru":"Перерисовка деталей Z-Image", "en":"Z-Image detail refinement"},
+  "events.operation_type_image_controlnet_label": {"ru":"Обработка изображения с ControlNet", "en":"ControlNet image processing"},
+  "events.operation_type_image_label": {
+    "ru": "Изображение",
+    "en": "Image"
+  },
+  "events.operation_type_video_label": {
+    "ru": "Видео",
+    "en": "Video"
+  },
+  "events.operation_type_music_label": {
+    "ru": "Музыка",
+    "en": "Music"
+  },
+  "events.operation_type_text_label": {
+    "ru": "Ответ в чате",
+    "en": "Chat response"
+  },
+  "events.operation_type_voiceover_label": {
+    "ru": "Озвучка текста",
+    "en": "Text voiceover"
+  },
+  "events.operation_type_agent_label": {
+    "ru": "Задача агента",
+    "en": "Agent task"
+  },
+  "events.operation_type_video_export_label": {
+    "ru": "Экспорт видео",
+    "en": "Video export"
+  },
+  "events.operation_type_video_mix_label": {
+    "ru": "Микширование видео и музыки",
+    "en": "Video and music mixing"
+  },
+  "events.operation_type_speech_label": {
+    "ru": "Распознавание речи (прежний тип)",
+    "en": "Speech recognition (legacy type)"
+  },
+  "events.operation_type_microphone_session_label": {
+    "ru": "Включение микрофона",
+    "en": "Microphone activation"
+  },
+  "events.operation_type_speech_recognition_label": {
+    "ru": "Распознавание речи",
+    "en": "Speech recognition"
+  },
+  "events.operation_type_speech_recognition_preview_label": {
+    "ru": "Промежуточное распознавание речи",
+    "en": "Interim speech recognition"
+  },
+  "events.operation_type_speech_model_load_label": {
+    "ru": "Загрузка модели распознавания речи",
+    "en": "Speech recognition model loading"
+  },
+  "events.operation_type_speech_model_warmup_label": {
+    "ru": "Прогрев распознавания речи",
+    "en": "Speech recognition warmup"
+  },
+  "events.operation_type_speech_punctuation_label": {
+    "ru": "Восстановление пунктуации",
+    "en": "Punctuation restoration"
+  },
+  "events.operation_type_speech_text_polish_label": {
+    "ru": "Обработка распознанного текста Gemma AI",
+    "en": "Gemma AI transcription cleanup"
+  },
+  "events.operation_type_speech_text_polish_warmup_label": {
+    "ru": "Прогрев Gemma AI для голосового ввода",
+    "en": "Gemma AI voice input warmup"
+  },
+  "events.operation_type_image_recognition_label": {
+    "ru": "Распознавание изображения",
+    "en": "Image recognition"
+  },
+  "events.operation_type_image_prompt_expansion_label": {
+    "ru": "Расширение промпта изображения",
+    "en": "Image prompt expansion"
+  },
+  "events.operation_type_image_upscale_label": {
+    "ru": "Увеличение изображения нейросетью",
+    "en": "AI image upscaling"
+  },
+  "events.operation_type_agent_model_call_label": {
+    "ru": "Обращение агента к модели",
+    "en": "Agent model call"
+  },
+  "events.operation_type_agent_handoff_label": {
+    "ru": "Подготовка передачи задачи агента",
+    "en": "Agent task handoff preparation"
+  },
+  "events.operation_type_speech_synthesis_label": {
+    "ru": "Синтез речи",
+    "en": "Speech synthesis"
+  },
+  "events.operation_type_video_model_generation_label": {
+    "ru": "Генерация кадров видеомоделью",
+    "en": "Video model frame generation"
+  },
+  "events.operation_type_music_model_generation_label": {
+    "ru": "Генерация аудио музыкальной моделью",
+    "en": "Music model audio generation"
+  },
+  "events.operation_type_music_planning_label": {
+    "ru": "Генерация музыкального плана",
+    "en": "Music plan generation"
+  },
+  "events.event_history_prepare_currently_unavailable_check_user_data_folder": {
+    "ru": "История событий пока недоступна. Проверьте доступ к папке UserData и свободное место.",
+    "en": "Event history is currently unavailable. Check UserData folder permissions and free disk space."
+  },
+  "events.event_history_validation_invalid_data": {
+    "ru": "Некорректные данные события",
+    "en": "Invalid event data"
+  },
+  "events.event_history_validation_invalid_type_identifier": {
+    "ru": "Некорректный тип или идентификатор события",
+    "en": "Invalid event type or identifier"
+  },
+  "events.event_history_validation_invalid_date": {
+    "ru": "Некорректная дата события",
+    "en": "Invalid event date"
+  },
+  "events.event_history_validation_invalid_duration": {
+    "ru": "Некорректная длительность события",
+    "en": "Invalid event duration"
+  },
+  "events.event_history_record_invalid_state": {
+    "ru": "Некорректное состояние события",
+    "en": "Invalid event state"
+  },
+  "events.event_history_page_invalid_filter": {
+    "ru": "Некорректный фильтр истории событий",
+    "en": "Invalid event history filter"
+  },
+  "events.event_history_remove_generation_invalid_identifier": {
+    "ru": "Некорректный идентификатор события",
+    "en": "Invalid event identifier"
+  },
+  "events.event_history_microphone_invalid_identifier": {
+    "ru": "Некорректный идентификатор микрофона",
+    "en": "Invalid microphone identifier"
+  },
+  "events.event_history_microphone_not_found": {
+    "ru": "Событие микрофона не найдено",
+    "en": "Microphone event not found"
+  },
+  "events.event_history_safe_record_some_events_could_not_saved_check": {
+    "ru": "Часть событий не удалось сохранить. Проверьте доступ к папке UserData и свободное место.",
+    "en": "Some events could not be saved. Check UserData folder permissions and free disk space."
+  },
+  "events.event_history_page_invalid_size": {
+    "ru": "Некорректный размер страницы истории событий",
+    "en": "Invalid event history page size"
+  },
+  "events.event_history_page_invalid": {
+    "ru": "Некорректная страница истории событий",
+    "en": "Invalid event history page"
+  },
+  "events.history_entry_completion_unrecorded_status": {
+    "ru": "Без отметки о завершении",
+    "en": "Completion not recorded"
+  },
+  "events.history_entry_completed_status": {
+    "ru": "Завершено",
+    "en": "Completed"
+  },
+  "events.history_entry_failed_status": {
+    "ru": "Ошибка",
+    "en": "Error"
+  },
+  "events.history_entry_cancelled_status": {
+    "ru": "Отменено",
+    "en": "Cancelled"
+  },
+  "events.history_entry_incomplete_status": {
+    "ru": "Не завершено",
+    "en": "Incomplete"
+  },
+  "events.history_request_studio_connection_failed": {
+    "ru": "Нет связи со студией. Проверьте, запущено ли приложение.",
+    "en": "Cannot connect to the studio. Check that the application is running."
+  },
+  "events.history_request_invalid_response_error": {
+    "ru": "Некорректный ответ истории событий.",
+    "en": "Invalid event history response."
+  },
+  "events.history_request_service_unavailable_error": {
+    "ru": "История событий недоступна.",
+    "en": "Event history unavailable."
+  },
+  "events.history_request_invalid_entries_error": {
+    "ru": "Некорректные данные истории событий.",
+    "en": "Invalid event history data."
+  },
+  "events.history_entry_duration_pending_label": {
+    "ru": "итоговое время ещё не записано",
+    "en": "final duration has not been recorded yet"
+  },
+  "events.history_entry_duration_unknown_label": {
+    "ru": "время неизвестно",
+    "en": "duration unknown"
+  },
+  "events.history_entry_duration_seconds_suffix": {
+    "ru": " с",
+    "en": " s"
+  },
+  "events.history_entry_technical_operation_label": {
+    "ru": "Техническая операция",
+    "en": "Technical operation"
+  },
+  "events.history_entry_generation_operation_label": {
+    "ru": "Генерация / обработка результата",
+    "en": "Generation / result processing"
+  },
+  "events.history_entry_copy_identity_button_label": {
+    "ru": "Скопировать объект",
+    "en": "Copy object"
+  },
+  "events.history_entry_identity_copy_success": {
+    "ru": "Скопировано",
+    "en": "Copied"
+  },
+  "events.history_entry_identity_copy_failed": {
+    "ru": "Не удалось скопировать",
+    "en": "Could not copy"
+  },
+  "events.history_entry_shared_comfy_graph_duration_hint": {
+    "ru": "Время включает ожидание и выполнение общего графа ComfyUI; это не профиль отдельной нейросети.",
+    "en": "Duration includes waiting and execution of the shared ComfyUI graph; it is not a profile of an individual neural network."
+  },
+  "events.history_entry_parent_operation_prefix": {
+    "ru": "Родительская операция: ",
+    "en": "Parent operation: "
+  },
+  "events.history_entries_loading_status": {
+    "ru": "Загрузка событий…",
+    "en": "Loading events…"
+  },
+  "events.history_loaded_entries_count_prefix": {
+    "ru": "Показано событий: ",
+    "en": "Events shown: "
+  },
+  "events.history_newest_first_order_suffix": {
+    "ru": ". Сначала новые.",
+    "en": ". Newest first."
+  },
+  "events.history_entries_empty_state_hint": {
+    "ru": "Событий пока нет. Они начнут сохраняться после обновления студии.",
+    "en": "No events yet. They will be recorded after the studio update."
+  },
+  "events.history_entries_loading_failed_error": {
+    "ru": "Не удалось загрузить историю событий.",
+    "en": "Could not load event history."
+  },
+  "events.history_dialog_title": {
+    "ru": "История событий",
+    "en": "Event history"
+  },
+  "events.history_dialog_close_button_label": {
+    "ru": "Закрыть историю событий",
+    "en": "Close event history"
+  },
+  "events.history_dialog_purpose_description": {
+    "ru": "Общий локальный журнал генераций и технических операций, сначала новые. Журналы разделов доступны отдельно через «Логи».",
+    "en": "Shared local journal of generations and technical operations, newest first. Section logs remain available separately through Logs."
+  },
+  "events.history_scope_filter_label": {
+    "ru": "События",
+    "en": "Events"
+  },
+  "events.history_scope_all_option_label": {
+    "ru": "Все",
+    "en": "All"
+  },
+  "events.history_scope_generations_option_label": {
+    "ru": "Генерации и результаты",
+    "en": "Generations and results"
+  },
+  "events.history_scope_technical_option_label": {
+    "ru": "Технические операции",
+    "en": "Technical operations"
+  },
+  "events.history_type_filter_label": {
+    "ru": "Тип",
+    "en": "Type"
+  },
+  "events.history_type_all_option_label": {
+    "ru": "Все типы",
+    "en": "All types"
+  },
+  "events.history_state_filter_label": {
+    "ru": "Состояние",
+    "en": "State"
+  },
+  "events.history_state_unfinished_option_label": {
+    "ru": "Без завершения",
+    "en": "Without completion"
+  },
+  "events.history_refresh_button_label": {
+    "ru": "Обновить",
+    "en": "Refresh"
+  },
+  "events.history_load_earlier_button_label": {
+    "ru": "Показать более ранние",
+    "en": "Show earlier"
+  }
+}

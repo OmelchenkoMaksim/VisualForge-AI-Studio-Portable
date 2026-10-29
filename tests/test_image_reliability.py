@@ -10,7 +10,7 @@ import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from job_history import JobHistory
-import server
+import studio_server as server
 
 
 class HistoryTests(unittest.TestCase):

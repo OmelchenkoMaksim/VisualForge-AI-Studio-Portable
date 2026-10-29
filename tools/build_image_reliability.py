@@ -9,7 +9,7 @@ import zipfile
 
 VERSION='2026.10.24-image.2'
 BASE='2026.10.24-layout.1'
-FILES=('App/frontend/app.js','App/frontend/index.html','App/frontend/style.css','App/server/server.py','App/server/job_history.py')
+FILES=('App/frontend/image-studio.js','App/frontend/studio-index.html','App/frontend/image-studio.css','App/server/studio_server.py','App/server/job_history.py')
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser()

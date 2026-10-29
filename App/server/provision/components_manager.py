@@ -5,7 +5,7 @@ import shutil
 import threading
 import time
 
-from .engine import Busy, Engine, NotEnoughSpace, ProvisionError
+from .install_engine import Busy, Engine, NotEnoughSpace, ProvisionError
 
 
 class ComponentsManager:
@@ -24,7 +24,7 @@ class ComponentsManager:
         self.error = ''
         self.started = None
         self.finished = None
-        from .recovery import Recovery
+        from .component_recovery import Recovery
         self.recovery = Recovery()
         self.view = self.factory(root, catalog_path)
         from .model_lifecycle import ModelLifecycle
@@ -67,7 +67,7 @@ class ComponentsManager:
             engine = self.factory(self.root, self.catalog_path, emit=self._on_event)
             chosen = list(models) + [engine.text_model_component(tag) for tag in text_models]
             if preset:
-                from .cli import resolve_preset
+                from .setup_cli import resolve_preset
                 chosen += resolve_preset(engine, preset)
             engine.recover = self.recovery.request
             ids = chosen if only_required else engine.select(models=chosen)

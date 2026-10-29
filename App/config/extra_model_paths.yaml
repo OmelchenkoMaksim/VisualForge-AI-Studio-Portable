@@ -14,5 +14,7 @@ visualforge:
         clip
     upscale_models: |
         upscale_models
+    model_patches: |
+        model_patches
     vae: |
         vae

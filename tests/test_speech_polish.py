@@ -7,8 +7,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 sys.path.insert(0, str(ROOT / 'tests'))
-from gpu import Busy, GpuCoordinator, GpuUnavailable
-from speech import polish, routes
+from gpu_coordinator import Busy, GpuCoordinator, GpuUnavailable
+from speech import dictation_polish as polish, speech_routes as routes
 from speech.speech_manager import SpeechManager
 from test_speech import Handler, SpeechCase, wav_bytes
 

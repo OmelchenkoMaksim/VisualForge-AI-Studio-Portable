@@ -15,7 +15,8 @@ PARAMETER = re.compile(r'\{(\d+)\}')
 
 @lru_cache(maxsize=16)
 def _section(name):
-    return json.loads((CATALOGS / (name + '.json')).read_text(encoding='utf-8'))
+    # Keep protocol resource keys independent of the descriptive catalog filenames.
+    return json.loads((CATALOGS / (name + '-strings.json')).read_text(encoding='utf-8'))
 
 
 def source(key, *values):

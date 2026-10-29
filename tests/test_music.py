@@ -7,11 +7,11 @@ import unittest
 from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from music.registry import validate
-from music.storage import publish, resolve_path, stored_path
+from music.music_registry import validate
+from music.music_storage import publish, resolve_path, stored_path
 from music.music_manager import MusicManager
-from music.routes import handle
-from gpu import GpuCoordinator
+from music.music_routes import handle
+from gpu_coordinator import GpuCoordinator
 
 class MusicTests(unittest.TestCase):
     def test_request_preserves_song_and_seed(self):
@@ -163,7 +163,7 @@ class ProgressFileTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == 'win32', 'Windows refuses to replace a file that another handle holds open')
     def test_a_reader_holding_the_file_open_does_not_fail_the_write(self):
         import threading
-        from music.storage import read_json, write_json
+        from music.music_storage import read_json, write_json
         write_json(self.path, {'phase': 'one'})
         reader = self.path.open('r', encoding='utf-8')
         threading.Timer(0.1, reader.close).start()
@@ -173,7 +173,7 @@ class ProgressFileTests(unittest.TestCase):
 
     def test_a_file_that_stays_locked_raises_and_leaves_no_temporary_file(self):
         from unittest.mock import patch
-        from music import storage
+        from music import music_storage as storage
         pauses = []
         with patch.object(storage.os, 'replace', side_effect=PermissionError(13, 'denied')):
             with self.assertRaises(PermissionError):
@@ -183,7 +183,7 @@ class ProgressFileTests(unittest.TestCase):
 
     def test_workers_never_let_a_progress_write_end_the_generation(self):
         root = Path(__file__).resolve().parents[1] / 'App/server/music'
-        for name in ('worker.py', 'minimax_worker.py'):
+        for name in ('music_worker.py', 'minimax_worker.py'):
             source = (root / name).read_text(encoding='utf-8')
             block = source[source.index('def phase('):source.index('def phase(') + 400]
             with self.subTest(worker=name):

@@ -1,8 +1,8 @@
 /* Guide content follows installed workflow roles; advice is distinct from guarantees. */
 (function(root){
   const language='Практический совет: начните с английского, чтобы сравнивать с официальными примерами. Это не требование документации и не доказательство превосходства английского. Русский допустим; проверяйте смысл результата. Оптимальная длина не установлена: нужны конкретные детали, а не повторения.';
-  const quality2511='Наши пресеты: Low 40 / Good 50 / High 60 шагов, CFG 4. Больше шагов не гарантирует точность; сохранение деталей проверяйте по результату.';
-  const quality21='Low 25 шагов соответствует официальному workflow; Good 35 / High 50 — наши экспериментальные пресеты. Усилитель prompt отключён. UC не гарантирует лучшего следования инструкции.';
+  const quality2511='Стандарт: 40 шагов, CFG 4. Дополнительный Lightning: 4 шага, CFG 1, без негативного промпта. Сохранение деталей проверяйте по результату.';
+  const quality21='25 шагов — стартовый workflow ComfyUI; 40 — больший бюджет исходной модели. Больше шагов не гарантирует лучший результат. CFG 1: негативный промпт не действует. UC не гарантирует большей точности.';
   const qualityZ='Единственный пресет — 8 шагов, CFG 1, как в официальном workflow Turbo. Больше шагов не задаётся: модель дистиллирована под 8 вычислений.';
   const qualityFlux='Единственный пресет — 16 шагов без guidance (CFG 1): так работает distilled-вариант. Base в студию не включён.';
   const profiles={
@@ -25,7 +25,71 @@
       prompt:{title:'Qwen 2.1 UC · Prompt — нативная генерация',purpose:'Нативный text-to-image: пользовательские изображения не отправляются. Модель получает текст и выбранный формат latent.',structure:'Опишите главный объект, среду, композицию, камеру или ракурс, освещение, цвета и стиль. Точную надпись заключите в кавычки. Длина сама по себе не улучшает результат.',mistakes:'Не используйте команды сохранения несуществующего исходника. Избегайте противоречивых ракурсов и повторов. Начальные размеры около 1 Мп, без автоматического включения 2K.',example:'A futuristic city with flying vehicles, wide street-level view, blue and amber night lighting, cinematic realism. A small sign reads "OPEN".',quality:quality21}
     }
   };
-  function get(engine,mode){const content=profiles[engine]?.[mode];return content?{...content,language}:null;}
+  profiles['z-image-turbo-int8'].detail = {
+    title:'Z-Image Turbo · Детализация 2K',
+    purpose:'Загрузите исходник в Image 1 и опишите уже изображённую сцену: объекты, материалы, свет и фактуру. Описание направляет перерисовку мелких деталей; команды замены объектов могут не сработать.',
+    structure:'',
+    mistakes:'Не используйте этот режим для сохранения точных надписей, идентичности лица или восстановления доказательных деталей. Референс, негативный промпт и маска здесь не применяются.',
+    example:'A red mechanical alarm clock on a wooden table, brushed metal, woven blue cloth, warm window light, realistic photograph.',
+    quality:'Real-ESRGAN → Z-Image · 5 steps · CFG 1 · DPM++ 2M SDE / beta'
+  };
+  const guidedModes = {
+    control: ['image.control_mode_selector_label', 'image.control_control_usage_hint'],
+    inpaint: ['image.inpaint_mode_selector_label', 'image.control_inpaint_usage_hint'],
+    tile: ['image.tile_mode_selector_label', 'image.control_tile_usage_hint']
+  };
+  function get(engine,mode){
+    if (engine === 'qwen-image-21-uc-fp8') {
+      if (!['single', 'reference', 'prompt', 'multi'].includes(mode)) return null;
+      const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
+      return {title:text('image.qwen21_guide_' + mode + '_title'), purpose:text('image.qwen21_guide_' + mode + '_purpose'),
+        structure:text('image.qwen21_guide_structure'), language:text('image.qwen_guide_language'),
+        mistakes:text('image.qwen21_guide_limits'), quality:text('image.qwen21_quality_explanation'),
+        example:mode === 'multi' ? 'Keep the clock scene from <image1>. Apply the blue and yellow pattern from <image2> to the clock body only. Add the cactus in its red pot from <image3> on the right. Keep the CLOCK label readable.' : profiles[engine][mode]?.example || ''};
+    }
+    if (engine === 'qwen-edit-2511') {
+      const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
+      const modes = {single:'single', reference:'reference', prompt:'prompt', multi:'multi'};
+      if (!modes[mode]) return null;
+      return {title:text('image.qwen_guide_' + mode + '_title'), purpose:text('image.qwen_guide_' + mode + '_purpose'),
+        structure:text('image.qwen_guide_structure'), language:text('image.qwen_guide_language'),
+        mistakes:text('image.qwen_guide_mistakes'), quality:text('image.qwen_quality_explanation'),
+        example:mode === 'multi' ? 'Keep the clock scene in Image 1. Apply the blue and yellow pattern from Image 2 to the clock body. Add the cactus in its red pot from Image 3 on the right. Keep the CLOCK card readable.' : profiles[engine][mode].example};
+    }
+    const fluxModes = {
+      prompt:['image.flux_guide_prompt_title','image.flux_guide_prompt_purpose'],
+      single:['image.flux_guide_single_title','image.flux_guide_single_purpose'],
+      reference:['image.flux_guide_reference_title','image.flux_guide_reference_purpose'],
+      multi:['image.flux_multi_mode_label','image.flux_guide_multi_purpose'],
+      layout:['image.flux_layout_mode_label','image.flux_guide_layout_purpose']
+    };
+    if (engine === 'flux3-klein-int8' && fluxModes[mode]) {
+      const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
+      return {title:text(fluxModes[mode][0]), purpose:text(fluxModes[mode][1]),
+        structure:text('image.flux_guide_structure'), language:text('image.flux_guide_language'),
+        mistakes:text('image.flux_guide_mistakes'), quality:text('image.flux_quality_explanation'),
+        example:mode === 'layout' ? 'Minimalist studio product illustration on a plain white background, soft shadows, clear separation between the objects.'
+          : mode === 'prompt' ? profiles[engine].prompt.example : 'Change only the red clock body to dark green. Keep its shape, face, hands, background and lighting unchanged.'};
+    }
+    if (engine === 'z-image-turbo-int8' && guidedModes[mode]) {
+      const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
+      return {title:text(guidedModes[mode][0]), purpose:text(guidedModes[mode][1]), structure:'', language:text('image.zimage_guide_language_advice'),
+        mistakes:text('image.control_mode_effect_explanation'),
+        example:'A green mechanical alarm clock on a wooden table, blue woven cloth, warm window light, realistic materials.',
+        quality:'8 steps · CFG 1 · Res multistep / simple'};
+    }
+    const content=profiles[engine]?.[mode];
+    if (!content) return null;
+    const localized = {
+      prompt: {title:'image.zimage_guide_prompt_title', purpose:'image.zimage_guide_prompt_purpose', structure:'image.zimage_guide_prompt_structure', mistakes:'image.zimage_guide_prompt_mistakes', quality:'image.zimage_prompt_quality_explanation'},
+      detail: {title:'image.detail_guide_title_label', purpose:'image.detail_guide_scene_prompt_advice', mistakes:'image.detail_guide_limitations_advice'}
+    };
+    if (engine === 'z-image-turbo-int8' && root.StudioI18n && localized[mode]) {
+      return {...content, ...Object.fromEntries(Object.entries(localized[mode]).map(([field,key]) => [field,root.StudioI18n.t(key)])),
+        language:root.StudioI18n.t('image.zimage_guide_language_advice')};
+    }
+    return {...content,language};
+  }
   function append(existing,example){return existing ? existing+'\n\n'+example : example;}
   const api={profiles,get,append};root.VisualForgeGuides=api;
   if(typeof module!=='undefined')module.exports=api;

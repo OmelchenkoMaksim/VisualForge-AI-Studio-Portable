@@ -1,7 +1,7 @@
 """Pins what the Voiceover engines need that the Video bundle does not already provide, and adds it to the component catalog.
 
 Writes App/config/voiceover-assets.json (wheel URLs and hashes from PyPI, model file sizes and hashes from Hugging Face) and, with
---patch-catalog, merges the two components it describes into App/config/components.json without regenerating the whole catalog
+--patch-catalog, merges the two components it describes into App/config/component-catalog.json without regenerating the whole catalog
 (tools/build_catalog.py needs a complete reference installation for that). `tools/build_catalog.py` reads the same manifest, so a full
 regeneration keeps them.
 
@@ -35,7 +35,7 @@ def build():
         id='voiceover.runtime', module='voiceover', kind='software', title='Voiceover: VoxCPM2 packages',
         description='The voxcpm package (pinned 2.0.3) and its extra dependencies, installed beside the Qwen3-TTS packages in the Video runtime. '
                     'It borrows PyTorch, librosa and transformers from the Video runtime.',
-        license='Apache-2.0 (voxcpm); pydantic and the others are MIT', requires=['video.runtime'],
+        license='Apache-2.0 (voxcpm); pydantic and the others are MIT', requires=['video.video_runtime'],
         present=['Runtime/Video/voxcpm-packages/voxcpm/__init__.py', 'Runtime/Video/voxcpm-packages/pydantic/__init__.py'],
         disk_bytes=sum(item['bytes'] for item in wheels) * 3, downloads=wheels,
         steps=[dict(op='unpack_wheels', downloads=[item['id'] for item in wheels], to='Runtime/Video/voxcpm-packages')])
@@ -50,14 +50,14 @@ def build():
 
 
 def patch_catalog(manifest):
-    path = REPO / 'App/config/components.json'
+    path = REPO / 'App/config/component-catalog.json'
     catalog = json.loads(path.read_text(encoding='utf-8'))
     catalog['components'] = [row for row in catalog['components'] if not row['id'].startswith('voiceover.')] + manifest['components']
     catalog['modules'] = [row for row in catalog['modules'] if row['id'] != 'voiceover']
     catalog['modules'].append(dict(manifest['module'], components=[row['id'] for row in catalog['components'] if row['module'] == 'voiceover']))
     sys.path.insert(0, str(REPO / 'App/server'))
-    from provision import catalog as catalog_module
-    from provision.sources import enrich
+    from provision import component_catalog as catalog_module
+    from provision.download_sources import enrich
     enrich(catalog)
     catalog_module.validate(catalog)
     path.write_text(json.dumps(catalog, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
@@ -66,7 +66,7 @@ def patch_catalog(manifest):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--patch-catalog', action='store_true', help='also merge the components into App/config/components.json')
+    parser.add_argument('--patch-catalog', action='store_true', help='also merge the components into App/config/component-catalog.json')
     arguments = parser.parse_args()
     manifest = build()
     MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

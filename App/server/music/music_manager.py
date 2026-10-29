@@ -12,11 +12,11 @@ import threading
 import time
 import tempfile
 import uuid
-from generation import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, remove as remove_event
+from generation_identity import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, remove as remove_event
 from .comfy_backend import Cancelled, ComfyBackend, ComfyError
-from .registry import ENGINE, ENGINES, get_engine, validate
-from .storage import publish, read_json, resolve_path, stored_path, write_json
-from video.owned import OwnedJob
+from .music_registry import ENGINE, ENGINES, get_engine, validate
+from .music_storage import publish, read_json, resolve_path, stored_path, write_json
+from video.owned_processes import OwnedJob
 
 TERMINAL = ('done', 'error', 'cancelled')
 
@@ -63,7 +63,7 @@ class MusicManager:
             return (Path(os.environ.get('VISUALFORGE_MINIMAX_RUNTIME',self.paths.root/'Runtime/Video')).resolve(),
                     Path(os.environ.get('VISUALFORGE_MINIMAX_MODELS',self.paths.models/'Music/MiniMax-Music3')).resolve(),
                     'minimax_worker.py')
-        return self.root,self.models,'worker.py'
+        return self.root,self.models,'music_worker.py'
 
     def availability(self, ident=None):
         ace = self._ace_availability()

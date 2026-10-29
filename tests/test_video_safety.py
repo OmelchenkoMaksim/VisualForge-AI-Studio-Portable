@@ -12,14 +12,14 @@ from unittest.mock import patch
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from video.registry import validate
-from video.service import Jobs
-from video.owned import OwnedJob
+from video.video_registry import validate
+from video.video_service import Jobs
+from video.owned_processes import OwnedJob
 from video.video_manager import VideoManager
 from portable_paths import from_server
-from video.output import filename_base, copy_unique
-from video.runtime import environment
-from video.adapters import build_command
+from video.video_output import filename_base, copy_unique
+from video.video_runtime import environment
+from video.video_adapters import build_command
 
 
 class VideoSafetyTests(unittest.TestCase):
@@ -87,7 +87,7 @@ class VideoSafetyTests(unittest.TestCase):
         folder = self.root / 'job'
         folder.mkdir()
         command = build_command(self.root / 'runtime', self.root / 'models', folder, row)
-        self.assertTrue(any('pipeline.py' in s for s in command))
+        self.assertTrue(any('video_pipeline.py' in s for s in command))
         self.assertEqual(row['frames'], 1440)
         with self.assertRaises(ValueError):
             validate({'prompt': 'test', 'mode': 'characters', 'characters': [person] * 4})
@@ -181,7 +181,7 @@ class VideoSafetyTests(unittest.TestCase):
         from http.server import ThreadingHTTPServer
         import threading
         import urllib.request
-        from video.service import make_handler
+        from video.video_service import make_handler
         server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(self.jobs, 'secret', lambda: None))
         threading.Thread(target=server.serve_forever, daemon=True).start()
         self.addCleanup(server.server_close)

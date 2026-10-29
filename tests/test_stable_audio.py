@@ -15,11 +15,11 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
-from gpu import Busy, GpuCoordinator
+from gpu_coordinator import Busy, GpuCoordinator
 from music.comfy_backend import ComfyBackend, ComfyClient, flac_to_wav, inspect_wav
 from music.music_manager import MusicManager
-from music.registry import ENGINES, STABLE_AUDIO, validate
-from music.routes import handle
+from music.music_registry import ENGINES, STABLE_AUDIO, validate
+from music.music_routes import handle
 from portable_paths import PortablePaths
 
 CHECKPOINT, ENCODER = 'stable_audio_3_medium.safetensors', 't5gemma_b_b_ul2.safetensors'
@@ -166,7 +166,7 @@ class StableAudioBase(unittest.TestCase):
     def setUp(self):
         self.portable = Portable()
         self.addCleanup(self.portable.close)
-        self.template = json.loads((ROOT / 'App/workflows/stable-audio-3-medium/text.api.json').read_text(encoding='utf-8'))
+        self.template = json.loads((ROOT / 'App/workflows/stable-audio-3-medium/stableaudio3-text.api.json').read_text(encoding='utf-8'))
         self.fake = FakeComfy(self.template, self.mode, self.ready_after)
         self.addCleanup(self.fake.close)
         state = tempfile.mkdtemp()
@@ -433,7 +433,7 @@ class CancelTests(StableAudioBase):
 
 class BridgeTests(unittest.TestCase):
     def test_music_prompts_do_not_make_image_look_busy_or_get_stopped(self):
-        import server
+        import studio_server as server
         original = server.MUSIC
         server.MUSIC = Mock()
         server.MUSIC.owned_comfy_prompt_ids.return_value = {'mine'}
@@ -458,7 +458,7 @@ class BridgeTests(unittest.TestCase):
         gpu.claim.assert_called_once_with('music', 8000)
 
     def test_the_claim_grows_with_the_clip_length_where_the_engine_says_so(self):
-        from music.registry import claim_vram_mb
+        from music.music_registry import claim_vram_mb
         self.assertEqual([claim_vram_mb(STABLE_AUDIO, {'duration': d}) for d in (10, 30, 31, 60, 61, 120)], [8000, 8000, 10000, 10000, 14000, 14000])
         self.assertEqual(claim_vram_mb(ENGINES['ace-step-15-turbo'], {'duration': 180}), 8000)
         handler, manager, gpu = Mock(), Mock(), Mock()
@@ -474,20 +474,20 @@ class BridgeTests(unittest.TestCase):
 
 class PageTests(unittest.TestCase):
     def test_the_page_offers_the_engine_and_hides_unused_fields_by_capability(self):
-        page = (ROOT / 'App/frontend/index.html').read_text(encoding='utf-8')
-        script = (ROOT / 'App/frontend/music.js').read_text(encoding='utf-8')
+        page = (ROOT / 'App/frontend/studio-index.html').read_text(encoding='utf-8')
+        script = (ROOT / 'App/frontend/music-panel.js').read_text(encoding='utf-8')
         self.assertIn('<option value="stable-audio-3-medium">', page)
         for block in ('musicModeBlock', 'musicBpmBlock', 'musicLanguageBlock', 'musicPlannerBlock'):
             self.assertIn('id="%s"' % block, page)
             self.assertIn("el('%s').hidden" % block, script)
         self.assertIn("'stable-audio-3-medium'", (ROOT / 'App/frontend/studio-ui.js').read_text(encoding='utf-8'))
-        self.assertIn("'music:stable-audio-3-medium':'music.model.stable-audio-3'", (ROOT / 'App/frontend/components.js').read_text(encoding='utf-8'))
+        self.assertIn("'music:stable-audio-3-medium':'music.model.stable-audio-3'", (ROOT / 'App/frontend/component-manager.js').read_text(encoding='utf-8'))
 
 
 class CatalogTests(unittest.TestCase):
     def test_component_is_pinned_depends_on_the_image_runtime_and_ships_the_license(self):
         from model_requirements import COMPONENTS
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         component = next(c for c in catalog['components'] if c['id'] == COMPONENTS['music:' + STABLE_AUDIO['id']])
         self.assertEqual(component['requires'], ['image.runtime'])
         paths = {Path(f['path']).name: f for f in component['files']}

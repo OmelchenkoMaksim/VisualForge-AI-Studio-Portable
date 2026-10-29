@@ -28,7 +28,7 @@ async function main(){
     if(options.method==='POST')return{ok:true,json:async()=>({generation:record('MicrophoneSession','c')})};
     if(delayed)await new Promise(resolve=>{delayed.resolve=resolve;});
     const query=new URL('http://localhost'+url).searchParams;
-    const rows=query.get('before')?[{...image,generation:record('Image','d')}]:query.get('scope')==='technical'?[technical]:[image,technical];
+    const rows=query.get('state')==='running'?[]:query.get('before')?[{...image,generation:record('Image','d')}]:query.get('scope')==='technical'?[technical]:[image,technical];
     return{ok:true,json:async()=>({entries:rows,next:query.get('before')?null:cursor,types:catalog})};
   }});
   require('./i18n_fixture.cjs')(context);
@@ -43,6 +43,9 @@ async function main(){
   assert.equal(new URL('http://localhost'+calls.at(-1).url).searchParams.get('before'),cursor);
   elements.eventHistoryScope.value='technical';elements.eventHistoryScope.handlers.change();await tick();
   assert.equal(elements.eventHistoryEntries.children.length,1);
+  elements.eventHistoryState.value='running';elements.eventHistoryState.handlers.change();await tick();
+  assert.equal(elements.eventHistoryEntries.children.length,0);
+  assert.equal(elements.eventHistoryStatus.textContent,'Нет событий по выбранным фильтрам.');
   assert.equal(calls.filter(call=>call.options.method==='POST').length,0,'opening and filtering must not collect click analytics');
   const pending=window.StudioEvents.microphoneStart();
   const microphone=await pending;await window.StudioEvents.microphoneFinish(pending,'cancelled');

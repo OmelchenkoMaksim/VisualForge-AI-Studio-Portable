@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from music.registry import ENGINE, MINIMAX, validate
+from music.music_registry import ENGINE, MINIMAX, validate
 from music.music_manager import MusicManager
 
 
@@ -39,7 +39,7 @@ class MiniMaxMusicTests(unittest.TestCase):
     def test_backend_process_selection_keeps_ace_isolated(self):
         manager = MusicManager.__new__(MusicManager)
         manager.root, manager.models = Path('ACE Runtime'), Path('ACE Models')
-        self.assertEqual(manager.engine_paths(ENGINE['id']), (manager.root,manager.models,'worker.py'))
+        self.assertEqual(manager.engine_paths(ENGINE['id']), (manager.root,manager.models,'music_worker.py'))
         manager.paths = type('Paths',(),{'root':Path('Portable'),'models':Path('Portable/Models')})()
         with patch.dict('os.environ',{'VISUALFORGE_MINIMAX_RUNTIME':str(Path('Native Comfy').resolve()),
                                      'VISUALFORGE_MINIMAX_MODELS':str(Path('MiniMax Models').resolve())}):

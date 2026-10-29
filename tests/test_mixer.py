@@ -12,8 +12,8 @@ import threading
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from video import mixer
-from video.delivery import DeliveryCancelled, ffmpeg_paths, probe
+from video import video_mixer as mixer
+from video.video_delivery import DeliveryCancelled, ffmpeg_paths, probe
 
 RUNTIME = Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME') or str(Path(__file__).resolve().parents[1] / 'Runtime' / 'Video'))
 FFMPEG, FFPROBE = ffmpeg_paths(RUNTIME)

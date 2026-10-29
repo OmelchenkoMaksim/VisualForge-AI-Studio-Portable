@@ -59,7 +59,7 @@
     "title": "LTX 2.5 Distilled · видео со звуком",
     "description": "Локальная генерация по тексту или изображению. INT8 ConvRot, 24 FPS; быстрый и двухпроходный профили.",
     "requires": [
-      "video.runtime"
+      "video.video_runtime"
     ],
     "license": "ltx-2.x-community-license-agreement",
     "group": "video",

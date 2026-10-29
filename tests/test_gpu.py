@@ -4,7 +4,7 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from gpu import Busy, GpuCoordinator, GpuUnavailable, MODULES
+from gpu_coordinator import Busy, GpuCoordinator, GpuUnavailable, MODULES
 
 
 class Clock:

@@ -15,7 +15,7 @@ import time
 from urllib.error import HTTPError
 from urllib.request import Request, build_opener, ProxyHandler
 
-from gpu import Busy  # re-exported: the chat raises it for "already answering"
+from gpu_coordinator import Busy  # re-exported: the chat raises it for "already answering"
 
 DEFAULT_PORT = 8292
 DEFAULTS = dict(model='', num_ctx=32768, temperature=1.0, top_p=0.95, top_k=64, num_predict=8192, keep_alive='10m', native_parameters=True)
@@ -203,7 +203,7 @@ class TextManager:
             with log.open('ab') as stream:
                 self.process = subprocess.Popen(command, cwd=str(self.root if self.root.is_dir() else self.paths.root), env=self.environment(), stdout=stream,
                                                 stderr=subprocess.STDOUT, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
-            from video.owned import OwnedJob
+            from video.owned_processes import OwnedJob
             try:
                 self.job = OwnedJob(self.process)
             except OSError:
@@ -335,7 +335,7 @@ class TextManager:
             body['think'] = bool(think)
         payload = json.dumps(body, ensure_ascii=False).encode('utf-8')
         from contextlib import nullcontext
-        from generation import operation
+        from generation_identity import operation
         # Vision calls stay part of their chat; only the central history receives this technical child.
         activity = operation('ImageRecognition', generation_id, cancel=cancel) if any(m.get('images') for m in messages) else nullcontext()
         with activity:

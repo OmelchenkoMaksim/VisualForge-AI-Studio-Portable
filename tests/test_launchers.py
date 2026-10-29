@@ -12,7 +12,7 @@ class LauncherTests(unittest.TestCase):
         script = (ROOT / 'App/Setup-Bootstrap.ps1').read_text(encoding='utf-8')
         pinned = re.search(r"\$embedSha256 = '([0-9a-f]{64})'", script).group(1)
         url = re.search(r"\$embedUrl = '([^']+)'", script).group(1)
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         python = next(d for c in catalog['components'] if c['id'] == 'music.runtime' for d in c['downloads'] if d['id'] == 'python')
         self.assertEqual(pinned, python['sha256'])
         self.assertEqual(url, python['urls'][0])
@@ -24,39 +24,53 @@ class LauncherTests(unittest.TestCase):
             self.assertTrue((ROOT / relative.replace('\\', '/')).is_file(), relative)
         self.assertIn('Runtime\\ComfyUI_windows_portable\\python_embeded\\python.exe', start)
         entry = (ROOT / 'App/Setup-VisualForge.py').read_text(encoding='utf-8')
-        self.assertIn('provision.cli', entry)
+        self.assertIn('provision.setup_cli', entry)
+
+    def test_supervisor_preflight_dependencies_exist_in_the_installed_layout(self):
+        layout = json.loads((ROOT / 'App/config/portable-layout.json').read_text(encoding='utf-8'))['paths']
+        script = (ROOT / 'App/Start-VisualForge.ps1').read_text(encoding='utf-8-sig')
+        # The EXE's preflight runs before the bridge; bridge smoke tests cannot catch stale paths here.
+        dependencies = re.search(r'foreach \(\$path in @\((.*?)\n\s*if \(-not', script, re.S)
+        self.assertIsNotNone(dependencies)
+        roots = {'app': ROOT / layout['server'], 'workflowBase': ROOT / layout['workflows'],
+                 'engineWorkflowBase': ROOT / layout['workflows']}
+        paths = re.findall(r"Join-Path \$(app|workflowBase|engineWorkflowBase) '([^']+)'", dependencies.group(1))
+        self.assertGreaterEqual(len(paths), 4)
+        for variable, relative in paths:
+            with self.subTest(path=relative):
+                self.assertTrue((roots[variable] / relative.replace('\\', '/')).is_file(), relative)
 
     def test_every_model_component_requires_programs_that_the_catalog_lists_as_software(self):
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         software = {c['id'] for c in catalog['components'] if c['kind'] == 'software'}
         for component in catalog['components']:
             if component['kind'] == 'model':
                 self.assertTrue(software & set(component['requires']), component['id'])
 
     def test_license_sensitive_models_carry_a_note(self):
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         notes = {c['id']: c.get('note', '') for c in catalog['components']}
         self.assertIn('European Union', notes['video.model.h3'])
         self.assertTrue(notes['music.model.minimax-music3'])
         self.assertTrue(notes['image.model.qwen-image-21-uc'])
 
     def test_voice_input_is_wired_into_the_page_and_the_bridge(self):
-        page = (ROOT / 'App/frontend/index.html').read_text(encoding='utf-8')
-        server = (ROOT / 'App/server/server.py').read_text(encoding='utf-8')
-        for asset in ('voice.js', 'voice.css'):
+        page = (ROOT / 'App/frontend/studio-index.html').read_text(encoding='utf-8')
+        server = (ROOT / 'App/server/studio_server.py').read_text(encoding='utf-8')
+        for asset in ('voice-input.js', 'voice-input.css'):
             self.assertIn('/' + asset, page)
             self.assertIn("STATIC['/%s']" % asset, server)
             self.assertTrue((ROOT / 'App/frontend' / asset).is_file())
         for route in ('/api/speech/transcribe', '/api/speech/prepare', '/api/speech/'):
             self.assertIn(route, server)
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         models = [c for c in catalog['components'] if c['module'] == 'speech']
         self.assertEqual(sorted(c['id'] for c in models), ['speech.model.rupunct-big', 'speech.model.whisper-large-v3', 'speech.model.whisper-small', 'speech.model.whisper-turbo'])
         self.assertTrue(all(c['requires'] == ['music.runtime'] and any(f['path'].endswith(('model.safetensors', 'pytorch_model.bin')) for f in c['files']) for c in models))
 
     def test_the_generation_lock_blocks_only_start_buttons_and_every_one_exists(self):
         script = (ROOT / 'App/frontend/studio-ui.js').read_text(encoding='utf-8')
-        page = (ROOT / 'App/frontend/index.html').read_text(encoding='utf-8')
+        page = (ROOT / 'App/frontend/studio-index.html').read_text(encoding='utf-8')
         blocked = re.search(r"const BLOCKED = '([^']+)'", script).group(1)
         selectors = [part.strip() for part in blocked.split(',')]
         for selector in selectors:
@@ -82,9 +96,9 @@ class LauncherTests(unittest.TestCase):
         self.assertIn('} finally {Unlock-Lifecycle}\n    Wait-LaunchReady 180\n    Close-Splash', main)   # waits outside the lifecycle mutex
         self.assertIn('} catch {\n    Close-Splash', main)                                          # before the error box
         self.assertIn('} finally {\n    Close-Splash', main)
-        page = (ROOT / 'App/frontend/app.js').read_text(encoding='utf-8')
+        page = (ROOT / 'App/frontend/image-studio.js').read_text(encoding='utf-8')
         self.assertIn('check().then(reportLaunch);', page)
-        self.assertIn("'/api/launch-ready'", (ROOT / 'App/server/server.py').read_text(encoding='utf-8'))
+        self.assertIn("'/api/launch-ready'", (ROOT / 'App/server/studio_server.py').read_text(encoding='utf-8'))
 
     def test_supervisor_parses_in_windows_powershell(self):
         import shutil
@@ -119,7 +133,7 @@ class LauncherTests(unittest.TestCase):
         node = shutil.which('node')
         if not node:
             self.skipTest('node is not installed')
-        for script in ('voice.js', 'components.js', 'text.js', 'studio-ui.js'):
+        for script in ('voice-input.js', 'component-manager.js', 'text-chat.js', 'studio-ui.js'):
             done = subprocess.run([node, '--check', str(ROOT / 'App/frontend' / script)], capture_output=True, text=True)
             self.assertEqual(done.returncode, 0, script + ': ' + done.stderr[:300])
 

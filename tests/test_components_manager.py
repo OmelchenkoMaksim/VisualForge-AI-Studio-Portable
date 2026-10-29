@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 sys.path.insert(0, str(ROOT / 'tests'))
 from fake_web import FakeWeb
-from provision import routes
+from provision import component_routes as routes
 from provision.components_manager import ComponentsManager
 from test_provision import tiny_catalog
 
@@ -45,7 +45,7 @@ class ManagerTests(unittest.TestCase):
         self.web = FakeWeb().__enter__()
         data, self.model_a, self.model_b = tiny_catalog(self.web)
         root = Path(self.temp.name)
-        self.catalog = root / 'components.json'
+        self.catalog = root / 'component-catalog.json'
         self.catalog.write_text(json.dumps(data), encoding='utf-8')
         self.gpu = FakeGpu()
         self.manager = ComponentsManager(root / 'inst', self.catalog, self.gpu)
@@ -108,7 +108,7 @@ class ManagerTests(unittest.TestCase):
 
     def test_cancel_stops_a_running_install(self):
         import threading
-        from provision import net
+        from provision import download_transport as net
         original = net.download
         started, release = threading.Event(), threading.Event()
 

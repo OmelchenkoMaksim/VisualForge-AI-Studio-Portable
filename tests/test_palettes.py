@@ -32,25 +32,25 @@ def contrast(a, b):
 def blocks():
     """{(theme, scheme): {token: value}} read from palettes.css."""
     found = {}
-    for theme, scheme, body in re.findall(r'\[data-theme="(\w+)"\]\[data-palette="(\w+)"\]\{([^}]*)\}', (FRONTEND / 'palettes.css').read_text(encoding='utf-8')):
+    for theme, scheme, body in re.findall(r'\[data-theme="(\w+)"\]\[data-palette="(\w+)"\]\{([^}]*)\}', (FRONTEND / 'color-palettes.css').read_text(encoding='utf-8')):
         found[(theme, scheme)] = dict(re.findall(r'--([\w-]+):([^;]+)', body))
     return found
 
 
 def schemes():
     """The ids offered by the dialog, in the order of palettes.js."""
-    return re.findall(r"\{id: '(\w+)', name: '", (FRONTEND / 'palettes.js').read_text(encoding='utf-8'))
+    return re.findall(r"\{id: '(\w+)', name: '", (FRONTEND / 'color-palettes.js').read_text(encoding='utf-8'))
 
 
 class ColorSchemes(unittest.TestCase):
     def test_every_offered_scheme_has_a_block_for_both_themes(self):
         offered, found = schemes(), blocks()
-        self.assertEqual(offered[0], 'indigo', 'the first scheme is the default defined by theme.css itself')
+        self.assertEqual(offered[0], 'indigo', 'the first scheme is the default defined by studio-theme.css itself')
         self.assertGreaterEqual(len(offered), 4)
         for scheme in offered[1:]:
             for theme in ('dark', 'light'):
                 self.assertIn((theme, scheme), found)
-        self.assertEqual({scheme for _, scheme in found}, set(offered[1:]), 'palettes.css has no scheme the dialog does not offer')
+        self.assertEqual({scheme for _, scheme in found}, set(offered[1:]), 'color-palettes.css has no scheme the dialog does not offer')
 
     def test_every_block_sets_all_tokens(self):
         for key, tokens in blocks().items():
@@ -68,11 +68,11 @@ class ColorSchemes(unittest.TestCase):
             self.assertEqual(luminance(tokens['bg']) < 0.05, theme == 'dark', (theme, scheme))
 
     def test_the_page_and_the_bridge_ship_the_files(self):
-        page = (FRONTEND / 'index.html').read_text(encoding='utf-8')
-        server = (ROOT / 'App/server/server.py').read_text(encoding='utf-8')
-        self.assertLess(page.index('/theme.css'), page.index('/palettes.css'), 'a scheme must come after the defaults it overrides')
-        self.assertLess(page.index('/palettes.js'), page.index('/shell.js'))
-        for name in ('palettes.css', 'palettes.js'):
+        page = (FRONTEND / 'studio-index.html').read_text(encoding='utf-8')
+        server = (ROOT / 'App/server/studio_server.py').read_text(encoding='utf-8')
+        self.assertLess(page.index('/studio-theme.css'), page.index('/color-palettes.css'), 'a scheme must come after the defaults it overrides')
+        self.assertLess(page.index('/color-palettes.js'), page.index('/studio-shell.js'))
+        for name in ('color-palettes.css', 'color-palettes.js'):
             self.assertIn("STATIC['/%s']" % name, server)
             self.assertTrue((FRONTEND / name).is_file())
         for element in ('openPalettes', 'palettesDialog', 'palettesDark', 'palettesLight', 'palettesReset', 'palettesDone', 'palettesClose'):
@@ -82,17 +82,17 @@ class ColorSchemes(unittest.TestCase):
         init = (FRONTEND / 'theme-init.js').read_text(encoding='utf-8')
         self.assertIn("'vf-palette-' + theme", init)
         self.assertIn('dataset.palette', init)
-        self.assertIn("'vf-palette-' + mode", (FRONTEND / 'palettes.js').read_text(encoding='utf-8'), 'both scripts must use the same storage key')
+        self.assertIn("'vf-palette-' + mode", (FRONTEND / 'color-palettes.js').read_text(encoding='utf-8'), 'both scripts must use the same storage key')
 
     def test_the_preview_tiles_get_their_own_theme_tokens(self):
-        css = (FRONTEND / 'theme.css').read_text(encoding='utf-8')
+        css = (FRONTEND / 'studio-theme.css').read_text(encoding='utf-8')
         self.assertIn('.palette-preview[data-theme="dark"]', css)
         self.assertIn('.palette-preview[data-theme="light"]', css)
 
     def test_every_string_of_the_dialog_exists_in_both_languages(self):
-        catalog = json.loads((ROOT / 'App/strings/settings.json').read_text(encoding='utf-8'))
-        used = set(re.findall(r"settings\.color_schemes?_\w+", (FRONTEND / 'index.html').read_text(encoding='utf-8')))
-        used |= set(re.findall(r"'(settings\.color_scheme_\w+)'", (FRONTEND / 'palettes.js').read_text(encoding='utf-8')))
+        catalog = json.loads((ROOT / 'App/strings/settings-strings.json').read_text(encoding='utf-8'))
+        used = set(re.findall(r"settings\.color_schemes?_\w+", (FRONTEND / 'studio-index.html').read_text(encoding='utf-8')))
+        used |= set(re.findall(r"'(settings\.color_scheme_\w+)'", (FRONTEND / 'color-palettes.js').read_text(encoding='utf-8')))
         self.assertGreaterEqual(len(used), 14)
         for key in used:
             self.assertTrue(catalog.get(key, {}).get('ru') and catalog[key].get('en'), key)

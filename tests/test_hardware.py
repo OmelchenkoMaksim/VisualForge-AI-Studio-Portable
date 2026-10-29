@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-import hardware
+import hardware_inventory as hardware
 
 
 def machine(vram=16, ram=64):
@@ -32,9 +32,9 @@ class HardwareTests(unittest.TestCase):
         self.assertIn('Система подходит', hardware.assess(machine(), profile)['title'])
 
     def test_each_shipped_model_has_a_starting_profile(self):
-        from engines.registry import ENGINES as image
-        from video.registry import ENGINES as video
-        from music.registry import ENGINES as music
+        from engines.image_registry import ENGINES as image
+        from video.video_registry import ENGINES as video
+        from music.music_registry import ENGINES as music
         for module, engines in (('image', image), ('video', video), ('music', music)):
             for ident in engines:
                 self.assertEqual(hardware.assess(machine(), self.profiles[module+':'+ident])['status'], 'green')

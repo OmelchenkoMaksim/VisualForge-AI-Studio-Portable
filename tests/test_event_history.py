@@ -15,7 +15,7 @@ from types import SimpleNamespace
 SERVER = Path(__file__).resolve().parents[1] / 'App/server'
 sys.path.insert(0, str(SERVER))
 from event_history import EventHistory
-import generation
+import generation_identity as generation
 
 
 class EventHistoryTests(unittest.TestCase):
@@ -133,7 +133,7 @@ class EventHistoryTests(unittest.TestCase):
         # Initialize before concurrent writers, as the bridge does before accepting tasks.
         self.store.page()
         script = self.root / 'writer.py'
-        script.write_text("import sys\nsys.path.insert(0, sys.argv[1])\nimport generation\ngeneration.configure(sys.argv[2])\nfor _ in range(20):\n    r=generation.begin('SpeechPunctuation')\n    generation.finish(r)\n", encoding='utf-8')
+        script.write_text("import sys\nsys.path.insert(0, sys.argv[1])\nimport generation_identity as generation\ngeneration.configure(sys.argv[2])\nfor _ in range(20):\n    r=generation.begin('SpeechPunctuation')\n    generation.finish(r)\n", encoding='utf-8')
         processes = [subprocess.Popen([sys.executable, '-B', str(script), str(SERVER), str(self.store.path)],
                                      cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for _ in range(3)]
         for process in processes:
@@ -154,7 +154,7 @@ class EventHistoryTests(unittest.TestCase):
         self.assertIn('event history UI ok', done.stdout)
 
     def test_music_planner_has_its_own_event_without_changing_arguments(self):
-        from music.worker import trace_planner
+        from music.music_worker import trace_planner
         calls = []
 
         class Planner:
@@ -172,7 +172,7 @@ class EventHistoryTests(unittest.TestCase):
         self.assertNotIn('private fixture input', json.dumps(self.store.page()))
 
     def test_agent_image_inputs_are_identified_without_parsing_user_text(self):
-        from agents.gateway import has_images
+        from agents.agent_gateway import has_images
         self.assertFalse(has_images({'messages': [{'content': 'image_url is just a word'}]}))
         self.assertFalse(has_images({'messages': 1}))
         self.assertFalse(has_images({'messages': [{'content': [{'type': 'text', 'text': 'fixture'}]}]}))
@@ -181,7 +181,7 @@ class EventHistoryTests(unittest.TestCase):
 
     def test_speech_parent_is_forwarded_in_a_header_without_url_logging(self):
         from speech.speech_manager import SpeechManager
-        from speech.routes import transcribe
+        from speech.speech_routes import transcribe
         parent = generation.begin('MicrophoneSession')
         manager = SpeechManager.__new__(SpeechManager)
         manager._recognize = Mock(return_value={'text': 'fixture'})

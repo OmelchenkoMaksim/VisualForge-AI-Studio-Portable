@@ -10,8 +10,8 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from video import delivery
-from video.delivery import PRESETS, DeliveryError, build_command, build_filter, export_clip, ffmpeg_paths, fit_geometry, probe
+from video import video_delivery as delivery
+from video.video_delivery import PRESETS, DeliveryError, build_command, build_filter, export_clip, ffmpeg_paths, fit_geometry, probe
 
 # Read-only use of the bundled FFmpeg of an installed root (<repo>/Runtime/Video); override with VISUALFORGE_VIDEO_RUNTIME.
 RUNTIME = Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME') or str(Path(__file__).resolve().parents[1] / 'Runtime' / 'Video'))

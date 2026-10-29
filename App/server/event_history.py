@@ -26,6 +26,8 @@ TECHNICAL_TYPES = {
     'ImageRecognition': ui_text('events.operation_type_image_recognition_label'),
     'ImagePromptExpansion': ui_text('events.operation_type_image_prompt_expansion_label'),
     'ImageUpscale': ui_text('events.operation_type_image_upscale_label'),
+    'ImageRefinement': ui_text('events.operation_type_image_refinement_label'),
+    'ImageControlNet': ui_text('events.operation_type_image_controlnet_label'),
     'AgentModelCall': ui_text('events.operation_type_agent_model_call_label'),
     'AgentHandoff': ui_text('events.operation_type_agent_handoff_label'),
     'SpeechSynthesis': ui_text('events.operation_type_speech_synthesis_label'),

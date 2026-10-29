@@ -1,5 +1,6 @@
-"""Image engine contract: asset closure against the catalog, workflow wiring, and the prompt-only Z-Image Turbo."""
+"""Image engine contract: asset closure, workflow wiring and optional Z-Image detail refinement."""
 import json
+from io import BytesIO
 from pathlib import Path
 import re
 import shutil
@@ -9,10 +10,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
-from engines.preflight import engine_readiness
-from engines.registry import CANVASES, ENGINES
-from engines.workflow_builder import build_workflow, collect_expansion, collect_outputs, resolve_expansion, resolve_workflow_mode, validate_request
+from engines.image_preflight import engine_readiness, graph_errors
+from engines.image_registry import CANVASES, ENGINES, UPSCALE_MODEL, ZIMAGE_UNION, ZIMAGE_TILE, QWEN_LIGHTNING, QWEN_UNCENSORED
+from engines.workflow_builder import build_workflow, collect_expansion, collect_outputs, resolve_expansion, resolve_workflow_mode, validate_request, resolve_detail_strength, resolve_control_settings
 from model_requirements import COMPONENTS, facts
+from engines.image_inputs import validate_edit_mask, grayscale_png
+from engines.flux_inputs import layout_brief, resolve_flux_options, native_dimensions
+from engines.qwen_inputs import resolve_qwen_options
 
 ZIMAGE = ENGINES['z-image-turbo-int8']
 FLUX = ENGINES['flux3-klein-int8']
@@ -44,18 +48,40 @@ def object_info(engine, present=True):
                     required.setdefault(container, ['COMFY_AUTOGROW_V3', {'template': {'input': {'required': {prefix: ['*']}}, 'prefix': prefix, 'min': 1, 'max': 100}}])
                 else:
                     required.setdefault(key, ['*'])
-    for cls, key, filename in engine.assets:
+    profile_assets = [asset for assets in engine.quality_assets.values() for asset in assets]
+    if engine.id == 'qwen-edit-2511':
+        profile_assets.append(('LoraLoaderModelOnly', 'lora_name', QWEN_UNCENSORED))
+        info['LoraLoaderModelOnly'] = {'input': {'optional': {'model':['MODEL'], 'strength_model':['FLOAT']}}}
+    for cls, key, filename in (*engine.assets, *profile_assets):
         # Engines can load two files through one loader (two CLIPLoaders): the combo lists all of them.
-        files = info[cls]['input']['optional'][key]
+        files = info[cls]['input']['optional'].get(key)
         files = files if isinstance(files, list) and files and isinstance(files[0], list) else [[]]
         files[0].append(filename if present else 'other.safetensors')
         info[cls]['input']['optional'][key] = files
+    if 'UpscaleModelLoader' in info:
+        info['UpscaleModelLoader']['input']['optional']['model_name'] = [[UPSCALE_MODEL]]
+    if 'ModelPatchLoader' in info:
+        info['ModelPatchLoader']['input']['optional']['name'] = [[ZIMAGE_UNION, ZIMAGE_TILE]]
     return info
 
 
 class CatalogParityTests(unittest.TestCase):
+    def test_optional_zimage_patches_are_pinned_and_not_required_by_the_base(self):
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
+        components = {row['id']: row for row in catalog['components']}
+        base = 'image.model.z-image-turbo'
+        for suffix, filename in [('union', ZIMAGE_UNION), ('tile', ZIMAGE_TILE)]:
+            ident = 'image.model.z-image-controlnet-' + suffix
+            self.assertNotIn(ident, components[base]['requires'])
+            self.assertEqual(components[ident]['requires'], ['image.runtime', base])
+            item, = components[ident]['files']
+            self.assertEqual(item['path'], 'Models/model_patches/' + filename)
+            self.assertEqual(item['bytes'], 2_016_627_488)
+            self.assertRegex(item['sha256'], r'^[0-9a-f]{64}$')
+            self.assertIn('/resolve/5155fc56d17821007d6f62ac192c09e0f0e72016/', item['urls'][0])
+
     def test_every_engine_has_a_component_that_ships_its_assets(self):
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         files = {c['id']: {Path(f['path']).name for f in c.get('files', [])} for c in catalog['components']}
         for ident, engine in ENGINES.items():
             component = COMPONENTS['image:' + ident]
@@ -67,7 +93,7 @@ class CatalogParityTests(unittest.TestCase):
                 self.assertIn(filename, files[component], ident + ': ' + filename)
 
     def test_zimage_component_is_pinned_and_hash_checked(self):
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         component = next(c for c in catalog['components'] if c['id'] == 'image.model.z-image-turbo')
         self.assertEqual(component['requires'], ['image.runtime'])
         self.assertEqual(component['license'], 'Apache-2.0')
@@ -99,23 +125,216 @@ class ReadinessTests(unittest.TestCase):
 
     def test_zimage_reports_only_what_it_does(self):
         row = engine_readiness(ZIMAGE, object_info(ZIMAGE))
-        self.assertEqual(row['modes'], ['prompt'])
+        self.assertEqual(row['modes'], ['prompt', 'detail', 'control', 'inpaint', 'tile'])
         self.assertEqual(row['quality_steps'], {'low': 8})
         self.assertEqual(row['cfg'], 1)
         self.assertEqual(row['sampler'], 'res_multistep / simple')
-        self.assertIn('без редактирования', row['capabilities'])
+        self.assertIn('изменение по маске', row['capabilities'])
+        self.assertEqual(row['mode_presets']['detail']['quality_steps'], {'low': 5})
+        self.assertEqual(row['mode_presets']['detail']['sampler'], 'dpmpp_2m_sde / beta')
+
+    def test_optional_detail_dependencies_never_disable_prompt(self):
+        for missing in ('UpscaleModelLoader', 'ImageUpscaleWithModel', 'ImageScaleToTotalPixels', 'VAEEncode'):
+            info = object_info(ZIMAGE)
+            del info[missing]
+            row = engine_readiness(ZIMAGE, info)
+            self.assertTrue(row['ready'], missing)
+            self.assertNotIn('detail', row['modes'], missing)
+            self.assertTrue(row['mode_reasons']['detail'], missing)
+        self.assertEqual(engine_readiness(ZIMAGE, object_info(ZIMAGE), upscale_enabled=False)['modes'], ['prompt', 'control', 'inpaint'])
+        info = object_info(ZIMAGE)
+        info['UpscaleModelLoader']['input']['optional']['model_name'] = [['other.pth']]
+        self.assertEqual(engine_readiness(ZIMAGE, info)['modes'], ['prompt', 'control', 'inpaint'])
+
+    def test_union_tile_missing_or_disabled_are_independent(self):
+        for available, expected in (([], ['prompt', 'detail']), ([ZIMAGE_UNION], ['prompt', 'detail', 'control', 'inpaint']),
+                                    ([ZIMAGE_TILE], ['prompt', 'detail', 'tile'])):
+            info = object_info(ZIMAGE)
+            info['ModelPatchLoader']['input']['optional']['name'] = [available]
+            self.assertEqual(engine_readiness(ZIMAGE, info)['modes'], expected)
+        row = engine_readiness(ZIMAGE, object_info(ZIMAGE), disabled_components=['image.model.z-image-controlnet-union'])
+        self.assertEqual(row['modes'], ['prompt', 'detail', 'tile'])
 
     def test_qwen_engines_keep_their_reported_settings(self):
         self.assertEqual(engine_readiness(ENGINES['qwen-edit-2511'], object_info(ENGINES['qwen-edit-2511']))['cfg'], 4)
         self.assertEqual(engine_readiness(ENGINES['qwen-image-21-uc-fp8'], object_info(ENGINES['qwen-image-21-uc-fp8']))['cfg'], 1)
 
 
+class Qwen2511Tests(unittest.TestCase):
+    def build(self, **overrides):
+        args = dict(mode='single', prompt='make the clock green', image1='source.png', image2=None,
+                    quality='low', upscale=1, seed=424242)
+        args.update(overrides)
+        return build_workflow(ENGINES['qwen-edit-2511'], **args)
+
+    def test_base_and_lightning_have_distinct_sampler_and_lora_paths(self):
+        standard, _ = self.build()
+        fast, meta = self.build(quality='fast')
+        self.assertEqual((standard['169']['inputs']['steps'], standard['169']['inputs']['cfg']), (40, 4))
+        self.assertNotIn('170', standard)
+        self.assertNotIn('171', standard)
+        self.assertEqual((fast['169']['inputs']['steps'], fast['169']['inputs']['cfg']), (4, 1))
+        self.assertEqual(fast['145']['inputs']['model'], ['171',0])
+        self.assertEqual(fast['171']['inputs']['lora_name'], QWEN_LIGHTNING)
+        self.assertFalse(meta['use_uncensored_lora'])
+
+    def test_community_lora_is_explicit_and_can_be_combined_with_lightning(self):
+        graph, meta = self.build(quality='fast', use_uncensored_lora=True)
+        self.assertEqual(graph['171']['inputs']['model'], ['170',0])
+        self.assertEqual(graph['170']['inputs']['lora_name'], QWEN_UNCENSORED)
+        self.assertTrue(meta['use_uncensored_lora'])
+
+    def test_three_images_reach_both_conditioning_branches_in_order(self):
+        engine = ENGINES['qwen-edit-2511']
+        graph, meta = self.build(mode='multi', image2='pattern.png', extra_images=['cactus.png'])
+        self.assertEqual(graph['84']['inputs']['image'], 'cactus.png')
+        for node in ('151','149'):
+            self.assertEqual(graph[node]['inputs']['image1'], ['160',0])
+            self.assertEqual(graph[node]['inputs']['image2'], ['83',0])
+            self.assertEqual(graph[node]['inputs']['image3'], ['84',0])
+        self.assertEqual(meta['reference_count'],3)
+        self.assertEqual(graph_errors(graph,object_info(engine)),[])
+        for extras in ([], ['a.png','b.png']):
+            with self.assertRaises(ValueError):
+                resolve_flux_options(engine,'multi',{'extra_images':extras})
+
+    def test_negative_prompt_is_persisted_and_never_ignored_by_lightning(self):
+        graph, meta = self.build(negative_prompt='duplicate clocks, blur')
+        self.assertEqual(graph['149']['inputs']['prompt'], 'duplicate clocks, blur')
+        self.assertEqual(meta['negative_prompt'], 'duplicate clocks, blur')
+        with self.assertRaises(ValueError): self.build(quality='fast',negative_prompt='blur')
+        for data in ({'negative_prompt':[]},{'negative_prompt':'x'*2001},{'use_uncensored_lora':1}):
+            with self.assertRaises(ValueError): resolve_qwen_options(ENGINES['qwen-edit-2511'],data)
+        with self.assertRaises(ValueError): resolve_qwen_options(FLUX,{'negative_prompt':'blur'})
+
+    def test_missing_or_disabled_addons_do_not_disable_standard_editing(self):
+        engine = ENGINES['qwen-edit-2511']
+        for present, disabled in ((False,[]),(True,['image.model.qwen-edit-lightning','image.model.qwen-edit-uncensored'])):
+            info = object_info(engine)
+            if not present: del info['LoraLoaderModelOnly']
+            row = engine_readiness(engine,info,disabled_components=disabled)
+            self.assertTrue(row['ready'],row['reasons'])
+            self.assertEqual(row['quality_steps'],{'low':40})
+            self.assertFalse(row['community_lora_available'])
+        row = engine_readiness(engine,object_info(engine))
+        self.assertEqual(row['quality_cfg'],{'low':4,'fast':1})
+        self.assertTrue(row['community_lora_available'])
+
+    def test_catalog_addons_are_optional_and_independently_pinned(self):
+        rows = {row['id']:row for row in json.loads((ROOT/'App/config/component-catalog.json').read_text(encoding='utf-8'))['components']}
+        base=rows['image.model.qwen-edit-2511']
+        self.assertEqual(len(base['files']),3)
+        for suffix, filename in (('lightning',QWEN_LIGHTNING),('uncensored',QWEN_UNCENSORED)):
+            key='image.model.qwen-edit-'+suffix
+            self.assertNotIn(key,base['requires'])
+            self.assertIn(base['id'],rows[key]['requires'])
+            self.assertEqual(Path(rows[key]['files'][0]['path']).name,filename)
+        self.assertEqual(rows['image.model.qwen-edit-lightning']['files'][0]['bytes'],849608296)
+
+    def test_editor_normalizes_by_area_without_the_panorama_cropping_buckets(self):
+        for mode in ENGINES['qwen-edit-2511'].modes:
+            graph = ENGINES['qwen-edit-2511'].template(mode)
+            self.assertEqual(graph['160']['class_type'],'ImageScaleToTotalPixels')
+            self.assertEqual(graph['160']['inputs']['resolution_steps'],8)
+            self.assertEqual(graph['160']['inputs']['megapixels'],1.0)
+
+    def test_an_older_two_image_encoder_keeps_existing_modes_without_claiming_three_inputs(self):
+        engine=ENGINES['qwen-edit-2511']
+        info=object_info(engine)
+        info['TextEncodeQwenImageEditPlus']['input']['optional'].pop('image3')
+        row=engine_readiness(engine,info)
+        self.assertTrue(row['ready'])
+        self.assertEqual(row['modes'],['single','reference','prompt'])
+        self.assertNotIn('1–3',row['capabilities'])
+
+
+class Qwen21Tests(unittest.TestCase):
+    def build(self, mode='prompt', **kwargs):
+        return build_workflow(ENGINES['qwen-image-21-uc-fp8'], mode, 'keep the subject', 'source.png',
+                              'reference.png', 'low', 1, 42, **kwargs)
+
+    def test_rgba_is_rejoined_before_every_reference(self):
+        for mode, count in [('single',1), ('reference',2)]:
+            graph, _ = self.build(mode)
+            for slot in range(1, count + 1):
+                joined = str(30 + slot)
+                self.assertEqual(graph['40']['inputs']['images.image_' + str(slot)], [joined,0])
+                self.assertEqual(graph[joined]['class_type'], 'JoinImageWithAlpha')
+                self.assertEqual(graph[joined]['inputs']['alpha'], [str(10 + slot),1])
+
+    def test_ten_ordered_references_retain_alpha_and_actual_count(self):
+        extras = ['ref%d.png' % slot for slot in range(3,11)]
+        graph, meta = self.build('multi', extra_images=extras)
+        self.assertEqual(meta['reference_count'],10)
+        self.assertEqual(graph['117']['inputs']['image'],'ref10.png')
+        self.assertEqual(graph['317']['inputs']['alpha'],['117',1])
+        self.assertEqual(graph['40']['inputs']['images.image_10'],['317',0])
+        self.assertEqual(graph_errors(graph,object_info(ENGINES['qwen-image-21-uc-fp8'])),[])
+        with self.assertRaises(ValueError): self.build('multi',extra_images=extras+['overflow.png'])
+
+    def test_native_two_k_changes_the_edit_encoder_and_prompt_canvas(self):
+        for mode in ('prompt','single','reference','multi'):
+            graph, meta = self.build(mode,native_megapixels=4,**({'extra_images':['third.png']} if mode=='multi' else {}))
+            self.assertEqual(graph['40']['inputs']['resolution'],2048)
+            self.assertEqual(meta['native_megapixels'],4)
+            if mode=='prompt':
+                self.assertEqual((graph['50']['inputs']['width'],graph['50']['inputs']['height']),(2048,2048))
+        for invalid in (True,2,16,'4'):
+            with self.assertRaises(ValueError): resolve_flux_options(ENGINES['qwen-image-21-uc-fp8'],'single',{'native_megapixels':invalid})
+
+    def test_negative_prompts_are_rejected_at_fixed_cfg_one(self):
+        with self.assertRaises(ValueError): resolve_qwen_options(ENGINES['qwen-image-21-uc-fp8'],{'negative_prompt':'blur'})
+
+    def test_optional_expanders_are_distinct_and_absent_when_off(self):
+        engine = ENGINES['qwen-image-21-uc-fp8']
+        graph, meta = self.build()
+        self.assertNotIn('26',graph)
+        self.assertEqual(meta['expansion'],'off')
+        for mode, task in [('prompt','t2i'),('reference','i2i')]:
+            graph, meta = self.build(mode,expand=True)
+            self.assertIn('_pe_'+task+'.',graph['23']['inputs']['clip_name'])
+            self.assertEqual(graph['40']['inputs']['prompt'],['26',0])
+            self.assertEqual(meta['expansion_preview_node'],'27')
+            self.assertEqual(meta['expansion_model'],engine.expansion_assets[mode])
+            self.assertEqual('28' in graph, mode!='prompt')
+        graph, _ = self.build('multi',extra_images=['a.png','b.png'],expand=True)
+        self.assertEqual(list(graph['28']['inputs'].values()),[['11',0],['12',0],['110',0],['111',0]])
+
+    def test_optional_expansion_missing_or_disabled_does_not_disable_base(self):
+        engine = ENGINES['qwen-image-21-uc-fp8']
+        info = object_info(engine)
+        row = engine_readiness(engine,info)
+        self.assertTrue(row['ready'])
+        self.assertEqual(row['expansion_available_modes'],[])
+        extra = object_info(FLUX)
+        for cls in ('TextGenerate','PreviewAny','BatchImagesNode'): info[cls]=extra[cls]
+        info['CLIPLoader']['input']['optional']['clip_name'][0].extend(set(engine.expansion_assets.values()))
+        row = engine_readiness(engine,info)
+        self.assertTrue(row['ready'])
+        self.assertEqual(row['expansion_available_modes'],list(engine.modes))
+        row = engine_readiness(engine,info,disabled_components=['image.model.qwen21-pe-i2i'])
+        self.assertTrue(row['ready'])
+        self.assertEqual(row['expansion_available_modes'],['prompt'])
+
+    def test_explicit_transparency_bypasses_the_checkerboard_rewriter(self):
+        engine = ENGINES['qwen-image-21-uc-fp8']
+        for prompt in ('an RGBA clock','keep the alpha channel','a transparent PNG','удали фон, нужен прозрачный PNG'):
+            with self.assertRaises(ValueError): resolve_expansion(engine,{'expand':True,'prompt':prompt})
+            self.assertFalse(resolve_expansion(engine,{'expand':False,'prompt':prompt}))
+        for prompt in ('a transparent glass cup on a wooden table','a poster with the exact title ALPHA'):
+            self.assertTrue(resolve_expansion(engine,{'expand':True,'prompt':prompt}))
+
+
 class FluxWorkflowTests(unittest.TestCase):
     def build(self, **overrides):
         args = dict(mode='prompt', prompt='a red fox', image1=None, image2=None, quality='low', upscale=1, seed=5, canvas='portrait', expand=None)
         args.update(overrides)
+        if args['mode'] == 'multi':
+            args.setdefault('extra_images', ['third.png'])
+        if args['mode'] == 'layout':
+            args.setdefault('layout_boxes', [dict(id='obj_1', desc='a red sphere', bbox=[100,100,450,450])])
         return build_workflow(FLUX, args.pop('mode'), args.pop('prompt'), args.pop('image1'), args.pop('image2'), args.pop('quality'),
-                              args.pop('upscale'), args.pop('seed'), args.pop('canvas'), args.pop('expand'))
+                              args.pop('upscale'), args.pop('seed'), args.pop('canvas'), args.pop('expand'), **args)
 
     def test_expansion_is_the_default_and_feeds_the_text_encode(self):
         graph, meta = self.build()
@@ -200,7 +419,7 @@ class FluxWorkflowTests(unittest.TestCase):
     def test_every_mode_is_ready_when_nodes_and_files_exist(self):
         row = engine_readiness(FLUX, object_info(FLUX))
         self.assertTrue(row['ready'], row['reasons'])
-        self.assertEqual(row['modes'], ['single', 'reference', 'prompt'])
+        self.assertEqual(row['modes'], ['single', 'reference', 'prompt', 'multi', 'layout'])
         self.assertIn('редактирование', row['capabilities'])
 
     def test_the_stored_template_keeps_its_upsampler_nodes(self):
@@ -217,8 +436,8 @@ class FluxWorkflowTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve_expansion(FLUX, {'expand': 'yes'})
 
-    def test_all_three_modes_are_offered_and_validated(self):
-        self.assertEqual(FLUX.modes, ('single', 'reference', 'prompt'))
+    def test_all_flux_modes_are_offered_and_validated(self):
+        self.assertEqual(FLUX.modes, ('single', 'reference', 'prompt', 'multi', 'layout'))
         for mode in FLUX.modes:
             self.assertEqual(validate_request(FLUX, dict(mode=mode, prompt='x', quality='low'))[0], mode)
         with self.assertRaises(ValueError):
@@ -231,6 +450,102 @@ class FluxWorkflowTests(unittest.TestCase):
         self.assertEqual(collect_expansion({'outputs': {}}, meta), '')
         _, plain = self.build(expand=False)
         self.assertEqual(collect_expansion(history, plain), '')
+
+    def test_all_ten_references_reach_both_the_image_model_and_the_upsampler_in_order(self):
+        extra = ['ref%d.png' % index for index in range(3, 11)]
+        for expand in (True, False):
+            graph, meta = self.build(mode='multi', image1='a.png', image2='b.png', extra_images=extra, expand=expand)
+            self.assertEqual(meta['reference_count'], 10)
+            self.assertNotIn('12', graph)
+            for index, filename in enumerate(extra):
+                node = str(110 + index)
+                self.assertEqual(graph[node]['inputs']['image'], filename)
+                self.assertEqual(graph['43']['inputs']['images.image' + str(index + 2)], [node, 0])
+                if expand:
+                    self.assertEqual(graph['28']['inputs']['images.image' + str(index + 2)], [node, 0])
+            self.assertEqual('28' in graph, expand)
+
+    def test_layout_survives_expansion_and_direct_caption_paths(self):
+        for expand in (True, False):
+            graph, meta = self.build(mode='layout', expand=expand)
+            self.assertEqual(graph['40']['inputs']['text'], ['30', 0])
+            self.assertIn('"id": "obj_1"', graph['29']['inputs']['value'])
+            self.assertIn('"bbox": [100, 100, 450, 450]', graph['29']['inputs']['value'])
+            if expand:
+                self.assertEqual(graph['30']['inputs']['string_a'], ['26',0])
+                caption_input = graph[FLUX.prompt_node]['inputs'][FLUX.prompt_key]
+            else:
+                caption_input = graph['30']['inputs']['string_a']
+            self.assertIn('<obj_1> in the upper left', caption_input)
+            if expand:
+                self.assertEqual(graph['27']['inputs']['source'], ['30',0])
+            self.assertEqual(meta['layout_boxes'][0]['desc'], 'a red sphere')
+
+    def test_swapping_boxes_updates_caption_locations_without_changing_identities(self):
+        rows = [dict(id='red', desc='red sphere', bbox=[100,100,400,400]),
+                dict(id='blue', desc='blue cube', bbox=[600,600,900,900])]
+        self.assertIn('red sphere <red> in the upper left', layout_brief(rows))
+        rows[0]['bbox'], rows[1]['bbox'] = rows[1]['bbox'], rows[0]['bbox']
+        brief = layout_brief(rows)
+        self.assertIn('red sphere <red> in the lower right', brief)
+        self.assertIn('blue cube <blue> in the upper left', brief)
+
+    def test_native_size_changes_the_latent_before_sampling_without_an_upscaler(self):
+        graph, meta = self.build(native_megapixels=4, expand=False)
+        self.assertEqual((graph['50']['inputs']['width'], graph['50']['inputs']['height']), (1536,2304))
+        self.assertNotIn('200', graph)
+        self.assertEqual(meta['native_megapixels'], 4)
+        self.assertEqual(native_dimensions((1024,1024), 4), (2048,2048))
+
+    def test_fourk_is_bounded_and_requires_its_measured_memory_profile(self):
+        self.assertEqual(native_dimensions((1024,1024), 16), (4096,4096))
+        self.assertEqual(native_dimensions((1152,768), 16), (4096,2736))
+        self.assertEqual(FLUX.required_vram('prompt', 16), 15000)
+        self.assertEqual(FLUX.required_vram('layout', 16), 15000)
+        self.assertEqual(FLUX.required_vram('prompt', 4), 12000)
+        with self.assertRaises(ValueError):
+            resolve_flux_options(FLUX, 'prompt', dict(native_megapixels=16, upscale=2))
+
+    def test_missing_layout_node_does_not_disable_existing_flux_modes(self):
+        info = object_info(FLUX)
+        info.pop('StringConcatenate')
+        readiness = engine_readiness(FLUX, info)
+        self.assertTrue(readiness['ready'])
+        self.assertEqual(readiness['modes'], ['single','reference','prompt','multi'])
+        self.assertTrue(readiness['mode_reasons']['layout'])
+
+    def test_edit_system_instructions_are_not_json_escaped_again(self):
+        for mode in ('single','reference','multi'):
+            instruction = FLUX.template(mode)['24']['inputs']['value']
+            self.assertIn('\n\nPick the voice', instruction)
+            self.assertIn('"Remove the ..."', instruction)
+
+
+class FluxInputTests(unittest.TestCase):
+    def test_invalid_ignored_or_excessive_controls_are_rejected(self):
+        for engine, mode, data in [
+            (ZIMAGE,'prompt',{'native_megapixels':4}),
+            (FLUX,'single',{'native_megapixels':4}),
+            (FLUX,'prompt',{'native_megapixels':True}),
+            (FLUX,'prompt',{'native_megapixels':4.0}),
+            (FLUX,'prompt',{'extra_images':['x']}),
+            (FLUX,'multi',{'extra_images':[]}),
+            (FLUX,'multi',{'extra_images':['x']*9}),
+            (FLUX,'single',{'layout_boxes':[]}),
+        ]:
+            with self.subTest(mode=mode, data=data), self.assertRaises(ValueError):
+                resolve_flux_options(engine, mode, data)
+
+    def test_layout_rejects_invalid_dimensions_ids_and_descriptions(self):
+        good = dict(id='obj_1', desc='a cube', bbox=[10,20,600,700])
+        for changes in (dict(bbox=[True,20,600,700]), dict(bbox=[10,20,10,700]),
+                        dict(bbox=[-1,20,600,700]), dict(bbox=[10,20,600,1001]),
+                        dict(desc=''), dict(desc='x'*601), dict(id='</text>')):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                resolve_flux_options(FLUX, 'layout', {'layout_boxes':[{**good, **changes}]})
+        with self.assertRaises(ValueError):
+            resolve_flux_options(FLUX, 'layout', {'layout_boxes':[good, good]})
+        self.assertEqual(resolve_flux_options(FLUX, 'layout', {'layout_boxes':[good]})[1], [good])
 
     def test_readiness_needs_the_upsampler_and_flags_expansion(self):
         # The upsampler file is one of two CLIPLoader files; the card and readiness both list it.
@@ -258,7 +573,7 @@ class FluxWorkflowTests(unittest.TestCase):
 
 class FluxCatalogTests(unittest.TestCase):
     def test_component_is_pinned_gated_and_ships_the_license(self):
-        catalog = json.loads((ROOT / 'App/config/components.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
         component = next(c for c in catalog['components'] if c['id'] == 'image.model.flux3-klein')
         self.assertIn('HF_TOKEN', component['note'])
         self.assertIn('Qualifying User', component['note'])
@@ -295,7 +610,7 @@ class ZImageWorkflowTests(unittest.TestCase):
     def test_no_node_carries_an_image_input(self):
         classes = {node['class_type'] for node in ZIMAGE.template('prompt').values()}
         self.assertNotIn('LoadImage', classes)
-        self.assertEqual(ZIMAGE.image_nodes, ())
+        self.assertEqual(ZIMAGE.image_nodes, ('10', '12'))
 
     def test_upscale_rewires_the_save_node_with_the_engine_prefix(self):
         graph, _ = self.build(upscale=4)
@@ -323,13 +638,124 @@ class ZImageWorkflowTests(unittest.TestCase):
         history = {'outputs': {'90': {'images': [{'filename': 'a.png'}]}, '9': {'images': [{'filename': 'other.png'}]}}}
         self.assertEqual(collect_outputs(history, meta), [{'filename': 'a.png'}])
 
+    def test_detail_encodes_upscaled_source_before_sampling_without_cycles(self):
+        graph, meta = self.build(mode='detail', image1='source.png', upscale=2)
+        self.assertEqual(graph['10']['inputs']['image'], 'source.png')
+        self.assertEqual(graph['11']['inputs']['megapixels'], 1)
+        self.assertEqual(graph['50']['inputs']['pixels'], ['201', 0])
+        self.assertEqual(graph['201']['inputs']['image'], ['11', 0])
+        self.assertEqual(graph['90']['inputs']['images'], ['70', 0])
+        self.assertEqual(meta['sampler_parameters']['steps'], 5)
+        self.assertEqual(meta['detail_strength'], 0.33)
+        self.assertEqual(graph_errors(graph, object_info(ZIMAGE)), [])
+        def walk(ident, ancestors):
+            self.assertNotIn(ident, ancestors, 'workflow dependency cycle')
+            for value in graph[ident]['inputs'].values():
+                if isinstance(value, list) and len(value) == 2 and isinstance(value[0], str):
+                    walk(value[0], ancestors | {ident})
+        walk('90', set())
+
+    def test_detail_strength_is_bounded_and_cannot_be_silently_ignored(self):
+        for value in (0.2, 0.33):
+            strength = resolve_detail_strength('detail', {'detail_strength': value})
+            graph, meta = build_workflow(ZIMAGE, 'detail', 'scene', 'source.png', None, 'low', 2, 7, detail_strength=strength)
+            self.assertEqual(graph['60']['inputs']['denoise'], value)
+            self.assertEqual(meta['detail_strength'], value)
+        for value in (True, '0.2', 0, 0.36, float('nan'), float('inf')):
+            with self.assertRaises(ValueError):
+                resolve_detail_strength('detail', {'detail_strength': value})
+        with self.assertRaises(ValueError):
+            resolve_detail_strength('prompt', {'detail_strength': 0.2})
+        for upscale in (1, 4):
+            with self.assertRaises(ValueError):
+                validate_request(ZIMAGE, dict(mode='detail', prompt='scene', upscale=upscale))
+        with self.assertRaises(ValueError):
+            resolve_workflow_mode(ZIMAGE, 'detail', 'variation')
+
+
+class GuidedImageTests(unittest.TestCase):
+    def build(self, mode, **settings):
+        upscale = 2 if mode == 'tile' else 1
+        return build_workflow(ZIMAGE, mode, 'a green clock', 'source.png', 'mask.png', 'low', upscale, 42, **settings)
+
+    def test_each_optional_graph_is_valid_and_has_no_dependency_cycle(self):
+        for mode in ZIMAGE.optional_modes:
+            graph, meta = (build_workflow(ZIMAGE, mode, 'scene', 'source.png', 'mask.png', 'low', 2, 42)
+                           if mode == 'detail' else self.build(mode))
+            self.assertEqual(graph_errors(graph, object_info(ZIMAGE)), [], mode)
+            def walk(ident, parents):
+                self.assertNotIn(ident, parents, mode)
+                for value in graph[ident]['inputs'].values():
+                    if isinstance(value, list) and len(value) == 2 and isinstance(value[0], str):
+                        walk(value[0], parents | {ident})
+            walk('90', set())
+
+    def test_guidance_and_map_choices_reach_the_graph(self):
+        canny, _ = self.build('control', control_type='canny', control_strength=0.65)
+        prepared, meta = self.build('control', control_type='prepared', control_strength=1)
+        self.assertEqual(canny['26']['inputs']['image'], ['15', 0])
+        self.assertEqual(canny['26']['inputs']['strength'], 0.65)
+        self.assertNotIn('15', prepared)
+        self.assertEqual(prepared['26']['inputs']['image'], ['11', 0])
+        self.assertEqual(meta['control_strength'], 1)
+        for mode, patch in (('control', ZIMAGE_UNION), ('inpaint', ZIMAGE_UNION), ('tile', ZIMAGE_TILE)):
+            graph, _ = self.build(mode)
+            self.assertEqual(graph['24']['inputs']['name'], patch)
+        for value in (0, True, '1', 1.01, float('nan')):
+            with self.assertRaises(ValueError):
+                resolve_control_settings('control', {'control_strength': value})
+        with self.assertRaises(ValueError):
+            resolve_control_settings('prompt', {'control_strength': 0.85})
+        with self.assertRaises(ValueError):
+            resolve_control_settings('control', {'control_type': 'auto-pose'})
+
+    def test_inpaint_composites_only_the_soft_mask_onto_original_resolution(self):
+        graph, _ = self.build('inpaint')
+        self.assertEqual(graph['26']['inputs']['mask'], ['14', 0])
+        self.assertEqual(graph['91']['inputs']['mask'], ['13', 0])
+        self.assertEqual(graph['91']['inputs']['destination'], ['10', 0])
+        self.assertTrue(graph['91']['inputs']['resize_source'])
+        self.assertEqual(graph['90']['inputs']['images'], ['91', 0])
+        with self.assertRaises(ValueError):
+            validate_request(ZIMAGE, dict(mode='inpaint', prompt='x', upscale=2))
+
+    @staticmethod
+    def png(color, size=(32, 32), mode='RGB'):
+        from PIL import Image
+        output = BytesIO()
+        Image.new(mode, size, color).save(output, format='PNG')
+        return output.getvalue()
+
+    def test_empty_colored_transparent_or_misaligned_masks_are_rejected(self):
+        source = self.png('blue')
+        for mask in (self.png('black'), self.png('red'), self.png((255, 255, 255, 0), mode='RGBA'),
+                     self.png('white', (16, 32)), b'not a PNG'):
+            with self.assertRaises(ValueError):
+                validate_edit_mask(source, mask)
+
+    def test_inward_feather_never_modifies_keep_pixels_or_erases_a_thin_selection(self):
+        from PIL import Image, ImageDraw
+        for box in ((8, 8, 23, 23), (15, 4, 15, 27)):
+            mask = Image.new('RGB', (32, 32), 'black')
+            ImageDraw.Draw(mask).rectangle(box, fill='white')
+            output = BytesIO()
+            mask.save(output, format='PNG')
+            prepared = Image.open(BytesIO(validate_edit_mask(self.png('blue'), output.getvalue()))).convert('L')
+            self.assertGreater(prepared.getextrema()[1], 127)
+            for original, value in zip(mask.convert('L').getdata(), prepared.getdata()):
+                if original == 0:
+                    self.assertEqual(value, 0)
+        gray = Image.open(BytesIO(grayscale_png(self.png('red'))))
+        self.assertEqual(len(set(gray.getpixel((0, 0)))), 1)
+
 
 class RequirementsCardTests(unittest.TestCase):
     def test_card_states_the_limits(self):
         rows = dict(facts('image', 'z-image-turbo-int8'))
-        self.assertEqual(rows['Возможности'], 'Изображение по тексту')
+        self.assertIn('Изображение по тексту', rows['Возможности'])
+        self.assertIn('Детализация', rows['Возможности'])
         self.assertIn('INT8', rows['Веса'])
-        self.assertIn('нет редактирования', rows['Особенности'])
+        self.assertIn('Без Single и Reference', rows['Особенности'])
 
     def test_edit_engines_have_no_prompt_only_note(self):
         self.assertNotIn('Особенности', dict(facts('image', 'qwen-edit-2511')))
@@ -343,14 +769,15 @@ class GpuClaimTests(unittest.TestCase):
 
     def test_the_start_route_claims_the_engines_estimate_and_counts_comfyuis_own_cache(self):
         # The generate route needs a live ComfyUI to reach its claim, so the wiring is checked in the source.
-        source = (ROOT / 'App/server/server.py').read_text(encoding='utf-8')
-        self.assertIn("GPU.claim('image', engine.claim_vram_mb)", source)
+        source = (ROOT / 'App/server/studio_server.py').read_text(encoding='utf-8')
+        self.assertIn('claim_vram_mb = engine.required_vram(mode, native_megapixels)', source)
+        self.assertIn("GPU.claim('image', claim_vram_mb)", source)
         self.assertIn('held=dict(image=_comfy_held_mb)', source)
 
     def test_comfyuis_own_memory_is_read_from_system_stats(self):
         from unittest.mock import patch
         from urllib.error import URLError
-        import server
+        import studio_server as server
         self.addCleanup(server._COMFY_RETRY_AT.__setitem__, 0, 0)
         server._COMFY_RETRY_AT[0] = 0
         with patch.object(server, 'json_upstream', return_value={'devices': [{'torch_vram_total': 10 * 1024 ** 3}]}) as call:
@@ -365,7 +792,7 @@ class GpuClaimTests(unittest.TestCase):
 class EngineWordingTests(unittest.TestCase):
     def test_only_prompt_only_engines_say_that_prompt_is_their_only_mode(self):
         # FLUX.3 once told users "только режим Prompt" although it edits in Single and Reference too.
-        script = (ROOT / 'App/frontend/app.js').read_text(encoding='utf-8')
+        script = (ROOT / 'App/frontend/image-studio.js').read_text(encoding='utf-8')
         for ident, engine in ENGINES.items():
             block = re.search(r"'%s': \{(.*?)\n  \}" % re.escape(ident), script, re.S)
             if not block:
@@ -383,9 +810,9 @@ class EnginePolicyTests(unittest.TestCase):
         self.assertIn('engine state ok', done.stdout)
 
     def test_the_page_lists_every_engine_and_registers_its_release(self):
-        page = (ROOT / 'App/frontend/index.html').read_text(encoding='utf-8')
+        page = (ROOT / 'App/frontend/studio-index.html').read_text(encoding='utf-8')
         releases = (ROOT / 'App/frontend/studio-ui.js').read_text(encoding='utf-8')
-        components = (ROOT / 'App/frontend/components.js').read_text(encoding='utf-8')
+        components = (ROOT / 'App/frontend/component-manager.js').read_text(encoding='utf-8')
         for ident in ENGINES:
             self.assertIn('<option value="%s">' % ident, page)
             self.assertIn("'%s':" % ident, releases)

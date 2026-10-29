@@ -15,18 +15,7 @@ import urllib.error
 import urllib.request
 
 DEV = Path(__file__).resolve().parents[1]
-LAUNCHER = r'''
-import sys, threading
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent / 'App/server'))
-import server
-open_dialog = threading.Event()
-def choose_save_dir(initial=None):
-    open_dialog.wait(8)   # the person has not picked a folder yet
-    return None
-server.choose_save_dir = choose_save_dir
-server.ThreadingHTTPServer(('127.0.0.1', server.PORT), server.Handler).serve_forever(poll_interval=0.25)
-'''
+LAUNCHER = "\nimport sys, threading\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).resolve().parent / 'App/server'))\nimport studio_server as server\nopen_dialog = threading.Event()\ndef choose_save_dir(initial=None):\n    open_dialog.wait(8)   # the person has not picked a folder yet\n    return None\nserver.choose_save_dir = choose_save_dir\nserver.ThreadingHTTPServer(('127.0.0.1', server.PORT), server.Handler).serve_forever(poll_interval=0.25)\n"
 
 
 def free_port():

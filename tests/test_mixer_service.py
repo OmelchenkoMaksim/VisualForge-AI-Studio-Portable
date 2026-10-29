@@ -11,8 +11,8 @@ import unittest
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from video.delivery import ffmpeg_paths, probe
-from video.service import Jobs
+from video.video_delivery import ffmpeg_paths, probe
+from video.video_service import Jobs
 
 RUNTIME = Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME') or str(Path(__file__).resolve().parents[1] / 'Runtime' / 'Video'))
 FFMPEG, FFPROBE = ffmpeg_paths(RUNTIME)

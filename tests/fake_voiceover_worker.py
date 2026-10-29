@@ -1,4 +1,4 @@
-"""Stand-in for App/server/voiceover/worker.py: writes a short tone per fragment, so the manager can be tested without a GPU.
+"""Stand-in for App/server/voiceover/qwen_tts_worker.py: writes a short tone per fragment, so the manager can be tested without a GPU.
 
 FAKE_VOICEOVER_SLEEP delays every fragment (to test Stop); FAKE_VOICEOVER_FAIL makes the process exit with an error.
 """

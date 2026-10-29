@@ -14,14 +14,14 @@ import threading
 import time
 from typing import Callable
 
-from gpu import Busy
-from generation import begin as generation_begin, finish as generation_finish, append_log as generation_log
-from .aider import AiderRunner
-from .dsh import DshRunner
-from .gateway import ModelGateway
-from . import loop as loop_module
-from .opencode import OpenCodeError, OpenCodeServer, DEFAULT_PORT as OPENCODE_PORT
-from .registry import AGENTS, DEFAULT_AGENT, DEFAULT_PERMISSION, PERMISSION_HINTS, PERMISSION_MODES, get_agent
+from gpu_coordinator import Busy
+from generation_identity import begin as generation_begin, finish as generation_finish, append_log as generation_log
+from .aider_runner import AiderRunner
+from .dsh_runner import DshRunner
+from .agent_gateway import ModelGateway
+from . import agent_loop as loop_module
+from .opencode_server import OpenCodeError, OpenCodeServer, DEFAULT_PORT as OPENCODE_PORT
+from .agent_registry import AGENTS, DEFAULT_AGENT, DEFAULT_PERMISSION, PERMISSION_HINTS, PERMISSION_MODES, get_agent
 
 GATEWAY_PORT = 8293
 GPU_WAIT_SEC = 30 * 60  # an agent request waits this long for Image/Video/Music to finish before it fails
@@ -620,7 +620,7 @@ class AgentManager:
                     return ui_text('agent.follow_open_code_exited_unexpectedly_see_agent')
                 continue
             kind, props = event.get('type'), event.get('properties') or {}
-            if kind == 'server.closed':
+            if kind == 'studio_server.closed':
                 return ui_text('agent.follow_open_code_exited_unexpectedly_see_agent')
             if kind == 'message.updated':
                 info = props.get('info') or {}

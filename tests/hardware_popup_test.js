@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const source = fs.readFileSync(path.join(__dirname, '../App/frontend/hardware.js'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../App/frontend/hardware-panel.js'), 'utf8');
 const key = 'vf-compatibility-popup';
 const modules = {engineSelect: 'image', videoEngine: 'video', musicEngine: 'music', textModel: 'text'};
 class Element {

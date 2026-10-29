@@ -1,8 +1,8 @@
 """Read-only model facts and catalog-backed storage budgets; never downloads or hashes weights."""
 from ui_strings import source as ui_text
 from pathlib import Path
-from provision import catalog as catalog_module
-from provision.engine import Engine as Installer, SPACE_MARGIN
+from provision import component_catalog as catalog_module
+from provision.install_engine import Engine as Installer, SPACE_MARGIN
 
 COMPONENTS = {
     'image:qwen-edit-2511': 'image.model.qwen-edit-2511',
@@ -20,27 +20,33 @@ COMPONENTS = {
 MODES = dict(t2v=ui_text('hardware.model_requirements_video_text'), i2v=ui_text('hardware.model_requirements_image_animation'), first_last=ui_text('hardware.model_requirements_first_last_frame'),
     characters=ui_text('hardware.model_requirements_characters_references'), s2v=ui_text('hardware.model_requirements_speech_video'), instrumental=ui_text('hardware.generation_instrumental_mode_label'), song=ui_text('hardware.model_requirements_song_vocals'),
     single=ui_text('hardware.model_requirements_editing'), reference=ui_text('hardware.model_requirements_editing_reference'), prompt=ui_text('hardware.model_requirements_image_text'),
-    audio=ui_text('hardware.model_requirements_music_sounds_description'))
+    audio=ui_text('hardware.model_requirements_music_sounds_description'), detail=ui_text('hardware.model_requirements_image_detail_mode'),
+    control=ui_text('hardware.model_requirements_image_control_mode'), inpaint=ui_text('hardware.model_requirements_image_inpaint_mode'), tile=ui_text('hardware.model_requirements_image_tile_mode'),
+    multi=ui_text('image.flux_multi_mode_label'), layout=ui_text('image.flux_layout_mode_label'))
 
 
 def facts(module, ident, model=None):
     if module == 'image':
-        from engines.registry import ENGINES, CANVASES
+        from engines.image_registry import ENGINES, CANVASES
         engine = ENGINES[ident]
         weights = {'qwen-image-21-uc-fp8': ui_text('hardware.model_requirements_characteristics_fp8_int8_text_encoder'),
+                   'qwen-edit-2511': ui_text('hardware.qwen_2511_weights'),
                    'z-image-turbo-int8': ui_text('hardware.model_requirements_characteristics_int8_transformer_fp8_qwen3_4_b'),
                    'flux3-klein-int8': ui_text('hardware.model_requirements_characteristics_distilled_int8_qwen3_vl_4_b')}.get(ident, ui_text('hardware.model_requirements_characteristics_fp8_text_encoder'))
-        rows = [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(MODES[m] + (ui_text('hardware.model_requirements_characteristics_experimental') if m == 'prompt' and not engine.native_prompt else '') for m in engine.modes)), (ui_text('hardware.model_requirements_characteristics_output_format'), 'PNG'),
-            (ui_text('hardware.model_requirements_characteristics_quality'), ' / '.join(str(n) for n in engine.quality_steps.values()) + ui_text('hardware.model_requirements_characteristics_steps')),
-            (ui_text('hardware.model_requirements_characteristics_frame_scratch'), ', '.join('%d×%d' % size for size in dict.fromkeys(CANVASES.values()))),
+        modes = {**MODES, 'multi':ui_text('image.qwen_multi_mode_label')} if ident == 'qwen-edit-2511' else MODES
+        rows = [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(modes[m] + (ui_text('hardware.model_requirements_characteristics_experimental') if m == 'prompt' and not engine.native_prompt else '') for m in engine.modes)), (ui_text('hardware.model_requirements_characteristics_output_format'), 'PNG'),
+            (ui_text('hardware.model_requirements_characteristics_quality'), ' / '.join(str(n) for n in dict.fromkeys([*engine.quality_steps.values(), *(n for presets in engine.mode_quality_steps.values() for n in presets.values())])) + ui_text('hardware.model_requirements_characteristics_steps')),
+            (ui_text('hardware.model_requirements_characteristics_frame_scratch'), ui_text('hardware.model_requirements_flux_native_sizes') if ident == 'flux3-klein-int8' else ui_text('hardware.qwen21_canvas_sizes') if ident == 'qwen-image-21-uc-fp8' else ui_text('hardware.qwen_2511_canvas_sizes') if ident == 'qwen-edit-2511' else ', '.join('%d×%d' % size for size in dict.fromkeys(CANVASES.values()))),
             (ui_text('hardware.model_requirements_characteristics_weights'), weights)]
         if 'single' not in engine.modes:
-            rows.append((ui_text('hardware.model_requirements_characteristics_features'), ui_text('hardware.model_requirements_characteristics_text_image_no_editing_references_variations')))
+            rows.append((ui_text('hardware.model_requirements_characteristics_features'), ui_text('hardware.model_requirements_zimage_optional_modes_note')))
         if ident == 'flux3-klein-int8':
             rows.append((ui_text('hardware.model_license_row_label'), ui_text('hardware.model_requirements_characteristics_flux_kommunity_license_noncommercial_use_commercial')))
+        if ident == 'qwen-edit-2511':
+            rows.append((ui_text('hardware.qwen_2511_profiles_label'), ui_text('image.qwen_quality_explanation')))
         return rows
     if module == 'video':
-        from video.registry import ENGINES
+        from video.video_registry import ENGINES
         engine = ENGINES[ident]
         return [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(MODES[m] for m in engine['modes'])),
             (ui_text('hardware.model_requirements_characteristics_profile'), engine['release']),
@@ -50,7 +56,7 @@ def facts(module, ident, model=None):
             (ui_text('hardware.model_requirements_characteristics_audio'), ui_text('hardware.model_requirements_characteristics_joint_video_audio_generation') if ident == 'ltx25-distilled' else ui_text('hardware.model_requirements_characteristics_speech_synchronization') if ident == 'wan22-s2v-14b' else ui_text('hardware.model_requirements_characteristics_no_audio_generation') if ident == 'wan22-ti2v-5b' else ui_text('hardware.model_requirements_characteristics_video_audio_voice_cloning_separately')),
             (ui_text('hardware.model_requirements_characteristics_features'), engine['limitations'])]
     if module == 'music':
-        from music.registry import ENGINES
+        from music.music_registry import ENGINES
         engine = ENGINES[ident]
         return [(ui_text('hardware.model_requirements_characteristics_capabilities'), ', '.join(MODES[m] for m in engine['modes'])),
             (ui_text('hardware.generation_identity_duration_field_label'), ui_text('hardware.model_requirements_characteristics_s') % (engine['min_duration'], engine['max_duration'])),
@@ -96,7 +102,7 @@ def storage(installer, statuses, ident):
 
 def enrich(profiles, text_models=(), root=None):
     root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
-    catalog_path = root/'App/config/components.json'
+    catalog_path = root/'App/config/component-catalog.json'
     try:
         installer = Installer(root, catalog_path=catalog_path) if catalog_path.is_file() else None
     except (OSError, ValueError, catalog_module.CatalogError):

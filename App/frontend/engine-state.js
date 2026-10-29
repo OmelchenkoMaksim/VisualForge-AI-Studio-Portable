@@ -9,13 +9,14 @@
   function canGenerate(engines, id, mode) {
     return Boolean(engines[id] && engines[id].ready && engines[id].modes.includes(mode));
   }
-  const MODES = ['single', 'reference', 'prompt'];
+  const MODES = ['single', 'reference', 'prompt', 'detail', 'control', 'inpaint', 'tile', 'multi', 'layout'];
   function resolveSelection(engines, saved, requestedMode) {
     const mode = MODES.includes(requestedMode) ? requestedMode :
       (saved && MODES.includes(saved.mode) ? saved.mode : 'single');
     const preferred = saved && typeof saved.engine === 'string' ? saved.engine : DEFAULT_ENGINE;
     const engine = chooseEngine(engines, preferred, mode);
-    return {engine, mode, fallback: engine !== preferred};
+    // A saved optional mode may disappear when its extra model is disabled; the fallback must have a valid mode too.
+    return {engine, mode: modeForEngine(engines, engine, mode), fallback: engine !== preferred};
   }
   function supportsMode(engines, id, mode) {
     return Boolean(engines[id] && engines[id].modes.includes(mode));

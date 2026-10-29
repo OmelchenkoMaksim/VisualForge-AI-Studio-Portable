@@ -15,7 +15,7 @@
    "description": "The voxcpm package (pinned 2.0.3) and its extra dependencies, installed beside the Qwen3-TTS packages in the Video runtime. It borrows PyTorch, librosa and transformers from the Video runtime.",
    "license": "Apache-2.0 (voxcpm); pydantic and the others are MIT",
    "requires": [
-    "video.runtime"
+    "video.video_runtime"
    ],
    "present": [
     "Runtime/Video/voxcpm-packages/voxcpm/__init__.py",

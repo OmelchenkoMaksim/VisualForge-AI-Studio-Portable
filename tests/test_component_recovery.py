@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
 sys.path.insert(0, str(ROOT / 'tests'))
 from fake_web import FakeWeb
-from provision import net
-from provision.engine import Engine
-from provision.recovery import Recovery
+from provision import download_transport as net
+from provision.install_engine import Engine
+from provision.component_recovery import Recovery
 from provision.software_bundle import bundled_source
 from provision.components_manager import ComponentsManager
 from test_provision import tiny_catalog

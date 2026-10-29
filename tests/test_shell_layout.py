@@ -1,6 +1,6 @@
 """The shell's side rail: every block of the page must start to the right of it.
 
-theme.css moves the direct children of <main> clear of the fixed rail with `main > :not(header):not(nav):not(dialog)`, a
+studio-theme.css moves the direct children of <main> clear of the fixed rail with `main > :not(header):not(nav):not(dialog)`, a
 selector of tag weight only. Any class or id rule that sets a horizontal margin on one of those children outranks it, and
 the block slides under the rail: `.panel{margin:20px 0}` once did this to the «Что означают специальные слова» panel."""
 from html.parser import HTMLParser
@@ -59,12 +59,12 @@ def main_child_subject(selector):
 class ShellLayoutTests(unittest.TestCase):
     def setUp(self):
         self.page = PageOutline()
-        self.page.feed((FRONTEND / 'index.html').read_text(encoding='utf-8'))
+        self.page.feed((FRONTEND / 'studio-index.html').read_text(encoding='utf-8'))
 
     def test_the_page_has_blocks_under_main_to_check(self):
         ids = {block_id for _, block_id, _ in self.page.blocks}
         self.assertTrue({'imageWorkspace', 'studioTerms'} <= ids, ids)
-        self.assertIn('theme.css', self.page.sheets)
+        self.assertIn('studio-theme.css', self.page.sheets)
 
     def test_no_class_or_id_rule_pulls_a_main_block_under_the_rail(self):
         found = []

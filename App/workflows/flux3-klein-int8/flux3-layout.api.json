@@ -1,0 +1,182 @@
+{
+  "20": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux3-image-klein-int8-convrot.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "21": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
+    }
+  },
+  "22": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    }
+  },
+  "23": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
+    }
+  },
+  "24": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "You write a detailed English scene caption for FLUX 3 with a fixed layout. The user provides a scene request and a validated element table. Each element has an id, description and bbox [top,left,bottom,right] on a 0 to 1000 grid. The layout plan and boxes are authoritative. Describe each listed element exactly once and include its exact <id> immediately beside its description. Use supplied frame-relative locations: never invent a different left/right or upper/lower placement, swap identities, duplicate elements or introduce extra foreground subjects. Keep explicit colors, materials, counts and quoted text. Add useful detail about appearance, medium, background and lighting without changing the planned arrangement. Do not describe a common baseline when boxes have different vertical positions. Return only one continuous scene caption, about 100 to 250 words. Preserve angle-bracket id tokens. Do not output JSON, coordinates, a table, headings or explanations: the original validated element table is appended separately."
+    }
+  },
+  "25": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "__PROMPT__"
+    }
+  },
+  "26": {
+    "class_type": "TextGenerate",
+    "inputs": {
+      "clip": [
+        "23",
+        0
+      ],
+      "prompt": [
+        "25",
+        0
+      ],
+      "max_length": 3584,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 1,
+      "sampling_mode.top_k": 1,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 1.5,
+      "thinking": false,
+      "use_default_template": true,
+      "mtp": "off",
+      "system_prompt": [
+        "24",
+        0
+      ]
+    }
+  },
+  "27": {
+    "class_type": "PreviewAny",
+    "inputs": {
+      "source": [
+        "30",
+        0
+      ]
+    }
+  },
+  "40": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "21",
+        0
+      ],
+      "text": [
+        "30",
+        0
+      ]
+    }
+  },
+  "41": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": [
+        "21",
+        0
+      ],
+      "text": ""
+    }
+  },
+  "50": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    }
+  },
+  "60": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": [
+        "20",
+        0
+      ],
+      "positive": [
+        "40",
+        0
+      ],
+      "negative": [
+        "41",
+        0
+      ],
+      "latent_image": [
+        "50",
+        0
+      ],
+      "seed": 0,
+      "steps": 16,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1
+    }
+  },
+  "70": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "60",
+        0
+      ],
+      "vae": [
+        "22",
+        0
+      ]
+    }
+  },
+  "90": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "70",
+        0
+      ],
+      "filename_prefix": "FLUX3_Klein_LocalUI"
+    }
+  },
+  "29": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "__LAYOUT__"
+    }
+  },
+  "30": {
+    "class_type": "StringConcatenate",
+    "inputs": {
+      "string_a": [
+        "26",
+        0
+      ],
+      "string_b": [
+        "29",
+        0
+      ],
+      "delimiter": " "
+    }
+  }
+}
