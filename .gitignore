@@ -32,6 +32,9 @@
 /Support/*
 !/Support/Licenses/
 
+# Local screenshot-reading benchmark (corpus, scripts, run results, logs): kept on this machine for future retests, never published.
+/tools/ocr_bench/
+
 # --- 3. Never inside allow-listed folders, whatever their name
 __pycache__/
 *.py[cod]

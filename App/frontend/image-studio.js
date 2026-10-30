@@ -487,6 +487,10 @@ for (const slot of uploadSlots) {
 }
 choosePasteTarget('image1');
 document.addEventListener('paste', (event) => {
+  // The Text chat input and the Video cards call preventDefault() on a pasted picture, but the event still bubbles up to this
+  // document-level listener, which silently put the same screenshot into Image 1 (found in the UI test of 2026-10-30).
+  // A paste belongs to the Image tab only while that tab is shown and nobody has handled it yet.
+  if (event.defaultPrevented || byId('imageTab').getAttribute('aria-selected') !== 'true') return;
   if (isTextMode()) return;
   const items = Array.from(event.clipboardData?.items || []);
   const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));

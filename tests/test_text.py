@@ -197,8 +197,12 @@ class ManagerTests(Base):
 
     def test_private_environment(self):
         os.environ['OLLAMA_HOST'] = '0.0.0.0:11434'
+        os.environ['LLAMA_ARG_IMAGE_MAX_TOKENS'] = '70'
         self.addCleanup(os.environ.pop, 'OLLAMA_HOST', None)
+        self.addCleanup(os.environ.pop, 'LLAMA_ARG_IMAGE_MAX_TOKENS', None)
         env = self.manager.environment()
+        # Gemma 4 vision budget: ours wins over anything inherited from the user's shell.
+        self.assertEqual((env['LLAMA_ARG_IMAGE_MIN_TOKENS'], env['LLAMA_ARG_IMAGE_MAX_TOKENS']), ('560', '1120'))
         self.assertEqual(env['OLLAMA_HOST'], '127.0.0.1:%d' % self.manager.port)
         self.assertEqual((env['OLLAMA_NOPRUNE'], env['OLLAMA_NO_CLOUD'], env['OLLAMA_NUM_PARALLEL']), ('1', '1', '1'))
         self.assertTrue(env['OLLAMA_MODELS'].endswith(os.path.join('Text', 'ollama')))

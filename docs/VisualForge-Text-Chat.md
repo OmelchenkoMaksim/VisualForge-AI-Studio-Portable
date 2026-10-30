@@ -72,12 +72,13 @@ get a copy button.
 
 A model whose manifest contains a projector layer (this one: `vision`) accepts up to 4 PNG/JPEG pictures per message (the
 **Прикрепить изображение** button, Ctrl+V from the clipboard, or dragging files onto the input). The browser shrinks them to a long
-side of 1536 px (PNG kept as is when small, otherwise JPEG 0.92/0.8/0.65, at most about 5 MiB each); the server accepts only PNG and
+side of 2560 px (PNG kept as is when small, otherwise JPEG 0.92/0.8/0.65, at most about 5 MiB each); the server accepts only PNG and
 JPEG recognised by their own headers (not by the declared type), at most 6 MiB and 8192 px per side, 4 per message, 60 per chat.
 Files are stored in `UserData/Text/Chats/<chat id>.images/<image id>.png|jpg` and referenced from the chat file; they are removed
 with the chat. They are shown as thumbnails through `GET /api/text/image?chat=&id=` (ids are looked up in the chat file, so no path can
 be named; `nosniff`, `default-src 'none'`). Every request sends the whole history **including the earlier pictures**, so a follow-up
-such as "what colour is the guitar?" works; each picture costs about 250 tokens of context. A picture-only message is allowed. A model
+such as "what colour is the guitar?" works; each picture costs about 1100 tokens of context (the private Ollama gives Gemma 4 a vision budget of up to 1120
+tokens so that small text in screenshots is readable; the earlier default of 280 tokens cost about 250; measurements in [Gemma-Screenshot-OCR.md](Gemma-Screenshot-OCR.md)). A picture-only message is allowed. A model
 without a projector refuses pictures with a clear message and the attach button is disabled.
 
 ## Routes

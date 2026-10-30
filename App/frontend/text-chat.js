@@ -5,7 +5,9 @@
   let available = false, current = null, chats = [], settings = null, models = [], streaming = null, statusTimer = null, pending = [], mode = 'chat', agentError = '';
   // The open chat decides the mode; without one the «Чат | Агент» switch decides what the next chat will be.
   const agentMode = () => current ? current.kind === 'agent' : mode === 'agent';
-  const MAX_PICTURES = 4, MAX_SIDE = 1536, MAX_BYTES = 5 * 1024 * 1024;
+  // MAX_SIDE: Gemma 4 sees a picture through up to 1120 vision tokens (about 2.6 MP, see VISION_TOKENS in text_manager.py), so a
+  // long side of 1536 px threw away the detail the model can now use; screenshots up to 2560 px keep their small text.
+  const MAX_PICTURES = 4, MAX_SIDE = 2560, MAX_BYTES = 5 * 1024 * 1024;
   const fmt = (n, digits = 1) => Number(n).toLocaleString(StudioI18n.locale, {maximumFractionDigits: digits});
   const gb = bytes => fmt(bytes / 1024 ** 3);
   const api = async (route, data) => {
@@ -167,7 +169,7 @@
     if (agent && agentError) StudioI18n.bind(el('agentInfo'), "textContent", () => (agentError), true);
   }
 
-  // ---- attachments: pictures are shrunk in the browser (long side 1536) and sent as PNG/JPEG ---------------------
+  // ---- attachments: pictures are shrunk in the browser (long side 2560) and sent as PNG/JPEG ---------------------
   const visionAvailable = () => !!models.find(m => m.name === el('textModel').value && m.vision);
   const readData = blob => new Promise((resolve, reject) => {const reader = new FileReader();reader.onload = () => resolve(String(reader.result));reader.onerror = () => reject(new Error(StudioI18n.t("text.reader_read_file_failed")));reader.readAsDataURL(blob);});
   async function prepare(file) {

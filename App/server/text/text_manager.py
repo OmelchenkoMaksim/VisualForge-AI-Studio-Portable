@@ -21,6 +21,11 @@ DEFAULT_PORT = 8292
 DEFAULTS = dict(model='', num_ctx=32768, temperature=1.0, top_p=0.95, top_k=64, num_predict=8192, keep_alive='10m', native_parameters=True)
 LIMITS = dict(num_ctx=(2048, 131072), temperature=(0.0, 2.0), top_p=(0.05, 1.0), top_k=(1, 200), num_predict=(16, 32768))
 KEEP_ALIVE_CHOICES = ('2m', '10m', '30m', '60m')
+# Gemma 4 reads a picture through a fixed number of vision tokens. The llama-server inside Ollama defaults to at most 280 (about 0.65 MP),
+# so a 1080p screenshot is shrunk about 3x before the model sees it and small text becomes a hallucination. 1120 is the largest budget in
+# Gemma's documentation; on a 5-model benchmark it cut the character error rate from 0.31 to 0.04 (docs/Gemma-Screenshot-OCR.md).
+# Ollama passes its environment to llama-server, which reads these two variables.
+VISION_TOKENS = dict(LLAMA_ARG_IMAGE_MIN_TOKENS='560', LLAMA_ARG_IMAGE_MAX_TOKENS='1120')
 REGISTRY = 'registry.ollama.ai'
 
 
@@ -169,7 +174,7 @@ class TextManager:
         return bool(self.process and self.process.poll() is None)
 
     def environment(self):
-        env = {key: value for key, value in os.environ.items() if not key.upper().startswith('OLLAMA') and key.upper() not in ('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY')}
+        env = {key: value for key, value in os.environ.items() if not key.upper().startswith(('OLLAMA', 'LLAMA_ARG')) and key.upper() not in ('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY')}
         settings = self.settings()
         home = self.state / 'home'
         home.mkdir(parents=True, exist_ok=True)
@@ -177,6 +182,7 @@ class TextManager:
                    OLLAMA_FLASH_ATTENTION='1', OLLAMA_KV_CACHE_TYPE='f16', OLLAMA_NUM_PARALLEL='1', OLLAMA_MAX_LOADED_MODELS='1',
                    OLLAMA_KEEP_ALIVE=settings['keep_alive'], OLLAMA_LOAD_TIMEOUT='10m', OLLAMA_CONTEXT_LENGTH=str(settings['num_ctx']),
                    OLLAMA_DEBUG='0', USERPROFILE=str(home), HOME=str(home), OLLAMA_TMPDIR=str(self.state / 'tmp'), CUDA_CACHE_PATH=str(self.state / 'cuda'))
+        env.update(VISION_TOKENS)
         (self.state / 'tmp').mkdir(parents=True, exist_ok=True)
         return env
 
