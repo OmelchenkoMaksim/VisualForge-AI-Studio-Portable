@@ -99,7 +99,7 @@ class TextManager:
                 found.append(dict(name=name, label=model, ok=False, size=0, vision=False, missing=['manifest']))
                 continue
             found.append(dict(name=name, label=model, ok=not missing, size=weights, vision=vision, missing=missing, parameters=parameters,
-                disk_size=disk_size, parameter_size=details.get('model_type'), quantization=details.get('file_type')))
+                disk_size=disk_size, parameter_size=details.get('model_type'), quantization=details.get('file_type'), family=str(details.get('model_family') or '')))
         from model_policy import ModelPolicy
         policy = ModelPolicy(self.paths.root)
         for row in found:
@@ -168,6 +168,13 @@ class TextManager:
         names = [m['name'] for m in self.installed_models() if m['ok']]
         chosen = self.settings()['model']
         return chosen if chosen in names else (names[0] if names else '')
+
+    def gemma_model(self):
+        """The model for the studio's own jobs (video scenarios, dictation editing, screenshot reading): the chat default when it
+        is a Gemma, otherwise the first usable Gemma, and only without any Gemma the default model."""
+        chosen = self.default_model()
+        gemma = [m['name'] for m in self.installed_models() if m['ok'] and m.get('family', '').lower().startswith('gemma')]
+        return chosen if chosen in gemma or not gemma else gemma[0]
 
     # ---- process ------------------------------------------------------------------------------------------------
     def alive(self):

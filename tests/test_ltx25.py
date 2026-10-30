@@ -24,6 +24,43 @@ class LtxTests(unittest.TestCase):
             with self.subTest(extra=extra),self.assertRaises(ValueError):
                 validate(dict(engine=LTX_ID,prompt='Test',frames=49)|extra)
 
+    def test_audio_to_video_validation(self):
+        base = dict(engine=LTX_ID, mode='a2v', prompt='A man talks.', frames=97, source_audio='data:audio/wav;base64,AA==')
+        self.assertEqual(validate(base)['mode'], 'a2v')
+        self.assertEqual(validate(base | dict(source_image='data:image/png;base64,AA=='))['mode'], 'a2v')
+        for extra in ({'source_audio': None}, {'frames': 360}, {'frames': 1440}, {'source_image': 5}, {'speech_text': 'x'}, {'voice_audio': 'data:audio/wav;base64,AA=='}):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                validate(base | extra)
+        with self.assertRaises(ValueError):   # a recording belongs only to audio-to-video
+            validate(dict(engine=LTX_ID, mode='t2v', prompt='x', frames=49, source_audio='data:audio/wav;base64,AA=='))
+
+    def test_first_last_frame_validation(self):
+        base = dict(engine=LTX_ID, mode='first_last', prompt='A door opens.', frames=97, source_image='data:image/png;base64,AA==', end_image='data:image/png;base64,AA==')
+        self.assertEqual(validate(base)['mode'], 'first_last')
+        for extra in ({'end_image': None}, {'source_image': None}, {'frames': 360}, {'frames': 1440}, {'source_audio': 'data:audio/wav;base64,AA=='}):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                validate(base | extra)
+
+    def test_prompt_conditioning_is_cached_by_prompt_and_encoder(self):
+        from video import ltx_worker
+        with tempfile.TemporaryDirectory() as root:
+            jobs = Path(root) / 'Jobs'
+            first, second = jobs / 'a', jobs / 'b'
+            one = ltx_worker.conditioning_cache(first, 'A fox runs.')
+            self.assertEqual(one, ltx_worker.conditioning_cache(second, 'A fox runs.'), 'the same prompt of another job shares the entry')
+            self.assertNotEqual(one, ltx_worker.conditioning_cache(first, 'A fox walks.'))
+            self.assertEqual(one.parent, jobs / ltx_worker.CACHE_NAME)
+            folder = one.parent
+            folder.mkdir(parents=True)
+            for index in range(ltx_worker.CACHE_LIMIT + 5):
+                path = folder / ('%02d.pt' % index)
+                path.write_bytes(b'x')
+                os.utime(path, (1000 + index, 1000 + index))
+            ltx_worker.prune_cache(folder)
+            kept = sorted(path.name for path in folder.glob('*.pt'))
+            self.assertEqual(len(kept), ltx_worker.CACHE_LIMIT)
+            self.assertNotIn('00.pt', kept)          # the oldest go first
+
     def test_two_stages_use_the_published_distilled_schedule(self):
         row = validate(dict(engine=LTX_ID,prompt='Test',width=768,height=512,frames=49,quality='standard',seed='42'))
         plan = inference_plan(row)

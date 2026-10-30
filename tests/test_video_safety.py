@@ -12,7 +12,7 @@ from unittest.mock import patch
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from video.video_registry import validate
+from video.video_registry import validate, ENGINES
 from video.video_service import Jobs
 from video.owned_processes import OwnedJob
 from video.video_manager import VideoManager
@@ -52,6 +52,16 @@ class VideoSafetyTests(unittest.TestCase):
         saved = copy_unique(source, destination, base)
         self.assertEqual(saved.read_bytes(), b'new fixture')
         self.assertEqual((destination / (base + '.mp4')).read_bytes(), b'existing fixture')
+
+    def test_saved_name_ends_with_the_model_that_made_the_video(self):
+        plain = filename_base('A red ball rolls slowly from left to right across a matte gray floor.', 0)
+        self.assertEqual(filename_base('A red ball rolls slowly from left to right across a matte gray floor.', 0, 'LTX 2.5 Distilled'), plain + ' - LTX 2.5 Distilled')
+        self.assertTrue(filename_base('Парусная лодка выходит из бухты', 0, 'Wan 2.2 TI2V-5B').endswith(' - Wan 2.2 TI2V-5B'))
+        # characters Windows forbids in a name never reach the file system; an empty label adds nothing
+        self.assertEqual(filename_base('A red ball rolls slowly from left to right across a matte gray floor.', 0, 'A/B: <C>?* '), plain + ' - A B C')
+        self.assertEqual(filename_base('A red ball rolls slowly from left to right across a matte gray floor.', 0, ' . '), plain)
+        for engine in ENGINES.values():
+            self.assertRegex(engine['file_label'], r'^[A-Za-z0-9 .-]+$')
 
     def test_unverified_modes_and_profiles_rejected(self):
         for extra in [{'mode': 'v2v'}, {'references': []}, {'frames': 240}, {'width': 1024}, {'width': True}, {'fps': 30}, {'quality': 'ultra'}, {'prompt': ' '}]:

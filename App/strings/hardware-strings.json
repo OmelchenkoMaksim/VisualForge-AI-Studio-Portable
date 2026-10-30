@@ -1,15 +1,48 @@
 {
-  "hardware.qwen21_verified_note": {"ru":"На 16 ГБ проверены генерация и правки, RGBA, 1–3 исходника, 25/40 шагов и нативный 2K. Расширители необязательны; загрузка с HDD занимает минуты. Отдельный пик VRAM не измерялся.", "en":"Generation/editing, RGBA, 1–3 inputs, 25/40 steps and native 2K were tested on 16 GB. Enhancers are optional; HDD loading takes minutes. A separate VRAM peak was not measured."},
-  "hardware.qwen21_canvas_sizes": {"ru":"Около 1 Мп или нативный 2K (около 4 Мп). Prompt: квадрат, пейзаж, портрет; правки сохраняют пропорции Image 1. PNG с RGBA.", "en":"About 1 MP or native 2K (about 4 MP). Prompt: square, landscape, portrait; edits preserve Image 1's aspect ratio. PNG with RGBA."},
-  "hardware.qwen_2511_verified_note": {"ru":"Проверены правки, 1–3 исходника и профили 40/4 шага на 16 ГБ. Загрузка с HDD занимает минуты; отдельный пик VRAM не измерялся.", "en":"Editing, 1–3 inputs and 40/4-step profiles were tested on 16 GB. HDD loading takes minutes; a separate VRAM peak was not measured."},
-  "hardware.qwen_2511_canvas_sizes": {"ru":"Prompt: квадрат, пейзаж или портрет, около 1 Мп. Редактирование сохраняет пропорции исходника.", "en":"Prompt: square, landscape or portrait, about 1 MP. Editing preserves the source aspect ratio."},
-  "hardware.qwen_2511_weights": {"ru":"FP8 mixed DiT; Qwen2.5-VL-7B FP8; необязательные Lightning и NSFW LoRA", "en":"FP8 mixed DiT; FP8 Qwen2.5-VL-7B; optional Lightning and NSFW LoRAs"},
-  "hardware.qwen_2511_profiles_label": {"ru":"Профили Qwen 2511", "en":"Qwen 2511 profiles"},
-  "hardware.model_requirements_flux_native_sizes": {"ru":"Около 1 Мп; для Prompt/Компоновки также нативные 2K и 4K (до 4096 по длинной стороне)", "en":"About 1 MP; Prompt/Layout also offer native 2K and 4K (up to 4096 on the longest edge)"},
-  "hardware.model_requirements_zimage_optional_modes_note": {"ru":"Без Single и Reference. Маска и управление структурой требуют Union Lite; управляемое увеличение — Tile Lite. Дополнения устанавливаются отдельно.", "en":"No Single or Reference. Masked editing and structure guidance require Union Lite; guided enlargement requires Tile Lite. Add-ons are installed separately."},
-  "hardware.model_requirements_image_control_mode": {"ru":"Управление структурой (Union)", "en":"Structure guidance (Union)"},
-  "hardware.model_requirements_image_inpaint_mode": {"ru":"Изменение области по маске (Union)", "en":"Masked area editing (Union)"},
-  "hardware.model_requirements_image_tile_mode": {"ru":"Увеличение с Tile", "en":"Tile-guided enlargement"},
+  "hardware.qwen21_verified_note": {
+    "ru": "На 16 ГБ проверены генерация и правки, RGBA, 1–3 исходника, 25/40 шагов и нативный 2K. Расширители необязательны; загрузка с HDD занимает минуты. Отдельный пик VRAM не измерялся.",
+    "en": "Generation/editing, RGBA, 1–3 inputs, 25/40 steps and native 2K were tested on 16 GB. Enhancers are optional; HDD loading takes minutes. A separate VRAM peak was not measured."
+  },
+  "hardware.qwen21_canvas_sizes": {
+    "ru": "Около 1 Мп или нативный 2K (около 4 Мп). Prompt: квадрат, пейзаж, портрет; правки сохраняют пропорции Image 1. PNG с RGBA.",
+    "en": "About 1 MP or native 2K (about 4 MP). Prompt: square, landscape, portrait; edits preserve Image 1's aspect ratio. PNG with RGBA."
+  },
+  "hardware.qwen_2511_verified_note": {
+    "ru": "Проверены правки, 1–3 исходника и профили 40/4 шага на 16 ГБ. Загрузка с HDD занимает минуты; отдельный пик VRAM не измерялся.",
+    "en": "Editing, 1–3 inputs and 40/4-step profiles were tested on 16 GB. HDD loading takes minutes; a separate VRAM peak was not measured."
+  },
+  "hardware.qwen_2511_canvas_sizes": {
+    "ru": "Prompt: квадрат, пейзаж или портрет, около 1 Мп. Редактирование сохраняет пропорции исходника.",
+    "en": "Prompt: square, landscape or portrait, about 1 MP. Editing preserves the source aspect ratio."
+  },
+  "hardware.qwen_2511_weights": {
+    "ru": "FP8 mixed DiT; Qwen2.5-VL-7B FP8; необязательные Lightning и NSFW LoRA",
+    "en": "FP8 mixed DiT; FP8 Qwen2.5-VL-7B; optional Lightning and NSFW LoRAs"
+  },
+  "hardware.qwen_2511_profiles_label": {
+    "ru": "Профили Qwen 2511",
+    "en": "Qwen 2511 profiles"
+  },
+  "hardware.model_requirements_flux_native_sizes": {
+    "ru": "Около 1 Мп; для Prompt/Компоновки также нативные 2K и 4K (до 4096 по длинной стороне)",
+    "en": "About 1 MP; Prompt/Layout also offer native 2K and 4K (up to 4096 on the longest edge)"
+  },
+  "hardware.model_requirements_zimage_optional_modes_note": {
+    "ru": "Без Single и Reference. Маска и управление структурой требуют Union Lite; управляемое увеличение — Tile Lite. Дополнения устанавливаются отдельно.",
+    "en": "No Single or Reference. Masked editing and structure guidance require Union Lite; guided enlargement requires Tile Lite. Add-ons are installed separately."
+  },
+  "hardware.model_requirements_image_control_mode": {
+    "ru": "Управление структурой (Union)",
+    "en": "Structure guidance (Union)"
+  },
+  "hardware.model_requirements_image_inpaint_mode": {
+    "ru": "Изменение области по маске (Union)",
+    "en": "Masked area editing (Union)"
+  },
+  "hardware.model_requirements_image_tile_mode": {
+    "ru": "Увеличение с Tile",
+    "en": "Tile-guided enlargement"
+  },
   "hardware.model_requirements_image_detail_mode": {
     "ru": "Детализация изображения до ≈4 Мп",
     "en": "Image detail refinement to ≈4 MP"
@@ -621,5 +654,9 @@
   "hardware.compatibility_card_installed": {
     "ru": "Установлено",
     "en": "Installed"
+  },
+  "hardware.model_requirements_audio_to_video": {
+    "ru": "Звук → видео",
+    "en": "Audio → video"
   }
 }

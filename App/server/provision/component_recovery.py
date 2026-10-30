@@ -26,7 +26,8 @@ class Recovery:
 
     def request(self, item, cancel):
         with self.condition:
-            self.pending = dict(item, token=secrets.token_urlsafe(24), deadline=self.clock() + self.WAIT_SECONDS)
+            # A model question (every mirror failed) needs time to find a file on disk, an artifact question does not.
+            self.pending = dict(item, token=secrets.token_urlsafe(24), deadline=self.clock() + int(item.get('wait_seconds') or self.WAIT_SECONDS))
             self.answer = None
             try:
                 while self.answer is None:
@@ -41,12 +42,15 @@ class Recovery:
                 self.pending = None
                 self.answer = None
 
-    def respond(self, token, kind, value=''):
+    def respond(self, token, kind, value='', extra=''):
+        """`extra` is a second path for a model question: the optional vision projector beside the model file."""
         with self.condition:
             if not self.pending or self.pending['token'] != token or self.clock() >= self.pending['deadline'] or self.answer is not None:
                 raise ValueError(ui_text('components.respond_request_already_closed_retry_model_installation'))
-            if kind not in ('url', 'file', 'skip') or not isinstance(value, str) or len(value) > 4096:
+            if kind not in ('url', 'file', 'skip') or not isinstance(value, str) or len(value) > 4096 or not isinstance(extra, str) or len(extra) > 4096:
                 raise ValueError(ui_text('components.respond_invalid_source'))
+            if self.pending.get('purpose') == 'model' and kind == 'url':
+                raise ValueError(ui_text('components.respond_model_needs_file'))
             value = value.strip()
             if kind == 'url':
                 parsed = urlsplit(value)
@@ -54,7 +58,7 @@ class Recovery:
                     raise ValueError(ui_text('components.respond_direct_http_s_link_without_credentials'))
             if kind == 'file' and not value:
                 raise ValueError(ui_text('components.respond_specify_downloaded_file'))
-            self.answer = dict(kind=kind, value=value)
+            self.answer = dict(kind=kind, value=value, extra=extra.strip())
             self.condition.notify_all()
             return {'accepted': True}
 

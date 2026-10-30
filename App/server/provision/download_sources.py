@@ -34,6 +34,9 @@ def enrich(catalog, release_assets=None):
                 if url in release_assets:
                     urls.append(release_assets[url])
             row['urls'] = list(dict.fromkeys(urls))
-        if any(step.get('op') == 'ollama_pull' for step in component.get('after', [])):
-            component['cloud_sources'] = ['https://registry.ollama.ai', 'https://ollama.com/library']
+        pulls = [step for step in component.get('after', []) if step.get('op') == 'ollama_pull']
+        if pulls:
+            # The registry first, then the hosts of the mirror names (hf.co/..., modelscope.cn/...) that serve the same model.
+            mirrors = ['https://' + name.split('/')[0] for step in pulls for name in step.get('alternatives', [])]
+            component['cloud_sources'] = list(dict.fromkeys(['https://registry.ollama.ai', 'https://ollama.com/library'] + mirrors))
     return catalog

@@ -21,7 +21,12 @@ def handle(handler, manager, route, data):
         if route == 'recovery' and data is None:
             return handler.response_json(200, dict(running=manager.running(), request=manager.recovery.snapshot()))
         if route == 'recovery-answer' and data is not None:
-            return handler.response_json(200, manager.recovery.respond(data.get('token'), data.get('kind'), data.get('value', '')))
+            return handler.response_json(200, manager.recovery.respond(data.get('token'), data.get('kind'), data.get('value', ''), data.get('extra', '')))
+        if route == 'pick-file' and data is not None:
+            from .recovery_picker import choose_file
+            projector = data.get('kind') == 'projector'
+            title = ui_text('components.gemma_pick_projector_title') if projector else ui_text('components.gemma_pick_model_title')
+            return handler.response_json(200, dict(path=choose_file(180, title, '*.gguf')))
         if route == 'repair' and data is not None:
             return handler.response_json(202, manager.repair(data.get('id')))
         if route == 'recovery-file' and data is not None:
@@ -35,7 +40,11 @@ def handle(handler, manager, route, data):
             preset = data.get('preset')
             if preset is not None and not isinstance(preset, str):
                 raise ValueError(ui_text('components.routes_invalid_preset'))
-            plan = manager.start(_strings(data.get('models')), _strings(data.get('text_models'), 4), preset)
+            local = data.get('local_gemma')
+            if local is not None and (not isinstance(local, dict) or not isinstance(local.get('path'), str) or not isinstance(local.get('projector', ''), str)
+                                      or len(local['path']) > 1024 or len(local.get('projector', '')) > 1024):
+                raise ValueError(ui_text('components.routes_invalid_local_model'))
+            plan = manager.start(_strings(data.get('models')), _strings(data.get('text_models'), 4), preset, local_gemma=local)
             return handler.response_json(202, dict(plan, **manager.snapshot()))
         if route == 'cancel' and data is not None:
             return handler.response_json(200, {'cancelled': manager.cancel()})

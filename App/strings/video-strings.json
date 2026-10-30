@@ -68,28 +68,28 @@
     "en": "A step is one scene refinement. Start with the standard 20 steps; 12 is faster, 30 takes more time."
   },
   "video.profile_hint_24_fps_start_768_512_49": {
-    "ru": "24 FPS. Начните с 768 × 512 и 49 кадров (2,0417 с). Видео и звук создаются совместно. 15/30/60 с — продолжение одной сцены; на стыках возможны изменения деталей и звука. Доступны горизонтальные и вертикальные профили. Экспорт MP4 / H.264 + AAC.",
-    "en": "24 FPS. Start with 768 × 512 and 49 frames (2.0417 s). Video and audio are generated together. 15/30/60 s continues one scene; details and sound may change at joins. Landscape and portrait profiles are available. MP4 / H.264 + AAC export."
+    "ru": "24 FPS. Начните с 768 × 512 и 49 кадров (2,0417 с). Видео и звук создаются совместно. 15/30/60 с — продолжение одной сцены, на стыках возможны изменения деталей и звука; «Монтаж из сцен» собирает историю до двух минут из отдельных планов. Доступны горизонтальные и вертикальные профили. Экспорт MP4 / H.264 + AAC.",
+    "en": "24 FPS. Start with 768 × 512 and 49 frames (2.0417 s). Video and audio are generated together. 15/30/60 s continues one scene, details and sound may change at joins; \"Edited scenes\" assembles a story of up to two minutes from separate shots. Landscape and portrait profiles are available. MP4 / H.264 + AAC export."
   },
   "video.profile_hint_16_fps_frames_per_second_short": {
-    "ru": "16 FPS — 16 кадров за секунду. Короткий профиль: 512 × 512, 77 кадров (4,8125 с), 20 шагов. Экспорт MP4 / H.264 со звуком речи.",
-    "en": "16 FPS — 16 frames per second. Short profile: 512 × 512, 77 frames (4.8125 s), 20 steps. MP4 / H.264 export with speech audio."
+    "ru": "16 FPS — 16 кадров в секунду. Размеры: 512 × 512 (быстрее всего, около 3,6 минуты на 4,8 с), 832 × 480 (шире и чётче, около 6,5 минут) и вертикальный 480 × 832 для Reels и Shorts. Одна сцена — 77 кадров (4,8125 с) и 20 шагов; речь до 75 с собирается из сцен. Экспорт MP4 / H.264 со звуком речи.",
+    "en": "16 FPS — 16 frames per second. Sizes: 512 × 512 (fastest, about 3.6 minutes per 4.8 s), 832 × 480 (wider and sharper, about 6.5 minutes) and vertical 480 × 832 for Reels and Shorts. One scene is 77 frames (4.8125 s) and 20 steps; speech of up to 75 s is assembled from scenes. MP4 / H.264 export with speech audio."
   },
   "video.profile_hint_24_fps_frames_per_second_start": {
-    "ru": "24 FPS — 24 кадра за секунду. Начните с 832 × 480, 81 кадр (3,375 с), 20 шагов. На 512 × 288 в пробе были сильные искажения формы. 121 кадр проверен на сцене с движением; остальные сочетания отдельно не проверены. Экспорт MP4 / H.264, без звука.",
-    "en": "24 FPS — 24 frames per second. Start with 832 × 480, 81 frames (3.375 s), 20 steps. A 512 × 288 trial showed severe shape distortion. 121 frames was tested with a moving scene; other combinations have not been individually tested. MP4 / H.264 export without audio."
+    "ru": "24 FPS — 24 кадра в секунду. 832 × 480 — лёгкий размер для начала: 81 кадр (3,375 с) считается около минуты. 1280 × 704 — родной размер модели (720p): картинка заметно чётче, 121 кадр (около 5 с) считается около 3 минут и занимает около 10 ГБ видеопамяти. Вертикальные 480 × 832 и 704 × 1280 — для Reels и Shorts. Размеры кратны 32 пикселям. Ролики 10–120 с: на 832 × 480 минута считается около 12–15 минут, на 1280 × 704 — около получаса. Экспорт MP4 / H.264, без звука.",
+    "en": "24 FPS — 24 frames per second. 832 × 480 is the light starting size: 81 frames (3.375 s) take about a minute. 1280 × 704 is the model's native size (720p): the picture is clearly sharper, and 121 frames (about 5 s) take about 3 minutes and about 10 GB of video memory. Vertical 480 × 832 and 704 × 1280 suit Reels and Shorts. Sizes are multiples of 32 pixels. Clips of 10–120 s: a minute takes about 12–15 minutes at 832 × 480 and about half an hour at 1280 × 704. MP4 / H.264 export without audio."
   },
   "video.prompt_guide_describe_scene_camera_movement_desired_sound": {
-    "ru": "Опишите сцену, движение камеры и желаемый звук одним связным текстом. Например: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. Реплики пишите в кавычках; правильность произношения не гарантируется.",
-    "en": "Describe the scene, camera movement and desired sound in connected prose. Example: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. Put dialogue in quotes; correct pronunciation is not guaranteed."
+    "ru": "Опишите сцену одним связным абзацем до 200 слов: кто или что в кадре, действие, камера, свет и звук. Звук имеет значение: что не описано, модель придумает сама, и лучше назвать источник («шаги хрустят по снегу», а не «тревожная атмосфера»). Эмоции передавайте видимыми деталями. Реплики пишите в кавычках с языком и начинайте с паузы; для диалога берите 24 кадра в секунду. Пример: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. В режиме «Первый и последний кадр» опишите путь между картинками: одно событие, а второй кадр лучше получить правкой первого, в том же размере. В режиме «Звук → видео» звук не описывайте: его даёт запись.",
+    "en": "Describe the scene in one connected paragraph of up to 200 words: who or what is in frame, the action, the camera, the light and the sound. Sound matters: whatever you leave out the model invents, and it is better to name a source (\"steps crunch in the snow\", not \"tense atmosphere\"). Express emotion through visible details. Put dialogue in quotes with the language and start with a beat of silence; use 24 frames per second for dialogue. Example: A close-up of a small brass bell swinging gently in a quiet garden. The bell rings clearly, birds chirp softly in the background. Locked camera, natural daylight. In the First and last frame mode describe the path between the pictures: one event, and it is better to make the second picture by editing the first, at the same size. In the Audio → video mode do not describe the sound: the recording provides it."
   },
   "video.prompt_guide_describe_character_expression_gentle_movement_enter": {
     "ru": "Опишите персонажа, выражение лица и спокойное движение. Слова реплики вводятся отдельно. Пример описания: The person speaks naturally to the camera, subtle head movement, clear face, stable lighting, fixed camera.",
     "en": "Describe the character, expression and gentle movement. Enter dialogue separately. Example: The person speaks naturally to the camera, subtle head movement, clear face, stable lighting, fixed camera."
   },
   "video.prompt_guide_wan_start_simple_english_scene_description": {
-    "ru": "Для Wan начните с простого английского описания сцены, одного движения и камеры. При исходном изображении опишите желаемое движение. Для заметного действия: A small yellow toy robot raises its right arm and waves its hand. Locked camera, one continuous shot.",
-    "en": "For Wan, start with a simple English scene description, one movement and the camera. With a source image, describe the desired movement. For visible action: A small yellow toy robot raises its right arm and waves its hand. Locked camera, one continuous shot."
+    "ru": "Для Wan опишите по-английски сцену, героя, одно действие, камеру и свет: A red fox trots through a snowy pine forest at dawn. Soft golden light, the camera slowly tracks alongside. One continuous shot. С исходным изображением описывайте только желаемое движение; картинка обрезается по центру под выбранный размер, поэтому берите ту же ориентацию (горизонтальную или вертикальную). Для длинного ролика опишите всю идею целиком, на любом языке: Gemma разобьёт её на сегменты, а сценарий можно поправить.",
+    "en": "For Wan, describe in English the scene, subject, one action, camera and light: A red fox trots through a snowy pine forest at dawn. Soft golden light, the camera slowly tracks alongside. One continuous shot. With a source image, describe only the desired movement; the picture is center-cropped to the selected size, so choose the same orientation (landscape or portrait). For a long clip, describe the whole idea in any language: Gemma splits it into segments, and you can edit the scenario."
   },
   "video.availability_local_generation_has_not_been_tested": {
     "ru": "Локальная генерация ещё не проверена.",
@@ -624,8 +624,8 @@
     "en": "For example: Hello! How are you?"
   },
   "video.ready_speech_recorded_0_1_4_8125_s": {
-    "ru": "Готовая речь · 0,1–4,8125 с, до 8 МиБ",
-    "en": "Recorded speech · 0.1–4.8125 s, up to 8 MiB"
+    "ru": "Готовая речь · до 4,8125 с (до 75 с в цепочке и монтаже), до 8 МиБ",
+    "en": "Ready speech · up to 4.8125 s (up to 75 s in chain and edit), up to 8 MiB"
   },
   "video.speech_block_currently_one_short_4_8125_s": {
     "ru": "Пока один короткий фрагмент на 4,8125 с. Длинная речь отклоняется без обрезки; короткая дополняется тишиной. Образец голоса служит только образцом: произносится введённая реплика.",
@@ -1152,8 +1152,8 @@
     "en": "Windows 10/11 x64, NVIDIA CUDA; 16 GB VRAM and 32 GB RAM recommended initially. ComfyUI claims 8 GB support, but that GPU size has not been tested here."
   },
   "video.registry_limitations_silent_video_text_one_starting_image": {
-    "ru": "Видео без звука, по тексту или одному начальному изображению. Первый/последний кадр, карточки персонажей и синхронизация губ этим движком не реализованы. Рекомендуемый начальный профиль: 832×480, 81 кадр, 20 шагов. По тексту также проверены 121 кадр и движение руки. На 512×288 возможны сильные искажения; остальные сочетания отдельно не проверены.",
-    "en": "Silent video from text or one starting image. First/last frames, character cards and lip sync are not implemented by this engine. Recommended initial profile: 832×480, 81 frames, 20 steps. Text generation with 121 frames and hand movement was also tested. 512×288 can cause severe distortion; other combinations have not been individually tested."
+    "ru": "Видео без звука, по тексту или одному начальному изображению. Один план — до 121 кадра (около 5 секунд); 10–120 секунд — непрерывный план из сегментов или монтаж из 2–30 сцен по сценарию Gemma. Первый/последний кадр, карточки персонажей и синхронизация губ этим движком не реализованы. Рекомендуемый старт: 832×480, 81 кадр, 20 шагов; для финальной чёткости — 1280×704. Есть необязательный негативный промпт.",
+    "en": "Silent video from text or one starting image. One shot is up to 121 frames (about 5 seconds); 10–120 seconds are a continuous shot of segments or an edit of 2–30 scenes following a Gemma scenario. First/last frames, character cards and lip sync are not implemented by this engine. Recommended start: 832×480, 81 frames, 20 steps; use 1280×704 for final sharpness. An optional negative prompt is available."
   },
   "video.registry_name_wan_2_s2_v_14_b": {
     "ru": "Wan 2.2 S2V-14B · речь → видео",
@@ -1164,16 +1164,16 @@
     "en": "Windows 10/11 x64, NVIDIA CUDA. Short generation tested on RTX 5070 Ti 16 GB VRAM and a 64 GB RAM PC with RAM offloading. Minimum configuration has not been tested separately."
   },
   "video.registry_limitations_experimental_short_profile_512_77_frames": {
-    "ru": "Экспериментальный короткий профиль: 512×512, 77 кадров, 16 FPS (4,8125 с). Один персонаж по изображению и речь: образец голоса + текст либо готовая запись. Длинные реплики отклоняются, а короткие дополняются тишиной. Точность губ зависит от записи и лица; это не гарантирует идеальную синхронизацию.",
-    "en": "Experimental short profile: 512×512, 77 frames, 16 FPS (4.8125 s). One image-based character and speech: voice sample + text or recorded speech. Long lines are rejected; short ones are padded with silence. Lip accuracy depends on the recording and face; perfect synchronization is not guaranteed."
+    "ru": "Одна сцена: 512×512, 832×480 или 480×832, 77 кадров, 16 FPS (4,8125 с). Один персонаж по изображению и речь: образец голоса + текст либо готовая запись. Речь до 75 с собирается монтажом из сцен со сценарием Gemma; в режиме одного плана длинные реплики отклоняются, а короткие дополняются тишиной. Есть необязательный негативный промпт. Точность губ зависит от записи и лица; это не гарантирует идеальную синхронизацию.",
+    "en": "One scene: 512×512, 832×480 or 480×832, 77 frames, 16 FPS (4.8125 s). One image-based character and speech: voice sample + text or recorded speech. Speech of up to 75 s is assembled as an edit of scenes with a Gemma scenario; in the one-shot mode long lines are rejected and short ones are padded with silence. An optional negative prompt is available. Lip accuracy depends on the recording and face; perfect synchronization is not guaranteed."
   },
   "video.registry_requirements_windows_x64_nvidia_cuda_16_gb": {
     "ru": "Windows x64, NVIDIA CUDA, 16 ГБ VRAM и 64 ГБ RAM рекомендуются для начального профиля. Текстовый энкодер и видеомодель загружаются по очереди.",
     "en": "Windows x64, NVIDIA CUDA, 16 GB VRAM and 64 GB RAM recommended for the initial profile. Text encoder and video model load sequentially."
   },
   "video.registry_limitations_synchronized_video_audio_generation_text_first": {
-    "ru": "Синхронная генерация видео и звука по тексту или первому кадру. Быстрое: один проход и облегчённый декодер. Два прохода: базовая генерация, обученное увеличение и уточнение с более детальным декодером. Стартовый профиль — 768×512, 49 кадров. Длительности 15/30/60 с — продолжение с перекрытием видеоконтекста и звука; на стыках возможны изменения деталей и звучания. Точность речи и синхронизация губ не гарантируются.",
-    "en": "Synchronized video and audio generation from text or a first frame. Fast: one pass and lightweight decoder. Two passes: base generation, learned upscaling and refinement with a more detailed decoder. Initial profile: 768×512, 49 frames. 15/30/60 s uses overlapping video and audio continuation; details and sound may change at joins. Speech accuracy and lip synchronization are not guaranteed."
+    "ru": "Синхронная генерация видео и звука по тексту, первому кадру, первому и последнему кадру или вашей записи звука (режим «Звук → видео»). Быстрое: один проход и облегчённый декодер. Два прохода: базовая генерация, обученное увеличение и уточнение с более детальным декодером. Стартовый профиль — 768×512, 49 кадров. Длительности 15/30/60 с — продолжение с перекрытием видеоконтекста и звука; на стыках возможны изменения деталей и звучания. Точность речи и синхронизация губ не гарантируются.",
+    "en": "Synchronized video and audio generation from text, a first frame, a first and a last frame or your own audio recording (the Audio → video mode). Fast: one pass and lightweight decoder. Two passes: base generation, learned upscaling and refinement with a more detailed decoder. Initial profile: 768×512, 49 frames. 15/30/60 s uses overlapping video and audio continuation; details and sound may change at joins. Speech accuracy and lip synchronization are not guaranteed."
   },
   "video.registry_engines_limitations_512_288_24_fps_one_minute": {
     "ru": "512×288, 24 FPS. Минута — сборка из шести сцен, возможны стыки. Персонажи по референсам — экспериментально. Озвучка по образцу отдельно, без синхронизации губ.",
@@ -1670,5 +1670,385 @@
   "video.speech_language_english_option_label": {
     "ru": "English",
     "en": "English"
+  },
+  "video.validation_negative_prompt_not_supported_engine": {
+    "ru": "Негативный промпт поддерживает только Wan 2.2 TI2V-5B.",
+    "en": "A negative prompt is supported only by Wan 2.2 TI2V-5B."
+  },
+  "video.validation_negative_prompt_up_2000_characters": {
+    "ru": "Негативный промпт — текст до 2000 символов.",
+    "en": "The negative prompt must be text of up to 2000 characters."
+  },
+  "video.negative_prompt_field_label": {
+    "ru": "Негативный промпт — чего в кадре быть не должно (необязательно)",
+    "en": "Negative prompt — what must not appear (optional)"
+  },
+  "video.negative_prompt_field_placeholder": {
+    "ru": "По умолчанию: размытие, водяные знаки, субтитры, деформированные лица, лишние конечности, мерцание",
+    "en": "Default: blur, watermarks, subtitles, deformed faces, extra limbs, flicker"
+  },
+  "video.negative_prompt_field_help": {
+    "ru": "Пустое поле — встроенный список. Своё описание заменяет его целиком. Лучше писать по-английски.",
+    "en": "An empty field uses the built-in list. Your text replaces it entirely. English works best."
+  },
+  "video.assessment_block_title_label": {
+    "ru": "Сильные стороны и ограничения",
+    "en": "Strengths and limitations"
+  },
+  "video.assessment_strong_heading_label": {
+    "ru": "Хорошо получается",
+    "en": "Works well"
+  },
+  "video.assessment_variable_heading_label": {
+    "ru": "Результат нестабилен",
+    "en": "Results vary"
+  },
+  "video.assessment_limits_heading_label": {
+    "ru": "Ограничения",
+    "en": "Limitations"
+  },
+  "video.assessment_wan22_strong_text": {
+    "ru": "Один понятный объект или герой с одним действием: предмет, животное, природа, вода, дым, ткань. Оживление картинки сохраняет композицию и свет исходника. Плавное движение камеры и спокойные сцены. Родной размер 1280 × 704 (720p) даёт самую чёткую картинку. Ролики от 10 секунд до двух минут двумя способами: один непрерывный план или монтаж из сцен. В монтаже каждая сцена снимается заново в комфортной длине, ошибки не копятся, а Gemma раскладывает идею на шаги сюжета.",
+    "en": "One clear subject with one action: an object, an animal, nature, water, smoke, fabric. Animating a picture keeps the composition and lighting of the source. Smooth camera moves and calm scenes. The native 1280 × 704 (720p) size gives the sharpest picture. Clips from 10 seconds to two minutes in two ways: one continuous shot or edited scenes. In an edit every scene is generated afresh at a comfortable length, errors do not build up, and Gemma lays the idea out as story beats."
+  },
+  "video.assessment_wan22_variable_text": {
+    "ru": "Лица, руки и мелкие детали на расстоянии, надписи и точное число предметов. Быстрые и сложные движения, несколько действующих лиц, физика столкновений. Результат сильно зависит от seed — стоит пробовать несколько вариантов. На 832 × 480 картинка мягче, чем на 1280 × 704. В монтаже из сцен внешность героя немного меняется от сцены к сцене, а ночные и «волшебные» сцены уходят в мультяшный стиль. В непрерывном плане копятся искажения: цвета насыщеннее, форма героя и фон «плывут», модель неохотно меняет позу первого кадра, поэтому поздние шаги сюжета выходят хуже ранних.",
+    "en": "Faces, hands and small distant details, lettering and exact object counts. Fast or complex motion, several actors, collision physics. The result depends heavily on the seed, so try a few variations. 832 × 480 looks softer than 1280 × 704. In edited scenes the subject's look changes a little from scene to scene, and night or \"magical\" scenes drift toward a cartoon style. In a continuous shot distortions build up: colors get more saturated, the subject and background drift, and the model is reluctant to leave the pose of its first frame, so late story beats come out worse than early ones."
+  },
+  "video.assessment_wan22_limits_text": {
+    "ru": "Видео без звука. Нет первого и последнего кадра, референсов персонажей и синхронизации губ — для речи используйте Wan S2V. Один план — до 121 кадра (около 5 секунд). Непрерывный план 10–60 секунд — цепочка сегментов, каждый стартует с последнего кадра предыдущего: модель не помнит ничего, кроме этого кадра. Монтаж из сцен — от 2 до 30 независимых планов, склеенных встык; выбранная длительность — минимум, итоговая может оказаться чуть больше. Расчёт последовательный: около 12–15 секунд на секунду ролика при 832 × 480 и около получаса на минуту при 1280 × 704. Исходное изображение обрезается по центру под выбранный размер, в монтаже из него начинается только первая сцена. Это компактная 5B-модель: по детализации и физике она уступает более крупным версиям Wan 2.2 A14B (они здесь не установлены).",
+    "en": "Silent video. No first/last frame, character references or lip sync — use Wan S2V for speech. One shot is up to 121 frames (about 5 seconds). A continuous 10–60 second shot is a chain of segments, each starting from the last frame of the previous: the model remembers nothing but that frame. Edited scenes are 2 to 30 independent shots joined with cuts; the chosen duration is a minimum, so the result can be slightly longer. Rendering is sequential: about 12–15 seconds per second of video at 832 × 480 and about half an hour per minute at 1280 × 704. A source image is center-cropped to the selected size; in an edit only the first scene starts from it. This is the compact 5B model: it trails the larger Wan 2.2 A14B versions in detail and physics (not installed here)."
+  },
+  "video.assessment_wan22_evidence_text": {
+    "ru": "Проверено 30.10.2026 на RTX 5070 Ti 16 ГБ: лиса в зимнем лесу 1280 × 704, 121 кадр (чёткая картинка, естественный бег); оживление кадра; вертикальный 480 × 832 с негативным промптом (человек получился мягким, с размытыми руками и лицом); 704 × 1280 на 33 кадрах; отмена на середине. Непрерывные планы: 15 с (лисёнок: сюжет идёт, к концу краски насыщеннее и форма плывёт), 30 с (лодка: туман, море, шторм, закат; в шторм лодка частично выпала из кадра), 10 с по картинке. Монтаж: 7 сцен, 30,6 с по тексту (лисёнок в красном шарфе: шарф и сюжет держатся пять сцен, в двух ночных стиль ушёл в мультяшный). Ускорение (sage-внимание и fp8) сравнивалось на тех же сидах: композиция и чёткость на глаз те же. Выборка небольшая: надписи, физика столкновений и несколько героев не проверялись.",
+    "en": "Checked on 2026-10-30 on an RTX 5070 Ti 16 GB: a fox in a winter forest at 1280 × 704, 121 frames (sharp picture, natural run); animating a frame; vertical 480 × 832 with a negative prompt (the person came out soft, with blurred hands and face); 704 × 1280 at 33 frames; cancelling mid-run. Continuous shots: 15 s (a fox kit: the story advances, by the end colors are more saturated and the shape drifts), 30 s (a boat: fog, sea, storm, sunset; the boat partly left the frame in the storm), 10 s from a picture. Edit: 7 scenes, 30.6 s from text (a fox kit in a red scarf: the scarf and story hold for five scenes, in the two night scenes the style drifted toward cartoon). The speed-ups (sage attention and fp8) were compared on the same seeds: composition and sharpness look the same by eye. Small sample: lettering, collision physics and several characters were not tested."
+  },
+  "video.registry_wan_10_s_chain": {
+    "ru": "10 с · 2 сегмента подряд",
+    "en": "10 s · 2 segments in a row"
+  },
+  "video.registry_wan_15_s_chain": {
+    "ru": "15 с · 3 сегмента подряд",
+    "en": "15 s · 3 segments in a row"
+  },
+  "video.registry_wan_30_s_chain": {
+    "ru": "30 с · 6 сегментов подряд",
+    "en": "30 s · 6 segments in a row"
+  },
+  "video.registry_wan_60_s_chain": {
+    "ru": "60 с · 12 сегментов подряд",
+    "en": "60 s · 12 segments in a row"
+  },
+  "video.validation_long_clip_needs_segment_prompts": {
+    "ru": "Для длинного ролика Wan нужен сценарий: ровно %d промптов, по одному на сегмент. Нажмите «Составить сценарий».",
+    "en": "A long Wan clip needs a scenario: exactly %d prompts, one per segment. Press \"Build scenario\"."
+  },
+  "video.validation_segment_prompts_only_long_wan_clip": {
+    "ru": "Промпты сегментов бывают только у длинного ролика Wan 2.2 TI2V-5B.",
+    "en": "Segment prompts exist only for a long Wan 2.2 TI2V-5B clip."
+  },
+  "video.plan_answer_unreadable": {
+    "ru": "Gemma ответила не списком промптов.",
+    "en": "Gemma did not answer with a list of prompts."
+  },
+  "video.plan_wrong_count": {
+    "ru": "Gemma вернула %d промптов вместо %d.",
+    "en": "Gemma returned %d prompts instead of %d."
+  },
+  "video.plan_prompt_too_long": {
+    "ru": "Gemma написала слишком длинный промпт сегмента.",
+    "en": "Gemma wrote a segment prompt that is too long."
+  },
+  "video.plan_text_section_unavailable": {
+    "ru": "Раздел Text недоступен, сценарий составить нельзя. Введите промпты сегментов вручную.",
+    "en": "The Text section is unavailable, so a scenario cannot be built. Enter the segment prompts manually."
+  },
+  "video.plan_text_not_responding": {
+    "ru": "Раздел Text не отвечает: %s",
+    "en": "The Text section is not responding: %s"
+  },
+  "video.plan_text_unavailable": {
+    "ru": "Текстовая модель недоступна. Установите её во вкладке «Компоненты».",
+    "en": "The text model is unavailable. Install it in the Components tab."
+  },
+  "video.plan_invalid_segment_count": {
+    "ru": "Число сегментов — целое от 2 до 12.",
+    "en": "The number of segments is a whole number from 2 to 12."
+  },
+  "video.plan_gemma_failed": {
+    "ru": "Gemma не смогла разбить идею на сегменты: %s",
+    "en": "Gemma could not split the idea into segments: %s"
+  },
+  "video.plan_gemma_did_not_respond": {
+    "ru": "Gemma не ответила: %s",
+    "en": "Gemma did not respond: %s"
+  },
+  "video.plan_block_title_label": {
+    "ru": "Сценарий по сегментам",
+    "en": "Scenario by segment"
+  },
+  "video.plan_block_help": {
+    "ru": "Gemma разбивает вашу идею на сегменты по 5 секунд; каждый следующий начинается с последнего кадра предыдущего. Она повторяет описание героя и места, чтобы внешность сохранялась. Сценарий можно поправить вручную. Если оставить его пустым, он составится при запуске.",
+    "en": "Gemma splits your idea into 5-second segments; each one starts from the last frame of the previous. It repeats the description of the character and place so the look is kept. You can edit the scenario by hand. If it is empty, it is written when you start."
+  },
+  "video.plan_build_button_label": {
+    "ru": "Составить сценарий (Gemma)",
+    "en": "Build scenario (Gemma)"
+  },
+  "video.plan_segment_label": {
+    "ru": "Сегмент {0} из {1}",
+    "en": "Segment {0} of {1}"
+  },
+  "video.plan_status_working": {
+    "ru": "Gemma пишет сценарий… Первая загрузка модели с диска может занять пару минут.",
+    "en": "Gemma is writing the scenario… The first model load from disk can take a couple of minutes."
+  },
+  "video.plan_status_ready": {
+    "ru": "Сценарий готов: {0} сегментов. Его можно поправить.",
+    "en": "Scenario ready: {0} segments. You can edit it."
+  },
+  "video.plan_enter_idea_first": {
+    "ru": "Сначала опишите идею ролика в поле промпта.",
+    "en": "First describe the idea of the clip in the prompt field."
+  },
+  "video.plan_building_stopped_message": {
+    "ru": "Составление сценария остановлено.",
+    "en": "Building the scenario was stopped."
+  },
+  "video.structure_field_label": {
+    "ru": "Раскадровка",
+    "en": "Structure"
+  },
+  "video.structure_single_option_label": {
+    "ru": "Один короткий план",
+    "en": "One short shot"
+  },
+  "video.structure_chain_option_label": {
+    "ru": "Один непрерывный план — сегменты продолжают друг друга",
+    "en": "One continuous shot — segments continue each other"
+  },
+  "video.structure_scenes_option_label": {
+    "ru": "Монтаж из сцен — отдельные планы, склеенные встык",
+    "en": "Edited scenes — separate shots joined with cuts"
+  },
+  "video.structure_single_help": {
+    "ru": "Одна генерация до 5 секунд.",
+    "en": "A single generation of up to 5 seconds."
+  },
+  "video.structure_chain_help": {
+    "ru": "Один план без монтажных склеек: каждый сегмент начинается с последнего кадра предыдущего. Герой остаётся тем же, но искажения накапливаются.",
+    "en": "One shot without cuts: each segment starts from the last frame of the previous one. The subject stays the same, but distortions build up."
+  },
+  "video.structure_scenes_help": {
+    "ru": "Фильм из отдельных планов по сценарию Gemma, как кадры в монтаже. Каждая сцена генерируется заново в комфортной для модели длине, ошибки не копятся, но внешность героя может немного отличаться от сцены к сцене. Выбранная длительность — минимум.",
+    "en": "A film of separate shots following a Gemma scenario, like cuts in an edit. Each scene is generated afresh at a length the model handles well, so errors do not build up, but the subject's look can differ a little from scene to scene. The chosen duration is a minimum."
+  },
+  "video.scene_count_field_label": {
+    "ru": "Число сцен",
+    "en": "Number of scenes"
+  },
+  "video.scene_duration_minimum_label": {
+    "ru": "Не менее {0} с",
+    "en": "At least {0} s"
+  },
+  "video.scene_info_summary": {
+    "ru": "{0} сцен по {1} кадров ({2} с) = {3} кадров, итого {4} с.",
+    "en": "{0} scenes of {1} frames ({2} s) = {3} frames, {4} s in total."
+  },
+  "video.scene_info_too_few": {
+    "ru": "Слишком мало сцен: одна сцена не длиннее 121 кадра (5 с), нужно не меньше {0}.",
+    "en": "Too few scenes: one scene is at most 121 frames (5 s), so at least {0} are needed."
+  },
+  "video.scene_info_invalid": {
+    "ru": "Число сцен — целое от 2 до 30.",
+    "en": "The number of scenes is a whole number from 2 to 30."
+  },
+  "video.plan_scene_label": {
+    "ru": "Сцена {0} из {1}",
+    "en": "Scene {0} of {1}"
+  },
+  "video.plan_block_scenes_title_label": {
+    "ru": "Сценарий по сценам",
+    "en": "Scenario by scene"
+  },
+  "video.plan_block_scenes_help": {
+    "ru": "Gemma разбивает вашу идею на сцены. В каждой сцене она повторяет описание героя и стиля, чтобы внешность была похожей, и меняет план: общий, средний, крупный. Сценарий можно поправить вручную. Если оставить его пустым, он составится при запуске.",
+    "en": "Gemma splits your idea into scenes. In every scene it repeats the description of the character and style so the look stays similar, and varies the framing: wide, medium, close-up. You can edit the scenario by hand. If it is empty, it is written when you start."
+  },
+  "video.validation_too_few_scenes": {
+    "ru": "Слишком мало сцен: одна сцена не длиннее 121 кадра, для %g с нужно не меньше %d.",
+    "en": "Too few scenes: one scene is at most 121 frames, so %g s needs at least %d."
+  },
+  "video.validation_invalid_scene_count": {
+    "ru": "Число сцен — целое от %d до %d, только для Wan 2.2 TI2V-5B и длинных роликов.",
+    "en": "The number of scenes is a whole number from %d to %d, only for Wan 2.2 TI2V-5B and long clips."
+  },
+  "video.validation_two_minutes_scenes_only": {
+    "ru": "Две минуты доступны только в режиме «Монтаж из сцен».",
+    "en": "Two minutes is available only in the \"Edited scenes\" structure."
+  },
+  "video.assessment_s2v_strong_text": {
+    "ru": "Один человек в кадре, который говорит или поёт: речь ведёт губы, мимику, наклоны головы и движение корпуса, жесты следуют громкости и ритму записи. Годятся портрет, полуфигура и полный рост. Текстовое описание задаёт камеру, обстановку и действие, не связанное с голосом (плавный наезд, лёгкая ручная камера, игра на гитаре). Чёткое лицо анфас и чистая речь без шума дают лучший результат. Размеры: 512 × 512, 832 × 480 и вертикальный 480 × 832.",
+    "en": "One person in frame who speaks or sings: the speech drives the lips, expression, head tilts and body movement, and gestures follow the loudness and rhythm of the recording. Portrait, half-body and full-body shots work. The text prompt sets the camera, the setting and actions not tied to the voice (a slow push-in, light handheld motion, playing a guitar). A clear frontal face and clean speech without noise give the best result. Sizes: 512 × 512, 832 × 480 and vertical 480 × 832."
+  },
+  "video.assessment_s2v_variable_text": {
+    "ru": "Точность губ зависит от сцены, языка и голоса: аудиоэнкодер обучен на английской речи, русский и пение работают менее точно; медленные баллады синхронизируются лучше быстрого рэпа и плотного вокала. Лицо и руки в небольшом кадре мягкие, внешность может немного уходить от референса. Всегда 16 кадров в секунду, движение менее плавное, чем у обычного видео. Квадрат 512 × 512 теряет детали, 832 × 480 заметно чётче. Результат зависит от seed. Первый кадр ролика часто размыт: модель за несколько кадров «собирает» картинку из референса.",
+    "en": "Lip accuracy depends on the scene, language and voice: the audio encoder was trained on English speech, so Russian and singing are less precise; slow ballads sync better than fast rap and dense vocals. Faces and hands in a small frame are soft, and the look can drift a little from the reference. Always 16 frames per second, so motion is less smooth than ordinary video. The 512 × 512 square loses detail; 832 × 480 is clearly sharper. The result depends on the seed. The first frame of a clip is often smeared: the model takes a few frames to assemble the picture from the reference."
+  },
+  "video.assessment_s2v_limits_text": {
+    "ru": "Один фрагмент до 4,8125 с (77 кадров). Речь до 75 с собирается монтажом из сцен: каждая сцена снимается заново из того же референса со своим куском речи, склейки приходятся на паузы, а описание камеры для каждой сцены пишет Gemma. Цепочка фрагментов, продолжающих друг друга, проверена и убрана: она дольше, лицо медленно «уплывает» (к 22 секундам волосы светлеют, лицо худеет), а по отзывам на минутном ролике синхронизация губ рушится. Один говорящий и один референс; нет первого и последнего кадра, нескольких героев и видео без речи (для него Wan TI2V). Референс обрезается по центру под выбранный размер. Ускоряющий LoRA не используется: он убирает динамику. Тяжёлая модель 14B: на RTX 5070 Ti 16 ГБ около 3,6 минуты на каждые 4,8 с при 512 × 512 и около 6,5 минут при 832 × 480.",
+    "en": "One segment of up to 4.8125 s (77 frames). Speech of up to 75 s is assembled as an edit of scenes: each scene is generated afresh from the same reference with its own piece of the speech, the cuts fall on pauses, and Gemma writes the camera description of every scene. A chain of segments continuing each other was tested and removed: it is slower, the face slowly drifts (by 22 seconds the hair lightens and the face thins), and reports say lip sync collapses on a one-minute clip. One speaker and one reference; no first/last frame, several characters or video without speech (use Wan TI2V for that). The reference is center-cropped to the selected size. No speed-up LoRA is used: it removes the dynamics. A heavy 14B model: on an RTX 5070 Ti 16 GB about 3.6 minutes per 4.8 s at 512 × 512 and about 6.5 minutes at 832 × 480."
+  },
+  "video.assessment_s2v_evidence_text": {
+    "ru": "Проверено 30.10.2026 на RTX 5070 Ti 16 ГБ: готовая запись речи («Привет! Как дела?») и портрет гитариста, 20 шагов, seed 7. 512 × 512: 242 с с ускоренным вниманием (349 с с обычным, картинка та же), пик видеопамяти 11,5 ГБ; 832 × 480: 395 с, пик 10,6 ГБ; вертикальный 480 × 832 с негативным промптом: 391 с, пик 10,6 ГБ. Губы двигаются на слова и закрываются в тишине, руки играют на гитаре, внешность близка к референсу. Длинный ролик: речь 21,4 с (голос Windows), портрет, 5 сцен со сценарием Gemma, 512 × 512: 1115 с, звук и картинка по 21,56 с, лицо в каждой сцене близко к референсу; цепочка того же ролика заняла 1222 с и к концу заметно «уплыла». Не проверялись: точность отдельных звуков, пение, речь длиннее 22 с, клонирование голоса в длинном ролике.",
+    "en": "Checked on 2026-10-30 on an RTX 5070 Ti 16 GB: a ready speech recording (\"Hello! How are you?\", in Russian) and a portrait of a guitarist, 20 steps, seed 7. 512 × 512: 242 s with accelerated attention (349 s with the ordinary one, same picture), peak video memory 11.5 GB; 832 × 480: 395 s, peak 10.6 GB; vertical 480 × 832 with a negative prompt: 391 s, peak 10.6 GB. The lips move with the words and close in silence, the hands play the guitar, the look is close to the reference. Long clip: 21.4 s of speech (a Windows voice), the portrait, 5 scenes with a Gemma scenario, 512 × 512: 1115 s, sound and picture both 21.56 s, the face in every scene stays close to the reference; a chain of the same clip took 1222 s and drifted visibly towards the end. Not tested: accuracy of individual sounds, singing, speech longer than 22 s, voice cloning in a long clip."
+  },
+  "video.structure_s2v_single_help": {
+    "ru": "Один фрагмент до 4,8125 с (77 кадров): речь не должна быть длиннее.",
+    "en": "One segment of up to 4.8125 s (77 frames): the speech must not be longer."
+  },
+  "video.structure_s2v_scenes_help": {
+    "ru": "Речь до 75 с собирается из сцен до 4,8 с из одного референса, склеенных встык под непрерывный голос; границы сцен выбираются в паузах речи. Gemma описывает камеру каждой сцены. Ошибки не копятся, но между сценами будут склейки.",
+    "en": "Speech of up to 75 s is assembled from scenes of up to 4.8 s from the same reference, joined with cuts over a continuous voice; scene boundaries are chosen at pauses in the speech. Gemma describes the camera of each scene. Errors do not build up, but there are cuts between scenes."
+  },
+  "video.s2v_segment_info": {
+    "ru": "Речь около {0} с, сегментов: {1}. {2}",
+    "en": "Speech about {0} s, segments: {1}. {2}"
+  },
+  "video.s2v_speech_too_long": {
+    "ru": "Длинные профили принимают речь до 75 с.",
+    "en": "Long profiles accept speech of up to 75 s."
+  },
+  "video.s2v_segment_info_no_speech": {
+    "ru": "Добавьте речь: длина ролика берётся из неё.",
+    "en": "Add speech: the length of the clip comes from it."
+  },
+  "video.plan_block_s2v_help": {
+    "ru": "Gemma описывает для каждого сегмента камеру, обстановку и позу героя по вашей идее и тексту речи; слова и губы описывать не нужно, их ведёт голос. Сценарий можно поправить вручную. Если оставить его пустым, он составится при запуске. Если речь окажется длиннее или короче оценки, сценарий растянется по сегментам.",
+    "en": "For every segment Gemma describes the camera, the setting and the character's bearing from your idea and the text of the speech; words and lips need no description, the voice drives them. You can edit the scenario by hand. If it is empty, it is written when you start. If the speech turns out longer or shorter than the estimate, the scenario is stretched over the segments."
+  },
+  "video.validation_invalid_s2v_structure": {
+    "ru": "Раскадровка Wan S2V: один план, цепочка или монтаж из сцен.",
+    "en": "Wan S2V structure: one shot, a chain or an edit of scenes."
+  },
+  "video.validation_invalid_s2v_segment_prompts": {
+    "ru": "Сценарий S2V: от 1 до 20 непустых описаний до 1500 символов, только для цепочки и монтажа.",
+    "en": "S2V scenario: 1 to 20 non-empty descriptions of up to 1500 characters, only for a chain or an edit."
+  },
+  "video.validation_structure_only_wan_s2v": {
+    "ru": "Раскадровка речи доступна только для Wan S2V.",
+    "en": "The speech structure is available only for Wan S2V."
+  },
+  "video.prepare_readable_0_1_75_s": {
+    "ru": "Нужна читаемая запись речи от 0,1 до 75 с; длинная запись не обрезается автоматически.",
+    "en": "A readable 0.1–75 s speech recording is required; long recordings are not automatically trimmed."
+  },
+  "video.prepare_speech_long_profile_limit": {
+    "ru": "Речь занимает %.1f с; длинные профили S2V принимают от 0,1 до %d с. Сократите реплику или запись. Автоматическая обрезка отключена.",
+    "en": "Speech takes %.1f s; the long S2V profiles accept 0.1 to %d s. Shorten the line or recording. Automatic trimming is disabled."
+  },
+  "video.event_phase_segment_step_template": {
+    "ru": "Сегмент %s / %s · шаг %s / %s",
+    "en": "Segment %s / %s · step %s / %s"
+  },
+  "video.mode_audio_to_video_ltx": {
+    "ru": "Звук → видео · LTX",
+    "en": "Audio → video · LTX"
+  },
+  "video.audio_to_video_recording_label": {
+    "ru": "Запись звука · до длины клипа, до 8 МиБ",
+    "en": "Audio recording · up to the clip length, up to 8 MiB"
+  },
+  "video.audio_to_video_help": {
+    "ru": "Картинка и губы подстраиваются под запись: речь, музыку или шум. Звук остаётся вашим и не меняется. Картинка в поле выше необязательна и становится первым кадром. Запись короче клипа дополняется тишиной, длиннее — отклоняется. В подсказке опишите героя, место и камеру, а звук не описывайте.",
+    "en": "The picture and lips fit your recording: speech, music or noise. The sound stays yours and is not changed. The picture above is optional and becomes the first frame. A recording shorter than the clip is padded with silence, a longer one is rejected. In the prompt describe the character, the place and the camera, but not the sound."
+  },
+  "video.generation_add_recording_audio_to_video": {
+    "ru": "Добавьте запись звука для режима «Звук → видео».",
+    "en": "Add an audio recording for the Audio → video mode."
+  },
+  "video.history_audio_to_video": {
+    "ru": "Звук → видео",
+    "en": "Audio → video"
+  },
+  "video.validation_audio_to_video_needs_recording_up_to_5_s": {
+    "ru": "«Звук → видео»: нужна запись звука, клип не длиннее 121 кадра (около 5 с), картинка необязательна.",
+    "en": "Audio → video needs an audio recording, a clip of at most 121 frames (about 5 s); the picture is optional."
+  },
+  "video.prepare_ltx_recording_up_to_clip_length": {
+    "ru": "Нужна читаемая запись звука от 0,1 до %s с (не длиннее клипа); длинная запись не обрезается автоматически.",
+    "en": "A readable audio recording of 0.1 to %s s (not longer than the clip) is required; long recordings are not automatically trimmed."
+  },
+  "video.assessment_ltx_strong_text": {
+    "ru": "Реалистичные сцены с естественным светом и плавной камерой: животные, природа, город, предметы, портреты крупным планом; движение выглядит как съёмка. Звук создаётся вместе с картинкой за один проход: шаги, ветер, голоса, музыка. Быстрая модель на 8 шагов: тот же текст с другим seed считается за считанные секунды. «Первый и последний кадр» сам придумывает путь между двумя картинками (клип до 5 с). «Звук → видео» подгоняет картинку и губы под вашу запись (до 5 с). Длинные истории (до двух минут) собираются монтажом из сцен по сценарию Gemma: у каждой сцены свой кадр, действие и звук; одну сцену можно продолжить до 60 с. Размеры до 1280 × 704 и вертикальные.",
+    "en": "Realistic scenes with natural light and a smooth camera: animals, nature, city, objects, close-up portraits; the motion looks filmed. Sound is made together with the picture in one pass: steps, wind, voices, music. A fast 8-step model: the same text with another seed takes seconds. \"First and last frame\" invents the path between two pictures by itself (a clip of up to 5 s). \"Audio → video\" fits the picture and lips to your recording (up to 5 s). Long stories (up to two minutes) are assembled as an edit of scenes following a Gemma scenario: each scene has its own shot, action and sound; a single scene can be continued up to 60 s. Sizes up to 1280 × 704 and vertical ones."
+  },
+  "video.assessment_ltx_variable_text": {
+    "ru": "Созданный звук тихий и во многом придуман моделью: если звук не описан в подсказке, он случаен. Речь по тексту не гарантирует точной артикуляции и языка: реплику пишите в кавычках, называйте язык и начинайте с паузы. Лица и руки вдали, мелкий текст в кадре и несколько героев сразу — слабое место. В роликах 15/30/60 с детали и звук постепенно уходят. Результат сильно зависит от подсказки: один связный абзац до 200 слов (сцена, действие, камера, свет, звук).",
+    "en": "The generated sound is quiet and largely invented by the model: if the prompt does not describe the sound, it is random. Speech from text does not guarantee exact articulation or language: put the line in quotes, name the language and start with a beat of silence. Faces and hands in the distance, small text in the frame and several characters at once are weak spots. In 15/30/60 s clips details and sound drift. The result depends heavily on the prompt: one connected paragraph of up to 200 words (scene, action, camera, light, sound)."
+  },
+  "video.assessment_ltx_limits_text": {
+    "ru": "Режимы: текст, одно изображение, первый и последний кадр (клип до 121 кадра) и своя запись звука; нет видео по видео, управления позой и повторной съёмки. Концы совпадают с картинками не пиксель в пиксель (около 28–31 дБ PSNR), а картинки одного размера и сюжета работают лучше всего. Один клип до 121 кадра (5,04 с); 15/30/60 с собираются продолжением окнами и могут менять детали и звук: в тесте с историей про лису сова в последних окнах вытеснила героя. Монтаж из сцен (2–30 сцен, длительность не меньше выбранной) надёжнее держит сюжет, но на склейках меняются звук и ракурс, а стиль закрепляется общей фразой в начале каждого описания. Негативного промпта нет: дистиллированная модель работает без CFG. Новая подсказка читает с диска 15 ГБ текстового энкодера (около 70–90 с с жёсткого диска), повтор той же подсказки этого шага не требует. Лицензия LTX 2.x: бесплатно до 10 млн долларов годовой выручки; при скачивании нужны принятые условия и токен Hugging Face.",
+    "en": "Modes: text, one image, first and last frame (a clip of up to 121 frames) and your own audio recording; no video-to-video, pose control or retake. The ends match the pictures closely but not pixel for pixel (about 28–31 dB PSNR), and pictures of the same size and subject work best. One clip is up to 121 frames (5.04 s); 15/30/60 s are assembled by continuing in windows and may change details and sound: in a test story about a fox the owl pushed the hero out of the last windows. An edit of scenes (2–30 scenes, at least the chosen duration) holds the story better, but the sound and the angle change at the cuts, and the style is pinned by a common phrase at the start of every description. There is no negative prompt: the distilled model runs without CFG. A new prompt reads the 15 GB text encoder from disk (about 70–90 s from a hard drive); repeating the same prompt skips that step. LTX 2.x license: free below USD 10 million annual revenue; downloading needs accepted terms and a Hugging Face token."
+  },
+  "video.assessment_ltx_evidence_text": {
+    "ru": "Проверено 30.10.2026 на RTX 5070 Ti 16 ГБ: лиса в зимнем лесу, 768 × 512, 49 кадров, быстрый режим (реалистичная картинка и плавная камера; звук тихий, в среднем около −57 дБ). Время: первый запуск с холодного диска 385 с, повтор 131 с (из них около 87 с чтение текстового энкодера), та же подсказка с новым seed — 23 с благодаря кэшу подсказки; 1024 × 576, 97 кадров, два прохода — 92 с. «Звук → видео»: русская запись (3,9 с) и портрет, 97 кадров, 153 с; звук остаётся вашим, рот открывается на слова. Первый и последний кадр (два кадра лисы): быстрый режим, 49 кадров, 113 с, оба конца совпали с картинками (PSNR около 31 дБ); два прохода, 97 кадров, 97 с (начало 31,9 дБ, конец 28,2 дБ). История про лисёнка (сова, следы, возвращение), 768 × 512, быстрый режим, сценарий Gemma со звуком: монтаж из 3 сцен (363 кадра, 15,1 с) 377 с, цепочка из 4 окон (360 кадров) 394 с. Без общей стилевой фразы первая сцена монтажа вышла мультяшной; с фразой обе версии фотореалистичны, монтаж ведёт сюжет по сценарию, цепочка к концу теряет лисёнка. Не проверялись: точность отдельных звуков, вертикальные размеры, ролики 15/30/60 с после этих правок.",
+    "en": "Checked on 2026-10-30 on an RTX 5070 Ti 16 GB: a fox in a winter forest, 768 × 512, 49 frames, fast mode (a realistic picture and a smooth camera; the sound is quiet, about −57 dB on average). Times: the first run from a cold disk 385 s, a repeat 131 s (about 87 s of it reading the text encoder), the same prompt with a new seed 23 s thanks to the prompt cache; 1024 × 576, 97 frames, two passes 92 s. Audio → video: a Russian recording (3.9 s) and a portrait, 97 frames, 153 s; the sound stays yours and the mouth opens on the words. First and last frame (two frames of the fox): fast mode, 49 frames, 113 s, both ends match the pictures (PSNR about 31 dB); two passes, 97 frames, 97 s (start 31.9 dB, end 28.2 dB). A story about a fox kit (an owl, tracks, the way home), 768 × 512, fast mode, a Gemma scenario with sound: an edit of 3 scenes (363 frames, 15.1 s) took 377 s, a chain of 4 windows (360 frames) 394 s. Without the common style phrase the first scene of the edit came out cartoonish; with it both versions are photorealistic, the edit follows the scenario, and the chain loses the fox towards the end. Not tested: accuracy of individual sounds, vertical sizes, 15/30/60 s clips after these changes."
+  },
+  "video.validation_first_last_frame_up_to_5_s": {
+    "ru": "Первый и последний кадр в LTX: оба изображения нужны, а клип не длиннее 121 кадра (около 5 с).",
+    "en": "First and last frame in LTX: both pictures are required and the clip is at most 121 frames (about 5 s)."
+  },
+  "video.structure_ltx_single_help": {
+    "ru": "Один клип до 121 кадра (5,04 с) со своим звуком.",
+    "en": "One clip of up to 121 frames (5.04 s) with its own sound."
+  },
+  "video.structure_ltx_chain_help": {
+    "ru": "Одна сцена на 15–60 с: окна по 5 секунд продолжают друг друга с перекрытием, место, герой и звук остаются теми же. Gemma может написать своё действие для каждого окна. На стыках возможен дрейф деталей и звука.",
+    "en": "One scene of 15–60 s: windows of 5 seconds continue each other with an overlap, and the place, the character and the sound stay the same. Gemma can write the action of every window. Details and sound can drift at the joins."
+  },
+  "video.structure_ltx_scenes_help": {
+    "ru": "Фильм из отдельных планов по сценарию Gemma, склеенных встык. Каждая сцена (до 5 с) снимается заново со своим текстом, картинкой и звуком: ошибки не копятся, но внешность героя может отличаться, а звук меняется на склейках. Выбранная длительность — минимум.",
+    "en": "A film of separate shots following a Gemma scenario, joined with cuts. Each scene (up to 5 s) is generated afresh with its own text, picture and sound: errors do not build up, but the character's look can differ and the sound changes at the cuts. The chosen duration is a minimum."
+  },
+  "video.plan_block_ltx_help": {
+    "ru": "Gemma разбивает вашу идею на куски по 5 секунд и для каждого пишет одним абзацем кадр, действие, свет и звук: LTX делает звук вместе с картинкой. В монтаже она повторяет описание героя в каждой сцене. Сценарий можно поправить вручную. Если оставить его пустым, он составится при запуске.",
+    "en": "Gemma splits your idea into pieces of 5 seconds and writes for each one paragraph with the shot, the action, the light and the sound: LTX makes the sound together with the picture. In an edit it repeats the description of the character in every scene. You can edit the scenario by hand. If it is empty, it is written when you start."
+  },
+  "video.enhance_not_available_for_mode": {
+    "ru": "Для этой модели и режима улучшение подсказки пока недоступно.",
+    "en": "Prompt enhancement is not available for this model and mode yet."
+  },
+  "video.enhance_unknown_variant": {
+    "ru": "Неизвестный вариант подсказки.",
+    "en": "Unknown prompt variant."
+  },
+  "video.enhance_gemma_failed": {
+    "ru": "Gemma не смогла переписать подсказку. Попробуйте ещё раз или отключите улучшение.",
+    "en": "Gemma could not rewrite the prompt. Try again or turn the enhancement off."
+  },
+  "video.enhance_prompt_checkbox_label": {
+    "ru": "Улучшить подсказку с помощью Gemma",
+    "en": "Improve the prompt with Gemma"
+  },
+  "video.enhance_prompt_help": {
+    "ru": "Gemma перепишет вашу идею так, как лучше всего понимает выбранная модель: кадр, камера, свет, звук. Писать «правильный» промпт не нужно; ваши слова остаются в истории.",
+    "en": "Gemma rewrites your idea the way the chosen model understands best: shot, camera, light, sound. You do not need to write a \"correct\" prompt; your own words stay in the history."
+  },
+  "video.enhance_prompt_summary": {
+    "ru": "Подсказка, которую получит модель",
+    "en": "The prompt the model receives"
+  },
+  "video.enhance_prompt_rewrite_button": {
+    "ru": "Переписать заново",
+    "en": "Rewrite again"
+  },
+  "video.enhance_prompt_status_working": {
+    "ru": "Gemma переписывает подсказку…",
+    "en": "Gemma is rewriting the prompt…"
+  },
+  "video.enhance_prompt_status_ready": {
+    "ru": "Готово. Текст можно поправить вручную.",
+    "en": "Done. You can edit the text by hand."
   }
 }

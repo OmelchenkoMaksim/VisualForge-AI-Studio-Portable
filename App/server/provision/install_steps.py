@@ -25,7 +25,9 @@ class StepError(Exception):
 class Context:
     """What a step may touch: the root, the download cache of the running component and the tools installed so far."""
 
-    def __init__(self, root, downloads, cache, emit=None, cancel=None, environ=None, run=None, ollama_command=None):
+    def __init__(self, root, downloads, cache, emit=None, cancel=None, environ=None, run=None, ollama_command=None, recover=None, component=None):
+        self.recover = recover            # asks the person for a source when every download failed (see Engine.recover); None when unattended
+        self.component = component        # the catalog row being installed, for that question
         self.root = Path(root)
         self.downloads = downloads        # {download id: Path}
         self.cache = Path(cache)
@@ -265,6 +267,12 @@ def op_ollama_import(context, step):
 def op_ollama_pull(context, step):
     from . import ollama_tools
     ollama_tools.pull(context, step)
+
+
+def op_ollama_gguf(context, step):
+    """Create a model in the private Ollama from a local GGUF file (`file`, optional `projector`)."""
+    from . import ollama_tools
+    ollama_tools.op_gguf_import(context, step)
 
 
 OPS = {name[3:]: function for name, function in globals().items() if name.startswith('op_')}

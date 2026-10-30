@@ -51,11 +51,28 @@ class ModelLifecycle:
             raise ValueError(ui_text('components.component_models_managed_not_software_runtimes'))
         return component
 
+    def provided_names(self, ident):
+        """Names the private Ollama knows this component by (the catalog name; a pulled mirror is aliased to it)."""
+        component = self.component(ident)
+        return {step['model'] for step in component.get('after', []) if step.get('op') in ('ollama_pull', 'ollama_gguf')}
+
+    def guard_required(self, ident):
+        """Refuse to disable or delete the last model of a required family (Gemma): several studio features depend on it."""
+        names = self.provided_names(ident)
+        if not names:
+            return
+        before = {group['id'] for group in self.manager.view.required_status() if group['satisfied']}
+        after = {group['id'] for group in self.manager.view.required_status(exclude=names) if group['satisfied']}
+        if before - after:
+            raise ValueError(ui_text('components.gemma_required_last_error'))
+
     def toggle(self, ident, enabled):
         self.idle()
         component = self.component(ident)
         if not isinstance(enabled, bool):
             raise ValueError(ui_text('components.toggle_expected_enable_disable'))
+        if not enabled:
+            self.guard_required(ident)
         if enabled and not ident.startswith('text:'):
             if self.manager.view.plan([component['id']])['todo']:
                 self.manager.repair(ident)
@@ -172,6 +189,7 @@ class ModelLifecycle:
 
     def prepare(self, ident):
         self.idle()
+        self.guard_required(ident)
         plan = self.plan(ident)
         now = self.clock()
         self.challenges = {key:value for key,value in self.challenges.items() if value['expires'] > now}
@@ -190,6 +208,7 @@ class ModelLifecycle:
             raise ValueError(ui_text('components.remove_confirmation_expired_open_deletion_again'))
         if self.clock() < challenge['ready'] or confirmation != 'REMOVE':
             raise ValueError(ui_text('components.remove_wait_10_seconds_type'))
+        self.guard_required(challenge['id'])
         self.release()
         plan = self.plan(challenge['id'])
         if plan['fingerprint'] != challenge['fingerprint']:

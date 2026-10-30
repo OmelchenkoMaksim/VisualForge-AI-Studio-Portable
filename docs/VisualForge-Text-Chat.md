@@ -4,6 +4,9 @@ The **Text** tab is a chat with history on a model that runs entirely inside the
 installed in release `2026.10.25-text.2` (text chat in `text.1`, pictures in messages in `text.2`; application files, runtime and
 model verified by SHA-256; the installed EXE was not launched for these releases).**
 
+> **Gemma is required** (video scenarios, screenshot and voice reading, dictation editing). Every installation gets one: E4B by default, other sizes
+> by choice, from the Ollama registry or its Hugging Face / ModelScope mirrors, or from a local GGUF file; see `VisualForge-Component-Setup.md`.
+>
 > **In a fresh clone** the model is whatever you choose in the setup or in the Components tab (Gemma 4 E2B/E4B/26B from the Ollama registry,
 > any other registry tag with `--text-model`, or a model copied from your own Ollama with `--import-ollama`). The model named below is the
 > author's own fine-tune that this section was first built and tested with; it is not downloadable from the registry.

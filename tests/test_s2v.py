@@ -30,6 +30,43 @@ class S2VTests(unittest.TestCase):
         self.assertEqual(validate(ready)['speech_mode'],'audio')
         with self.assertRaises(ValueError):validate(dict(prompt='test',speech_text='Unexpected speech'))
 
+    def test_long_structures_validate_and_keep_the_single_defaults(self):
+        self.assertEqual(validate(self.request())['structure'],'single')
+        long_text='Слово '*100
+        for structure in ('scenes',):
+            result=validate(self.request()|dict(structure=structure,segment_prompts=['a','b','c'],speech_text=long_text))
+            self.assertEqual((result['structure'],len(result['segment_prompts'])),(structure,3))
+            self.assertEqual(result['frames'],77,'frames stay the per-segment size; the worker plans the real length from the speech')
+        # a long line needs a long structure; prompts only belong to long structures; other engines have no structure
+        for extra in ({'speech_text':long_text},{'structure':'wide'},{'structure':'chain'},{'segment_prompts':['a','b']},{'structure':'scenes','segment_prompts':[]},
+                      {'structure':'scenes','segment_prompts':['a']*21},{'structure':'scenes','segment_prompts':['  ','b']},{'structure':'scenes','speech_text':'x'*1001}):
+            with self.subTest(extra=extra),self.assertRaises(ValueError):validate(self.request()|extra)
+        with self.assertRaises(ValueError):validate(dict(engine=WAN_ID,prompt='x',structure='scenes'))
+
+    def test_speech_plan_chain_scenes_and_pauses(self):
+        import numpy as np
+        sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'App/server/video'))
+        import s2v_worker as worker
+        rate=worker.RATE
+        def speech(seconds,pauses=()):
+            """Noise bursts that stand in for words, with silent gaps at the given times (seconds)."""
+            wave_=np.random.default_rng(1).normal(0,.2,int(seconds*rate)).astype(np.float32)
+            for at in pauses:wave_[int(at*rate):int((at+.4)*rate)]=0
+            return wave_
+        self.assertEqual(worker.plan_segments(speech(3),'single',16)['frames'],77)
+        scenes=worker.plan_segments(speech(14,pauses=(4.1,8.6)),'scenes',16)
+        starts=[a/rate for a,b in scenes['slices']]
+        self.assertEqual(len(scenes['slices']),4)
+        self.assertAlmostEqual(scenes['slices'][0][1]/rate,4.3,delta=.25,msg='the first cut falls into the pause at 4.1-4.5 s')
+        self.assertAlmostEqual(scenes['slices'][1][1]/rate,8.8,delta=.25)
+        for a,b in scenes['slices']:self.assertLessEqual((b-a)/rate,77/16+1e-6)
+        self.assertEqual(scenes['slices'][-1][1],int(14*rate))
+        self.assertEqual(scenes['frames'],sum(scenes['counts']))
+        self.assertEqual(scenes['counts'][:2],[int(np.ceil((b-a)/rate*16)) for a,b in scenes['slices'][:2]],'a shot keeps as many pictures as its speech lasts')
+        self.assertEqual(scenes['counts'][-1],min(77,int(np.ceil((scenes['slices'][-1][1]-scenes['slices'][-1][0])/rate*16))+8))
+        continuous=worker.plan_segments(speech(12),'scenes',16)                 # no pause: cuts every 4.8125 s
+        self.assertEqual([round((b-a)/rate,4) for a,b in continuous['slices']][:2],[4.8125,4.8125])
+
     def test_adapter_and_readiness_use_distinct_models(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);h3=root/'Models/H3';wan=root/'Models/Wan22TI2V5B';s2v=root/'Models/Wan22S2V14B';runtime=root/'Runtime';folder=root/'job';folder.mkdir()

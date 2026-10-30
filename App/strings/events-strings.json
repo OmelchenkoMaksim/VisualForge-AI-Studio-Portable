@@ -1,7 +1,16 @@
 {
-  "events.history_no_matching_events_hint": {"ru":"Нет событий по выбранным фильтрам.", "en":"No events match the selected filters."},
-  "events.operation_type_image_refinement_label": {"ru":"Перерисовка деталей Z-Image", "en":"Z-Image detail refinement"},
-  "events.operation_type_image_controlnet_label": {"ru":"Обработка изображения с ControlNet", "en":"ControlNet image processing"},
+  "events.history_no_matching_events_hint": {
+    "ru": "Нет событий по выбранным фильтрам.",
+    "en": "No events match the selected filters."
+  },
+  "events.operation_type_image_refinement_label": {
+    "ru": "Перерисовка деталей Z-Image",
+    "en": "Z-Image detail refinement"
+  },
+  "events.operation_type_image_controlnet_label": {
+    "ru": "Обработка изображения с ControlNet",
+    "en": "ControlNet image processing"
+  },
   "events.operation_type_image_label": {
     "ru": "Изображение",
     "en": "Image"
@@ -305,5 +314,13 @@
   "events.history_load_earlier_button_label": {
     "ru": "Показать более ранние",
     "en": "Show earlier"
+  },
+  "events.operation_type_video_prompt_planning_label": {
+    "ru": "Сценарий видео (Gemma)",
+    "en": "Video scenario (Gemma)"
+  },
+  "events.operation_type_video_prompt_enhancement_label": {
+    "ru": "Улучшение подсказки Video",
+    "en": "Video prompt enhancement"
   }
 }

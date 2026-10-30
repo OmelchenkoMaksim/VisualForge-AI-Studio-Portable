@@ -93,3 +93,95 @@ GPU acceptance evidence is recorded separately in `UserData/Settings/ltx25-verif
 GPU continuation acceptance: full 60-second T2V Two-pass at 768x512, 1440 frames, 24 fps, generated audio; 824.97 seconds observed, 12407 MiB peak PyTorch allocation. Possible concurrent game activity makes timing observational.
 15/30 second acceptance reused the identical generated prefix and sampled fresh 73/49-frame terminal windows, then independently checked exact final video/audio durations.
 Long I2V and the long Fast profile were not separately GPU-tested. Sampled scene remains coherent but lighting/camera drift and unwanted generated text were observed. Semantic sound quality was not listened to.
+
+## Audit and changes (2026-10-30)
+
+Research (model card, ComfyUI documentation, the fal.ai prompting guide, user reports): LTX 2.5 is a 22B audio-video model; the distilled variant runs 8 steps without
+CFG; frames must be 8n+1 and sizes multiples of 32. Strong: realistic scenes and a smooth camera, sound made in the same pass, speed, native multishot,
+image conditioning, audio-to-video, video-to-video, IC-LoRA control and keyframes in the original. Weak: audio is quieter and less mature than the picture, speech
+articulation and language are not guaranteed, small text, hands and faces at a distance, several characters, prompt-dependence (one paragraph, up to about 200 words,
+sound named with a source, dialogue in quotes with the language and a beat of silence first).
+
+What the studio had: text, image and continuation to 15/30/60 s; no assessment block; modes of the original that are not implemented here (video-to-video, IC-LoRA, keyframes,
+retake) are not shown. Measured before the changes (RTX 5070 Ti 16 GB, 768x512, 49 frames, fast): 385 s from a cold disk, 131 s warm, of which about 87 s is reading the 15 GB
+text encoder; sampling itself is 8 steps in about 30 s; the picture is excellent, the generated sound is quiet (about -57 dB mean).
+
+Changes:
+
+- **Prompt conditioning cache** (`ltx_worker.conditioning_cache`): the text conditioning is stored beside the job folders under the hash of the prompt, the negative text and the
+  encoder file; a repeat of the same prompt (another seed, size or length) skips the encoder child process: 23 s for the whole 49-frame clip instead of 98-131 s. The 40 newest
+  entries are kept. Continuation windows already encoded once per job.
+- **Audio -> video** (`mode: a2v`, panel: "Audio -> video · LTX"): the recording (up to 121 frames = 5.04 s, shorter ones are padded with silence, longer ones are
+  rejected; prepared by `ltx_audio.py` as 48 kHz stereo PCM) is encoded by the audio VAE and frozen in the audio latent with a zero noise mask in both passes, so the sampler
+  fits picture and lips to it; the output carries the original recording, not a vocoder copy. A picture is optional and becomes the first frame. No continuation windows.
+- **Strengths/limits block and prompt guide** for LTX (`video.assessment_ltx_*`, the prompt guide above).
+- SageAttention was measured and left out: 8 sampling steps took 7.3 s with and without it (1024x576, 97 frames, two passes).
+- `step`/phase events carry `elapsed`.
+
+Measured after: 1024x576, 97 frames, two passes 92 s; Audio -> video with a 3.9 s Russian recording and a portrait, 97 frames, 153 s (cold prompt), the mouth opens on the
+words and the sound is the recording itself. Not tested: exact phoneme accuracy, vertical sizes and 15/30/60 s after these edits. Keyframes (first/last frame through
+`LTXVAddGuide`) and a scenes edit are the next candidates.
+
+### First and last frame (2026-10-30)
+
+`mode: first_last` (both pictures required, 49/97/121 frames, not the 15/30/60 s continuations). The first picture is written into the first latent frame as in
+image-to-video; the last one is a keyframe guide (`LTXVAddGuide`, frame -1, strength 1.0) added to the video latent before the audio is attached: its tokens ride behind the real frames
+and `LTXVCropGuides` cuts them off after sampling. The guide is removed before the learned upscaling and added again at full size for the refinement pass. The last picture is
+not written into the last latent frame: one encoded picture stands for a single pixel frame, the last latent frame for the eight before the end.
+
+Measured (two frames of the fox clip as the pictures, the same prompt, RTX 5070 Ti): fast, 49 frames, 113 s, start 30.9 dB and end 31.1 dB PSNR against the pictures;
+two passes, 97 frames, 97 s, start 31.9 dB, end 28.2 dB. The motion between them is a plausible walk in the same forest. Not tested: pictures of different scenes, portrait sizes.
+
+### Edited scenes with a Gemma scenario, and the chain compared (2026-10-30)
+
+`scenes: N` (2-30) with `frames` as the minimum total (240 / 360 / 720 / 1440 / 2880, i.e. 10 s to two minutes) and one prompt per scene (`segment_prompts`).
+Each scene is the shortest 8n+1 frame count (49 to 121) that reaches the total, generated by `ltx_worker.py` in its own owned process from its own prompt, with the job seed shared
+and only the first scene taking the uploaded picture. `ltx_scenes.py` first encodes all prompts in ONE encoder process (the encoder is the slow read; each prompt also goes to the
+prompt cache), then joins the pictures by stream copy and lays the scene sounds end to end, each padded or cut to its exact length, with 12 ms fades at the cuts, and encodes AAC once.
+The continuation to 15/30/60 s (`ltx_long.py`) accepts an optional scenario too: one prompt per window, one conditioning file per window.
+
+The planner (`ScenePlanner(..., sound=True)`) writes LTX prompts as one paragraph of 60-110 words (shot, fixed character description, action, place and light, and the SOUND with a
+visible source), starts every prompt with ONE style phrase chosen for the whole film and avoids words that pull towards animation. Without that phrase the first of three scenes of the test
+film came out as a cartoon while the others were photographs.
+
+Same story (a fox kit leaves its den, sniffs tracks, an owl lands, it trots home), 768x512, fast mode, Gemma scenario with the style phrase, RTX 5070 Ti:
+
+| | Edited scenes (3 x 121 frames) | Continuation (4 windows) |
+|---|---|---|
+| Time | 377 s (363 frames) | 394 s (360 frames) |
+| Story | follows the scenario shot by shot | one scene; the owl pushes the fox out of the last windows |
+| Look | photographic in every scene | photographic, one continuous take, the same fox for three windows |
+| Sound | each scene has its own ambience (quiet in this test, -38 dB mean) | one soundscape (-55 dB mean here; -30 dB in the first run: the level is random) |
+
+Verdict: for a story the edited scenes are better (a tenth faster, the scenario is carried out, nothing accumulates, up to two minutes); the continuation stays for one uninterrupted take
+(a long camera move, one action). Not tested: speech in a scene, portrait sizes, two-pass quality, clips longer than 15 s.
+
+### Prompt enhancement by Gemma (2026-10-31)
+
+The Video panel can rewrite the request with Gemma before generation (`App/server/video/prompt_enhancer.py`, route `/api/video/enhance`). Each engine and mode has its own hidden instruction;
+the person's own words stay in the history (`user_prompt`) and the rewritten text is shown and editable. The block hides when a multi-scene plan is active: the planner already writes those prompts.
+The instructions restate Lightricks' training-caption style in our own words (action first, observable detail only, one shot type + one camera move + viewpoint woven into prose, the whole soundscape,
+chronological order, one paragraph, judged against the ORIGINAL request) and the community advice (short, concrete, no "4K/photorealistic" filler, one camera move).
+
+Comparison (preview, 768x512, 97 frames, seed 11, one subject, three request levels: 5 words / 22 words / 93 words with camera, sensor and light), RTX 5070 Ti:
+
+| Variant | Words | Short request | Medium request | Detailed request |
+|---|---|---|---|---|
+| raw (no rewrite) | - | static, wrong animal | good | good |
+| caption (Lightricks style, 150-220 words) | ~180 | weak motion | good | drifts to blurred close-ups |
+| concise (70-110 words) | ~95 | rich scene, motion 7.5, -44 dB | motion 8.7, -40 dB | framing kept, motion 9.2, -35 dB |
+| hybrid (110-170 words, keeps the user's specifics) | ~145 | good, motion 4.4 | good, -56 dB | framing kept, motion 8.8, -38 dB |
+| Lightricks' own enhancer text (gemma4 variant) | ~200 | good, loudest peak | jumpy camera, almost silent (-63 dB) | drifts to close-ups |
+
+Verdict: t2v uses `concise`. For i2v (first frame from a picture) `hybrid` moved more and kept audible sound (-46 dB against -63 dB) and both followed the action (stop, look at the camera, bound away),
+so i2v, first/last frame and audio-to-video use `hybrid`; the last two were not compared. Caveats: one seed and one subject per level, judged by contact sheets plus motion (mean frame difference)
+and mean loudness; the level of the generated sound is random from seed to seed (see the scenes table above), so loudness differences of a few dB are weak evidence.
+Not tested: two-pass quality, portrait sizes, rewrites of non-English requests.
+
+### Windows memory limit (2026-10-31)
+
+On a 62 GB machine with a normal desktop session open, LTX jobs died with exit code 3221225477 (0xC0000005, access violation in c10.dll). Cause (measured by sampling the process): loading the 22B
+transformer charges the worker ~39 GB of Windows commit (RAM + page file; the card's memory counts against it too), the system had ~11 GB left, and `--disable-smart-memory` makes every unload
+copy the ~12 GB held on the card into new host tensors. The failed host allocation surfaced as an access violation. `release()` in `ltx_worker.py` now moves the transformer out in 1 GB steps
+and returns the card's memory after each step, which fixed single-pass jobs. Two-pass ("standard") jobs can still stop with a CUDA out-of-memory error while the second load runs (one of four
+test runs passed) when other programs hold much commit; closing them or enlarging the Windows page file (system-managed was 8-16 GB here) helps. The service now explains exit code 0xC0000005 to the person.

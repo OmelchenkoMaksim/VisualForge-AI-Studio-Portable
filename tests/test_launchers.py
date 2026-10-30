@@ -133,7 +133,7 @@ class LauncherTests(unittest.TestCase):
         node = shutil.which('node')
         if not node:
             self.skipTest('node is not installed')
-        for script in ('voice-input.js', 'component-manager.js', 'text-chat.js', 'studio-ui.js'):
+        for script in ('voice-input.js', 'component-manager.js', 'gemma-gate.js', 'text-chat.js', 'studio-ui.js'):
             done = subprocess.run([node, '--check', str(ROOT / 'App/frontend' / script)], capture_output=True, text=True)
             self.assertEqual(done.returncode, 0, script + ': ' + done.stderr[:300])
 

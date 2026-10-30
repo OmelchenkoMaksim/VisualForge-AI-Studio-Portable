@@ -119,3 +119,78 @@ else:raise AssertionError('Mismatched stage context must be rejected')
 
 
 if __name__=='__main__':unittest.main()
+
+
+class SceneTests(unittest.TestCase):
+    """Edits of independent LTX scenes: request rules, orchestration and a frame-exact join."""
+    def row(self,**extra):
+        return validate(dict(engine='ltx25-distilled',prompt='A fox in snow',frames=360,scenes=4,segment_prompts=['a','b','c','d'])|extra)
+
+    def test_scene_requests_use_the_8n_plus_1_grid_and_the_scenes_worker(self):
+        row=self.row()
+        self.assertEqual((row['scenes'],row['scene_frames'],row['frames'],row['requested_frames']),(4,97,388,360))     # 360/4 = 90 -> 97
+        self.assertEqual(self.row(scenes=3,segment_prompts=['a','b','c'])['scene_frames'],121)
+        self.assertEqual(self.row(frames=240,scenes=12,segment_prompts=list('abcdefghijkl'))['scene_frames'],49)       # never below 49
+        with tempfile.TemporaryDirectory() as temp:
+            folder=Path(temp)
+            self.assertIn('ltx_scenes.py',' '.join(build_command(folder,folder/'Models/Video/H3',folder,row)))
+        for extra in ({'scenes':2,'segment_prompts':['a','b']},          # 2 scenes of 121 frames cannot reach 360
+                      {'segment_prompts':['a','b','c']},{'mode':'a2v'},{'scenes':31},{'frames':49}):
+            with self.subTest(extra=extra),self.assertRaises(ValueError):
+                self.row(**extra)
+
+    def test_minimum_totals_without_scenes_and_the_chain_scenario(self):
+        for frames in (240,2880):
+            with self.assertRaises(ValueError):
+                validate(dict(engine='ltx25-distilled',prompt='x',frames=frames))
+        self.assertNotIn('segment_prompts',validate(dict(engine='ltx25-distilled',prompt='x',frames=360)))        # the single prompt keeps working
+        chain=validate(dict(engine='ltx25-distilled',prompt='x',frames=360,segment_prompts=['a','b','c','d']))
+        self.assertEqual(len(chain['segment_prompts']),4)
+        with self.assertRaises(ValueError):                                                                  # but a scenario needs one prompt per window
+            validate(dict(engine='ltx25-distilled',prompt='x',frames=360,segment_prompts=['a','b']))
+
+    def test_every_scene_gets_its_own_conditioning_prompt_and_only_the_first_uses_the_image(self):
+        from video import ltx_scenes
+        with tempfile.TemporaryDirectory() as temp:
+            folder=Path(temp);source=folder/'first.png';source.write_bytes(b'owned-image')
+            (folder/'media.json').write_text(json.dumps(dict(first=str(source))))
+            spec=folder/'ltx-request.json'
+            row=self.row(mode='i2v',source_image='data:image/png;base64,AA==')|dict(seed='5')
+            spec.write_text(json.dumps(row))
+            calls=[]
+            def child(command,timeout):
+                calls.append(command)
+                if '--folder' in command and '--encode-only' not in command:
+                    part=Path(command[command.index('--folder')+1])
+                    (part/'ltx-picture.mp4').touch();(part/'ltx-audio.wav').touch()
+            args=SimpleNamespace(folder=folder,spec=spec,root=folder/'Runtime',models=folder/'Models')
+            with patch.object(ltx_scenes,'child',side_effect=child),patch.object(ltx_scenes,'event'):
+                ltx_scenes.run(args)
+            self.assertEqual(sum('--encode-only' in c for c in calls),1,'one encoder process for all prompts')
+            for index,part in enumerate(sorted(folder.glob('scene-*'))):
+                scene=json.loads((part/'ltx-request.json').read_text())
+                self.assertEqual((scene['mode'],scene['prompt'],scene['frames'],scene['seed']),('i2v' if index==0 else 't2v','abcd'[index],97,'5'))
+                self.assertNotIn('segment_prompts',scene)
+                self.assertIn(str(folder/('ltx-conditioning-%02d.pt'%index)),calls[index+1])
+            self.assertTrue((folder/'scene-01/first.png').is_file() and not (folder/'scene-02/first.png').exists())
+
+    @unittest.skipUnless((RUNTIME/'ffmpeg/bin/ffmpeg.exe').is_file(),'Optional Video runtime')
+    def test_real_join_has_exact_frames_and_sound_without_a_gap(self):
+        from video import ltx_scenes
+        ffmpeg=RUNTIME/'ffmpeg/bin/ffmpeg.exe'
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);parts=[]
+            for index in range(3):
+                part=root/('scene-%02d'%(index+1));part.mkdir();parts.append(part)
+                subprocess.run([str(ffmpeg),'-v','error','-nostdin','-n','-f','lavfi','-i','testsrc2=size=64x64:rate=24','-t',str(49/24),
+                    '-c:v','libx264','-threads','2','-pix_fmt','yuv420p','-an',str(part/'ltx-picture.mp4')],check=True,timeout=60)
+                # a model sound slightly shorter than the picture, mono at another rate: the join must pad it to the exact length
+                subprocess.run([str(ffmpeg),'-v','error','-nostdin','-n','-f','lavfi','-i','sine=frequency=%d:sample_rate=24000'%(300+100*index),'-t','1.9',str(part/'ltx-audio.wav')],check=True,timeout=60)
+            command=ltx_scenes.assembly_command(ffmpeg,root,parts,49)
+            result=subprocess.run(command,capture_output=True,timeout=90)
+            self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace')[-1800:])
+            probe=subprocess.run([str(RUNTIME/'ffmpeg/bin/ffprobe.exe'),'-v','error','-count_packets','-show_streams','-of','json',str(root/'result.mp4')],capture_output=True,text=True,timeout=30)
+            streams={s['codec_type']:s for s in json.loads(probe.stdout)['streams']}
+            self.assertEqual(int(streams['video']['nb_read_packets']),3*49)
+            self.assertAlmostEqual(float(streams['audio']['duration']),3*49/24,delta=.05)
+            self.assertEqual((streams['audio']['channels'],int(streams['audio']['sample_rate'])),(2,48000))

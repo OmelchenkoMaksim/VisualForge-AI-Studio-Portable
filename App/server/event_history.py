@@ -34,6 +34,8 @@ TECHNICAL_TYPES = {
     'VideoModelGeneration': ui_text('events.operation_type_video_model_generation_label'),
     'MusicModelGeneration': ui_text('events.operation_type_music_model_generation_label'),
     'MusicPlanning': ui_text('events.operation_type_music_planning_label'),
+    'VideoPromptPlanning': ui_text('events.operation_type_video_prompt_planning_label'),
+    'VideoPromptEnhancement': ui_text('events.operation_type_video_prompt_enhancement_label'),
 }
 TYPES = {**MAIN_TYPES, **TECHNICAL_TYPES}
 

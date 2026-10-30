@@ -17,7 +17,7 @@ The repository holds source only. Everything else is installed by `Setup-VisualF
    a run interrupted after the `present` files appeared (power loss, crash, cancel) is therefore reported as partial and repaired by
    the next setup run or the Components tab, instead of passing as installed.
 
-Rules: software components are always part of an install; a model pulls in what it `requires`; if a component fails, the ones that depend
+Rules: software components and the required Gemma (see below) are always part of an install; a model pulls in what it `requires`; if a component fails, the ones that depend
 on it are skipped and the rest continue; one installer at a time (`UserData/Cache/provision.lock`); the installer never writes outside
 the installation folder.
 
@@ -76,6 +76,39 @@ reference installation the catalog was derived from:
 Not verified on a clean install: Image, FreeVideo H3, Wan and MiniMax generations (their models were not downloaded), the first-run menu in an
 interactive console window, a computer without Git or Python, and non-NVIDIA hardware. Their programs are identical to the reference
 installation; the models are hash-identical to the ones that were tested there.
+
+## Required model: Gemma
+
+Gemma 4 is part of every installation. The video scenario writer, screenshot and voice reading and the dictation editor all use it, so
+`component-catalog.json` has a top-level `required` list (`tools/build_catalog.py`, `REQUIRED`): the group `gemma` names the model family
+(`family`: matched against `model_family` in the config layer of the private Ollama store), the three catalog sizes (`options`) and the
+`default` (E4B).
+
+- **Selection.** `Engine.select()` adds the default when no complete, enabled model of that family is in `Models/Text/ollama`, unless the
+  person picked another size (`--gemma e2b|e4b|26b`, or the size list in the Gemma window). Any Gemma counts, also a local file or a build
+  copied from your own Ollama, so an installation that already has one does not download another. `--software-only` therefore means
+  "programs plus the required Gemma".
+- **Sources, in order.** Every Gemma `ollama_pull` step has `alternatives`: the official registry first, then
+  `hf.co/unsloth/...:Q4_K_M`, `modelscope.cn/unsloth/...:Q4_K_M` and `hf.co/bartowski/...:Q4_K_M` (Hugging Face and ModelScope serve
+  GGUF repositories in Ollama's registry protocol, projector included; `huggingface.co` and `hf.co` are one infrastructure, ModelScope is not).
+  A failing source is skipped with a note in the log; Ollama keeps partial blobs, so a mirror with the same digest resumes. The pulled copy is
+  aliased to the catalog name (`_adopt` in `provision/ollama_tools.py`: copy of the manifest, mirror name dropped unless it was there before).
+- **No source answers.** The installer asks for a local file (`purpose: model`, ten minutes instead of the usual 30 seconds). The Gemma window
+  (`App/frontend/gemma-gate.js`) takes a `.gguf` model and an optional `mmproj*.gguf` projector (looked up beside the model when omitted);
+  the terminal setup asks on the console; `--gemma-file PATH [--gemma-projector PATH]` does it unattended. The file must be a GGUF of a `gemma*`
+  architecture and the projector a `clip` one (header read by `gguf_architecture`). The file is copied into the blob store (one pass, SHA-256 while
+  copying), the model is created by the private Ollama with `renderer`/`parser` `gemma4` and Gemma's sampling parameters; the original stays.
+- **In the studio.** The window opens by itself when no usable Gemma exists (`Skip` hides it until the next start of the browser tab) and
+  from the Text card of the Components tab (**Give a Gemma file...**). The last Gemma cannot be disabled or deleted (`guard_required` in
+  `model_lifecycle.py`); install another first. `TextManager.gemma_model()` returns the model for the studio's own jobs: the chat default when it is a Gemma,
+  else the first usable Gemma.
+
+Verified on 2026-10-30 (RTX 5070 Ti machine, real network): the registry refusing a name, Ollama falling through to
+`hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M`, the alias and the removal of the mirror name; the same pull from `modelscope.cn`; the HF copy answers
+and reads a picture; a local GGUF import (3.1 GB model + 1 GB projector, 10 s) answers, reads a picture and reports thinking; the whole path in the
+studio window (size list, mirror fallback, "no source" question with a file, refusal to disable the last Gemma). Not verified: complete E4B and 26B
+downloads from the mirrors (their manifests were read, the weights not downloaded), and a corporate proxy: the private Ollama deliberately
+ignores `HTTP_PROXY`/`HTTPS_PROXY`.
 
 ## Source endpoints and model lifecycle
 

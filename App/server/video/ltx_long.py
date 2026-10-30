@@ -43,6 +43,11 @@ def run(args):
         part = folder/('part-%02d' % (index+1))
         part.mkdir(exist_ok=False)
         spec = request|dict(frames=window['frames'],_continuation_index=index,seed=str((int(request['seed'])+index)%2**64))
+        # A scenario (one prompt per window, written by Gemma) has its own conditioning file per window; without one the single prompt serves all.
+        prompts = spec.pop('segment_prompts', None)
+        if prompts:
+            spec['prompt'] = prompts[index]
+        conditioning = folder/(('ltx-conditioning-%02d.pt' % index) if prompts else 'ltx-conditioning.pt')
         # Reapplying the uploaded I2V image would pull later windows back to the first frame.
         # Continue from generated AV latents instead; only the first window uses the image.
         if index:
@@ -57,7 +62,7 @@ def run(args):
             (part/'media.json').write_text(json.dumps(dict(first=str(target))),encoding='utf-8')
         spec_path=part/'ltx-request.json'
         spec_path.write_text(json.dumps(spec,ensure_ascii=False),encoding='utf-8')
-        command=base+['--folder',str(part),'--spec',str(spec_path),'--conditioning',str(folder/'ltx-conditioning.pt'),'--save-tail']
+        command=base+['--folder',str(part),'--spec',str(spec_path),'--conditioning',str(conditioning),'--save-tail']
         if previous:
             command+=['--continuation',str(previous/'ltx-tail.pt')]
         child(command, 7200)

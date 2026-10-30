@@ -28,6 +28,9 @@ class FakeText:
     def default_model(self):
         return 'gemma4:e4b'
 
+    def gemma_model(self):
+        return self.default_model()
+
     def begin(self, owner):
         if self.active:
             raise Busy('Text уже отвечает.')

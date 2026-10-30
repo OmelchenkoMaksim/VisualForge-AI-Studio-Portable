@@ -1,6 +1,7 @@
 """Runs the installer in a background thread for the Components panel and exposes its state as plain dictionaries."""
 from ui_strings import source as ui_text
 from collections import deque
+from pathlib import Path
 import shutil
 import threading
 import time
@@ -48,17 +49,25 @@ class ComponentsManager:
                     row.update(enabled=row['id'] not in disabled, removable=True)
             if module['id'] == 'text':
                 module['components'].extend(self.models.custom_models())
+        required = self.view.required_status()
+        members = {option['id']: group['id'] for group in required for option in group['options']}
+        for module in modules:
+            for row in module['components']:
+                if row['id'] in members:
+                    row['required_group'] = members[row['id']]
         missing_software = [row['id'] for module in modules for row in module['components'] if row['kind'] == 'software' and row['state'] != 'installed']
         try:
             free = shutil.disk_usage(self.root).free
         except OSError:
             free = None
-        return dict(modules=modules, install=self.snapshot(), missing_software=missing_software, free_bytes=free, first_run_done=self.view.first_run_done(),
+        return dict(modules=modules, required=required, install=self.snapshot(), missing_software=missing_software, free_bytes=free, first_run_done=self.view.first_run_done(),
                     presets={name: dict(title=preset['title']) for name, preset in self.view.catalog.get('presets', {}).items()})
 
     # ---- acting -------------------------------------------------------------------------------------------------
-    def start(self, models=(), text_models=(), preset=None, only_required=False):
-        """Install the programs that are missing plus the chosen models. Returns the plan."""
+    def start(self, models=(), text_models=(), preset=None, only_required=False, local_gemma=None):
+        """Install the programs that are missing plus the chosen models. Returns the plan.
+
+        `local_gemma` = {path, projector}: build the required Gemma model from a GGUF file on disk instead of downloading it."""
         with self.lock:
             if self.running():
                 raise Busy(ui_text('components.start_installation_already_running'))
@@ -66,6 +75,17 @@ class ComponentsManager:
                 raise Busy(ui_text('components.start_generation_running_wait_finish_stop_before'))
             engine = self.factory(self.root, self.catalog_path, emit=self._on_event)
             chosen = list(models) + [engine.text_model_component(tag) for tag in text_models]
+            if local_gemma:
+                from .ollama_tools import gguf_architecture
+                path = Path(local_gemma['path'].strip().strip('"'))
+                if not path.is_file():
+                    raise ProvisionError(ui_text('components.gemma_file_not_found_error') % path)
+                if not gguf_architecture(path):
+                    raise ProvisionError(ui_text('components.gemma_file_not_gguf_error') % path.name)
+                if not gguf_architecture(path).lower().startswith('gemma'):
+                    raise ProvisionError(ui_text('components.gemma_file_not_gemma_error') % (path.name, gguf_architecture(path)))
+                chosen.append(engine.local_gemma_component(path, local_gemma.get('projector') or None))
+                only_required = True
             if preset:
                 from .setup_cli import resolve_preset
                 chosen += resolve_preset(engine, preset)
@@ -104,7 +124,7 @@ class ComponentsManager:
                 if results.get(ident) in ('installed', 'skipped'):
                     self.models.policy.set_enabled(ident, True)
                     for step in engine.by_id[ident].get('after', []):
-                        if step.get('op') == 'ollama_pull':
+                        if step.get('op') in ('ollama_pull', 'ollama_gguf'):
                             self.models.policy.set_enabled('text:' + step['model'], True)
             engine.mark_first_run(chosen)
             with self.lock:

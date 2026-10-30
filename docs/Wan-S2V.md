@@ -29,11 +29,11 @@ This adapter uses native RAM offload with a 2 GB GPU reserve and tiled VAE decod
 One reference PNG, a visual prompt, and either:
 
 1. Voice reference (2–30 seconds, up to 8 MiB) plus short text. Existing private Qwen3-TTS voice-reference dependencies synthesize the text in a separate child process before the video model loads. Russian, English and automatic language selection use that existing TTS interface. Speaker-embedding mode can reduce voice similarity; it is not an exact voice guarantee.
-2. Finished speech (0.1–4.8125 seconds, up to 8 MiB).
+2. Finished speech (0.1–4.8125 seconds in the one-shot mode, up to 75 seconds in the scenes mode, up to 8 MiB).
 
-Only one initial profile is exposed: 512×512, 77 frames, 16 FPS, 20 steps, CFG 6, shift 8, UniPC/simple. The native S2V chunk requires at least 73 frames, so it cannot be reduced to a 33-frame TI2V smoke test. Speech exceeding 4.8125 seconds is rejected rather than silently cut. Shorter speech is padded with silence. Text length 160 is an input bound, not a guarantee the synthesized utterance will fit.
+Sizes (since 2026-10-30): 512×512, 832×480 and vertical 480×832; always 77 frames, 16 FPS, 20 steps, CFG 6, shift 8, UniPC/simple. The native S2V chunk requires at least 73 frames, so it cannot be reduced to a 33-frame TI2V smoke test. Speech exceeding 4.8125 seconds is rejected rather than silently cut. Shorter speech is padded with silence. Text length 160 is an input bound, not a guarantee the synthesized utterance will fit.
 
-No Lightning LoRA is installed: the official tutorial explicitly describes severe motion/quality loss and unmatched keys with the T2V acceleration LoRA. Longer chunk continuation, higher resolution, multiple speakers, music mixing and other quality profiles are not implemented in this initial adapter.
+No Lightning LoRA is installed: the official tutorial explicitly describes severe motion/quality loss and unmatched keys with the T2V acceleration LoRA. Multiple speakers, music mixing, a pose video and other quality profiles are not implemented; long speech is handled by the scenes structure (below).
 
 ## Execution, output and logs
 
@@ -46,3 +46,49 @@ Results follow existing Video output settings and unique English filenames, hist
 ## Evidence
 
 `Runtime/Video/s2v-verification.json` is authoritative for executed GPU checks. Missing evidence means NOT TESTED even when weights are installed. Read its exact profile and visual/audio review; do not infer long-video support or ideal synchronization. CPU checks are in `tests/test_s2v.py`, `test_wan.py` and the existing Video safety checks. Image and Music GPU tests are not required for this isolated adapter change.
+
+## Audit and changes (2026-10-30)
+
+What the model is good at (official page, ComfyUI tutorial, user tests): one person who speaks or sings; speech drives lips, expression, head and
+body, gestures follow the loudness and rhythm; portrait, half-body and full-body shots; the prompt sets camera, setting and actions not tied to the voice;
+480P/720P in the original (we use 512-class sizes for 16 GB); an optional pose video (not implemented here). Weak points: fixed 16 FPS, speed LoRAs
+(not trained for S2V) remove the dynamics, English-trained audio encoder, long clips (a user's 55 s test lost lip sync and image quality; MultiTalk /
+InfiniteTalk are steadier over minutes), noisy references or audio are amplified across chunks. The first frame of our clips is smeared in every run.
+
+Changes: sizes 832×480 and 480×832 (peak 10.6 GB, about 6.5 minutes); optional negative prompt (the built-in list is the default); SageAttention in
+the worker (512×512: 349 s -> 242 s at the same seed, same picture; the audio encoder still falls back to PyTorch attention with a harmless log line);
+`step`/`sampling_start` events carry `elapsed`; the strengths/limitations block (`video.assessment_s2v_*`). Regression fixed on the way: the Wan 2.2
+rewrite had removed `export_video` from `wan_worker.py`, which broke S2V and the LTX picture step at start; `test_wan.py` now checks that sibling
+workers only import names `wan_worker` defines.
+
+## Long clips: scenes (chosen) and the chain (tried and removed), 2026-10-30
+
+One segment is 77 frames (4.8125 s). Speech up to 75 seconds (a ready recording, or a typed line of up to 1000 characters for the voice sample)
+is assembled by the **scenes** structure (`structure: scenes`; the Video panel shows it as "Edited scenes"):
+
+1. the worker prepares the speech (cloning first when a voice sample is given), plans the scenes: each is at most 4.8125 s and ends at the quietest
+   0.2 s of the speech between 2.5 s and 4.8125 s after its start (`pause_near`), or at 4.8125 s when there is no pause (`plan_segments`);
+2. every scene is generated again from the same reference picture with its own slice of the speech, the same seed, and its own prompt; the model renders 77
+   frames and the scene keeps only as many pictures as its slice lasts (the last one half a second more), so the cuts add no silence;
+3. all scenes go through one encoder; the speech is laid under them as one continuous track (sound and picture have exactly the same length).
+
+The prompts come from Gemma (`ScenePlanner` with `talking=True`; it gets the first picture and, for a typed line, the text): every prompt repeats the
+description of the person and place and changes only the camera distance and angle, the camera move and the gesture, and never describes words or lips,
+because the voice drives them. The count shown in the panel is an estimate (speech seconds / 4.4); the worker plans the real scenes and maps the
+prompts onto them proportionally, so a voice that comes out longer or shorter than the estimate still works.
+
+**The same 21.4 s Russian speech (Windows voice), the same reference, seed 7, 512×512, Gemma scenario, RTX 5070 Ti 16 GB:**
+
+| | Scenes | Chain (`WanSoundImageToVideoExtend`) |
+|---|---|---|
+| Total time | 1115 s (5 scenes, 212 s each) | 1222 s (5 segments, 232 s each) |
+| Result length | 21.56 s, sound = picture | 21.94 s |
+| Identity at the end | the face of the reference in every scene | the hair lightens and the face thins gradually |
+| Look | cuts between scenes with different camera and head angle | one continuous shot |
+| Long-clip risk | none that builds up | reports of lip sync collapsing near a minute |
+
+Decision: scenes stay, the chain was removed from the S2V code (the worker, the validation, the planner prompt and the panel option; Wan 2.2 TI2V keeps its
+own chain). Reasons: it is a tenth faster, the quality is the same in the first and in the last scene, and a 75 s clip needs no trust in a chain that users
+report collapsing. The price is hard cuts: every scene starts from the reference pose.
+
+Not tested: speech longer than 22 s, voice cloning in a long clip, singing, 832×480 and vertical clips in the scenes structure.

@@ -196,8 +196,8 @@ class Engine:
     def model_ids(self, module=None):
         return [c['id'] for c in self.catalog['components'] if c['kind'] == 'model' and (module is None or c['module'] == module)]
 
-    def select(self, models=(), all_models=False, modules=()):
-        """Software is always part of the selection; models are opt-in."""
+    def select(self, models=(), all_models=False, modules=(), required=True):
+        """Software is always part of the selection; models are opt-in, except the required groups (Gemma) that have no member yet."""
         chosen = list(self.software_ids())
         if all_models:
             chosen += self.model_ids()
@@ -207,7 +207,62 @@ class Engine:
             if ident not in self.by_id:
                 raise ProvisionError('Unknown component: ' + ident)
             chosen.append(ident)
+        if required:
+            for group in self.required_status():
+                if not group['satisfied'] and not any(option['id'] in chosen for option in group['options']):
+                    chosen.append(group['default'])
         return list(dict.fromkeys(chosen))
+
+    # ---- required models ------------------------------------------------------------------------------------------
+    def required_status(self, exclude=()):
+        """The catalog's `required` groups (a model family the studio cannot do without) and whether the private store has a member.
+
+        A group counts as satisfied by ANY complete, enabled model of that family in the private Ollama store (an official
+        pull, a mirror, a local GGUF or a build copied from the user's own Ollama), not only by the catalog options.
+        `exclude` lists model names to ignore, to ask whether a removal would leave the group empty."""
+        from . import ollama_tools
+        groups = self.catalog.get('required', [])
+        if not groups:
+            return []
+        try:
+            from model_policy import ModelPolicy
+            policy = ModelPolicy(self.root)
+            enabled = lambda name: policy.enabled('text', name)
+        except (ImportError, ValueError, OSError, KeyError):
+            enabled = lambda name: True
+        models = ollama_tools.store_models(self.root / 'Models/Text/ollama')
+        state = self.read_state()
+        result = []
+        for group in groups:
+            family = group['family'].lower()
+            installed = [row['name'] for row in models if row['complete'] and row['family'].lower().startswith(family) and row['name'] not in exclude and enabled(row['name'])]
+            options = []
+            for ident in group['options']:
+                component = self.by_id[ident]
+                options.append(dict(id=ident, title=component['title'], description=component.get('description', ''), download_bytes=catalog_module.download_bytes(component),
+                                    state=self.component_status(component, state)['state'], sources=[ollama_tools.source_host(name) for step in component.get('after', [])
+                                    if step.get('op') == 'ollama_pull' for name in [step['model']] + list(step.get('alternatives', []))]))
+            result.append(dict(id=group['id'], title=group['title'], description=group.get('description', ''), family=group['family'], default=group['default'],
+                               satisfied=bool(installed), installed=installed, options=options))
+        return result
+
+    def local_gemma_component(self, path, projector=None):
+        """A dynamic component that creates a model of the required family from a local GGUF file (and optional mmproj file)."""
+        from . import ollama_tools
+        path = Path(str(path).strip().strip('"'))
+        name = ollama_tools.local_model_name(path)
+        size = path.stat().st_size if path.is_file() else 0
+        if projector and Path(str(projector).strip().strip('"')).is_file():
+            size += Path(str(projector).strip().strip('"')).stat().st_size
+        ident = 'text.local.' + name
+        step = dict(op='ollama_gguf', model=name + ':latest', file=str(path), projector=str(projector).strip() if projector else None)
+        row = dict(id=ident, module='text', kind='model', group='Text', title='%s (local file)' % name, description=str(path), requires=['text.runtime'],
+                   download_bytes=size, disk_bytes=size, present=['Models/Text/ollama/manifests/registry.ollama.ai/library/%s/latest' % name], after=[step])
+        if ident in self.by_id:
+            self.by_id[ident].update(row)
+        else:
+            self._add(row)
+        return ident
 
     def text_model_component(self, tag):
         """A Text model from the public Ollama registry that is not in the catalog (any tag the registry knows)."""
@@ -377,7 +432,7 @@ class Engine:
         if skipped:
             # Keep fetched artifacts for the next attempt, but never execute an incomplete installation.
             raise ProvisionError(ui_text('components.install_one_dependencies_skipped') + ', '.join(skipped[:8]))
-        context = Context(self.root, paths, self.root / 'UserData/Cache', self.emit, self.cancelled, self.environ, self.run, self.ollama_command)
+        context = Context(self.root, paths, self.root / 'UserData/Cache', self.emit, self.cancelled, self.environ, self.run, self.ollama_command, self.recover, component)
         if component.get('steps') or component.get('after'):
             self._mark_in_progress(component)
         for step in list(component.get('steps', [])) + list(component.get('after', [])):

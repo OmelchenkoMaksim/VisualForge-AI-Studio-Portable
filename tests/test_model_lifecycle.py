@@ -21,7 +21,7 @@ class LifecycleTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.now = [0.0]
         self.components = [dict(id='video.model.test', title='Test model', kind='model', files=[dict(path='Models/Video/Test/weight.bin')])]
-        self.view = SimpleNamespace(catalog=dict(components=self.components), by_id={row['id']:row for row in self.components}, plan=lambda ids:dict(todo=[]))
+        self.view = SimpleNamespace(catalog=dict(components=self.components), by_id={row['id']:row for row in self.components}, plan=lambda ids:dict(todo=[]), required_status=lambda exclude=():[])
         self.manager = SimpleNamespace(root=self.root, view=self.view, running=lambda:False, gpu=None)
         self.lifecycle = ModelLifecycle(self.manager, clock=lambda:self.now[0])
         self.put('Models/Video/Test/weight.bin', b'weights')

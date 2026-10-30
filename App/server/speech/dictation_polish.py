@@ -64,13 +64,13 @@ class Polisher:
             return dict(available=False, reason=ui_text('speech.polish_text_not_responding') % error, model='')
         if not info['available']:
             return dict(available=False, reason=info['reason'] or ui_text('speech.polish_text_unavailable'), model='')
-        return dict(available=True, reason='', model=self.text.default_model())
+        return dict(available=True, reason='', model=self.text.gemma_model())
 
     def _run(self, messages, cancel, limit, kind='SpeechTextPolish'):
         pieces = []
         options = dict(temperature=0.2, top_p=0.9, top_k=40, num_ctx=4096, num_predict=limit)
         with operation(kind, cancel=cancel):
-            for row in self.text.stream_chat(self.text.default_model(), messages, False, cancel, options=options):
+            for row in self.text.stream_chat(self.text.gemma_model(), messages, False, cancel, options=options):
                 pieces.append((row.get('message') or {}).get('content', ''))
         return ''.join(pieces)
 

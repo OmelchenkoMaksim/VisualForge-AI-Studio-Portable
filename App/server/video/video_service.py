@@ -223,11 +223,16 @@ class Jobs:
         folder = (wan_scratch(self.user) / 'Jobs' / ident) if spec['engine'] in SCRATCH_IDS else self.user / 'Cache/Video/Jobs' / ident
         folder.mkdir(parents=True, exist_ok=False)
         media = {'version': 1}
-        for field, key, needed in [('source_image', 'first', spec['mode'] in ('i2v', 'first_last','s2v')), ('end_image', 'last', spec['mode'] == 'first_last')]:
+        for field, key, needed in [('source_image', 'first', spec['mode'] in ('i2v', 'first_last','s2v') or spec['mode'] == 'a2v' and bool(data.get('source_image'))), ('end_image', 'last', spec['mode'] == 'first_last')]:
             if needed:
                 target = folder / (key + '.png')
                 spec[key + '_sha256'] = self.image(data.get(field), target)
                 media[key] = str(target)
+        if spec['mode'] == 'a2v':
+            from video.ltx_audio import prepare as prepare_audio
+            audio = prepare_audio(self, data, folder, spec['frames'], spec['fps'])
+            media['audio'] = audio.pop('audio_path')
+            spec.update(audio)
         if len(media) > 1:
             atomic_json(folder / 'media.json', media)
         if spec['engine']==S2V_ID:
@@ -256,8 +261,10 @@ class Jobs:
         spec = validate(data)
         if spec['engine'] in SCRATCH_IDS and engine_missing(self.root,self.models,spec['engine']):
             raise ValueError(ENGINES[spec['engine']]['name']+': среда или модели не установлены. Скачайте их во вкладке «Компоненты».')
-        if spec['mode'] in ('i2v', 'first_last','s2v'):
+        if spec['mode'] in ('i2v', 'first_last','s2v') or spec['mode'] == 'a2v' and data.get('source_image'):
             self.image(data.get('source_image'), None)
+        if spec['mode'] == 'a2v':
+            self.audio_bytes(data['source_audio'])
         if spec['engine']==S2V_ID:
             cloning=spec['speech_mode']=='clone'
             if cloning and (not (self.root/'voice-packages/qwen_tts/__init__.py').is_file() or not (self.models.parent/'Qwen3TTS/config.json').is_file()):
@@ -548,12 +555,14 @@ class Jobs:
             return
         if event == 'sampling_plan':
             row['window_sampling_plan' if value.get('scope')=='window' else 'sampling_plan'] = copy.deepcopy(value)
-        compact = {k: value[k] for k in ('event', 'stage', 'phase', 'step', 'completed_steps', 'total', 'done', 'blocks', 'remaining_seconds') if k in value}
+        compact = {k: value[k] for k in ('event', 'stage', 'phase', 'step', 'completed_steps', 'total', 'done', 'blocks', 'remaining_seconds', 'segment', 'segments') if k in value}
         row['events'] = (row['events'] + [compact])[-35:]
         if event.startswith('encoder_') or event == 'encoding_start':
             row['phase'] = 'Подготовка запроса и исходных кадров'
         elif event in ('model_load_phase', 'prepared_blocks', 'loaded'):
             row['phase'] = 'Загрузка видеомодели'
+        elif event == 'step' and value.get('segments', 1) > 1:
+            row['phase'] = 'Сегмент %s / %s · шаг %s / %s' % (value['segment'] + 1, value['segments'], value.get('completed_steps'), value.get('total'))
         elif event == 'step':
             row['phase'] = ('Проход %s · ' % value['stage'] if value.get('stage') else '')+'Генерация: шаг %s / %s' % (value.get('completed_steps', value.get('step')), value.get('total'))
         elif event in ('sampling_start', 'sampling_prepare', 'sampling_progress'):
@@ -598,8 +607,17 @@ class Jobs:
                 return
             if self.process.returncode != 0 or not output.exists():
                 logs = '\n'.join(p.read_text(encoding='utf-8', errors='replace')[-6000:] for p in folder.glob('*.log'))
-                raise ValueError('Движок Video завершился с ошибкой. ' + logs[-1200:])
+                # 0xC0000005 in a model process was traced on 2026-10-31 to the Windows commit limit (RAM + page file) running out while the
+                # card's memory and the host copies were both charged: a failed host allocation inside torch ends as an access violation.
+                hint = (' Процесс модели аварийно завершился (ошибка доступа к памяти): чаще всего Windows не хватило виртуальной памяти '
+                    '(ОЗУ + файл подкачки). Закройте тяжёлые программы или увеличьте файл подкачки и повторите.'
+                    if self.process.returncode in (0xC0000005, -1073741819) else '')
+                raise ValueError('Движок Video завершился с ошибкой.' + hint + ' ' + logs[-1200:])
             row['state'], row['phase'] = 'saving', 'Проверка и сохранение MP4'
+            if row['engine']==S2V_ID and (folder/'s2v-result.json').is_file():
+                # A long S2V clip takes its length from the speech, known only after the (possibly cloned) speech exists.
+                planned=json.loads((folder/'s2v-result.json').read_text(encoding='utf-8'))
+                row['frames'],row['segments']=planned['frames'],planned['segments']
             # Decoding every frame proves a short clip plays; for long ones (minutes) counting packets is the same frame count without a full decode.
             counter = '-count_frames' if row['frames'] <= 600 else '-count_packets'
             probe = subprocess.run([str(self.root / 'ffmpeg/bin/ffprobe.exe'), '-v', 'error', counter, '-show_streams', '-show_format', '-of', 'json', str(output)], capture_output=True, text=True, check=True, timeout=900)
@@ -615,7 +633,7 @@ class Jobs:
                 raise ValueError('S2V должен сохранить 16 FPS и аудиопоток речи')
             if row['engine']==LTX_ID:
                 validate_audio(metadata['streams'],row['frames']/row['fps'])
-            base = filename_base(row['original_prompt'], row['submitted_at'])
+            base = filename_base(row['original_prompt'], row['submitted_at'], ENGINES[row['engine']].get('file_label'))
             target = copy_unique(output, row['save_dir'], base)
             row['output_path'] = str(target)
             row['saved_path'] = str(target)

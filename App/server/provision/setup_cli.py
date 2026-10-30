@@ -29,7 +29,8 @@ TEXT = {
         space=ui_text('components.cli_insufficient_disk_space_about_required_free'), busy=ui_text('components.cli_another_installation_already_running'),
         later=ui_text('components.cli_you_download_models_later_using_setup'),
         first=ui_text('components.cli_first_launch_what_should_installed'), cancelled=ui_text('components.cli_stopped_download_resume_same_point'),
-        longpath=ui_text('components.cli_warning_installation_path_long_characters_prefer')),
+        longpath=ui_text('components.cli_warning_installation_path_long_characters_prefer'),
+        required=ui_text('components.cli_required_gemma_note'), bad_gemma=ui_text('components.cli_gemma_file_rejected_template')),
     'en': dict(
         title='VisualForge AI Studio: component setup',
         software='Programs (always installed, every section needs them)', models='Models (optional, can be downloaded later)',
@@ -42,7 +43,9 @@ TEXT = {
         space='Not enough disk space: about %s needed, %s free.', busy='Another installation is already running.',
         later='Models can be downloaded later: Setup-VisualForge.cmd or the Components tab in the program.',
         first='This is the first start. What should be installed?', cancelled='Stopped. Downloads resume where they stopped.',
-        longpath='Warning: the installation path is long (%d characters). A short path such as D:\\VisualForge is safer.'),
+        longpath='Warning: the installation path is long (%d characters). A short path such as D:\\VisualForge is safer.',
+        required='Required: one Gemma model (E4B is added when none is installed and you pick none). Sources are tried in turn; if all fail you can give a local GGUF file.',
+        bad_gemma='Gemma file rejected: %s'),
 }
 
 
@@ -135,6 +138,7 @@ def menu(engine: Engine, texts, preselected, stdin=None, out=None):
                 if row['kind'] == 'software':
                     out.write('   [x] %-62s %s\n' % (row['title'][:62], state_label(texts, row['state'])))
         out.write('\n%s\n' % texts['models'])
+        out.write('  ! %s\n' % texts['required'])
         current = None
         for number, (row, module_title) in enumerate(rows, 1):
             if module_title != current:
@@ -190,11 +194,14 @@ def build_parser():
     parser.add_argument('--lang', choices=('ru', 'en'))
     parser.add_argument('--status', action='store_true', help='show what is installed and exit')
     parser.add_argument('--verify', action='store_true', help='re-hash installed model files and report damage (slow)')
-    parser.add_argument('--software-only', action='store_true', help='install the programs, no models')
+    parser.add_argument('--software-only', action='store_true', help='install the programs and the required Gemma, no other models')
     parser.add_argument('--all', action='store_true', help='install the programs and every model (about 160 GB)')
     parser.add_argument('--preset', help='a preset from the catalog: software-only, light, everything')
     parser.add_argument('--models', help='comma-separated model component ids to install in addition to the programs')
     parser.add_argument('--module', action='append', default=[], help='install every model of a module (image, video, music, text)')
+    parser.add_argument('--gemma', choices=('e2b', 'e4b', '26b'), help='the required Gemma 4 size (default e4b); ignored when a Gemma is already installed')
+    parser.add_argument('--gemma-file', metavar='PATH', help='build the required Gemma from a local GGUF file instead of downloading it')
+    parser.add_argument('--gemma-projector', metavar='PATH', help='vision projector (mmproj*.gguf) for --gemma-file; found beside the model when omitted')
     parser.add_argument('--text-model', action='append', default=[], help='an Ollama registry model for the Text section, e.g. gemma4:e4b')
     parser.add_argument('--import-ollama', action='append', default=[], metavar='NAME', help='copy a model from your own Ollama (e.g. "mymodel:latest")')
     parser.add_argument('--ollama-source', help='model store of that Ollama (default: OLLAMA_MODELS or %%USERPROFILE%%\\.ollama\\models)')
@@ -223,6 +230,14 @@ def run(argv=None, stdin=None, out=None, engine_factory=Engine, interactive=None
                 out.write('   %-34s %-9s %-10s %s\n' % (row['id'], row['kind'], state_label(texts, row['state']), human(row['download_bytes'])))
         return 0
     wanted = list(arguments.models.split(',')) if arguments.models else []
+    if arguments.gemma:
+        wanted.append('text.model.gemma4-' + arguments.gemma)
+    if arguments.gemma_file:
+        from .ollama_tools import gguf_architecture
+        if not gguf_architecture(arguments.gemma_file.strip('"')).lower().startswith('gemma'):
+            out.write(texts['bad_gemma'] % arguments.gemma_file + '\n')
+            return 2
+        wanted.append(engine.local_gemma_component(arguments.gemma_file, arguments.gemma_projector))
     for tag in arguments.text_model:
         wanted.append(engine.text_model_component(tag))
     for name in arguments.import_ollama:

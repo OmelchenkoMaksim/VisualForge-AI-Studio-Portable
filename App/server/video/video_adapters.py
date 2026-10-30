@@ -42,7 +42,7 @@ def ltx_command(root,models,folder,row):
     from .ltx_support import model_root
     spec=folder/'ltx-request.json'
     spec.write_text(json.dumps(row,ensure_ascii=False),encoding='utf-8')
-    worker='ltx_long.py' if row['frames'] in (360,720,1440) else 'ltx_worker.py'
+    worker='ltx_scenes.py' if row.get('scenes') else 'ltx_long.py' if row['frames'] in (360,720,1440) else 'ltx_worker.py'
     return [str(root/'python/python.exe'),'-X','faulthandler','-u',str(Path(__file__).with_name(worker)),
         '--root',str(root),'--models',str(model_root(models)),'--folder',str(folder),'--spec',str(spec)]
 

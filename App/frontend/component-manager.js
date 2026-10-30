@@ -57,6 +57,7 @@
         const info = make('span', 'small', (row.state === 'installed' ? gb(row.download_bytes) : gb(row.remaining_bytes || row.download_bytes)) + ' · ' + STATE_TEXT[row.state]);
         line.append(box, text, info);
         if (row.enabled === false) StudioI18n.append(info, "textContent", () => (StudioI18n.t("components.model_card_disabled_status_suffix")), true);
+        if (row.required_group) StudioI18n.append(info, "textContent", () => (StudioI18n.t("components.gemma_required_badge_suffix")), true);
         if (StudioI18n.remote(row.description) || StudioI18n.remote(row.note) || row.license) {
           const detail = make('span', 'components-detail small', () => [StudioI18n.remote(row.description), StudioI18n.remote(row.note), row.license ? StudioI18n.t("components.model_card_license_information_prefix") + row.license : ''].filter(Boolean).join(' '));
           line.append(detail);
@@ -89,6 +90,19 @@
         card.append(line);
       }
       if (module.id === 'text') {
+        for (const group of state.required || []) {
+          const box = make('div', 'components-required');
+          box.append(make('p', group.satisfied ? 'small' : 'small components-required-missing', () => group.satisfied
+            ? StudioI18n.t("components.gemma_card_installed_status_template", [group.installed.join(', ')]) : StudioI18n.t("components.gemma_card_missing_status_text")));
+          const actions = make('div', 'components-model-actions');
+          if (!group.satisfied) {
+            const install = make('button', '', StudioI18n.t("components.gemma_card_open_button_label"));
+            install.type = 'button';install.onclick = () => window.showGemmaDialog();actions.append(install);
+          }
+          const local = make('button', 'secondary', StudioI18n.t("components.gemma_card_local_button_label"));
+          local.type = 'button';local.onclick = () => window.showGemmaDialog({local: true});actions.append(local);
+          box.append(actions);card.append(box);
+        }
         const form = make('div', 'components-text');
         const input = document.createElement('input');
         input.id = 'componentsTextTag';StudioI18n.bind(input, "placeholder", () => (StudioI18n.t("components.input_another_ollama_model_e_g_qwen3")), true);input.autocomplete = 'off';input.spellcheck = false;
@@ -235,7 +249,8 @@
       if (lastRunning && !info.running) {document.dispatchEvent(new Event('studio:models-changed'));if (!el('componentsWorkspace').hidden) refresh();}
       lastRunning = info.running;
       const request = info.request;
-      if (!request || request.remaining_seconds <= 0) {if (recoveryDialog.open) recoveryDialog.close();recoveryRequest = null;return;}
+      // A question about a model (every mirror failed) is asked in the Gemma window (gemma-gate.js), which also takes the file path.
+      if (!request || request.remaining_seconds <= 0 || request.purpose === 'model') {if (recoveryDialog.open) recoveryDialog.close();recoveryRequest = null;return;}
       if (request.token !== recoveryRequest?.token) {
         if (document.querySelector('dialog[open]') && !recoveryDialog.open) return;
         recoveryRequest = request;recoveryDeadline = performance.now() + request.remaining_seconds * 1000;

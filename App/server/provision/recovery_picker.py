@@ -8,11 +8,26 @@ import subprocess
 from urllib.parse import urlsplit
 
 
+def _console_model_question(item):
+    """Terminal setup, every model mirror failed: ask for a local GGUF path on the console (empty line = skip)."""
+    import sys
+    if not sys.stdin or not sys.stdin.isatty():
+        return None
+    print(ui_text('components.gemma_console_question') % (item['name'], '; '.join(item.get('reasons') or [])[:300]))
+    answer = input('> ').strip().strip('"')
+    if not answer:
+        return None
+    extra = input(ui_text('components.gemma_console_projector_question')).strip().strip('"')
+    return dict(kind='file', value=answer, extra=extra)
+
+
 def standalone(root):
     def request(item, cancel):
         if cancel():
             from .download_transport import Cancelled
             raise Cancelled()
+        if item.get('purpose') == 'model':
+            return _console_model_question(item)
         try:
             result = subprocess.run(['powershell.exe', '-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File',
                                      str(Path(root) / 'App/Recovery-Source.ps1'), '-Name', item['name'], '-ExpectedHash', item['sha256']],
@@ -32,17 +47,21 @@ def standalone(root):
     return request
 
 
-def choose_file(remaining):
+def choose_file(remaining, title='Выберите скачанный файл зависимости VisualForge', pattern=''):
+    """Native Windows file dialog; `pattern` such as '*.gguf' becomes the file-type filter (title and pattern are fixed strings of the studio)."""
     if os.name != 'nt':
         raise ValueError(ui_text('components.choose_file_paste_full_path_manually'))
     if remaining <= 0:
         raise ValueError(ui_text('components.choose_file_selection_timed_out'))
+    if "'" in title or not all(ch.isalnum() or ch in '*.|, -' for ch in pattern):
+        raise ValueError(ui_text('components.choose_file_open_picker_paste_full_path_manually_failed'))
+    filter_line = "$dialog.Filter = '%s|%s|All files|*.*'\n" % (pattern, pattern) if pattern else ''
     script = r'''
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 $dialog = New-Object System.Windows.Forms.OpenFileDialog
-$dialog.Title = 'Выберите скачанный файл зависимости VisualForge'
-$dialog.CheckFileExists = $true
+$dialog.Title = '%s'
+%s$dialog.CheckFileExists = $true''' % (title, filter_line) + r'''
 $owner = New-Object System.Windows.Forms.Form
 $owner.TopMost = $true
 $owner.ShowInTaskbar = $false

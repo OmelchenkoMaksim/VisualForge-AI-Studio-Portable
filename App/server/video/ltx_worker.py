@@ -1,10 +1,12 @@
 """Direct LTX 2.5 on native ComfyUI; one owned offline process per generation."""
 import argparse
 import gc
+import hashlib
 import json
 import logging
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import time
@@ -14,8 +16,13 @@ import wave
 from video.ltx_support import ASSETS, inference_plan
 
 
+STARTED=time.monotonic()
+
+
 def event(name,**values):
-    print(json.dumps(dict(event=name,**values),ensure_ascii=False),flush=True)
+    # `elapsed` (seconds since this process started) shows where a job spends its time: model reads from a slow disk
+    # dominate cold runs, so phases must be told apart from sampling steps.
+    print(json.dumps(dict(event=name,elapsed=round(time.monotonic()-STARTED,1),**values),ensure_ascii=False),flush=True)
 
 
 def apply_context(video,audio,context,base=False):
@@ -33,6 +40,29 @@ def apply_context(video,audio,context,base=False):
         mask[:,:,:length]=0
         result.append(dict(latent,samples=samples,noise_mask=mask))
     return tuple(result)
+
+
+def read_recording(path):
+    """The prepared 48 kHz stereo PCM16 recording of audio-to-video -> dict(waveform [1, 2, samples], sample_rate)."""
+    import numpy as np
+    import torch
+    with wave.open(str(path),'rb') as stream:
+        if stream.getnchannels()!=2 or stream.getsampwidth()!=2:
+            raise ValueError('Ожидалась подготовленная стерео PCM16 запись')
+        rate=stream.getframerate()
+        samples=np.frombuffer(stream.readframes(stream.getnframes()),dtype='<i2').astype(np.float32).reshape(-1,2)/32768.0
+    return dict(waveform=torch.from_numpy(samples.T.copy()).unsqueeze(0),sample_rate=rate)
+
+
+def freeze_recording(empty,encoded):
+    """Audio latent of the recording with a zero noise mask: the sampler may not change it, so the picture is made to fit the sound."""
+    import torch
+    samples=torch.zeros_like(empty['samples'])
+    length=min(samples.shape[2],encoded.shape[2])
+    if samples.shape[2]-length>2 or samples.shape[:2]!=encoded.shape[:2] or samples.shape[3]!=encoded.shape[3]:
+        raise ValueError('LTX audio-to-video: форма звукового латента не совпала с клипом')
+    samples[:,:,:length]=encoded[:,:,:length].to(samples)
+    return dict(empty,samples=samples,noise_mask=torch.zeros_like(samples))
 
 
 def export_media(images,audio,folder,root,request):
@@ -58,8 +88,46 @@ def export_media(images,audio,folder,root,request):
         raise RuntimeError('Не удалось сохранить звук LTX 2.5: '+result.stderr.decode('utf-8',errors='replace')[-1500:])
 
 
+NEGATIVE_PROMPT='blurry, low quality, watermark, subtitles, distorted anatomy'
+CACHE_NAME='.conditioning-cache'
+CACHE_LIMIT=40
+
+
+def conditioning_cache(folder,prompt):
+    """-> path of the cached text conditioning for this prompt.
+
+    Encoding a prompt means reading the 15 GB LTX-tuned Gemma encoder from disk (about 90 s from a hard drive, three quarters of a
+    short clip's time), and the result depends only on the prompt text and the encoder file. A new seed, size or duration of the
+    same prompt (the usual next try) therefore skips it. The cache sits beside the job folders, which the confinement check allows."""
+    parts=(prompt,NEGATIVE_PROMPT,*(a['sha256'] for a in ASSETS if a['path'].startswith('text_encoders/')))
+    key=hashlib.sha256('\n'.join(parts).encode('utf-8')).hexdigest()
+    return folder.parent/CACHE_NAME/(key+'.pt')
+
+
+def prune_cache(directory):
+    files=sorted(directory.glob('*.pt'),key=lambda path:path.stat().st_mtime,reverse=True)
+    for path in files[CACHE_LIMIT:]:
+        path.unlink(missing_ok=True)
+
+
 def run(root,models,folder,request,encode_only=False,conditioning_path=None,continuation_path=None,save_tail=False):
     started=time.monotonic()
+    missing=[]
+    if encode_only:
+        # One prompt, or one per scene / window of a long clip (`segment_prompts`): the encoder is read from disk once for all of
+        # them, and every prompt already in the cache is only copied.
+        prompts=request.get('segment_prompts')
+        targets=[(folder/('ltx-conditioning-%02d.pt'%index),text) for index,text in enumerate(prompts)] if prompts else [(folder/'ltx-conditioning.pt',request['prompt'])]
+        for target,text in targets:
+            cached=conditioning_cache(folder,text)
+            if cached.is_file():
+                shutil.copyfile(cached,target)
+                cached.touch()
+            else:
+                missing.append((target,cached,text))
+        if not missing:
+            event('encoder_cached')
+            return
     for asset in ASSETS:
         path=models/asset['path']
         if not path.is_file() or path.stat().st_size!=asset['bytes']:
@@ -74,6 +142,8 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
         if result.returncode:
             raise RuntimeError('LTX 2.5: процесс текстового энкодера завершился с кодом '+str(result.returncode))
     sys.path.insert(0,str(root/'vendor/ComfyUI'))
+    # SageAttention was measured on 2026-10-30 (1024x576, 97 frames, two passes, same seed): the 8 sampling steps took 7.3 s with it and
+    # 7.3 s without, so unlike Wan it brings nothing here; the time goes to reading the text encoder and the model from disk.
     sys.argv=['visualforge-ltx25','--disable-dynamic-vram','--disable-pinned-memory','--disable-smart-memory',
         '--use-pytorch-cross-attention','--reserve-vram','2','--disable-all-custom-nodes']
     logging.basicConfig(level=logging.INFO)
@@ -87,8 +157,8 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
     import comfy.model_management as memory
     import comfy.utils
     from comfy_extras.nodes_lt import (EmptyLTXVLatentVideo,LTXVConditioning,LTXVDualCFGGuider,
-        LTXVConcatAVLatent,LTXVSeparateAVLatent,LTXVImgToVideoInplace,LTXVPreprocess)
-    from comfy_extras.nodes_lt_audio import LTXVEmptyLatentAudio,LTXVAudioVAEDecode
+        LTXVConcatAVLatent,LTXVSeparateAVLatent,LTXVImgToVideoInplace,LTXVPreprocess,LTXVAddGuide,LTXVCropGuides)
+    from comfy_extras.nodes_lt_audio import LTXVEmptyLatentAudio,LTXVAudioVAEDecode,LTXVAudioVAEEncode
     from comfy_extras.nodes_custom_sampler import ManualSigmas,RandomNoise,KSamplerSelect,SamplerCustomAdvanced
     from comfy_extras.nodes_hunyuan import LatentUpscaleModelLoader
     from comfy_extras.nodes_lt_upsampler import LTXVLatentUpsampler
@@ -102,21 +172,39 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
     (folder/'ltx-inference-config.json').write_text(json.dumps(plan,indent=2),encoding='utf-8')
     if not encode_only:event('sampling_plan',**(plan|({'scope':'window'} if save_tail else {})))
     def release():
+        """Unload every model. The transformer first goes to host memory in 1 GB steps, returning the card's memory after each step.
+
+        `--disable-smart-memory` makes every unload a full one, and a single `.to(cpu)` of the partly loaded 22B transformer copies the
+        ~12 GB that sit on the card into fresh host tensors while the card's cached blocks stay allocated. On Windows the card's memory is
+        charged against the same commit limit as host memory, so the job needed ~12 GB of commit twice at once. Measured on 2026-10-31
+        (62 GB RAM, a normal desktop session): loading the model charged the process ~39 GB, the system had ~11 GB left, the copy ran it
+        out, and the failed host allocation surfaced as an access violation in c10.dll (frame: comfy_kitchen `_handle_to`, called from
+        ModelPatcher.unpatch_model) that killed the job. Stepping with `empty_cache` keeps the total flat."""
+        for loaded in memory.current_loaded_models:
+            patcher=loaded.model
+            while patcher.loaded_size()>0 and patcher.partially_unload(patcher.offload_device,1024**3)>0:
+                torch.cuda.empty_cache()
         memory.unload_all_models();gc.collect();memory.soft_empty_cache()
     with torch.inference_mode():
         if encode_only:
             event('encoder_start')
             clip=nodes.CLIPLoader().load_clip(plan['text_encoder'],'ltxv',device='default')[0]
-            positive=nodes.CLIPTextEncode().encode(clip,request['prompt'])[0]
-            negative=nodes.CLIPTextEncode().encode(clip,'blurry, low quality, watermark, subtitles, distorted anatomy')[0]
+            negative=nodes.CLIPTextEncode().encode(clip,NEGATIVE_PROMPT)[0]
             def cpu(value):
                 if isinstance(value,torch.Tensor):return value.detach().cpu().clone()
                 if isinstance(value,dict):return {key:cpu(item) for key,item in value.items()}
                 if isinstance(value,(list,tuple)):return [cpu(item) for item in value]
                 return value
-            torch.save(dict(positive=cpu(positive),negative=cpu(negative),
-                peak_allocated_vram_mb=round(torch.cuda.max_memory_allocated()/1024**2)),folder/'ltx-conditioning.pt')
-            event('encoder_complete')
+            for target,cached,text in missing:
+                positive=nodes.CLIPTextEncode().encode(clip,text)[0]
+                torch.save(dict(positive=cpu(positive),negative=cpu(negative),
+                    peak_allocated_vram_mb=round(torch.cuda.max_memory_allocated()/1024**2)),target)
+                cached.parent.mkdir(parents=True,exist_ok=True)
+                part=cached.with_name(cached.name+'.part')
+                shutil.copyfile(target,part)
+                os.replace(part,cached)
+            prune_cache(missing[0][1].parent)
+            event('encoder_complete',prompts=len(missing))
             return
         conditioning_path=conditioning_path or folder/'ltx-conditioning.pt'
         if not conditioning_path.resolve().is_relative_to(folder.parent.resolve()):
@@ -133,17 +221,36 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
         vae=nodes.VAELoader().load_vae(plan['video_vae'])[0]
         audio_vae=nodes.VAELoader().load_vae(plan['audio_vae'])[0]
         image=None
-        if request['mode']=='i2v':
-            path=Path(json.loads((folder/'media.json').read_text('utf-8'))['first']).resolve()
+        media=json.loads((folder/'media.json').read_text('utf-8')) if (folder/'media.json').is_file() else {}
+        def load_frame(key):
+            path=Path(media[key]).resolve()
             if not path.is_relative_to(folder.resolve()):
                 raise ValueError('Исходный кадр вне папки задачи LTX 2.5')
             with Image.open(path) as source:
-                image=torch.from_numpy(np.asarray(source.convert('RGB')).copy()).float().unsqueeze(0)/255
-            image=LTXVPreprocess.execute(image,18)[0]
+                picture=torch.from_numpy(np.asarray(source.convert('RGB')).copy()).float().unsqueeze(0)/255
+            return LTXVPreprocess.execute(picture,18)[0]
+        last=None
+        if request['mode'] in ('i2v','first_last') or request['mode']=='a2v' and 'first' in media:
+            image=load_frame('first')
+        if request['mode']=='first_last':
+            last=load_frame('last')
         latent=EmptyLTXVLatentVideo.execute(plan['base_width'],plan['base_height'],request['frames'],1)[0]
         if image is not None:
             latent=LTXVImgToVideoInplace.execute(vae,image,latent,.7)[0]
+        if last is not None:
+            # The ending picture is a keyframe guide: its tokens ride behind the real frames and are cut off after sampling (LTXVCropGuides).
+            # Writing it into the last latent frame instead would be wrong: one encoded picture stands for a single pixel frame, the
+            # last latent frame for the eight before the end.
+            positive,negative,latent=LTXVAddGuide.execute(positive,negative,vae,latent,last,-1,1.0)
         audio_latent=LTXVEmptyLatentAudio.execute(request['frames'],request['fps'],1,audio_vae)[0]
+        recording=frozen=None
+        if request['mode']=='a2v':
+            audio_path=Path(media['audio']).resolve()
+            if not audio_path.is_relative_to(folder.resolve()):
+                raise ValueError('Запись LTX 2.5 вне папки задачи')
+            recording=read_recording(audio_path)
+            frozen=freeze_recording(audio_latent,LTXVAudioVAEEncode.execute(recording,audio_vae)[0]['samples'])
+            audio_latent=frozen
         if context:
             latent,audio_latent=apply_context(latent,audio_latent,context,base=True)
         latent=LTXVConcatAVLatent.execute(latent,audio_latent)[0]
@@ -172,28 +279,36 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
         if plan['refine_sigmas']:
             event('sampling_prepare',stage=2)
             video,audio_latent=LTXVSeparateAVLatent.execute(sampled)
+            if last is not None:
+                positive,negative,video=LTXVCropGuides.execute(positive,negative,video)
             upscaler=LatentUpscaleModelLoader.execute(plan['upsampler'])[0]
             video=LTXVLatentUpsampler.execute(video,upscaler,vae)[0]
             del upscaler,sampled
             if image is not None:
                 video=LTXVImgToVideoInplace.execute(vae,image,video,1.0)[0]
+            if last is not None:
+                positive,negative,video=LTXVAddGuide.execute(positive,negative,vae,video,last,-1,1.0)
             if context:
                 video,audio_latent=apply_context(video,audio_latent,context)
+            if frozen is not None:
+                audio_latent=frozen      # the second pass must not let the sampler touch the recording either
             latent=LTXVConcatAVLatent.execute(video,audio_latent)[0]
             del video,audio_latent
             release()
             sampled=sample(latent,plan['refine_sigmas'],plan['refine_seed'],2)
             del latent
-        del model,positive,negative
+        video,audio_latent=LTXVSeparateAVLatent.execute(sampled)
+        if last is not None:
+            positive,negative,video=LTXVCropGuides.execute(positive,negative,video)    # needs the conditioning that carries the guide positions
+        del model,positive,negative,sampled
         release()
         event('decode_phase')
-        video,audio_latent=LTXVSeparateAVLatent.execute(sampled)
-        del sampled
         if save_tail:
             audio_length=audio_vae.first_stage_model.num_of_latents_from_frames(25,request['fps'])
             torch.save(dict(base_video=base_video,video=video['samples'][:,:,-4:].cpu().clone(),
                 audio=audio_latent['samples'][:,:,-audio_length:].cpu().clone()),folder/'ltx-tail.pt')
-        audio=LTXVAudioVAEDecode.execute(audio_latent,audio_vae)[0]
+        # Audio-to-video returns the person's own recording untouched; the vocoder would only re-synthesize it.
+        audio=recording if recording is not None else LTXVAudioVAEDecode.execute(audio_latent,audio_vae)[0]
         del audio_latent,audio_vae
         release()
         images=nodes.VAEDecodeTiled().decode(vae,video,tile_size=512,overlap=64,temporal_size=64,temporal_overlap=16)[0]

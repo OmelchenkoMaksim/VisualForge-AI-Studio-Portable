@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
-CATALOG_VERSION = '2026.10.27'
+CATALOG_VERSION = '2026.10.30'
 UA = {'User-Agent': 'visualforge-catalog/1'}
 HF_URL = 'https://huggingface.co/%s/resolve/%s/%s'
 
@@ -501,7 +501,8 @@ def build_text(installed):
         models.append(component(
             id='text.model.' + tag.replace(':', '-'), module='text', kind='model', group='Text', title=title, description=note,
             license='Gemma terms of use / Apache-2.0 (see the model license shown by Ollama)', requires=['text.runtime'], download_bytes=int(size), disk_bytes=int(size),
-            present=['Models/Text/ollama/manifests/registry.ollama.ai/library/%s/%s' % (model, variant)], after=[dict(op='ollama_pull', model=tag)]))
+            present=['Models/Text/ollama/manifests/registry.ollama.ai/library/%s/%s' % (model, variant)],
+            after=[dict(op='ollama_pull', model=tag, alternatives=GEMMA_MIRRORS[variant])]))
     return [runtime, agent, build_aider(installed), build_dsh(installed)] + models
 
 
@@ -590,8 +591,23 @@ MODULES = [
     dict(id='voiceover', title='Voiceover', summary='Text to speech of long texts with a cloned voice; uses the Video runtime and the Qwen3-TTS model of the Video section, VoxCPM2 is an optional second engine.'),
 ]
 
+# Gemma 4 is part of every installation: the video scenario writer, screenshot and voice reading and the dictation editor all use it.
+# The official registry is tried first; the same weights are also served in Ollama's registry protocol by Hugging Face and ModelScope
+# (checked 2026-10-30: `/v2/<repo>/manifests/Q4_K_M` answers with model + projector layers on both). They are independent hosts,
+# unlike hf.co/huggingface.co. The pulled copy is aliased to the catalog name (provision/ollama_tools.py, _adopt).
+GEMMA_MIRRORS = {
+    'e2b': ['hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M', 'modelscope.cn/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M', 'hf.co/bartowski/google_gemma-4-E2B-it-GGUF:Q4_K_M'],
+    'e4b': ['hf.co/unsloth/gemma-4-E4B-it-GGUF:Q4_K_M', 'modelscope.cn/unsloth/gemma-4-E4B-it-GGUF:Q4_K_M', 'hf.co/bartowski/google_gemma-4-E4B-it-GGUF:Q4_K_M'],
+    '26b': ['hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_M', 'modelscope.cn/unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_M', 'hf.co/bartowski/google_gemma-4-26B-A4B-it-GGUF:Q4_K_M'],
+}
+
+REQUIRED = [dict(
+    id='gemma', family='gemma', title='Gemma 4 (required)',
+    description='The studio\'s built-in assistant: it writes the scenario of long videos, reads screenshots and voice, and edits dictated text. One model of any size is enough; E4B is installed when you choose none.',
+    default='text.model.gemma4-e4b', options=['text.model.gemma4-e2b', 'text.model.gemma4-e4b', 'text.model.gemma4-26b'])]
+
 PRESETS = {
-    'software-only': dict(title='Only the programs, no models (download models later)', models=[]),
+    'software-only': dict(title='Only the programs and the required Gemma (download other models later)', models=[]),
     'light': dict(title='Light: smaller models of every section', models=[
         'image.model.qwen-image-21-uc', 'image.model.upscale', 'video.model.wan-ti2v-5b', 'video.model.wan-text-encoder', 'music.model.ace-step', 'text.model.gemma4-e2b', 'speech.model.whisper-small', 'speech.model.rupunct-big']),
     'everything': dict(title='Everything (about 160 GB)', models='all'),
@@ -619,7 +635,7 @@ def build_all(installed, work, skip_gated=False):
         modules.append(dict(module, components=ids))
     core = [c['id'] for c in components if c['module'] == 'core']
     modules.insert(0, dict(id='core', title='Tools', summary='Small helper programs.', components=core))
-    return dict(schema_version=1, catalog_version=CATALOG_VERSION, modules=modules, presets=PRESETS, components=components)
+    return dict(schema_version=1, catalog_version=CATALOG_VERSION, modules=modules, required=REQUIRED, presets=PRESETS, components=components)
 
 
 def main(argv=None):

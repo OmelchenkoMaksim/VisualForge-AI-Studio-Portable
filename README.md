@@ -57,11 +57,13 @@ On the first start `Start-VisualForge.cmd` runs `Setup-VisualForge.cmd`, which s
 Unattended installs:
 
 ```bat
-Setup-VisualForge.cmd --software-only            :: programs only, models later
+Setup-VisualForge.cmd --software-only            :: programs and the required Gemma, other models later
 Setup-VisualForge.cmd --preset light --yes        :: programs + smaller models of every tab
 Setup-VisualForge.cmd --all --yes                 :: everything (about 244 GB)
 Setup-VisualForge.cmd --models image.model.upscale,video.model.wan-ti2v-5b --yes
 Setup-VisualForge.cmd --text-model gemma4:e4b     :: any model of the Ollama registry for the Text tab
+Setup-VisualForge.cmd --gemma e2b                 :: the required Gemma in another size (e2b, e4b, 26b)
+Setup-VisualForge.cmd --gemma-file D:\models\gemma-4-E4B-it-Q4_K_M.gguf   :: Gemma from a local GGUF file, no download
 Setup-VisualForge.cmd --import-ollama "mymodel:latest"   :: copy a model from your own Ollama installation
 Setup-VisualForge.cmd --status                    :: what is installed
 Setup-VisualForge.cmd --verify                    :: re-hash the installed models (slow)

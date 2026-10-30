@@ -762,5 +762,189 @@
   "components.catalog_ltx25_note": {
     "ru": "Перед скачиванием примите условия Lightricks/LTX-2.5 на Hugging Face. Установщику нужен HF_TOKEN с правом чтения. При генерации сеть и токен не нужны.",
     "en": "Before downloading, accept the Lightricks/LTX-2.5 terms on Hugging Face. The installer needs HF_TOKEN with read access. Generation requires neither network access nor a token."
+  },
+  "components.gemma_source_failed_note": {
+    "ru": "Источник %s недоступен (%s). Пробую следующий.",
+    "en": "Source %s is unavailable (%s). Trying the next one."
+  },
+  "components.gemma_loaded_from_mirror_note": {
+    "ru": "Gemma загружена из запасного источника %s.",
+    "en": "Gemma was loaded from the backup source %s."
+  },
+  "components.gemma_all_sources_failed_error": {
+    "ru": "Ни один источник не отдал модель (%s). Укажите локальный файл модели (.gguf) в окне Gemma или повторите установку позже.",
+    "en": "No source could provide the model (%s). Give a local model file (.gguf) in the Gemma window or try again later."
+  },
+  "components.gemma_file_not_found_error": {
+    "ru": "Файл не найден: %s",
+    "en": "File not found: %s"
+  },
+  "components.gemma_file_not_gguf_error": {
+    "ru": "%s — не файл GGUF. Нужна модель Gemma в формате GGUF.",
+    "en": "%s is not a GGUF file. A Gemma model in GGUF format is needed."
+  },
+  "components.gemma_file_not_gemma_error": {
+    "ru": "%s — модель архитектуры «%s», а нужна Gemma.",
+    "en": "%s is a model of the \"%s\" architecture, but Gemma is needed."
+  },
+  "components.gemma_projector_invalid_error": {
+    "ru": "Файл проектора не подходит (нужен mmproj*.gguf от Gemma): %s",
+    "en": "The projector file does not fit (a Gemma mmproj*.gguf is needed): %s"
+  },
+  "components.gemma_import_started_note": {
+    "ru": "Импорт локального файла %s в закрытое хранилище моделей.",
+    "en": "Importing the local file %s into the private model store."
+  },
+  "components.gemma_import_no_projector_note": {
+    "ru": "Файл проектора не найден: модель будет работать только с текстом, без изображений.",
+    "en": "No projector file found: the model will work with text only, without pictures."
+  },
+  "components.gemma_create_failed_error": {
+    "ru": "Не удалось создать модель из файла: %s",
+    "en": "The model could not be created from the file: %s"
+  },
+  "components.gemma_console_question": {
+    "ru": "Ни один источник не отдал модель %s (%s).\nВведите путь к файлу модели .gguf (пустая строка — пропустить):",
+    "en": "No source provided the model %s (%s).\nEnter the path of a .gguf model file (an empty line skips):"
+  },
+  "components.gemma_console_projector_question": {
+    "ru": "Путь к файлу проектора mmproj*.gguf (необязательно): ",
+    "en": "Path of the mmproj*.gguf projector file (optional): "
+  },
+  "components.gemma_pick_model_title": {
+    "ru": "Выберите файл модели Gemma (.gguf)",
+    "en": "Choose the Gemma model file (.gguf)"
+  },
+  "components.gemma_pick_projector_title": {
+    "ru": "Выберите файл проектора изображений (mmproj*.gguf)",
+    "en": "Choose the image projector file (mmproj*.gguf)"
+  },
+  "components.respond_model_needs_file": {
+    "ru": "Для модели нужен файл на диске, а не ссылка.",
+    "en": "A model needs a file on disk, not a link."
+  },
+  "components.routes_invalid_local_model": {
+    "ru": "Укажите путь к файлу модели.",
+    "en": "Give the path of the model file."
+  },
+  "components.gemma_required_last_error": {
+    "ru": "Gemma обязательна: это последняя установленная Gemma. Сначала установите другую, затем отключите или удалите эту.",
+    "en": "Gemma is required: this is the last installed Gemma. Install another one first, then disable or delete this one."
+  },
+  "components.cli_required_gemma_note": {
+    "ru": "Обязательно: одна модель Gemma (если её нет и вы ничего не выбрали, ставится E4B). Источники пробуются по очереди; если все недоступны, можно указать локальный файл GGUF.",
+    "en": "Required: one Gemma model (E4B is added when none is installed and you pick none). Sources are tried in turn; if all fail you can give a local GGUF file."
+  },
+  "components.cli_gemma_file_rejected_template": {
+    "ru": "Файл Gemma отклонён: %s",
+    "en": "Gemma file rejected: %s"
+  },
+  "components.catalog_required_gemma_title": {
+    "ru": "Gemma 4 (обязательная)",
+    "en": "Gemma 4 (required)"
+  },
+  "components.catalog_required_gemma_description": {
+    "ru": "Встроенный помощник студии: пишет сценарий длинных видео, читает скриншоты и голос, правит надиктованный текст. Достаточно одной модели любого размера; если вы ничего не выберете, поставится E4B.",
+    "en": "The studio's built-in assistant: it writes the scenario of long videos, reads screenshots and voice, and edits dictated text. One model of any size is enough; E4B is installed when you choose none."
+  },
+  "components.gemma_dialog_title_label": {
+    "ru": "Нужна модель Gemma",
+    "en": "The Gemma model is required"
+  },
+  "components.gemma_dialog_intro_text": {
+    "ru": "Gemma — встроенный помощник студии: пишет сценарий для длинных видео, читает скриншоты и голос, исправляет надиктованный текст. Без неё эти функции не работают. Скачайте модель или укажите файл, который уже есть на компьютере.",
+    "en": "Gemma is the studio's built-in assistant: it writes the scenario of long videos, reads screenshots and voice, and corrects dictated text. These features do not work without it. Download the model or give a file you already have on this computer."
+  },
+  "components.gemma_size_field_label": {
+    "ru": "Размер модели",
+    "en": "Model size"
+  },
+  "components.gemma_option_label_template": {
+    "ru": "{0} — {1}",
+    "en": "{0} — {1}"
+  },
+  "components.gemma_sources_line_template": {
+    "ru": "Источники по очереди: {0}. Если один недоступен, студия сама пробует следующий.",
+    "en": "Sources in order: {0}. If one is unavailable, the studio tries the next one itself."
+  },
+  "components.gemma_download_button_label": {
+    "ru": "Скачать Gemma",
+    "en": "Download Gemma"
+  },
+  "components.gemma_local_summary_label": {
+    "ru": "У меня уже есть файл модели",
+    "en": "I already have a model file"
+  },
+  "components.gemma_local_help_text": {
+    "ru": "Подойдёт файл Gemma в формате GGUF, например gemma-4-E4B-it-Q4_K_M.gguf. Если рядом лежит файл проектора mmproj*.gguf, он найдётся сам: с ним модель понимает картинки. Файл копируется в папку студии, исходный остаётся на месте.",
+    "en": "A Gemma file in GGUF format fits, for example gemma-4-E4B-it-Q4_K_M.gguf. A projector file mmproj*.gguf beside it is found automatically: with it the model understands pictures. The file is copied into the studio folder; the original stays where it is."
+  },
+  "components.gemma_model_file_field_label": {
+    "ru": "Файл модели (.gguf)",
+    "en": "Model file (.gguf)"
+  },
+  "components.gemma_projector_field_label": {
+    "ru": "Проектор изображений (mmproj*.gguf, необязательно)",
+    "en": "Image projector (mmproj*.gguf, optional)"
+  },
+  "components.gemma_browse_button_label": {
+    "ru": "Выбрать…",
+    "en": "Browse…"
+  },
+  "components.gemma_import_button_label": {
+    "ru": "Использовать файл",
+    "en": "Use this file"
+  },
+  "components.gemma_skip_button_label": {
+    "ru": "Продолжить без Gemma (до следующего запуска)",
+    "en": "Continue without Gemma (until the next start)"
+  },
+  "components.gemma_cancel_button_label": {
+    "ru": "Остановить",
+    "en": "Stop"
+  },
+  "components.gemma_progress_preparing_status": {
+    "ru": "Подготовка…",
+    "en": "Preparing…"
+  },
+  "components.gemma_failed_sources_title_label": {
+    "ru": "Ни один источник не отдал модель",
+    "en": "No source could provide the model"
+  },
+  "components.gemma_failed_sources_help_template": {
+    "ru": "Причины: {0}. Укажите файл модели ниже или пропустите, тогда эта установка остановится. Осталось {1} с.",
+    "en": "Reasons: {0}. Give a model file below or skip, and this installation stops. {1} s left."
+  },
+  "components.gemma_done_status_text": {
+    "ru": "Готово: Gemma установлена.",
+    "en": "Done: Gemma is installed."
+  },
+  "components.gemma_failed_status_template": {
+    "ru": "Не получилось: {0}",
+    "en": "It did not work: {0}"
+  },
+  "components.gemma_card_missing_status_text": {
+    "ru": "Gemma не установлена. Без неё не работают сценарии видео, чтение скриншотов и голоса.",
+    "en": "Gemma is not installed. Video scenarios and reading screenshots and voice do not work without it."
+  },
+  "components.gemma_card_installed_status_template": {
+    "ru": "Gemma установлена: {0}. Хотя бы одна Gemma должна оставаться.",
+    "en": "Gemma is installed: {0}. At least one Gemma has to stay."
+  },
+  "components.gemma_card_open_button_label": {
+    "ru": "Установить Gemma…",
+    "en": "Install Gemma…"
+  },
+  "components.gemma_card_local_button_label": {
+    "ru": "Указать файл Gemma…",
+    "en": "Give a Gemma file…"
+  },
+  "components.gemma_required_badge_suffix": {
+    "ru": " · обязательная",
+    "en": " · required"
+  },
+  "components.gemma_close_button_label": {
+    "ru": "Закрыть",
+    "en": "Close"
   }
 }

@@ -42,11 +42,13 @@ Start-VisualForge.cmd
 Без меню:
 
 ```bat
-Setup-VisualForge.cmd --software-only            :: только программы, модели потом
+Setup-VisualForge.cmd --software-only            :: программы и обязательная Gemma, остальные модели потом
 Setup-VisualForge.cmd --preset light --yes        :: программы + небольшие модели каждого раздела
 Setup-VisualForge.cmd --all --yes                 :: всё (около 244 ГБ)
 Setup-VisualForge.cmd --models image.model.upscale,video.model.wan-ti2v-5b --yes
 Setup-VisualForge.cmd --text-model gemma4:e4b     :: любая модель реестра Ollama для вкладки Text
+Setup-VisualForge.cmd --gemma e2b                 :: обязательная Gemma другого размера (e2b, e4b, 26b)
+Setup-VisualForge.cmd --gemma-file D:\models\gemma-4-E4B-it-Q4_K_M.gguf   :: Gemma из локального файла GGUF, без скачивания
 Setup-VisualForge.cmd --import-ollama "имя:тег"   :: скопировать модель из вашей установленной Ollama
 Setup-VisualForge.cmd --status | --verify | --help
 ```

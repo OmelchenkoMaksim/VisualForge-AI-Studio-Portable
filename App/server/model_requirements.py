@@ -18,7 +18,7 @@ COMPONENTS = {
     'music:stable-audio-3-medium': 'music.model.stable-audio-3',
 }
 MODES = dict(t2v=ui_text('hardware.model_requirements_video_text'), i2v=ui_text('hardware.model_requirements_image_animation'), first_last=ui_text('hardware.model_requirements_first_last_frame'),
-    characters=ui_text('hardware.model_requirements_characters_references'), s2v=ui_text('hardware.model_requirements_speech_video'), instrumental=ui_text('hardware.generation_instrumental_mode_label'), song=ui_text('hardware.model_requirements_song_vocals'),
+    characters=ui_text('hardware.model_requirements_characters_references'), s2v=ui_text('hardware.model_requirements_speech_video'), a2v=ui_text('hardware.model_requirements_audio_to_video'), instrumental=ui_text('hardware.generation_instrumental_mode_label'), song=ui_text('hardware.model_requirements_song_vocals'),
     single=ui_text('hardware.model_requirements_editing'), reference=ui_text('hardware.model_requirements_editing_reference'), prompt=ui_text('hardware.model_requirements_image_text'),
     audio=ui_text('hardware.model_requirements_music_sounds_description'), detail=ui_text('hardware.model_requirements_image_detail_mode'),
     control=ui_text('hardware.model_requirements_image_control_mode'), inpaint=ui_text('hardware.model_requirements_image_inpaint_mode'), tile=ui_text('hardware.model_requirements_image_tile_mode'),

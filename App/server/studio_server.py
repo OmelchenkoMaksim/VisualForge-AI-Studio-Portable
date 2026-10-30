@@ -134,6 +134,7 @@ STATIC['/voice-worklet.js'] = ('static/voice-worklet.js', 'application/javascrip
 STATIC['/voice-input.css'] = ('static/voice-input.css', 'text/css; charset=utf-8')
 STATIC['/component-manager.js'] = ('static/component-manager.js', 'application/javascript; charset=utf-8')
 STATIC['/component-manager.css'] = ('static/component-manager.css', 'text/css; charset=utf-8')
+STATIC['/gemma-gate.js'] = ('static/gemma-gate.js', 'application/javascript; charset=utf-8')
 STATIC['/studio-ui.js'] = ('static/studio-ui.js', 'application/javascript; charset=utf-8')
 STATIC['/studio-ui.css'] = ('static/studio-ui.css', 'text/css; charset=utf-8')
 STATIC['/hardware-panel.js'] = ('static/hardware-panel.js', 'application/javascript; charset=utf-8')
@@ -216,6 +217,12 @@ if MUSIC is not None:
 if SPEECH is not None and TEXT is not None:
     from speech.dictation_polish import Polisher
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
+SCENE_PLANNER = PROMPT_ENHANCER = None
+if TEXT is not None:
+    from video.scene_planner import ScenePlanner
+    from video.prompt_enhancer import PromptEnhancer
+    SCENE_PLANNER = ScenePlanner(TEXT, GPU, GPU_SUBMISSION_LOCK)
+    PROMPT_ENHANCER = PromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
 if TEXT is not None:
     try:
         from agents.agent_manager import AgentManager
@@ -644,6 +651,34 @@ class Handler(BaseHTTPRequestHandler):
 
     def response_json(self, code, obj):
         self.reply(code, json.dumps(obj, ensure_ascii=False).encode('utf-8'))
+
+    def video_plan(self, data):
+        """Gemma splits one idea into a prompt per segment of a long Wan clip. Takes tens of seconds, so no GPU lock is held while it runs."""
+        if SCENE_PLANNER is None:
+            return self.response_json(503, {'error': ui_text('video.plan_text_section_unavailable')})
+        try:
+            return self.response_json(200, SCENE_PLANNER.plan(data.get('prompt'), data.get('segments'), data.get('source_image'), data.get('join', 'continue'),
+                                                                 talking=data.get('talking') is True, speech=data.get('speech_text'), sound=data.get('sound') is True))
+        except Busy as error:
+            return self.response_json(409, {'error': str(error)})
+        except GpuUnavailable as error:
+            return self.response_json(503, {'error': str(error)})
+        except ValueError as error:
+            return self.response_json(400, {'error': str(error)[:800]})
+
+    def video_enhance(self, data):
+        """Gemma rewrites one prompt for the chosen video model and mode (hidden per-model instruction, video/prompt_enhancer.py)."""
+        if PROMPT_ENHANCER is None:
+            return self.response_json(503, {'error': ui_text('video.plan_text_section_unavailable')})
+        try:
+            pictures = [data.get('source_image')] + ([data.get('end_image')] if data.get('end_image') else [])
+            return self.response_json(200, PROMPT_ENHANCER.enhance(data.get('prompt'), data.get('engine'), data.get('mode'), [p for p in pictures if p], data.get('variant')))
+        except Busy as error:
+            return self.response_json(409, {'error': str(error)})
+        except GpuUnavailable as error:
+            return self.response_json(503, {'error': str(error)})
+        except ValueError as error:
+            return self.response_json(400, {'error': str(error)[:800]})
 
     def video_request(self, route, data=None, query=''):
         if VIDEO is None:
@@ -1205,7 +1240,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             route = urlparse(self.path).path
-            is_video = route in ('/api/video/generate', '/api/video/cancel', '/api/video/settings', '/api/video/prompts',
+            is_video = route in ('/api/video/generate', '/api/video/plan', '/api/video/enhance', '/api/video/cancel', '/api/video/settings', '/api/video/prompts',
                                  '/api/video/export', '/api/video/export-cancel', '/api/video/mix', '/api/video/mix-preview', '/api/video/delete')
             is_music = route in ('/api/music/generate', '/api/music/cancel', '/api/music/settings', '/api/music/delete')
             is_voiceover = route.startswith('/api/voiceover/') and route.removeprefix('/api/voiceover/') in POST_LIMITS_VOICEOVER
@@ -1220,7 +1255,7 @@ class Handler(BaseHTTPRequestHandler):
             size = int(self.headers.get('Content-Length', '0') or '0')
             max_size = 4096 if route in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
             if is_video:
-                max_size = {'generate': 100 * 1024 * 1024, 'cancel': 4096, 'settings': 8192, 'prompts': 32768,
+                max_size = {'generate': 100 * 1024 * 1024, 'plan': 8 * 1024 * 1024, 'enhance': 8 * 1024 * 1024, 'cancel': 4096, 'settings': 8192, 'prompts': 32768,
                             'export': 4096, 'export-cancel': 4096, 'mix': 16384, 'mix-preview': 16384, 'delete': 4096}[route.rsplit('/', 1)[-1]]
             if is_music:
                 max_size = 40000
@@ -1244,6 +1279,10 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError(ui_text('common.studio_bridge_post_expected_json_object'))
             if route == '/api/event-history/session':
                 return self.microphone_event(data)
+            if route == '/api/video/plan':
+                return self.video_plan(data)
+            if route == '/api/video/enhance':
+                return self.video_enhance(data)
             if route == '/api/history/delete':
                 try:
                     return self.delete_image(data)

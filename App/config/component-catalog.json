@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "catalog_version": "2026.10.27",
+ "catalog_version": "2026.10.30",
  "modules": [
   {
    "id": "core",
@@ -85,9 +85,23 @@
    ]
   }
  ],
+ "required": [
+  {
+   "id": "gemma",
+   "family": "gemma",
+   "title": "Gemma 4 (required)",
+   "description": "The studio's built-in assistant: it writes the scenario of long videos, reads screenshots and voice, and edits dictated text. One model of any size is enough; E4B is installed when you choose none.",
+   "default": "text.model.gemma4-e4b",
+   "options": [
+    "text.model.gemma4-e2b",
+    "text.model.gemma4-e4b",
+    "text.model.gemma4-26b"
+   ]
+  }
+ ],
  "presets": {
   "software-only": {
-   "title": "Only the programs, no models (download models later)",
+   "title": "Only the programs and the required Gemma (download other models later)",
    "models": []
   },
   "light": {
@@ -18936,12 +18950,19 @@
    "after": [
     {
      "op": "ollama_pull",
-     "model": "gemma4:e2b"
+     "model": "gemma4:e2b",
+     "alternatives": [
+      "hf.co/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M",
+      "modelscope.cn/unsloth/gemma-4-E2B-it-GGUF:Q4_K_M",
+      "hf.co/bartowski/google_gemma-4-E2B-it-GGUF:Q4_K_M"
+     ]
     }
    ],
    "cloud_sources": [
     "https://registry.ollama.ai",
-    "https://ollama.com/library"
+    "https://ollama.com/library",
+    "https://hf.co",
+    "https://modelscope.cn"
    ]
   },
   {
@@ -18963,12 +18984,19 @@
    "after": [
     {
      "op": "ollama_pull",
-     "model": "gemma4:e4b"
+     "model": "gemma4:e4b",
+     "alternatives": [
+      "hf.co/unsloth/gemma-4-E4B-it-GGUF:Q4_K_M",
+      "modelscope.cn/unsloth/gemma-4-E4B-it-GGUF:Q4_K_M",
+      "hf.co/bartowski/google_gemma-4-E4B-it-GGUF:Q4_K_M"
+     ]
     }
    ],
    "cloud_sources": [
     "https://registry.ollama.ai",
-    "https://ollama.com/library"
+    "https://ollama.com/library",
+    "https://hf.co",
+    "https://modelscope.cn"
    ]
   },
   {
@@ -18990,12 +19018,19 @@
    "after": [
     {
      "op": "ollama_pull",
-     "model": "gemma4:26b"
+     "model": "gemma4:26b",
+     "alternatives": [
+      "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_M",
+      "modelscope.cn/unsloth/gemma-4-26B-A4B-it-GGUF:Q4_K_M",
+      "hf.co/bartowski/google_gemma-4-26B-A4B-it-GGUF:Q4_K_M"
+     ]
     }
    ],
    "cloud_sources": [
     "https://registry.ollama.ai",
-    "https://ollama.com/library"
+    "https://ollama.com/library",
+    "https://hf.co",
+    "https://modelscope.cn"
    ]
   },
   {
