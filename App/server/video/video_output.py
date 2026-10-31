@@ -34,14 +34,24 @@ def _title_and_stamp(prompt, submitted_at):
 
 
 def copy_unique(source, directory, base):
+    """Copy `source` to a free name in `directory` (never overwrites); a copy that fails leaves no file behind."""
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
     index = 0
-    while True:
-        target = directory / (base + ('' if not index else ' ' + str(index)) + '.mp4')
-        try:
-            with target.open('xb') as destination, Path(source).open('rb') as stream:
-                shutil.copyfileobj(stream, destination)
+    # The source is opened first: a missing source must not leave an empty target that looks like a finished clip.
+    with Path(source).open('rb') as stream:
+        while True:
+            target = directory / (base + ('' if not index else ' ' + str(index)) + '.mp4')
+            try:
+                destination = target.open('xb')
+            except FileExistsError:
+                index += 1
+                continue
+            try:
+                with destination:
+                    shutil.copyfileobj(stream, destination)
+            except BaseException:
+                # A full disk ends the copy halfway; the truncated MP4 under its final name would be taken for the result.
+                target.unlink(missing_ok=True)
+                raise
             return target
-        except FileExistsError:
-            index += 1

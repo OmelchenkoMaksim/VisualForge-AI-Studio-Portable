@@ -53,6 +53,47 @@ class VideoSafetyTests(unittest.TestCase):
         self.assertEqual(saved.read_bytes(), b'new fixture')
         self.assertEqual((destination / (base + '.mp4')).read_bytes(), b'existing fixture')
 
+    def test_a_failed_copy_leaves_no_file_that_looks_like_a_result(self):
+        destination = self.root / 'results'
+        with self.assertRaises(FileNotFoundError):
+            copy_unique(self.root / 'missing.mp4', destination, 'Clip')
+        self.assertEqual(list(destination.glob('*')), [])                       # the source is opened first: no empty target
+        source = self.root / 'source.mp4'
+        source.write_bytes(b'x' * 1000)
+
+        def halfway(reader, writer, *args):
+            writer.write(reader.read(10))
+            raise OSError('disk full')
+        with patch('video.video_output.shutil.copyfileobj', halfway), self.assertRaises(OSError):
+            copy_unique(source, destination, 'Clip')
+        self.assertEqual(list(destination.glob('*')), [])                       # a truncated MP4 is removed
+        self.assertEqual(copy_unique(source, destination, 'Clip').name, 'Clip.mp4')
+
+    def test_a_job_that_cannot_start_does_not_leave_its_folder_behind(self):
+        jobs_folder = self.jobs.user / 'Cache/Video/Jobs'
+        with patch.object(Jobs, 'check_request'), patch.object(Jobs, 'start', side_effect=ValueError('no slot')):
+            with self.assertRaises(ValueError):
+                self.jobs.submit({'prompt': 'test'})
+        self.assertEqual(list(jobs_folder.glob('*')), [])
+        self.assertIsNone(self.jobs.active)
+
+    def test_an_unexpected_error_of_the_service_is_answered_not_dropped(self):
+        from http.server import ThreadingHTTPServer
+        import threading
+        import urllib.request                    # imports urllib.error too: HTTPError is reached as urllib.error below
+        from video.video_service import make_handler
+        server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(self.jobs, 'secret', lambda: None))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        request = urllib.request.Request('http://127.0.0.1:%d/history' % server.server_address[1], headers={'Authorization': 'Bearer secret'})
+        with patch.object(Jobs, 'public', side_effect=RuntimeError('broken row')), patch('video.video_service.traceback.print_exc'):
+            self.jobs.rows['x'] = dict(state='done')
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(request, timeout=10)
+        self.assertEqual(caught.exception.code, 500)
+        self.assertIn('RuntimeError: broken row', json.loads(caught.exception.read())['error'])
+
     def test_saved_name_ends_with_the_model_that_made_the_video(self):
         plain = filename_base('A red ball rolls slowly from left to right across a matte gray floor.', 0)
         self.assertEqual(filename_base('A red ball rolls slowly from left to right across a matte gray floor.', 0, 'LTX 2.5 Distilled'), plain + ' - LTX 2.5 Distilled')

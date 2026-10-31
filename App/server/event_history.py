@@ -36,6 +36,7 @@ TECHNICAL_TYPES = {
     'MusicPlanning': ui_text('events.operation_type_music_planning_label'),
     'VideoPromptPlanning': ui_text('events.operation_type_video_prompt_planning_label'),
     'VideoPromptEnhancement': ui_text('events.operation_type_video_prompt_enhancement_label'),
+    'VideoReview': ui_text('events.operation_type_video_review_label'),
 }
 TYPES = {**MAIN_TYPES, **TECHNICAL_TYPES}
 

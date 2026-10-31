@@ -337,14 +337,15 @@ def run(args):
 
         event('encoder_start')
         text_clip = nodes.CLIPLoader().load_clip('umt5_xxl_fp8_e4m3fn_scaled.safetensors', 'wan', device='default')[0]
-        encode = lambda text: nodes.CLIPTextEncode().encode(text_clip, text)[0]
-        positive, negative = encode(request['prompt']), encode(request.get('negative_prompt') or '')
-        pose_text = encode(request['motion_prompt']) if animate and request.get('motion_prompt') else None
+        # The models are arguments of these helpers: a lambda that read them from this scope would fail with NameError after the `del` below.
+        encode = lambda text_encoder, text: nodes.CLIPTextEncode().encode(text_encoder, text)[0]
+        positive, negative = encode(text_clip, request['prompt']), encode(text_clip, request.get('negative_prompt') or '')
+        pose_text = encode(text_clip, request['motion_prompt']) if animate and request.get('motion_prompt') else None
         del text_clip
         release()
         vision = nodes.CLIPVisionLoader().load_clip('clip_vision_h.safetensors')[0]
-        look = lambda image: nodes.CLIPVisionEncode().encode(vision, image, 'none')[0]
-        vision_reference, vision_pose = look(reference), look(segment_frames(clip, 0, 1))
+        look = lambda vision_model, image: nodes.CLIPVisionEncode().encode(vision_model, image, 'none')[0]
+        vision_reference, vision_pose = look(vision, reference), look(vision, segment_frames(clip, 0, 1))
         del vision
         release()
         vae = nodes.VAELoader().load_vae('Wan2_1_VAE_bf16.safetensors')[0]

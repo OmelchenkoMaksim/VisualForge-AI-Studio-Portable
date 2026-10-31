@@ -766,6 +766,12 @@ async function blobToBase64(blob) {
 async function convertUnsupportedImageToPng(file) {
   const objectUrl = URL.createObjectURL(file);
   try {
+    // A format the browser cannot show (HEIC, TIFF, PSD...) goes to the studio's own converter instead of failing.
+    const decodable = await new Promise(resolve => { const probe = new Image(); probe.onload = () => resolve(true); probe.onerror = () => resolve(false); probe.src = objectUrl; });
+    if (!decodable) {
+      const converted = await StudioImages.convertOnServer(file, 'image');
+      return {base64: await blobToBase64(converted.blob)};
+    }
     const image = await new Promise((resolve, reject) => {
       const tag = new Image();
       tag.onload = () => resolve(tag);

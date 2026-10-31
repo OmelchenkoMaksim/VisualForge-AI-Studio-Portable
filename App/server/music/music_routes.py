@@ -1,46 +1,12 @@
 """HTTP Music endpoints served through the existing safe-origin loopback bridge."""
 from ui_strings import source as ui_text
-import re
 from urllib.parse import parse_qs
 
 from gpu_coordinator import Busy, GpuUnavailable
+from range_response import serve_file
 
 def serve_audio(handler, path):
-    size = path.stat().st_size
-    start, end, partial = 0, size - 1, False
-    requested = handler.headers.get('Range')
-    if requested:
-        match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
-        if not match or not any(match.groups()):
-            return handler.response_json(416, {'error': 'Invalid byte range'})
-        first, last = match.groups()
-        start = int(first) if first else max(0, size - int(last))
-        end = min(size - 1, int(last)) if first and last else size - 1
-        if not 0 <= start <= end < size:
-            return handler.response_json(416, {'error': 'Invalid byte range'})
-        partial = True
-    handler.send_response(206 if partial else 200)
-    handler.send_header('Content-Type', 'audio/wav')
-    handler.send_header('Content-Length', str(end - start + 1))
-    handler.send_header('Accept-Ranges', 'bytes')
-    handler.send_header('Cache-Control', 'no-store')
-    handler.send_header('X-Content-Type-Options', 'nosniff')
-    handler.send_header('Content-Disposition', 'inline; filename="Music-' + path.stem.rsplit(' - ', 1)[-1] + '.wav"')
-    if partial:
-        handler.send_header('Content-Range', f'bytes {start}-{end}/{size}')
-    handler.end_headers()
-    try:
-        with path.open('rb') as stream:
-            stream.seek(start)
-            remaining = end - start + 1
-            while remaining:
-                chunk = stream.read(min(65536, remaining))
-                if not chunk:
-                    break
-                handler.wfile.write(chunk)
-                remaining -= len(chunk)
-    except (BrokenPipeError, ConnectionResetError):
-        pass
+    return serve_file(handler, path, 'audio/wav', 'Music-' + path.stem.rsplit(' - ', 1)[-1] + '.wav', 'no-store')
 
 def handle(handler, manager, gpu, route, data, query):
     """GPU admission (`gpu.claim`) runs under the bridge's existing shared submission lock."""

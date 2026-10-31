@@ -25,6 +25,12 @@ Z-Image Turbo has one 8-step text-generation preset. Optional **2K detail** comb
 
 FLUX.3 Klein supports text generation, instruction edits, 2–10 image references and object layout boxes. Text modes offer native 2K/4K separately from Real-ESRGAN enlargement. Editing uses about 1 MP; 4K needs nearly the entire 16 GB GPU and does not reliably improve composition. See [capabilities and measured checks](docs/FLUX-3-Klein.md).
 
+Video engines carry a 0-10 score (10 is the real world filmed by a good camera; no local model reaches 8) and a strengths-and-limits block. LTX 2.5, Wan 2.2 S2V, Wan Animate 2 and SCAIL-2 make 30 s clips. Gemma, the studio's own
+text model, works as the director: it splits an idea into scenes, rewrites a prompt for the chosen model in English (spoken lines and lettering stay in your language, in quotes), and after the run
+watches the finished clip and proposes a corrected prompt; Whisper checks that LTX scenes really say their lines and a scene that does not is generated again. Pictures of any common format
+(HEIC, AVIF, WebP, TIFF...) are accepted everywhere and converted automatically. See the [Video architecture](docs/VisualForge-Video-Architecture.md),
+the [ratings](docs/Video-Model-Ratings.md), [Gemma clip review](docs/Gemma-Clip-Review.md) and the [index of all documents](docs/README.md).
+
 Everything runs on your computer and there is no cloud service behind it; the only network traffic is the download of the
 programs and models from their original publishers (the model libraries run in offline mode).
 

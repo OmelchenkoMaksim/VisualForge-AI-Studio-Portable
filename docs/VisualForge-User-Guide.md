@@ -29,6 +29,8 @@ FLUX.3 Klein INT8 is the distilled 16-step, CFG 1 checkpoint. It offers Prompt, 
 
 - LTX 2.5 Distilled: joint local video and sound from text or an initial image. Start with 768x512, 49 frames (2.0417 seconds), 24 fps. Fast uses 8 steps; Two-pass uses 8 steps, learned latent enlargement and 3 refinement steps. Both modes were GPU-tested at this size. New 15, 30 and 60 second presets continue one scene through overlapping video/audio context; choose the duration marked «продолжение». Details, lighting and sounds may drift between fragments. Larger resolutions and long I2V remain experimental. Describe the scene, motion and sound together. See [LTX documentation](LTX-2.5-Video.md) and local evidence in `UserData/Settings/ltx25-verification.json`.
 
+- Under every finished one-prompt clip of the Video history there is "Gemma review": Gemma looks at frames and measurements, says what is wrong and offers a corrected prompt; see [the review](Gemma-Clip-Review.md). Gemma writes the prompts for the neural networks in English; put words that must be spoken or written in the picture in quotes or brackets and they stay as you wrote them.
+- Pictures of any common format (WebP, AVIF, GIF, BMP, TIFF, PSD, TGA... and screenshots pasted with Ctrl+V) can be attached anywhere; the studio converts them to what the chosen neural network reads and scales oversized ones. HEIC photos from an iPhone work too, see [the converter](Image-Converter.md).
 - Every video engine shows a score from 0 to 10 in the engine list and a block of five axes (picture, motion, consistency, sound, following the request) under its description; 10 is the real world filmed by a good camera, and no local model reaches 8. These are the studio's own judgements from its tests, see [ratings](Video-Model-Ratings.md).
 - Wan Animate 2 and SCAIL-2: the person of your photo repeats the motion of a reference video (Wan Animate 2: the background comes from the text), or SCAIL-2 replaces a person in the video with the person of your photo and keeps the scene, the sound and the other objects; a second object (a car instead of a truck) can be replaced too (experimental). The clip is as long as the reference video, up to 60 s, at 24 fps; 512x896 is the default. Scale the photo like the person in the video (or leave "fit the photo" on), see `docs/Character-Animation.md`.
 
@@ -129,9 +131,9 @@ Do not delete or individually rearrange model/runtime files. The executable's ap
 
 ## Hardware and portability
 
-The verified development machine is a **desktop** with Ryzen 7 9800X3D, NVIDIA RTX 5070 Ti 16GB, approximately 64GB RAM and Windows 11 Pro. This is the tested configuration, not a proven minimum specification for every engine. GPU driver and runtime observations are recorded in the handoff documents; they are not universal driver recommendations.
+The verified development machine is a **desktop** with Ryzen 7 9800X3D, NVIDIA RTX 5070 Ti 16GB, approximately 64GB RAM and Windows 11 Pro. This is the tested configuration, not a proven minimum specification for every engine. GPU driver and runtime observations are recorded in the engine documents and in the retired handoffs under `Support/Docs/Legacy`; they are not universal driver recommendations.
 
-The H3 workflow uses almost the entire 16GB GPU budget. Close other heavy GPU workloads. More VRAM can provide headroom, but other GPU generations have not been fully qualified with this package. Lower-memory machines, CPU-only inference, other operating systems and arbitrary GPUs are not promised to work.
+Several engines (the Gemma text model, LTX 2.5, the 14B Wan models, FreeVideo H3) use most of the 16GB GPU budget, so the studio runs them one at a time. Close other heavy GPU workloads. More VRAM can provide headroom, but other GPU generations have not been fully qualified with this package. Lower-memory machines, CPU-only inference, other operating systems and arbitrary GPUs are not promised to work.
 
 The installed inference paths use local files and offline settings. Development included offline-guarded generation and a Unicode-path portable runtime exercise. Physical network-disconnection testing and complete transfer of the newest release to a different computer/GPU have not yet been performed. The goal is a self-contained offline portable studio on compatible machines, not an inference service that depends on cloud APIs.
 
@@ -147,11 +149,14 @@ Do not automatically purge models, user files, older staging material or backups
 
 ## Status and limitations
 
-The actual minute example used two synthetic characters and one Russian line from a synthetic voice reference. Its final export is 1440 frames, 60.000 seconds, with H.264 video and audio. A one-frame timestamp issue was corrected by reassembling the already generated scenes, without repeating GPU generation.
+What was run, how long it took and what was not checked is written per engine (the [index](README.md) links the documents); the scores of the video engines are in [Video-Model-Ratings.md](Video-Model-Ratings.md).
+On the development machine: 30 s clips with LTX 2.5, Wan 2.2 S2V, Wan Animate 2 and SCAIL-2; Wan 2.2 TI2V-5B chains and edited scenes up to two minutes; one-minute FreeVideo H3 clips. The first long-clip example
+(H3, two synthetic characters, one Russian line) exported 1440 frames, 60.000 seconds; a one-frame timestamp issue was corrected by reassembling the already generated scenes, without repeating GPU generation.
 
-Three simultaneous characters, several different cloned speakers in one job, numerical voice similarity, speech transcription and lip synchronization were not validated together. No forced out-of-memory recovery test was performed. Do not interpret a feature option as a promise of perfect identity preservation.
+Not validated: three simultaneous characters or several different cloned speakers in one H3 job, numerical voice similarity, lip synchronization beyond what Whisper and the eye can tell, forced out-of-memory recovery,
+other GPUs. Do not interpret a feature option as a promise of perfect identity preservation.
 
-Music, Wan 2.2, extra audiovisual engines, experimental adapter packs, model release-date labels and 3–5-minute project generation are **planned**, not installed features of this release. See the project handoff and model research documents for the roadmap.
+Not offered: clips longer than two minutes, the video-to-video and IC-LoRA modes of LTX, a pose video for Wan S2V, several speakers in one Wan S2V clip.
 
 ## Logs and support
 
@@ -162,7 +167,7 @@ Useful local documents:
 - `Support/Diagnostics/InstalledRelease.json`
 - `Support/Diagnostics/VideoReleaseManifest.json`
 - `Support/Diagnostics/Video3ReleaseManifest.json`
-- `Support/Docs/Video3-Production-Notes.md`
+- `Support/Docs/Legacy/Video3-Production-Notes.md`
 - `Support/Recovery.cmd`
 
 `Support/Recovery.cmd` is a recovery launcher, not a promise that a full old installation backup exists. Do not rerun historical one-time cleanup tools.
@@ -174,6 +179,8 @@ Use the smallest necessary check for the changed behavior. Do not run the entire
 Before a very long generation test, especially a 3–5-minute video, ask the user for approval and state an estimated wall-time range based on a measured short baseline. Defer exhaustive quality, portability and long-duration testing to dedicated testing tasks.
 
 Do not change the working Image Python/ComfyUI installation, system CUDA/Python, drivers, firewall/DNS or Ollama to make a new model work. Use isolated on-demand backends, loopback-only services and the shared GPU coordinator.
+
+The map of the Video section (processes, Gemma and Whisper roles, invariants, the checklist for adding an engine) is [VisualForge-Video-Architecture.md](VisualForge-Video-Architecture.md); all documents are listed in the [index](README.md).
 
 ### Output folders and completion notifications
 

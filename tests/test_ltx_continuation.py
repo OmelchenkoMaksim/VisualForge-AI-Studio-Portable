@@ -126,6 +126,38 @@ class SceneTests(unittest.TestCase):
     def row(self,**extra):
         return validate(dict(engine='ltx25-distilled',prompt='A fox in snow',frames=360,scenes=4,segment_prompts=['a','b','c','d'])|extra)
 
+    def test_scene_pictures_are_one_per_scene_and_only_for_ltx_scenes(self):
+        picture='data:image/png;base64,AA=='
+        row=self.row(scene_images=[picture,None,picture,None])
+        self.assertEqual(row['scene_images'],[True,False,True,False])                    # the pictures themselves are files beside the job
+        self.assertNotIn(picture,json.dumps(row))
+        for bad in ([picture]*3,[None]*4,[picture,picture,picture,'not a picture'],'x',[picture,None,picture,5]):
+            with self.subTest(bad=str(bad)[:30]),self.assertRaises(ValueError):
+                self.row(scene_images=bad)
+        with self.assertRaises(ValueError):                                              # a continuation has no scenes to start from pictures
+            validate(dict(engine='ltx25-distilled',prompt='x',frames=360,scene_images=[picture]))
+        with self.assertRaises(ValueError):
+            validate(dict(engine='wan22-ti2v-5b',prompt='x',frames=360,scenes=4,segment_prompts=['a','b','c','d'],scene_images=[picture]*4))
+
+    def test_a_scene_with_a_keyframe_starts_from_it(self):
+        from video import ltx_scenes
+        with tempfile.TemporaryDirectory() as temp:
+            folder=Path(temp);keyframe=folder/'scene-03.png';keyframe.write_bytes(b'keyframe-3')
+            (folder/'media.json').write_text(json.dumps(dict(version=1,scenes={'2':str(keyframe)})))
+            spec=folder/'ltx-request.json'
+            spec.write_text(json.dumps(self.row(scene_images=[None,None,'data:image/png;base64,AA==',None],seed='5')))
+            def child(command,timeout):
+                if '--folder' in command and '--encode-only' not in command:
+                    part=Path(command[command.index('--folder')+1])
+                    (part/'ltx-picture.mp4').touch();(part/'ltx-audio.wav').touch()
+            args=SimpleNamespace(folder=folder,spec=spec,root=folder/'Runtime',models=folder/'Models')
+            with patch.object(ltx_scenes,'child',side_effect=child),patch.object(ltx_scenes,'event'):
+                ltx_scenes.run(args)
+            modes=[json.loads((folder/('scene-%02d/ltx-request.json'%number)).read_text())['mode'] for number in (1,2,3,4)]
+            self.assertEqual(modes,['t2v','t2v','i2v','t2v'])
+            self.assertEqual((folder/'scene-03/first.png').read_bytes(),b'keyframe-3')
+            self.assertFalse(any('scene_images' in json.loads((folder/('scene-%02d/ltx-request.json'%number)).read_text()) for number in (1,2,3,4)))
+
     def test_scene_requests_use_the_8n_plus_1_grid_and_the_scenes_worker(self):
         row=self.row()
         self.assertEqual((row['scenes'],row['scene_frames'],row['frames'],row['requested_frames']),(4,97,388,360))     # 360/4 = 90 -> 97

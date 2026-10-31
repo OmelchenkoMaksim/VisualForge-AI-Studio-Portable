@@ -33,6 +33,8 @@
     el('videoDuration').replaceChildren(...list.map(n=>kind==='scenes'?StudioI18n.option(() => (StudioI18n.t("video.scene_duration_minimum_label",[n/profile.fps])), String(n)):durationOption(profile,n)));
     el('videoDuration').value=list.includes(Number(keep))?String(keep):{single:isLtx()?'49':'81',chain:'360',scenes:'720'}[kind];
   }
+  // What was verified on this computer: the evidence files carry a Russian summary and, when written, an English one (`summary_en`).
+  const verifiedSummary=profile=>{const evidence=profile.verification;return !evidence?'':StudioI18n.language==='en'?(evidence.summary_en||StudioI18n.remote(evidence.summary_ru)):StudioI18n.remote(evidence.summary_ru);};
   function configureEngine(){
     selectedEngine=el('videoEngine').value;
     const profile=profiles.find(p=>p.id===selectedEngine);if(!profile)return;
@@ -67,8 +69,8 @@
     const assessed={'wan22-ti2v-5b':'wan22','wan22-s2v-14b':'s2v','ltx25-distilled':'ltx','wan-animate2':'animate2','scail2':'scail2'}[selectedEngine];
     el('videoAssessment').hidden=!assessed;
     if(assessed)for(const [id,field] of Object.entries({videoAssessmentStrong:'strong',videoAssessmentVariable:'variable',videoAssessmentLimits:'limits',videoAssessmentEvidence:'evidence'}))StudioI18n.bind(el(id),'textContent',()=>StudioI18n.t(`video.assessment_${assessed}_${field}_text`),true);
-    StudioI18n.bind(el('videoAvailability'), "textContent", () => (profile.available?`${profile.name} · ${StudioI18n.remote(profile.verification?.summary_ru) || (isProfiled()?StudioI18n.t("video.availability_local_generation_has_not_been_tested"):StudioI18n.t("video.availability_tested_rtx_5070_ti_16_gb"))}`:StudioI18n.remote(profile.reason)), true);
-    StudioI18n.bind(el('videoModelDetails'), "textContent", () => ([profile.release_date?StudioI18n.t("video.model_details_release", [profile.release_date]):'',profile.requirements,profile.limitations].filter(Boolean).join(' ')), true);
+    StudioI18n.bind(el('videoAvailability'), "textContent", () => (profile.available?`${StudioI18n.remote(profile.name)} · ${verifiedSummary(profile) || (isProfiled()?StudioI18n.t("video.availability_local_generation_has_not_been_tested"):StudioI18n.t("video.availability_tested_rtx_5070_ti_16_gb"))}`:StudioI18n.remote(profile.reason)), true);
+    StudioI18n.bind(el('videoModelDetails'), "textContent", () => ([profile.release_date?StudioI18n.t("video.model_details_release", [profile.release_date]):'',StudioI18n.remote(profile.requirements),StudioI18n.remote(profile.limitations)].filter(Boolean).join(' ')), true);
     el('videoGenerate').disabled=!available || !!active;
     modes();
   }
@@ -203,20 +205,24 @@
     try{return await toFrame(blobOf(source),1024);}catch{return null;}
   }
   // Gemma looks at a few pictures of the reference video; the video itself stays in the browser until the job starts.
+  // A damaged video can load its first frame and then never finish a seek; without a limit the rewrite would wait for ever with its button disabled.
+  const within=(promise,ms,message)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(message)),ms))]);
   async function drivingFrames(count=3){
     if(!drivingUrl)return [];
     const video=document.createElement('video');video.muted=true;video.preload='auto';video.src=drivingUrl;
-    await new Promise((resolve,reject)=>{video.onloadeddata=resolve;video.onerror=()=>reject(new Error(StudioI18n.t("video.driving_video_unreadable")));});
-    const frames=[],length=video.duration||1;
-    for(let index=0;index<count;index++){
-      const seeked=new Promise(resolve=>{video.onseeked=resolve;});
-      video.currentTime=Math.min(Math.max(0,length-0.05),length*(index+0.5)/count);await seeked;
-      const scale=Math.min(1,768/Math.max(video.videoWidth,video.videoHeight)),canvas=document.createElement('canvas');
-      canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
-      canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);frames.push(canvas.toDataURL('image/jpeg',0.85));
-    }
-    video.removeAttribute('src');video.load();
-    return frames;
+    const unreadable=StudioI18n.t("video.driving_video_unreadable");
+    try{
+      await within(new Promise((resolve,reject)=>{video.onloadeddata=resolve;video.onerror=()=>reject(new Error(unreadable));}),20000,unreadable);
+      const frames=[],length=video.duration||1;
+      for(let index=0;index<count;index++){
+        const seeked=new Promise(resolve=>{video.onseeked=resolve;});
+        video.currentTime=Math.min(Math.max(0,length-0.05),length*(index+0.5)/count);await within(seeked,10000,unreadable);
+        const scale=Math.min(1,768/Math.max(video.videoWidth,video.videoHeight)),canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+        canvas.getContext('2d').drawImage(video,0,0,canvas.width,canvas.height);frames.push(canvas.toDataURL('image/jpeg',0.85));
+      }
+      return frames;
+    }finally{video.removeAttribute('src');video.load();}
   }
   const smallSubject=async()=>toFrame(blobOf(subject),1024);
   function drivingInfo(){
@@ -256,7 +262,7 @@
     const title=document.createElement('label');StudioI18n.bind(title, "textContent", () => (StudioI18n.t("video.add_character_name")), true);
     const name=document.createElement('input');name.type='text';name.maxLength=60;StudioI18n.bind(name, "placeholder", () => (StudioI18n.t("video.name_example_alice")), true);name.oninput=()=>person.name=name.value;
     const photoLabel=document.createElement('label');StudioI18n.bind(photoLabel, "textContent", () => (StudioI18n.t("video.photo_image_paste_ctrl_v")), true);
-    const photo=document.createElement('input');photo.type='file';photo.accept='image/*';
+    const photo=document.createElement('input');photo.type='file';StudioImages.accept(photo);
     const preview=document.createElement('img');preview.className='video-frame';preview.hidden=true;StudioI18n.bind(preview, "alt", () => (StudioI18n.t("video.preview_character_image")), true);
     const load=async file=>{try{person.image=await toFrame(file,1024);preview.src=person.image;preview.hidden=false;}catch(e){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
     photo.onchange=()=>{if(photo.files[0])load(photo.files[0]);};
@@ -363,23 +369,54 @@
     rememberEngine();
     try {localStorage.setItem('visualforge.video.draft.v1',JSON.stringify({enhance:el('videoEnhance').checked,speech:{mode:el('videoSpeechMode').value,text:el('videoSpeechText').value,language:el('videoSpeechLanguage').value},engine:selectedEngine,engineDrafts,prompt:el('videoPrompt').value,negative:el('videoNegative').value,seed:el('videoSeed').value,mode:el('videoMode').value,quality:el('videoQuality').value,frames:el('videoDuration').value}));} catch {}
   }
+  // Any picture format becomes the PNG frame the video models read: the browser decodes what it can, the studio's converter (Pillow) the rest
+  // (HEIC, TIFF, PSD...); a side above `maxSide` is scaled down, transparency is flattened on grey.
   async function toFrame(blob,maxSide=8192) {
-    if (blob.size > 36*1024*1024) throw new Error(StudioI18n.t("video.to_frame_source_exceeds_36_mi_b"));
-    const url = URL.createObjectURL(blob);
+    if (blob.size > 100*1024*1024) throw new Error(StudioI18n.t("video.to_frame_source_exceeds_100_mi_b"));
+    const {bitmap} = await StudioImages.bitmapOf(blob,'video');
     try {
-      const image = new Image(); image.src=url; await image.decode();
-      if (image.naturalWidth > 8192 || image.naturalHeight > 8192) throw new Error(StudioI18n.t("video.to_frame_exceeds_8192_pixels_one_side"));
-      const scale=Math.min(1,maxSide/Math.max(image.naturalWidth,image.naturalHeight));
-      const canvas = document.createElement('canvas'); canvas.width=Math.max(1,Math.round(image.naturalWidth*scale)); canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
-      const context=canvas.getContext('2d'); context.fillStyle='#eee'; context.fillRect(0,0,canvas.width,canvas.height); context.drawImage(image,0,0,canvas.width,canvas.height);
+      const scale=Math.min(1,maxSide/Math.max(bitmap.width,bitmap.height));
+      const canvas = document.createElement('canvas'); canvas.width=Math.max(1,Math.round(bitmap.width*scale)); canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+      const context=canvas.getContext('2d'); context.fillStyle='#eee'; context.fillRect(0,0,canvas.width,canvas.height); context.drawImage(bitmap,0,0,canvas.width,canvas.height);
       return canvas.toDataURL('image/png');
-    } finally {URL.revokeObjectURL(url);}
+    } finally {bitmap.close();}
   }
   async function inputFrame(file, which) {
     if(!file)return;
     const value=await toFrame(file);
     if (which==='source') {source=value;el('videoSourcePreview').src=value;el('videoSourcePreview').hidden=false;}
     else {end=value;el('videoEndPreview').src=value;el('videoEndPreview').hidden=false;}
+  }
+  // Gemma watches the finished clip (frames, measured facts, what Whisper heard) and answers with a verdict and a corrected prompt; nothing is generated by itself.
+  function reviewControls(row) {
+    const button=document.createElement('button');button.type='button';button.className='secondary';
+    StudioI18n.bind(button,'textContent',()=>StudioI18n.t('video.review_button_label'),true);
+    const box=document.createElement('div');box.className='video-review';box.hidden=true;
+    const line=(text,className)=>{const item=document.createElement('p');item.className=className||'';item.textContent=text;return item;};
+    button.onclick=async()=>{
+      button.disabled=true;box.hidden=false;box.replaceChildren(line(StudioI18n.t('video.review_working_status'),'muted'));
+      try{
+        const answer=await api('review',{id:row.id,language:String(StudioI18n.locale||'ru').startsWith('en')?'English':'Russian'});
+        const verdict={good:'video.review_verdict_good',fixable:'video.review_verdict_fixable',bad:'video.review_verdict_bad'}[answer.verdict];
+        const parts=[line(`${StudioI18n.t(verdict)}${answer.score?' · '+StudioI18n.t('video.review_score_label',[answer.score]):''}`,'video-review-verdict'),line(answer.summary)];
+        if(answer.heard)parts.push(line(StudioI18n.t('video.review_heard_line',[answer.heard.heard||'—',Math.round(answer.heard.share*100)]),'muted'));
+        for(const [heading,items] of [['video.review_problems_heading',answer.problems],['video.review_fixes_heading',answer.fixes]]){
+          if(!items?.length)continue;
+          const title=line(StudioI18n.t(heading),'video-review-heading');const list=document.createElement('ul');
+          for(const text of items){const entry=document.createElement('li');entry.textContent=text;list.append(entry);}
+          parts.push(title,list);
+        }
+        if(answer.verdict!=='good'){
+          const fixed=document.createElement('textarea');fixed.readOnly=true;fixed.rows=5;fixed.value=answer.fixed_prompt;fixed.spellcheck=false;
+          const apply=document.createElement('button');apply.type='button';apply.className='secondary';StudioI18n.bind(apply,'textContent',()=>StudioI18n.t('video.review_apply_button'),true);
+          apply.onclick=()=>{el('videoPrompt').value=answer.fixed_prompt;el('videoEnhance').checked=false;syncEnhance();draft();StudioI18n.bind(el('videoStatus'),'textContent',()=>StudioI18n.t('video.review_applied_status'),true);};
+          parts.push(line(StudioI18n.t('video.review_fixed_heading'),'video-review-heading'),fixed,apply);
+        }
+        box.replaceChildren(...parts);
+      }catch(error){box.replaceChildren(line(StudioI18n.remote(error.message),'video-review-error'));}
+      finally{button.disabled=false;}
+    };
+    return [button,box];
   }
   async function history() {
     const data=await api('history'); el('videoHistory').replaceChildren();
@@ -390,6 +427,7 @@
       const reuse=document.createElement('button');reuse.type='button';reuse.className='secondary';StudioI18n.bind(reuse, "textContent", () => (StudioI18n.t("video.reuse_restore_prompt_seed")), true);reuse.onclick=()=>{el('videoPrompt').value=row.original_prompt;el('videoNegative').value=row.negative_prompt || '';el('videoSeed').value=row.seed;draft();};
       card.append(title,prompt,reuse);
       if(row.state==='done') {const play=document.createElement('button');play.type='button';play.className='secondary';StudioI18n.bind(play, "textContent", () => (StudioI18n.t("video.play_open_video")), true);play.onclick=()=>show(row);card.append(play);}
+      if(row.state==='done' && row.saved_path && !row.segment_prompts) card.append(...reviewControls(row));
       card.append(StudioUI.deleteGenerationButton('Video', row.id, async () => {
         if (last?.id === row.id) {
           last=null; el('videoPlayer').pause(); el('videoPlayer').removeAttribute('src'); el('videoPlayer').load(); el('videoPlayer').hidden=true;
@@ -410,7 +448,9 @@
     last=row;const url='/api/video/result?id='+encodeURIComponent(row.id);
     el('videoPlayer').src=url;el('videoPlayer').hidden=false;
     el('videoDownload').href=url;el('videoDownload').download=row.filename || 'Generated Video.mp4';el('videoDownload').hidden=false;
-    StudioI18n.bind(el('videoResultMeta'), "textContent", () => (row.metadata ? StudioI18n.t("video.meta_frames_s_seed", [engineName(row.engine), row.metadata.width, row.metadata.height, row.metadata.frames, row.metadata.duration, row.metadata.has_audio ? StudioI18n.t("video.meta_audio_stream_present") : StudioI18n.t("video.meta_no_audio_stream"), row.seed]) : ''), true);
+    // LTX scenes: how well Whisper heard each scene's lines (share of the requested words), written by the job service from the worker's speech_check events.
+    const speech=Object.entries(row.speech_scores||{}).map(([scene,score])=>scene+': '+Math.round(score*100)+'%').join(', ');
+    StudioI18n.bind(el('videoResultMeta'), "textContent", () => (row.metadata ? StudioI18n.t("video.meta_frames_s_seed", [engineName(row.engine), row.metadata.width, row.metadata.height, row.metadata.frames, row.metadata.duration, row.metadata.has_audio ? StudioI18n.t("video.meta_audio_stream_present") : StudioI18n.t("video.meta_no_audio_stream"), row.seed])+(speech?' · '+StudioI18n.t("video.meta_speech_scores", [speech]):'') : ''), true);
     StudioI18n.bind(el('videoSavedPath'), "textContent", () => (row.saved_path ? StudioI18n.t("video.output_saved_path_information_prefix")+row.saved_path : ''), true);
     exportOpen(row);mixOpen(row);
   }

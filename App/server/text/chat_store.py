@@ -11,6 +11,7 @@ import struct
 import threading
 import time
 import uuid
+import image_convert
 from generation_identity import ensure as generation_ensure
 
 SCHEMA_VERSION = 1
@@ -58,12 +59,18 @@ def image_info(raw):
 
 def decode_image(value, name=''):
     """A data URL from the browser -> a checked record ready to be stored."""
-    if not isinstance(value, str) or not DATA_URL.match(value):
+    if not isinstance(value, str) or not value.startswith('data:image/') or ';base64,' not in value[:60]:
         raise ValueError(ui_text('text.decode_image_must_png_jpeg'))
     try:
         raw = base64.b64decode(value.partition(',')[2], validate=True)
     except (binascii.Error, ValueError):
         raise ValueError(ui_text('text.decode_image_damaged')) from None
+    if not DATA_URL.match(value) or len(raw) > MAX_IMAGE_BYTES:
+        # Another format (WebP, AVIF, GIF, HEIC...) or a file over the limit: the shared converter makes a PNG or JPEG the vision models read.
+        try:
+            raw = image_convert.convert(raw, 'chat').data
+        except image_convert.ImageConvertError as error:
+            raise ValueError(str(error)) from None
     if not 32 < len(raw) <= MAX_IMAGE_BYTES:
         raise ValueError(ui_text('text.decode_image_up_mi_b_after_compression') % (MAX_IMAGE_BYTES // 1024 // 1024))
     mime, extension, width, height = image_info(raw)

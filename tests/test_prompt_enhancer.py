@@ -44,6 +44,30 @@ class GuideTests(unittest.TestCase):
                     self.assertRegex(text.lower(), r'english')
                     self.assertRegex(text.lower(), r'paragraph')
 
+    def test_spoken_words_keep_the_language_of_the_request_without_translations(self):
+        # measured 2026-10-31: LTX speaks a Russian line exactly (Whisper), but a Russian request got an English invented line and a translation in brackets
+        for mode in ('t2v', 'i2v'):
+            for name in ('caption', 'concise', 'hybrid'):
+                text = GUIDES['ltx25-distilled'][mode][name]
+                with self.subTest(mode=mode, variant=name):
+                    self.assertIn('language of the user', text)
+                    self.assertIn('exact words', text)
+        self.assertIn('translation', GUIDES['ltx25-distilled']['t2v']['concise'] + GUIDES['ltx25-distilled']['t2v']['caption'])
+        from video import scene_planner
+        self.assertIn('keep the language of the speech', scene_planner.LTX_COMMON)
+        self.assertIn('in the language of the idea', scene_planner.LTX_COMMON)
+
+    def test_every_guide_writes_english_and_keeps_direct_quotes_in_their_language(self):
+        for engine, modes in GUIDES.items():
+            for mode, variants in modes.items():
+                for name, text in variants.items():
+                    with self.subTest(engine=engine, mode=mode, variant=name):
+                        self.assertEqual(text.count('Language:'), 1)
+                        self.assertIn('English', text.split('Language:')[1])
+                        self.assertIn('quotes', text.split('Language:')[1])
+        for name in ('caption', 'concise', 'hybrid'):
+            self.assertIn('voice-over', GUIDES['ltx25-distilled']['t2v'][name])        # a narrator's words are a direct quote too
+
     def test_image_modes_ground_the_first_frame_and_audio_mode_forbids_inventing_sound(self):
         ltx = GUIDES['ltx25-distilled']
         self.assertIn('REFERENCE IMAGE', ltx['i2v']['hybrid'])
@@ -76,6 +100,13 @@ class CleanTests(unittest.TestCase):
         self.assertEqual(clean('Here is the enhanced prompt:\nA fox runs.'), 'A fox runs.')
         self.assertEqual(clean('"A fox runs."'), 'A fox runs.')
         self.assertEqual(clean('  A   fox \n\n runs. '), 'A fox runs.')
+
+    def test_a_translation_in_brackets_after_a_foreign_line_is_removed(self):
+        self.assertEqual(clean('She says in Russian, "Этот механизм точен" ("This mechanism is precise"). The room ticks.'),
+                         'She says in Russian, "Этот механизм точен". The room ticks.')
+        self.assertEqual(clean('He says "Привет, друзья!" (Hello, friends!) and waves.'), 'He says "Привет, друзья!" and waves.')
+        english = 'She says "Look at this" (with a smile) and nods.'
+        self.assertEqual(clean(english), english)                                  # an English line keeps its bracket
 
     def test_inner_quotes_of_dialogue_survive(self):
         text = 'A man says "hello" and "goodbye".'

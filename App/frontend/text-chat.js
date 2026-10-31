@@ -173,10 +173,10 @@
   const visionAvailable = () => !!models.find(m => m.name === el('textModel').value && m.vision);
   const readData = blob => new Promise((resolve, reject) => {const reader = new FileReader();reader.onload = () => resolve(String(reader.result));reader.onerror = () => reject(new Error(StudioI18n.t("text.reader_read_file_failed")));reader.readAsDataURL(blob);});
   async function prepare(file) {
-    if (!/^image\//.test(file.type)) throw new Error(StudioI18n.t("text.prepare_not_image", [file.name]));
-    if (file.size > 40 * 1024 * 1024) throw new Error(StudioI18n.t("text.prepare_exceeds_40_mi_b", [file.name]));
+    if (!StudioImages.isPicture(file)) throw new Error(StudioI18n.t("text.prepare_not_image", [file.name]));
+    if (file.size > 100 * 1024 * 1024) throw new Error(StudioI18n.t("text.prepare_exceeds_100_mi_b", [file.name]));
     let bitmap;
-    try {bitmap = await createImageBitmap(file);} catch {throw new Error(StudioI18n.t("text.prepare_open_failed", [file.name]));}
+    try {({bitmap} = await StudioImages.bitmapOf(file, 'chat'));} catch (error) {throw new Error(error.message || StudioI18n.t("text.prepare_open_failed", [file.name]));}
     const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
     if (scale === 1 && (file.type === 'image/png' || file.type === 'image/jpeg') && file.size <= MAX_BYTES) {bitmap.close();return {name: file.name, data: await readData(file)};}
     const canvas = document.createElement('canvas');canvas.width = Math.max(1, Math.round(bitmap.width * scale));canvas.height = Math.max(1, Math.round(bitmap.height * scale));

@@ -16,6 +16,7 @@
    "summary": "Image generation and editing with Qwen, Z-Image and FLUX.3 (ComfyUI).",
    "components": [
     "image.runtime",
+    "image.heic",
     "image.model.qwen-edit-2511",
     "image.model.qwen-image-21-uc",
     "image.model.z-image-turbo",
@@ -200,6 +201,42 @@
      "op": "move_tree",
      "from": "Runtime/ComfyUI_windows_portable/ComfyUI/models",
      "to": "Models"
+    }
+   ]
+  },
+  {
+   "id": "image.heic",
+   "module": "image",
+   "kind": "software",
+   "title": "HEIC/HEIF photos (pillow-heif 1.8.1): iPhone pictures in every section",
+   "description": "Lets the picture converter open HEIC/HEIF photos (iPhone, many cameras) before they go to a neural network. A small Python package for the Image engine; about 6 MB.",
+   "license": "pillow-heif binary wheel: GPL-2.0 as a whole (BSD-3-Clause source; bundled libheif and libde265 LGPL-3.0, x265 GPL-2.0); only read by the picture converter",
+   "requires": [
+    "image.runtime"
+   ],
+   "present": [
+    "Runtime/ComfyUI_windows_portable/python_embeded/Lib/site-packages/pillow_heif/__init__.py"
+   ],
+   "disk_bytes": 16000000,
+   "downloads": [
+    {
+     "id": "wheel:pillow_heif-1.8.1-cp313-cp313-win_amd64.whl",
+     "urls": [
+      "https://files.pythonhosted.org/packages/37/b5/42eda6f5a7894276592c2b499caad152b057f62b4e1dabab26d808cd0c71/pillow_heif-1.8.1-cp313-cp313-win_amd64.whl",
+      "https://pypi.org/packages/37/b5/42eda6f5a7894276592c2b499caad152b057f62b4e1dabab26d808cd0c71/pillow_heif-1.8.1-cp313-cp313-win_amd64.whl"
+     ],
+     "filename": "pillow_heif-1.8.1-cp313-cp313-win_amd64.whl",
+     "bytes": 6604096,
+     "sha256": "f2110c6f9ec02efecf52a979addaf5734770e55ca29705ce0c3f0e588db5e6b5"
+    }
+   ],
+   "steps": [
+    {
+     "op": "pip_install",
+     "python": "Runtime/ComfyUI_windows_portable/python_embeded/python.exe",
+     "downloads": [
+      "wheel:pillow_heif-1.8.1-cp313-cp313-win_amd64.whl"
+     ]
     }
    ]
   },

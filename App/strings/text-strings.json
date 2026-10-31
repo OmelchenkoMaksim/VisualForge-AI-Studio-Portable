@@ -139,10 +139,6 @@
     "ru": "«{0}» — не изображение",
     "en": "“{0}” is not an image"
   },
-  "text.prepare_exceeds_40_mi_b": {
-    "ru": "«{0}» больше 40 МиБ",
-    "en": "“{0}” exceeds 40 MiB"
-  },
   "text.prepare_open_failed": {
     "ru": "Не удалось открыть «{0}»",
     "en": "Could not open “{0}”"
@@ -706,5 +702,9 @@
   "text.settings_unload_model_after_2_10_30": {
     "ru": "Выгружать модель из памяти через: 2, 10, 30 или 60 минут",
     "en": "Unload model after: 2, 10, 30 or 60 minutes"
+  },
+  "text.prepare_exceeds_100_mi_b": {
+    "ru": "«{0}» больше 100 МиБ",
+    "en": "“{0}” exceeds 100 MiB"
   }
 }

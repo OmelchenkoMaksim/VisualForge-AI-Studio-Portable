@@ -48,7 +48,7 @@ def prepare_speech(root,voice_model,folder,request):
             with (folder/'voice.log').open('wb') as log:
                 subprocess.run([str(root/'python/python.exe'),'-u',str(Path(__file__).with_name('voice_worker.py')),
                     '--packages',str(root/'voice-packages'),'--request',str(spec),'--ffmpeg',ffmpeg],
-                    stdout=log,stderr=subprocess.STDOUT,check=True,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+                    stdout=log,stderr=subprocess.STDOUT,check=True,timeout=3600,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))     # a hung voice child must not hold the card forever
         except subprocess.CalledProcessError:
             with (folder/'voice.log').open('rb') as log:
                 log.seek(max(0,(folder/'voice.log').stat().st_size-4096))
@@ -96,7 +96,6 @@ def pause_near(samples,low,high):
 
 def plan_segments(samples,structure,fps):
     """-> dict(segments, frames, slices): picture frames in total, and for scenes the (start, end) sample range of each scene's speech."""
-    import numpy as np
     if structure=='single':
         return dict(segments=1,frames=SEGMENT_FRAMES,slices=[(0,len(samples))])
     limit=int(SEGMENT_FRAMES/fps*RATE)
@@ -164,13 +163,14 @@ def run(args):
         del clip
         memory.unload_all_models();memory.soft_empty_cache()
         encoder=AudioEncoderLoader.execute('wav2vec2_large_english_fp16.safetensors')[0]
-        encode=lambda wave_:AudioEncoderEncode.execute(encoder,dict(waveform=torch.from_numpy(wave_).reshape(1,1,-1),sample_rate=RATE))[0]
+        # The encoder is an argument: a lambda reading it from this scope would fail with NameError once `del encoder` below has run.
+        encode=lambda audio_encoder,wave_:AudioEncoderEncode.execute(audio_encoder,dict(waveform=torch.from_numpy(wave_).reshape(1,1,-1),sample_rate=RATE))[0]
         if structure=='scenes':
             segment=int(SEGMENT_FRAMES/fps*RATE)
             padded=lambda a,b:np.concatenate([samples[a:b],np.zeros(max(0,segment-(b-a)),dtype=np.float32)])
-            encoded=[encode(padded(a,b)) for a,b in plan['slices']]
+            encoded=[encode(encoder,padded(a,b)) for a,b in plan['slices']]
         else:
-            encoded=[encode(samples)]
+            encoded=[encode(encoder,samples)]
         del encoder
         memory.unload_all_models();memory.soft_empty_cache()
         vae=nodes.VAELoader().load_vae('wan_2.1_vae.safetensors')[0]

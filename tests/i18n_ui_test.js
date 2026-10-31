@@ -37,6 +37,12 @@ assert.equal(i.remote('16 ГБ'),'16 GB');
 assert.equal(i.remote('WAV · 48 кГц'),'WAV · 48 kHz');
 assert.equal(i.remote('Редактирование, Редактирование с референсом'),'Editing, Editing with reference');
 assert.equal(i.remote('Контекст заполнен на 75%: агент заканчивает итерацию…'),'Context is 75% full: the agent is finishing the iteration…');
+// Texts the Video service makes up at run time (phases and failure messages): the person may not see Russian in the English interface.
+assert.equal(i.remote('Поиск людей и предметов в видео и на фото (SAM3)'),'Finding people and objects in the video and in the photo (SAM3)');
+assert.equal(i.remote('Сцена 3 / 8: речь не совпала, повтор 1'),'Scene 3 / 8: the speech did not match, try again 1');
+assert.equal(i.remote('Проверка речи (Whisper)'),'Checking the speech (Whisper)');
+assert.equal(i.remote('Внутренняя ошибка Video: RuntimeError: broken row'),'Internal Video error: RuntimeError: broken row');
+assert.ok(i.remote('Движок Video завершился с ошибкой. Процесс модели аварийно завершился (ошибка доступа к памяти): чаще всего Windows не хватило виртуальной памяти (ОЗУ + файл подкачки). Закройте тяжёлые программы или увеличьте файл подкачки и повторите. Traceback: boom').startsWith('Video engine failed. The model process crashed'));
 const filename='Ошибка · Готово';
 const template=key(app.context,'Не удалось открыть «{0}»');
 assert.equal(i.remote(i.t(template,[filename])),'Could not open “Ошибка · Готово”','parameters are data even when they match UI labels');

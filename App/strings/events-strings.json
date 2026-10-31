@@ -322,5 +322,9 @@
   "events.operation_type_video_prompt_enhancement_label": {
     "ru": "Улучшение подсказки Video",
     "en": "Video prompt enhancement"
+  },
+  "events.operation_type_video_review_label": {
+    "ru": "Разбор ролика Gemma",
+    "en": "Gemma review of a clip"
   }
 }

@@ -4,7 +4,6 @@ import binascii
 import zlib
 import struct
 from functools import lru_cache
-import copy
 import json
 import os
 import shutil
@@ -36,6 +35,9 @@ from portable_paths import from_server
 from engines.image_registry import DEFAULT_ENGINE, get_engine
 from engines.workflow_builder import validate_request, build_workflow, collect_outputs, collect_expansion, resolve_expansion, resolve_workflow_mode, resolve_detail_strength, resolve_control_settings
 from engines.image_inputs import validate_edit_mask, grayscale_png
+import image_convert
+from range_response import serve_file
+from video import video_routes
 from engines.flux_inputs import resolve_flux_options
 from engines.qwen_inputs import resolve_qwen_options
 from engines.image_preflight import all_readiness, engine_readiness, upscale_available
@@ -116,6 +118,7 @@ except (ImportError, OSError, ValueError) as _text_error:
 AGENTS = None  # constructed below, after the GPU coordinator it needs
 STATIC = {'/flux-controls.js': ('static/flux-controls.js', 'application/javascript; charset=utf-8'), '/engine-state.js': ('static/engine-state.js', 'application/javascript; charset=utf-8'), '/': ('static/studio-index.html','text/html; charset=utf-8'), '/image-studio.js': ('static/image-studio.js','application/javascript; charset=utf-8'), '/image-studio.css': ('static/image-studio.css','text/css; charset=utf-8'), '/progress-save.css': ('static/progress-save.css','text/css; charset=utf-8')}
 STATIC['/prompt-guides.js'] = ('static/prompt-guides.js', 'application/javascript; charset=utf-8')
+STATIC['/studio-images.js'] = ('static/studio-images.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.js'] = ('static/video-panel.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.css'] = ('static/video-panel.css', 'text/css; charset=utf-8')
 STATIC['/music-panel.js'] = ('static/music-panel.js', 'application/javascript; charset=utf-8')
@@ -217,12 +220,14 @@ if MUSIC is not None:
 if SPEECH is not None and TEXT is not None:
     from speech.dictation_polish import Polisher
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
-SCENE_PLANNER = PROMPT_ENHANCER = None
+SCENE_PLANNER = PROMPT_ENHANCER = DIRECTOR_REVIEW = None
 if TEXT is not None:
     from video.scene_planner import ScenePlanner
-    from video.prompt_enhancer import PromptEnhancer, character_note
+    from video.prompt_enhancer import PromptEnhancer
     SCENE_PLANNER = ScenePlanner(TEXT, GPU, GPU_SUBMISSION_LOCK)
     PROMPT_ENHANCER = PromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
+    from video.director_review import DirectorReview
+    DIRECTOR_REVIEW = DirectorReview(TEXT, GPU, GPU_SUBMISSION_LOCK)
 if TEXT is not None:
     try:
         from agents.agent_manager import AgentManager
@@ -525,15 +530,13 @@ def check_image(item):
         raise ValueError(ui_text('common.studio_bridge_check_image_invalid_data')) from exc
     if len(data) > IMAGE_LIMIT or len(data) == 0:
         raise ValueError(ui_text('common.studio_bridge_check_image_file_empty_exceeds_100_mi_b'))
-    if data.startswith(b'\x89PNG\r\n\x1a\n'):
-        suffix, mimetype = '.png', 'image/png'
-    elif data.startswith(b'\xff\xd8\xff'):
-        suffix, mimetype = '.jpg', 'image/jpeg'
-    elif data[:4] == b'RIFF' and data[8:12] == b'WEBP':
-        suffix, mimetype = '.webp', 'image/webp'
-    else:
-        raise ValueError(ui_text('common.studio_bridge_check_image_png_jpeg_web_p_supported'))
-    return data, suffix, mimetype
+    # Any common format goes in (image_convert.py): PNG, JPEG and WebP that ComfyUI reads well pass untouched, everything else (AVIF, GIF, BMP,
+    # TIFF, a rotated or CMYK JPEG, a too large picture...) is turned into a PNG here instead of failing in the workflow.
+    try:
+        result = image_convert.convert(data, 'image')
+    except image_convert.ImageConvertError as exc:
+        raise ValueError(str(exc)) from None
+    return result.data, result.suffix, result.mime
 
 
 def upload_image(item):
@@ -653,39 +656,13 @@ class Handler(BaseHTTPRequestHandler):
         self.reply(code, json.dumps(obj, ensure_ascii=False).encode('utf-8'))
 
     def video_plan(self, data):
-        """Gemma splits one idea into a prompt per segment of a long Wan clip. Takes tens of seconds, so no GPU lock is held while it runs."""
-        if SCENE_PLANNER is None:
-            return self.response_json(503, {'error': ui_text('video.plan_text_section_unavailable')})
-        try:
-            return self.response_json(200, SCENE_PLANNER.plan(data.get('prompt'), data.get('segments'), data.get('source_image'), data.get('join', 'continue'),
-                                                                 talking=data.get('talking') is True, speech=data.get('speech_text'), sound=data.get('sound') is True))
-        except Busy as error:
-            return self.response_json(409, {'error': str(error)})
-        except GpuUnavailable as error:
-            return self.response_json(503, {'error': str(error)})
-        except ValueError as error:
-            return self.response_json(400, {'error': str(error)[:800]})
+        return video_routes.plan(self, SCENE_PLANNER, data)
 
     def video_enhance(self, data):
-        """Gemma rewrites one prompt for the chosen video model and mode (hidden per-model instruction, video/prompt_enhancer.py)."""
-        if PROMPT_ENHANCER is None:
-            return self.response_json(503, {'error': ui_text('video.plan_text_section_unavailable')})
-        try:
-            pictures = [data.get('source_image')] + ([data.get('end_image')] if data.get('end_image') else [])
-            note = ''
-            if data.get('mode') in ('animate', 'replace'):
-                # Character animation: the photo, the extra object pictures and a few frames of the reference video, told apart by a note.
-                extras, frames = (data.get(key) if isinstance(data.get(key), list) else [] for key in ('subject_images', 'driving_frames'))
-                extras, frames = [p for p in extras[:2] if isinstance(p, str)], [p for p in frames[:4] if isinstance(p, str)]
-                pictures += extras + frames
-                note = character_note(data.get('objects'), len(extras), len(frames))
-            return self.response_json(200, PROMPT_ENHANCER.enhance(data.get('prompt'), data.get('engine'), data.get('mode'), [p for p in pictures if p], data.get('variant'), note))
-        except Busy as error:
-            return self.response_json(409, {'error': str(error)})
-        except GpuUnavailable as error:
-            return self.response_json(503, {'error': str(error)})
-        except ValueError as error:
-            return self.response_json(400, {'error': str(error)[:800]})
+        return video_routes.enhance(self, PROMPT_ENHANCER, data)
+
+    def video_review(self, data):
+        return video_routes.review(self, DIRECTOR_REVIEW, VIDEO, GPU, PATHS, data)
 
     def video_request(self, route, data=None, query=''):
         if VIDEO is None:
@@ -713,41 +690,7 @@ class Handler(BaseHTTPRequestHandler):
                 path = Path(answer.get('path') or '')
                 if path.suffix.lower() != '.mp4' or not path.is_file():
                     return self.response_json(404, {'error': ui_text('common.studio_bridge_video_currently_unavailable')})
-                size = path.stat().st_size
-                start, end, partial = 0, size - 1, False
-                requested = self.headers.get('Range')
-                if requested:
-                    match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
-                    if not match or not any(match.groups()):
-                        return self.response_json(416, {'error': 'Invalid byte range'})
-                    first, last = match.groups()
-                    start = int(first) if first else max(0, size - int(last))
-                    end = min(size - 1, int(last)) if first and last else size - 1
-                    if not 0 <= start <= end < size:
-                        return self.response_json(416, {'error': 'Invalid byte range'})
-                    partial = True
-                self.send_response(206 if partial else 200)
-                self.send_header('Content-Type', 'video/mp4')
-                self.send_header('Content-Length', str(end - start + 1))
-                self.send_header('Accept-Ranges', 'bytes')
-                self.send_header('X-Content-Type-Options', 'nosniff')
-                self.send_header('Content-Disposition', 'inline; filename="' + path.name.replace('"', '') + '"')
-                if partial:
-                    self.send_header('Content-Range', 'bytes %d-%d/%d' % (start, end, size))
-                self.end_headers()
-                try:
-                    with path.open('rb') as stream:
-                        stream.seek(start)
-                        remaining = end - start + 1
-                        while remaining:
-                            raw = stream.read(min(65536, remaining))
-                            if not raw:
-                                break
-                            self.wfile.write(raw)
-                            remaining -= len(raw)
-                except (BrokenPipeError, ConnectionResetError):
-                    pass
-                return
+                return serve_file(self, path, 'video/mp4', path.name)
             if route not in ('generate', 'cancel', 'status', 'history', 'settings', 'logs', 'prompts', 'active',
                              'export', 'export-cancel', 'export-status', 'export-preview', 'mix', 'mix-preview', 'delete'):
                 return self.response_json(404, {'error': 'Unknown Video endpoint'})
@@ -880,9 +823,6 @@ class Handler(BaseHTTPRequestHandler):
         save_dir = Path(meta.get('save_dir') or settings['save_dir'])
         save_dir.mkdir(parents=True, exist_ok=True)
         submitted_at = meta.get('submitted_at', time.time())
-        timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(submitted_at))
-        quality = str(meta.get('quality', 'low'))
-        upscale = int(meta.get('upscale', 1))
         mode = str(meta.get('mode', 'single'))
         meta['comfy_files'] = [{'filename': item['filename'], 'subfolder': item.get('subfolder', ''), 'type': item.get('type', 'output')} for item in outputs]
         saved = []
@@ -893,7 +833,6 @@ class Handler(BaseHTTPRequestHandler):
             raw = upstream(view_url, timeout=120)
             base_prefix = str(meta.get('filename_base') or build_filename_base('', mode, submitted_at))
             image_index = '' if index == 1 else f' {index}'
-            base_name = f'{base_prefix}{image_index}{ext}'
             path = write_unique_output(save_dir, base_prefix + image_index, ext, raw)
             saved.append(str(path))
         with JOBS_LOCK:
@@ -1188,6 +1127,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._agent_send()  # runs for minutes; each model request of the agent is admitted by its gateway
         if route == '/api/speech/transcribe':
             return self._speech_transcribe()  # raw audio, not JSON; takes seconds and must not hold the GPU lock
+        if route == '/api/image/convert':
+            return self._image_convert()  # raw picture bytes, not JSON; CPU only, never waits for the GPU
         if route not in GPU_START_ROUTES:
             return self._do_POST()  # Stop, settings, the folder dialog (open for minutes) never wait behind a start
         with GPU_SUBMISSION_LOCK:
@@ -1198,6 +1139,24 @@ class Handler(BaseHTTPRequestHandler):
             return
         from speech.speech_routes import transcribe
         return transcribe(self, SPEECH, urlparse(self.path).query)
+
+    def _image_convert(self):
+        """A picture of any common format in (raw body), a PNG or JPEG that the chosen consumer accepts out: the browser's fallback when it cannot
+        decode a file itself (HEIC, TIFF, PSD...) and the one place that turns pictures into the forms the neural networks read."""
+        if not self.safe_origin():
+            return
+        try:
+            size = int(self.headers.get('Content-Length', '0') or '0')
+            if not 0 < size <= IMAGE_LIMIT:
+                return self.response_json(413, {'error': ui_text('common.studio_bridge_check_image_file_empty_exceeds_100_mi_b')})
+            options = parse_qs(urlparse(self.path).query)
+            profile = options.get('profile', ['image'])[0]
+            if profile not in image_convert.PROFILES:
+                return self.response_json(400, {'error': 'Unknown profile'})
+            result = image_convert.convert(self.rfile.read(size), profile)
+            return self.response_json(200, dict(base64=base64.b64encode(result.data).decode('ascii'), mime=result.mime, **result.info()))
+        except image_convert.ImageConvertError as error:
+            return self.response_json(400, {'error': str(error)})
 
     def _text_send(self):
         if not self.safe_origin():
@@ -1247,7 +1206,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             route = urlparse(self.path).path
-            is_video = route in ('/api/video/generate', '/api/video/plan', '/api/video/enhance', '/api/video/cancel', '/api/video/settings', '/api/video/prompts',
+            is_video = route in ('/api/video/generate', '/api/video/plan', '/api/video/enhance', '/api/video/review', '/api/video/cancel', '/api/video/settings', '/api/video/prompts',
                                  '/api/video/export', '/api/video/export-cancel', '/api/video/mix', '/api/video/mix-preview', '/api/video/delete')
             is_music = route in ('/api/music/generate', '/api/music/cancel', '/api/music/settings', '/api/music/delete')
             is_voiceover = route.startswith('/api/voiceover/') and route.removeprefix('/api/voiceover/') in POST_LIMITS_VOICEOVER
@@ -1262,7 +1221,7 @@ class Handler(BaseHTTPRequestHandler):
             size = int(self.headers.get('Content-Length', '0') or '0')
             max_size = 4096 if route in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
             if is_video:
-                max_size = {'generate': 100 * 1024 * 1024, 'plan': 8 * 1024 * 1024, 'enhance': 8 * 1024 * 1024, 'cancel': 4096, 'settings': 8192, 'prompts': 32768,
+                max_size = {'generate': 100 * 1024 * 1024, 'plan': 8 * 1024 * 1024, 'enhance': 8 * 1024 * 1024, 'review': 4096, 'cancel': 4096, 'settings': 8192, 'prompts': 32768,
                             'export': 4096, 'export-cancel': 4096, 'mix': 16384, 'mix-preview': 16384, 'delete': 4096}[route.rsplit('/', 1)[-1]]
             if is_music:
                 max_size = 40000
@@ -1290,6 +1249,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.video_plan(data)
             if route == '/api/video/enhance':
                 return self.video_enhance(data)
+            if route == '/api/video/review':
+                return self.video_review(data)
             if route == '/api/history/delete':
                 try:
                     return self.delete_image(data)

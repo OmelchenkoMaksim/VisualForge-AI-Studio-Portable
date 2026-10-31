@@ -1,4 +1,5 @@
 """Scenario planning for long Wan clips and the chain validation; no GPU, the text model is a stub."""
+import json
 from pathlib import Path
 import sys
 import threading
@@ -204,6 +205,27 @@ class SceneModeTests(unittest.TestCase):
         ScenePlanner(FakeText(['["%s"]' % '", "'.join('x' * 3 for _ in range(15))]), FakeGpu()).plan('idea', 15, sound=True)
         with self.assertRaises(ValueError):
             ScenePlanner(FakeText([]), FakeGpu()).plan('idea', 16, sound=True)
+
+    def test_a_spoken_line_longer_than_a_shot_can_hold_is_sent_back_once(self):
+        long_line = ' '.join('word%d' % number for number in range(20))
+        short_line = ' '.join('word%d' % number for number in range(10))
+        first = json.dumps(['She looks up and says in English, "%s"' % long_line, 'The shot is silent.'])
+        second = json.dumps(['She looks up and says in English, "%s"' % short_line, 'The shot is silent.'])
+        text = FakeText([first, second])
+        result = ScenePlanner(text, FakeGpu()).plan('idea', 2, join='cut', sound=True)
+        self.assertEqual(result['prompts'], json.loads(second))
+        self.assertEqual(len(text.calls), 2)
+        self.assertIn('Shot 1', text.calls[1]['messages'][-1]['content'])
+        # when the second answer is no better the first plan is kept, and a plan without speech costs no second call
+        stubborn = FakeText([first, first])
+        self.assertEqual(ScenePlanner(stubborn, FakeGpu()).plan('idea', 2, join='cut', sound=True)['prompts'], json.loads(first))
+        quiet = FakeText([json.dumps(['The shot is silent.', 'Waves.'])])
+        ScenePlanner(quiet, FakeGpu()).plan('idea', 2, join='cut', sound=True)
+        self.assertEqual(len(quiet.calls), 1)
+        # Wan and S2V plans are not touched: their speech is not drawn by the picture model
+        wan = FakeText([first])
+        ScenePlanner(wan, FakeGpu()).plan('idea', 2, join='cut')
+        self.assertEqual(len(wan.calls), 1)
 
 
 if __name__ == '__main__':

@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import time
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from video.video_adapters import freevideo_command
@@ -48,7 +47,7 @@ def main():
     if voices:
         total = 0
         for voice in voices:
-            info = json.loads(subprocess.check_output([probe, '-v', 'error', '-show_format', '-of', 'json', str(voice)]))
+            info = json.loads(subprocess.check_output([probe, '-v', 'error', '-show_format', '-of', 'json', str(voice)], timeout=60))
             total += float(info['format']['duration'])
         if total > duration + 0.04:
             raise ValueError(ui_text('video.pipeline_dialogue_takes_s_but_clip_shorten') % (total, duration))

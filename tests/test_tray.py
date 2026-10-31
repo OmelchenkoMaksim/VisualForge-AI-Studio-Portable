@@ -19,7 +19,7 @@ class TrayTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as scratch:
             result = subprocess.run([str(shell), '-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass',
                 '-File', str(ROOT/'tests/tray_probe.ps1'), '-Root', str(ROOT), '-Scratch', scratch],
-                capture_output=True, text=True, timeout=50)
+                capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=50)   # pwsh writes UTF-8; the locale codec (cp1251) failed on it and left stdout None
             self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-2000:])
             self.assertIn('owned tree cleanup passed', result.stdout)
 

@@ -6,17 +6,17 @@ repeating the character and setting description in every prompt (the video model
 The model is a normal Text model: it takes the video card like a chat answer does, and the next Video job frees it again.
 """
 from ui_strings import source as ui_text
-import base64
-import io
 import json
 import re
-import threading
 
-from generation_identity import operation
-from gpu_coordinator import Busy, GpuUnavailable
+from video.gemma_task import GemmaTask, small_image
+from video.speech_check import spoken_lines
 
 OWNER = 'video-plan'
 MAX_PROMPT = 1500
+# A scene or a window of an LTX film is about 4 seconds of new picture, and the model speaks at most about 3.7 words a second (14 words in 3.75 s were
+# heard in full, 30 words in 5 s were not); the prompts ask for 12 words, anything above 14 is sent back once for shortening.
+SPOKEN_WORDS_LIMIT = 14
 SYSTEM = (
     'You are an assistant film director writing prompts for an AI video model (Wan 2.2). The final video is made of {count} consecutive '
     'clips of about 5 seconds each, generated one after another: every clip starts from the last frame of the previous one.\n'
@@ -85,7 +85,7 @@ TALKING_SCENES_SYSTEM = (
 
 # LTX 2.5 makes the picture and the sound in one pass, so its prompts must name the sound too (whatever is left out the model invents).
 LTX_COMMON = (
-    '- Write in English, even when the idea is in another language.\n'
+    '- Write in English, even when the idea is in another language; only direct quotes (words a character says, a voice-over reads, lettering in the picture) in quotation marks keep the language of the speech.\n'
     '- Choose ONE style phrase for the whole film that fits the idea (for a real animal or place: "photorealistic nature documentary footage, '
     'natural colors, long lens") and begin every prompt with exactly that phrase. Avoid words that pull the picture toward animation or '
     'illustration (cute, adorable, whimsical, magical, fairy, storybook, glowing) unless the idea asks for a cartoon.\n'
@@ -95,8 +95,8 @@ LTX_COMMON = (
     'never a mood word like "tense atmosphere". Show emotion with physical details a lens can see.\n'
     '- If the idea contains speech, put the exact words in quotation marks, name the language, and let the shot begin with a short beat of silence. '
     'When a person is shown talking and the idea gives no words, write one short natural sentence (at most 12 words) for each shot where they '
-    'speak, so that the sentences of consecutive shots follow each other as one speech; a speaker without quoted words comes out as an '
-    'unintelligible murmur.\n'
+    'speak, in the language of the idea, so that the sentences of consecutive shots follow each other as one speech; a speaker without quoted '
+    'words comes out as an unintelligible murmur.\n'
     '- Use calm camera moves (static, slow push-in, slow pan, tracking). No on-screen text, subtitles or logos.\n'
     'Answer with a JSON array of {count} strings and nothing else.')
 
@@ -142,45 +142,36 @@ def _extract(answer, count):
     return items
 
 
-def _small_image(data_url, side=1024):
-    """Base64 PNG of the source frame scaled down for Gemma's vision input; None when the picture cannot be prepared."""
-    try:
-        from PIL import Image
-        raw = base64.b64decode(data_url.split(',', 1)[1], validate=False)
-        with Image.open(io.BytesIO(raw)) as image:
-            image = image.convert('RGB')
-            image.thumbnail((side, side))
-            buffer = io.BytesIO()
-            image.save(buffer, 'PNG')
-        return base64.b64encode(buffer.getvalue()).decode('ascii')
-    except Exception:
-        return None
+def spoken_words(prompt):
+    """Number of words the people of a shot say (the quoted lines after a speaking verb)."""
+    return sum(len(line.split()) for line, _ in spoken_lines(prompt))
 
 
-class ScenePlanner:
-    def __init__(self, text, gpu, submission_lock=None):
-        self.text = text
-        self.gpu = gpu
-        self.lock = submission_lock or threading.RLock()
-
-    def status(self):
-        if self.text is None:
-            return dict(available=False, reason=ui_text('video.plan_text_section_unavailable'), model='')
-        try:
-            info = self.text.availability()
-        except Exception as error:
-            return dict(available=False, reason=ui_text('video.plan_text_not_responding') % error, model='')
-        if not info['available']:
-            return dict(available=False, reason=info['reason'] or ui_text('video.plan_text_unavailable'), model='')
-        return dict(available=True, reason='', model=self.text.gemma_model())
+class ScenePlanner(GemmaTask):
+    OWNER = OWNER
+    OPERATION = 'VideoPromptPlanning'
 
     def _ask(self, messages, cancel, limit):
-        pieces = []
-        options = dict(temperature=0.7, top_p=0.95, top_k=64, num_ctx=8192, num_predict=limit)
-        with operation('VideoPromptPlanning', cancel=cancel):
-            for row in self.text.stream_chat(self.text.gemma_model(), messages, False, cancel, options=options):
-                pieces.append((row.get('message') or {}).get('content', ''))
-        return ''.join(pieces)
+        return self.ask(messages, cancel, temperature=0.7, top_p=0.95, top_k=64, num_ctx=8192, num_predict=limit)
+
+    def _shorten_speech(self, messages, answer, prompts, count, cancel, limit):
+        """Ask once for shorter spoken lines when a shot has more words than its few seconds can hold; keep the better of the two plans."""
+        too_long = [number for number, prompt in enumerate(prompts, 1) if spoken_words(prompt) > SPOKEN_WORDS_LIMIT]
+        if not too_long:
+            return prompts
+        retry = messages + [dict(role='assistant', content=answer), dict(role='user', content=(
+            'Shot%s %s: the person speaks more than %d words in one prompt, which does not fit the few seconds of the shot. Shorten every spoken line to at most 12 words '
+            '(split a long sentence over the next shots when the story needs it, in the same language) and keep everything else. Answer again with only the JSON array '
+            'of exactly %d strings.' % ('s' if len(too_long) > 1 else '', ', '.join(map(str, too_long)), SPOKEN_WORDS_LIMIT, count)))]
+        answer = self._ask(retry, cancel, limit)
+        if cancel.is_set():
+            return prompts
+        try:
+            better = _extract(answer, count)
+        except ValueError:
+            return prompts
+        remaining = sum(spoken_words(prompt) > SPOKEN_WORDS_LIMIT for prompt in better)
+        return better if remaining < len(too_long) else prompts
 
     def plan(self, idea, count, image=None, join='continue', talking=False, speech=None, sound=False):
         """-> dict(prompts=[...], model=...). Raises Busy / GpuUnavailable / ValueError with a message for the person."""
@@ -190,16 +181,9 @@ class ScenePlanner:
             raise ValueError(ui_text('video.plan_invalid_segment_count'))
         if type(count) is not int or not 2 <= count <= (16 if talking else 30 if join == 'cut' else 15 if sound else 12):
             raise ValueError(ui_text('video.plan_invalid_segment_count'))
-        status = self.status()
-        if not status['available']:
-            raise ValueError(status['reason'])
-        with self.lock:
-            self.gpu.claim('text')
-            cancel = self.text.begin(OWNER)
-        try:
-            self.text.start()
+        with self.session() as cancel:
             user = dict(role='user', content='Idea for the whole video:\n' + idea.strip())
-            picture = _small_image(image) if isinstance(image, str) and ',' in image else None
+            picture = small_image(image) if isinstance(image, str) and ',' in image else None
             if picture:
                 user['images'] = [picture]
                 unit = 'shot' if join == 'cut' else 'clip'
@@ -220,13 +204,12 @@ class ScenePlanner:
                 if cancel.is_set():
                     raise ValueError(ui_text('video.plan_building_stopped_message'))
                 try:
-                    return dict(prompts=_extract(answer, count), model=self.text.gemma_model())
+                    prompts = _extract(answer, count)
+                    if sound:
+                        prompts = self._shorten_speech(messages, answer, prompts, count, cancel, limit)
+                    return dict(prompts=prompts, model=self.text.gemma_model())
                 except ValueError as problem:
                     error = problem
                     messages += [dict(role='assistant', content=answer),
                                  dict(role='user', content='Wrong format: %s. Answer again with only a JSON array of exactly %d strings.' % (problem, count))]
             raise ValueError(ui_text('video.plan_gemma_failed') % error)
-        except OSError as error:
-            raise ValueError(ui_text('video.plan_gemma_did_not_respond') % str(error)[:160]) from None
-        finally:
-            self.text.end(OWNER)

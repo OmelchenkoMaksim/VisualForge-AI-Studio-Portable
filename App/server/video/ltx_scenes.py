@@ -9,6 +9,7 @@ The requested total is exact: scene lengths come from the model's 8n+1 grid, so 
 30 s request gave 32.3 s); every scene then gives up the tail of its last frames, which are usually the idle end of the shot. The generated sound of
 the scenes is very uneven (speech about -24 dBFS, the ambience of a scene without speech -60 dBFS, measured 2026-10-31 on a 30 s clip), so each scene is
 brought to one average level before the join, with the gain limited so that it never clips.
+A scene whose prompt has spoken lines is also listened to (speech_check.py) and generated again with another seed when the words are not heard.
 """
 import argparse
 import json
@@ -21,6 +22,10 @@ import time
 import traceback
 
 from video.ltx_support import inference_plan
+from video.speech_check import ACCEPT as SPEECH_ACCEPT, Listener, heard_share, reseed, spoken_lines
+
+SPEECH_RETRIES = 2        # extra tries of a scene that does not say its lines
+SPEECH_MAX_WORDS_PER_SECOND = 5.0     # LTX said 14 words in 3.75 s (3.7 per second); above 5 per second no seed helps
 
 FADE_SECONDS = 0.012
 LEVEL_TARGET_DB = -30.0      # the average level every scene's sound is brought to
@@ -109,6 +114,53 @@ def assembly_command(ffmpeg, folder, parts, scene_frames, fps=24, keep=None, gai
     return command
 
 
+def repair_speech(root, ffmpeg, folder, request, prompts, outputs, keep, make):
+    """Listen to every scene whose prompt has spoken lines; a scene that does not say them is generated again with another seed, at most twice.
+
+    The best try of each scene wins. When no speech model is installed, or anything about the listening fails, the scenes are used as they are: the
+    check must never cost the clip. The listener runs only between scene processes, so it never shares the card with LTX."""
+    wanted = {index: lines for index, lines in ((i, spoken_lines(prompt)) for i, prompt in enumerate(prompts)) if lines}
+    if not wanted:
+        return outputs
+    listener = Listener(root.parents[1] if len(root.parents) > 1 else root, ffmpeg, folder)
+    if not listener.available():
+        event('speech_check_skipped', reason='no speech model or Music runtime')
+        return outputs
+    outputs, best, pending = list(outputs), {}, sorted(wanted)
+    too_long = set()
+    try:
+        for attempt in range(SPEECH_RETRIES+1):
+            event('speech_check_start', scenes=len(pending), attempt=attempt)       # the job service shows it: Whisper loads for a while without any other sign
+            try:
+                listener.start()
+                for index in pending:
+                    text = ' '.join(line for line, _ in wanted[index])
+                    heard = listener.hear(outputs[index]/'ltx-audio.wav', wanted[index][0][1], keep[index]/request['fps'])
+                    score = heard_share(text, heard)
+                    event('speech_check', scene=index+1, attempt=attempt, score=round(score, 2), expected=text, heard=heard)
+                    if index not in best or score > best[index][0]:
+                        best[index] = (score, outputs[index])
+            finally:
+                listener.stop()
+            pending = [index for index in pending if best[index][0] < SPEECH_ACCEPT]
+            # A line that cannot be spoken in the scene at a human pace is not worth new tries (a 30-word line in 5 s scored 0.61, 0.62 and 0.15).
+            hopeless = [index for index in pending if sum(len(line.split()) for line, _ in wanted[index])/(keep[index]/request['fps']) > SPEECH_MAX_WORDS_PER_SECOND]
+            for index in hopeless:
+                event('speech_too_long', scene=index+1, words=sum(len(line.split()) for line, _ in wanted[index]), seconds=round(keep[index]/request['fps'], 2))
+            too_long.update(index+1 for index in hopeless)
+            pending = [index for index in pending if index not in hopeless]
+            if not pending or attempt == SPEECH_RETRIES:
+                break
+            for index in pending:
+                outputs[index] = make(index, attempt+1)
+    except Exception as error:   # the listening is an extra; whatever it did not settle stays as generated
+        event('speech_check_failed', error='%s: %s' % (type(error).__name__, str(error)[:200]))
+    for index, (_, part) in best.items():
+        outputs[index] = part
+    event('speech_check_done', scores={str(index+1): round(score, 2) for index, (score, _) in sorted(best.items())}, too_long=sorted(too_long))
+    return outputs
+
+
 def run(args):
     started = time.monotonic()
     folder = args.folder.resolve()
@@ -122,16 +174,22 @@ def run(args):
     config = inference_plan(request)|dict(scenes=count, scene_frames=per_scene, join='hard cuts, one prompt, picture and sound per scene')
     (folder/'ltx-inference-config.json').write_text(json.dumps(config, indent=2), encoding='utf-8')
     event('sampling_plan', **config)
-    outputs = []
-    for index in range(count):
-        event('scene_start', scene=index+1, scenes=count)
-        part = folder/('scene-%02d' % (index+1))
+    def make(index, attempt=0):
+        """Generate scene `index` (0-based) in its own folder; a later `attempt` is a new try of the same scene with another seed."""
+        event('scene_start', scene=index+1, scenes=count, attempt=attempt)
+        part = folder/('scene-%02d' % (index+1) + ('-try%d' % attempt if attempt else ''))
         part.mkdir(exist_ok=False)
-        spec = {key: value for key, value in request.items() if key not in ('segment_prompts', 'scenes', 'scene_frames', 'requested_frames', 'join')}
-        spec.update(frames=per_scene, prompt=prompts[index], mode='i2v' if index == 0 and request['mode'] == 'i2v' else 't2v')
-        if spec['mode'] == 'i2v':
-            media = json.loads((folder/'media.json').read_text(encoding='utf-8'))
-            source = Path(media['first']).resolve()
+        spec = {key: value for key, value in request.items() if key not in ('segment_prompts', 'scenes', 'scene_frames', 'requested_frames', 'join', 'scene_images')
+                and not re.fullmatch(r'scene_\d\d_sha256', key)}
+        # A scene starts from its own keyframe when it has one (the hero of the film in the pose and place of that shot); the uploaded first
+        # picture belongs to scene 1 of an i2v film only.
+        media = json.loads((folder/'media.json').read_text(encoding='utf-8')) if (folder/'media.json').is_file() else {}
+        picture = (media.get('scenes') or {}).get(str(index)) or (media.get('first') if index == 0 and request['mode'] == 'i2v' else None)
+        spec.update(frames=per_scene, prompt=prompts[index], mode='i2v' if picture else 't2v')
+        if attempt:
+            spec['seed'] = reseed(request['seed'], attempt)
+        if picture:
+            source = Path(picture).resolve()
             if not source.is_relative_to(folder):
                 raise ValueError('Source image outside owned LTX job')
             target = part/'first.png'
@@ -142,10 +200,12 @@ def run(args):
         child(base+['--folder', str(part), '--spec', str(spec_path), '--conditioning', str(folder/('ltx-conditioning-%02d.pt' % index))], 7200)
         if not (part/'ltx-picture.mp4').is_file() or not (part/'ltx-audio.wav').is_file():
             raise RuntimeError('LTX scene did not finish')
-        outputs.append(part)
-    event('assembly_start')
+        return part
+    outputs = [make(index) for index in range(count)]
     ffmpeg = args.root/'ffmpeg/bin/ffmpeg.exe'
     keep = scene_keep(request.get('requested_frames') or request['frames'], count, per_scene)
+    outputs = repair_speech(args.root, ffmpeg, folder, request, prompts, outputs, keep, make)
+    event('assembly_start')
     levels = [measure_level(ffmpeg, part/'ltx-audio.wav') if ffmpeg.is_file() else (None, None) for part in outputs]
     gains = [level_gain(*level) for level in levels]
     event('scene_levels', mean_db=[level[0] for level in levels], max_db=[level[1] for level in levels], gain_db=gains, keep_frames=keep)

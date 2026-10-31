@@ -13,6 +13,7 @@ before using it: the descriptions below are a summary for orientation, not legal
 | Embedded Python (ComfyUI portable), CPython 3.12 builds (python-build-standalone, python.org) | PSF-2.0 | python.org, github.com/astral-sh/python-build-standalone |
 | PyTorch, torchvision, torchaudio | BSD-3-Clause | download.pytorch.org |
 | SageAttention (Windows build) | Apache-2.0 | github.com/woct0rdho/SageAttention |
+| pillow-heif 1.8.1 (HEIC/HEIF photos for the picture converter; binary wheel with libheif, libde265 and x265) | GPL-2.0 as a whole (BSD-3-Clause source; libheif and libde265 LGPL-3.0, x265 GPL-2.0) | pypi.org/project/pillow-heif, github.com/bigcat88/pillow_heif |
 | FreeVideo 0.4.19 | Apache-2.0 | github.com/FlashML-org/FreeVideo |
 | VDN / MiniMax H3 sources and the patched `diffusers` | Apache-2.0 | github.com/OpenVDN/vdn-minimax-h3, github.com/huggingface/diffusers |
 | ACE-Step 1.5 sources | MIT | github.com/ace-step/ACE-Step-1.5 |

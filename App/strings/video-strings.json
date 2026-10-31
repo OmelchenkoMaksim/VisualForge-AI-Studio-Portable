@@ -199,14 +199,6 @@
     "ru": "Проверка моделей Video…",
     "en": "Checking Video models…"
   },
-  "video.to_frame_source_exceeds_36_mi_b": {
-    "ru": "Исходный кадр больше 36 МиБ",
-    "en": "Source frame exceeds 36 MiB"
-  },
-  "video.to_frame_exceeds_8192_pixels_one_side": {
-    "ru": "Кадр больше 8192 пикселей по стороне",
-    "en": "Frame exceeds 8192 pixels on one side"
-  },
   "video.history_text_to_video_mode_label": {
     "ru": "По тексту",
     "en": "From text"
@@ -1359,18 +1351,6 @@
     "ru": "Неверный идентификатор Video",
     "en": "Invalid Video identifier"
   },
-  "video.image_video_requires_png_frame_up_36": {
-    "ru": "Для Video нужен PNG-кадр размером до 36 МиБ",
-    "en": "Video requires a PNG frame up to 36 MiB"
-  },
-  "video.image_damaged_png_frame": {
-    "ru": "Повреждённый PNG-кадр",
-    "en": "Damaged PNG frame"
-  },
-  "video.image_unsupported_source_frame_dimensions": {
-    "ru": "Неподдерживаемый размер исходного кадра",
-    "en": "Unsupported source frame dimensions"
-  },
   "video.audio_bytes_voice_sample_file_up_8_mi": {
     "ru": "Образец голоса: аудиофайл до 8 МиБ, 2–30 секунд",
     "en": "Voice sample: audio file up to 8 MiB, 2–30 seconds"
@@ -2032,8 +2012,8 @@
     "en": "Improve the prompt with Gemma"
   },
   "video.enhance_prompt_help": {
-    "ru": "Gemma перепишет вашу идею так, как лучше всего понимает выбранная модель: кадр, камера, свет, звук. Писать «правильный» промпт не нужно; ваши слова остаются в истории.",
-    "en": "Gemma rewrites your idea the way the chosen model understands best: shot, camera, light, sound. You do not need to write a \"correct\" prompt; your own words stay in the history."
+    "ru": "Gemma перепишет вашу идею так, как лучше всего понимает выбранная модель: кадр, камера, свет, звук. Писать «правильный» промпт и по-английски не нужно: нейросети задание уходит на английском (так точнее и дешевле по токенам). Слова, которые должны прозвучать или появиться надписью в кадре, возьмите в кавычки «…» или скобки (…): они останутся на русском без перевода. Ваши слова сохраняются в истории.",
+    "en": "Gemma rewrites your idea the way the chosen model understands best: shot, camera, light, sound. You do not need to write a \"correct\" prompt: the neural network gets it in English (more precise and cheaper in tokens). Put words that must be spoken or appear as writing in the picture in quotes \"…\" or brackets (…): they stay exactly as you wrote them. Your own words stay in the history."
   },
   "video.enhance_prompt_summary": {
     "ru": "Подсказка, которую получит модель",
@@ -2330,5 +2310,109 @@
   "video.scene_info_trimmed_tails": {
     "ru": "{0} сцен по {1} кадров ({2} с); у каждой сцены обрезается хвост, итого ровно {3} кадров, {4} с.",
     "en": "{0} scenes of {1} frames ({2} s); every scene gives up its tail, {3} frames, exactly {4} s in total."
+  },
+  "video.validation_invalid_scene_images": {
+    "ru": "Картинки сцен подходят только для LTX со сценами: по одной на сцену (или пусто), хотя бы одна.",
+    "en": "Scene pictures are only for LTX with edited scenes: one per scene (or empty), at least one."
+  },
+  "video.to_frame_source_exceeds_100_mi_b": {
+    "ru": "Исходный файл больше 100 МиБ.",
+    "en": "The source file is larger than 100 MiB."
+  },
+  "video.review_no_frames": {
+    "ru": "Не удалось взять кадры из ролика для просмотра.",
+    "en": "No frames could be taken from the clip for the review."
+  },
+  "video.review_gemma_failed": {
+    "ru": "Gemma не смогла оформить разбор ролика. Повторите ещё раз.",
+    "en": "Gemma could not put the review of the clip into the required form. Try again."
+  },
+  "video.review_unknown_clip": {
+    "ru": "Этот ролик не найден в истории Video или его файл удалён.",
+    "en": "This clip is not in the Video history or its file has been deleted."
+  },
+  "video.review_scenes_unsupported": {
+    "ru": "Разбор пока работает для роликов с одним промптом. Ролик из сцен или окон состоит из нескольких промптов и запланированных склеек.",
+    "en": "The review works for clips made from one prompt for now. A film of scenes or windows has several prompts and planned cuts."
+  },
+  "video.review_button_label": {
+    "ru": "Разбор Gemma: что не так и как исправить",
+    "en": "Gemma review: what is wrong and how to fix it"
+  },
+  "video.review_working_status": {
+    "ru": "Gemma смотрит ролик: кадры, движение, звук. Это около минуты…",
+    "en": "Gemma is watching the clip: frames, motion, sound. About a minute…"
+  },
+  "video.review_verdict_good": {
+    "ru": "Всё в порядке",
+    "en": "All good"
+  },
+  "video.review_verdict_fixable": {
+    "ru": "Можно исправить промптом",
+    "en": "Can be fixed with the prompt"
+  },
+  "video.review_verdict_bad": {
+    "ru": "Плохой результат, нужен другой подход",
+    "en": "A poor result, a different approach is needed"
+  },
+  "video.review_score_label": {
+    "ru": "оценка {0}/10",
+    "en": "score {0}/10"
+  },
+  "video.review_heard_line": {
+    "ru": "Whisper услышал: «{0}» (совпадение с заказанным текстом {1}%)",
+    "en": "Whisper heard: \"{0}\" ({1}% of the requested words)"
+  },
+  "video.review_problems_heading": {
+    "ru": "Что не так",
+    "en": "What is wrong"
+  },
+  "video.review_fixes_heading": {
+    "ru": "Что изменено в промпте",
+    "en": "What was changed in the prompt"
+  },
+  "video.review_fixed_heading": {
+    "ru": "Исправленный промпт (английский, для нейросети)",
+    "en": "Corrected prompt (English, for the neural network)"
+  },
+  "video.review_apply_button": {
+    "ru": "Подставить исправленный промпт в поле",
+    "en": "Put the corrected prompt into the field"
+  },
+  "video.review_applied_status": {
+    "ru": "Исправленный промпт в поле. Улучшение Gemma выключено, чтобы он не переписывался. Нажмите «Создать», чтобы проверить.",
+    "en": "The corrected prompt is in the field. Gemma enhancement is off so it is not rewritten. Press Generate to try it."
+  },
+  "video.image_needs_a_picture": {
+    "ru": "Для Video нужна картинка: PNG, JPEG, WebP, AVIF, GIF, BMP, TIFF и другие обычные форматы",
+    "en": "Video needs a picture: PNG, JPEG, WebP, AVIF, GIF, BMP, TIFF and other common formats"
+  },
+  "video.image_unreadable_frame": {
+    "ru": "Повреждённый кадр: картинка не читается",
+    "en": "Damaged frame: the picture cannot be read"
+  },
+  "video.event_speech_check": {
+    "ru": "Проверка речи (Whisper)",
+    "en": "Checking the speech (Whisper)"
+  },
+  "video.event_scene_speech_retry": {
+    "ru": "Сцена %s / %s: речь не совпала, повтор %s",
+    "en": "Scene %s / %s: the speech did not match, try again %s"
+  },
+  "video.meta_speech_scores": {
+    "ru": "Речь (Whisper), совпадение со сценарием: {0}",
+    "en": "Speech (Whisper), match with the script: {0}"
+  },
+  "video.service_internal_error": {
+    "ru": "Внутренняя ошибка Video: %s",
+    "en": "Internal Video error: %s"
+  },
+  "video.event_tracking_people": {
+    "ru": "Поиск людей и предметов в видео и на фото (SAM3)",
+    "en": "Finding people and objects in the video and in the photo (SAM3)"
+  },
+  "video.run_memory_access_hint": {
+    "ru": "Процесс модели аварийно завершился (ошибка доступа к памяти): чаще всего Windows не хватило виртуальной памяти (ОЗУ + файл подкачки). Закройте тяжёлые программы или увеличьте файл подкачки и повторите. ",
+    "en": "The model process crashed (a memory access error): most often Windows ran out of virtual memory (RAM + page file). Close heavy programs or enlarge the page file and try again. "
   }
 }

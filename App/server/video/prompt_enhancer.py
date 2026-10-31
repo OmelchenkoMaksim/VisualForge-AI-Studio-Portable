@@ -5,15 +5,11 @@ found; the person never has to learn how to write a prompt for each network. The
 person's own words stay in the history. `variant` exists to compare instructions (see docs): the application uses `DEFAULT_VARIANT`.
 """
 from ui_strings import source as ui_text
-import base64
-import io
 import os
 import re
-import threading
 from pathlib import Path
 
-from generation_identity import operation
-from gpu_coordinator import Busy, GpuUnavailable
+from video.gemma_task import GemmaTask, small_image
 
 OWNER = 'video-prompt'
 MAX_PROMPT = 1800
@@ -23,6 +19,24 @@ MAX_PROMPT = 1800
 # `ltx_core/text_encoders/gemma/encoders/prompts`). The rules below restate that style in our own words (the repository's text is under the
 # LTX license and is not copied): action first, observable description only, one shot type + camera motion + viewpoint woven into the
 # prose, the whole soundscape, chronological flow, one paragraph of 150-220 words, and the result is judged against the ORIGINAL request.
+# The video model reads English best and English costs the fewest tokens, so everything Gemma writes is English, except the words that must be
+# heard or seen: speech and writing in the picture keep the person's own language (Russian or English are the ones that matter here), letter for
+# letter, in straight double quotes. The person may mark such words with quotes («...», "...") or brackets (...), but the rewrite also recognises them
+# without any mark (after "says", "говорит", "надпись"...). The panel's hint tells the person about the quotes.
+LTX_LANGUAGE = (
+    '8. Language: write everything in English, whatever language the request is in. The only exception is direct quotes: the words a character '
+    'SAYS aloud, the text a voice-over narrator reads, and lettering that must be WRITTEN in the picture (a sign, a title). Keep those exact words in '
+    'the person\'s own language, letter for letter, inside straight double quotes, and never translate them or add a translation. The person may have '
+    'marked them with quotes or brackets, but recognise them even when nothing marks them (after words such as says, speaks, sings, narrates, '
+    '"говорит", "за кадром", "надпись"). Name the language of speech ("says in Russian", "a voice-over in Russian reads").\n')
+
+# The same rule for the models without speech of their own (Wan, S2V, Animate 2, SCAIL-2): English only, except lettering that must appear in the
+# picture. Appended to every guide that has no language rule yet (see the loop after GUIDES).
+LANGUAGE_RULE = (
+    '\nLanguage: write everything in English, whatever language the request is in. The only exception is a direct quote the person gave: words that must be '
+    'written in the picture or spoken (a sign, a title). Keep such words exactly as the person wrote them, in their own language, inside straight double '
+    'quotes, never translated. The person may have marked them with quotes or brackets, but recognise them without a mark too.')
+
 LTX_CAPTION_RULES = (
     'You turn a user\'s short video request into ONE detailed audio-visual description for the video model LTX 2.5, written the way that '
     'model\'s training captions are written. The finished video is judged against the user\'s ORIGINAL request, so keep every element the '
@@ -39,12 +53,14 @@ LTX_CAPTION_RULES = (
     'move, keep it exactly.\n'
     '5. Put the whole soundscape into the same prose: dialogue quoted exactly in its original language with the tone of voice, music (kind and '
     'mood) and environmental sounds with their sources (footsteps, wind, traffic, animals). If the request implies sound, describe it plausibly. '
-    'Whenever a person speaks, put the exact words in quotes: when the user gave none, write one short natural sentence of at most 12 words '
-    '(a speaker described without quoted words comes out as an unintelligible murmur; measured 2026-10-31 on a 30 s clip).\n'
+    'Whenever a person speaks, put the exact words in quotes: when the user gave none, write one short natural sentence of at most 12 words in '
+    'the language of the user\'s request, and name that language ("says in Russian"); never add a translation or a note in brackets after the '
+    'quoted words. A speaker described without quoted words comes out as an '
+    'unintelligible murmur (measured 2026-10-31 on a 30 s clip); a Russian request must not get an English line.\n'
     '6. Tell it in strict chronological, real-time order ("Initially...", "A moment later...", "Simultaneously...") and keep every stated action '
     'in motion.\n'
-    '7. Write ONE paragraph: no lists, headers or labels such as "Audio:". Output only the paragraph, in English even if the request is in another '
-    'language, with no preamble.\n')
+    '7. Write ONE paragraph: no lists, headers or labels such as "Audio:". Output only the paragraph, with no preamble.\n'
+    + LTX_LANGUAGE)
 
 LTX_CAPTION_QUALITY = (
     'Give the scene strong production value inside the same prose: cinematic color and contrast, natural light, crisp texture and depth. Never '
@@ -76,8 +92,11 @@ LTX_CONCISE = (
     'user stated. Order: shot type and camera move (one move only), who or what is in frame with concrete visible details, the single main '
     'action in present tense, the setting and the light (name the time of day and the light direction), and the sounds with visible sources. '
     'Use concrete words (never "dynamic", "dramatic", "epic"); show emotion through visible details. Whenever a person speaks put the exact words '
-    'in quotes (one short natural sentence of at most 12 words when the user gave none: a speaker without quoted words comes out as a murmur). '
-    'Output only the paragraph.')
+    'in quotes, in the language of the user\'s request and naming that language (one short natural sentence of at most 12 words when the user gave '
+    'none: a speaker without quoted words comes out as a murmur). '
+    'Language: everything is English except direct quotes (words a character says, a voice-over narrator reads, or lettering in the picture): those stay '
+    'in the person\'s own language, exactly, in straight double quotes (the person may have marked them with quotes or brackets, or not at all), never '
+    'translated. Output only the paragraph.')
 
 LTX_HYBRID_EXTRA = (
     'Length: 110 to 170 words. If the user\'s request is already detailed (camera, lens, light, sound), keep each of their specifics word for '
@@ -213,6 +232,11 @@ GUIDES = {
     'scail2': {'replace': dict(detailed=SCAIL_REPLACE_RULES + SCAIL_REPLACE_DETAIL, concise=SCAIL_REPLACE_RULES + CHARACTER_CONCISE),
                'animate': dict(detailed=SCAIL_ANIMATE_RULES + SCAIL_ANIMATE_DETAIL, concise=SCAIL_ANIMATE_RULES + CHARACTER_CONCISE)},
 }
+for _modes in GUIDES.values():
+    for _variants in _modes.values():
+        for _name, _text in _variants.items():
+            if 'Language:' not in _text:
+                _variants[_name] = _text + LANGUAGE_RULE
 # Modes whose answer has two labelled texts (the picture-and-background text and the motion text of the pose branch).
 TWO_PART = {('wan-animate2', 'animate')}
 # What the application uses; changed only by a measured comparison (docs/LTX-2.5-Video.md).
@@ -255,6 +279,9 @@ def clean(answer):
     text = re.sub(r'^```[a-z]*\s*|\s*```$', '', answer.strip(), flags=re.I)
     text = re.sub(r'^(?:here is|here\'s|caption|prompt|description|enhanced prompt)[^:\n]{0,40}:\s*', '', text, flags=re.I)
     text = ' '.join(text.split())
+    # A line spoken in another language sometimes comes with an English translation in brackets; the video model could read it out loud as well
+    # (seen 2026-10-31 on a Russian request), so a bracketed all-ASCII text right after a quote with non-ASCII words is removed.
+    text = re.sub(r'("[^"]*[^\x00-\x7f][^"]*")\s*\(\s*"?[\x00-\x7f]{3,240}?"?\s*\)', r'\1', text)
     if len(text) > 2 and text[0] == text[-1] and text[0] in '"“\'' and text.count(text[0]) == 2:
         text = text[1:-1].strip()
     return text
@@ -286,43 +313,13 @@ def character_note(objects, extras, frames):
     return '\n'.join(lines)
 
 
-def small_image(data_url, side=1024):
-    try:
-        from PIL import Image
-        raw = base64.b64decode(data_url.split(',', 1)[1], validate=False)
-        with Image.open(io.BytesIO(raw)) as image:
-            image = image.convert('RGB')
-            image.thumbnail((side, side))
-            buffer = io.BytesIO()
-            image.save(buffer, 'PNG')
-        return base64.b64encode(buffer.getvalue()).decode('ascii')
-    except Exception:
-        return None
-
-
-class PromptEnhancer:
-    def __init__(self, text, gpu, submission_lock=None):
-        self.text = text
-        self.gpu = gpu
-        self.lock = submission_lock or threading.RLock()
-
-    def status(self):
-        if self.text is None:
-            return dict(available=False, reason=ui_text('video.plan_text_section_unavailable'))
-        try:
-            info = self.text.availability()
-        except Exception as error:
-            return dict(available=False, reason=ui_text('video.plan_text_not_responding') % error)
-        return dict(available=bool(info['available']), reason='' if info['available'] else info['reason'] or ui_text('video.plan_text_unavailable'))
+class PromptEnhancer(GemmaTask):
+    OWNER = OWNER
+    OPERATION = 'VideoPromptEnhancement'
 
     def _ask(self, messages, cancel, pictures=0):
-        pieces = []
         # every picture costs the model a few hundred tokens of context; a photo plus frames of a video need more room than a single frame
-        options = dict(temperature=0.5, top_p=0.9, top_k=40, num_ctx=6144 if pictures < 3 else 10240, num_predict=700)
-        with operation('VideoPromptEnhancement', cancel=cancel):
-            for row in self.text.stream_chat(self.text.gemma_model(), messages, False, cancel, options=options):
-                pieces.append((row.get('message') or {}).get('content', ''))
-        return ''.join(pieces)
+        return self.ask(messages, cancel, temperature=0.5, top_p=0.9, top_k=40, num_ctx=6144 if pictures < 3 else 10240, num_predict=700)
 
     def enhance(self, prompt, engine, mode, images=(), variant=None, note=''):
         """-> dict(prompt=<rewritten>, variant=..., model=...), plus `motion_prompt` for two-text guides. `note` tells what each picture is.
@@ -331,14 +328,7 @@ class PromptEnhancer:
         if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 5000:
             raise ValueError(ui_text('video.validation_enter_video_description_up_5000_characters'))
         variant, system = guide(engine, mode, variant)
-        status = self.status()
-        if not status['available']:
-            raise ValueError(status['reason'])
-        with self.lock:
-            self.gpu.claim('text')
-            cancel = self.text.begin(OWNER)
-        try:
-            self.text.start()
+        with self.session() as cancel:
             user = dict(role='user', content='User request:\n' + prompt.strip() + (('\n\n' + note.strip()[:1500]) if isinstance(note, str) and note.strip() else ''))
             pictures = [small_image(item) for item in images if isinstance(item, str) and ',' in item]
             pictures = [item for item in pictures if item]
@@ -362,7 +352,3 @@ class PromptEnhancer:
                     return dict(prompt=answer, variant=variant, model=self.text.gemma_model())
                 messages += [dict(role='assistant', content=answer), dict(role='user', content='Answer again with only the paragraph, at most 1700 characters.')]
             raise ValueError(ui_text('video.enhance_gemma_failed'))
-        except OSError as error:
-            raise ValueError(ui_text('video.plan_gemma_did_not_respond') % str(error)[:160]) from None
-        finally:
-            self.text.end(OWNER)

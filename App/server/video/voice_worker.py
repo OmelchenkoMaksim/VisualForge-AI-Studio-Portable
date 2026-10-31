@@ -1,7 +1,6 @@
 """Private Qwen voice dependencies shadow Video packages in this child only."""
 import argparse
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -17,7 +16,7 @@ def main():
     from generation_identity import operation
     data = json.loads(args.request.read_text(encoding='utf-8'))
     reference = args.request.with_suffix('.reference.wav')
-    subprocess.run([args.ffmpeg, '-nostdin', '-v', 'error', '-n', '-i', data['voice_path'], '-t', '30', '-ac', '1', '-ar', '24000', str(reference)], check=True)
+    subprocess.run([args.ffmpeg, '-nostdin', '-v', 'error', '-n', '-i', data['voice_path'], '-t', '30', '-ac', '1', '-ar', '24000', str(reference)], check=True, timeout=120)
     import torch
     import soundfile as sf
     from qwen_tts import Qwen3TTSModel

@@ -1,6 +1,7 @@
 """Authenticated loopback backend; model execution lives in owned CLI children."""
 import argparse
 import base64
+import binascii
 import copy
 import hashlib
 import json
@@ -8,17 +9,16 @@ import os
 from pathlib import Path
 import secrets
 import shutil
-import struct
 import subprocess
 import sys
 import threading
 import time
+import traceback
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
-from smart_filenames import build_filename_base
 from generation_identity import begin as generation_begin, ensure as generation_ensure, finish as generation_finish, append_log as generation_log, duration_between, configure as configure_events, remove as remove_event
 from video.video_registry import validate, ENGINES
 from video.video_runtime import environment
@@ -26,7 +26,7 @@ from video.owned_processes import OwnedJob
 from video.video_output import filename_base, copy_unique
 from video import video_delivery as delivery, video_mixer as mixer
 from video.video_adapters import build_command
-from video.wan_support import WAN_ID, S2V_ID, WAN_IDS, engine_missing, scratch as wan_scratch, archive_log
+from video.wan_support import S2V_ID, WAN_IDS, engine_missing, scratch as wan_scratch, archive_log
 
 from video.ltx_support import LTX_ID, validate_audio
 from video.character_support import CHARACTER_IDS, engine_missing as character_missing
@@ -196,22 +196,22 @@ class Jobs:
         return result
 
     def image(self, value, path):
-        if not isinstance(value, str) or not value.startswith('data:image/png;base64,') or len(value) > 48 * 1024 * 1024:
-            raise ValueError('Для Video нужен PNG-кадр размером до 36 МиБ')
-        raw = base64.b64decode(value.partition(',')[2], validate=True)
-        if raw[:8] != b'\x89PNG\r\n\x1a\n' or len(raw) < 33:
-            raise ValueError('Повреждённый PNG-кадр')
-        width, height = struct.unpack('>II', raw[16:24])
-        if not 1 <= width <= 8192 or not 1 <= height <= 8192:
-            raise ValueError('Неподдерживаемый размер исходного кадра')
-        # Decode fully before committing a GPU job; private Pillow only.
-        from PIL import Image
-        import io
-        with Image.open(io.BytesIO(raw)) as image:
-            image.verify()
+        """The frame of a request: a picture of any common format (data URL), turned into the PNG the video models read (image_convert.py)."""
+        if not isinstance(value, str) or not value.startswith('data:') or ';base64,' not in value[:100] or len(value) > 140 * 1024 * 1024:
+            raise ValueError('Для Video нужна картинка: PNG, JPEG, WebP, AVIF, GIF, BMP, TIFF и другие обычные форматы')
+        try:
+            raw = base64.b64decode(value.partition(',')[2], validate=True)
+        except (ValueError, binascii.Error):
+            raise ValueError('Повреждённый кадр: картинка не читается') from None
+        from image_convert import ImageConvertError, convert
+        try:
+            # Decoding fully before a GPU job is committed also finds a truncated file; the converter keeps a good PNG untouched.
+            result = convert(raw, 'video')
+        except ImageConvertError as error:
+            raise ValueError(str(error)) from None
         if path is not None:
-            path.write_bytes(raw)
-        return hashlib.sha256(raw).hexdigest()
+            path.write_bytes(result.data)
+        return hashlib.sha256(result.data).hexdigest()
 
     def submit(self, data):
         spec = validate(data)
@@ -223,12 +223,26 @@ class Jobs:
         ident = str(uuid.uuid4())
         folder = (wan_scratch(self.user) / 'Jobs' / ident) if spec['engine'] in SCRATCH_IDS else self.user / 'Cache/Video/Jobs' / ident
         folder.mkdir(parents=True, exist_ok=False)
+        try:
+            return self.start(data, spec, ident, folder)
+        except BaseException:
+            # The folder holds the converted pictures and the reference video of a job that never started; nothing refers to it.
+            shutil.rmtree(folder, ignore_errors=True)
+            raise
+
+    def start(self, data, spec, ident, folder):
+        """Write the inputs of a job into its folder and start its worker thread; `submit` removes the folder when this fails."""
         media = {'version': 1}
         for field, key, needed in [('source_image', 'first', spec['mode'] in ('i2v', 'first_last','s2v','animate','replace') or spec['mode'] == 'a2v' and bool(data.get('source_image'))), ('end_image', 'last', spec['mode'] == 'first_last')]:
             if needed:
                 target = folder / (key + '.png')
                 spec[key + '_sha256'] = self.image(data.get(field), target)
                 media[key] = str(target)
+        for number, item in enumerate(data.get('scene_images') or []):
+            if item:
+                target = folder / ('scene-%02d.png' % (number + 1))
+                spec['scene_%02d_sha256' % (number + 1)] = self.image(item, target)
+                media.setdefault('scenes', {})[str(number)] = str(target)
         if spec['engine'] in CHARACTER_IDS:
             from video.character_input import prepare as prepare_character
             prepare_character(self, data, folder, spec, media)
@@ -256,10 +270,16 @@ class Jobs:
                 cancel_token=secrets.token_urlsafe(32), events=[], output_path=None,
                 engine_release=ENGINES[spec['engine']]['release'], model_revision=ENGINES[spec['engine']]['model_revision'])
             row['engine_commit'] = ENGINES[spec['engine']]['commit']
+            result = self.public(row)          # built first: once the slot is taken and the thread runs, the folder belongs to the job
             self.rows[ident] = row
             self.active = ident
-            threading.Thread(target=self.run, args=(ident,), daemon=True).start()
-            return self.public(row)
+            try:
+                threading.Thread(target=self.run, args=(ident,), daemon=True).start()
+            except BaseException:
+                self.rows.pop(ident, None)
+                self.active = None
+                raise
+            return result
 
     def check_request(self, data):
         spec = validate(data)
@@ -281,6 +301,9 @@ class Jobs:
             self.audio_bytes(data['voice_audio' if cloning else 'source_audio'])
         if spec['mode'] == 'first_last':
             self.image(data.get('end_image'), None)
+        for item in data.get('scene_images') or []:
+            if item:
+                self.image(item, None)
         if spec['mode'] == 'characters':
             for person in data['characters']:
                 self.image(person['image'], None)
@@ -554,7 +577,22 @@ class Jobs:
             row.update(continuation_part=value['part'],continuation_parts=value['parts'],phase='Продолжение %s / %s: подготовка' % (value['part'],value['parts']))
             return
         if event == 'scene_start':
-            row.update(scene=value['scene'], scenes=value['scenes'], phase='Сцена %s / %s: подготовка' % (value['scene'], value['scenes']))
+            # attempt > 0: the speech check heard that the scene does not say its lines and asked for another seed (ltx_scenes.repair_speech)
+            phase = ('Сцена %s / %s: речь не совпала, повтор %s' % (value['scene'], value['scenes'], value['attempt']) if value.get('attempt')
+                     else 'Сцена %s / %s: подготовка' % (value['scene'], value['scenes']))
+            row.update(scene=value['scene'], scenes=value['scenes'], phase=phase)
+            return
+        if event == 'speech_check_start':
+            row['phase'] = 'Проверка речи (Whisper)'
+            return
+        if event == 'speech_check':
+            row.setdefault('speech_scores', {})[str(value['scene'])] = value['score']     # replaced by the best try of each scene at speech_check_done
+            return
+        if event == 'speech_check_done':
+            if isinstance(value.get('scores'), dict):
+                row['speech_scores'] = value['scores']
+            if isinstance(value.get('too_long'), list):
+                row['speech_too_long'] = value['too_long']
             return
         if event == 'tracking_start':
             row['phase'] = 'Поиск людей и предметов в видео и на фото (SAM3)'
@@ -802,6 +840,11 @@ def make_handler(jobs, token, stop_server):
                 self.reply(404, {'error': 'Not found'})
             except (ValueError, OSError, KeyError, TypeError, delivery.DeliveryError) as error:
                 self.reply(400, {'error': str(error)[:1500]})
+            except Exception as error:
+                # A defect of the service, not of the request. Without an answer the connection just drops and the bridge can only report an
+                # unreachable service; the traceback goes to video-backend.log and the person gets the error type.
+                traceback.print_exc()
+                self.reply(500, {'error': 'Внутренняя ошибка Video: %s: %s' % (type(error).__name__, str(error)[:300])})
         def do_GET(self):
             self.dispatch()
         def do_POST(self):

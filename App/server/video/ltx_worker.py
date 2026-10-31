@@ -246,7 +246,9 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
         event('model_load_phase',phase='diffusion')
         model=nodes.UNETLoader().load_unet(plan['transformer'],'default')[0]
         sampler=KSamplerSelect.execute(plan['sampler'])[0]
-        def sample(latent,values,seed,stage):
+        # The model and the conditioning are arguments, not read from run()'s scope: run() deletes them after the last pass (a closure would
+        # raise NameError for a later call) and the second pass needs the conditioning as the guide steps changed it.
+        def sample(latent,values,seed,stage,model,positive,negative):
             last=[-1]
             def progress(value,total,preview=None,**kwargs):
                 if value!=last[0]:
@@ -260,7 +262,7 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
             finally:
                 comfy.utils.set_progress_bar_global_hook(None)
         event('sampling_start',stage=1)
-        sampled=sample(latent,plan['sigmas'],int(request['seed']),1)
+        sampled=sample(latent,plan['sigmas'],int(request['seed']),1,model,positive,negative)
         del latent
         base_video=LTXVSeparateAVLatent.execute(sampled)[0]['samples'][:,:,-4:].cpu().clone() if save_tail else None
         release()
@@ -283,7 +285,7 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
             latent=LTXVConcatAVLatent.execute(video,audio_latent)[0]
             del video,audio_latent
             release()
-            sampled=sample(latent,plan['refine_sigmas'],plan['refine_seed'],2)
+            sampled=sample(latent,plan['refine_sigmas'],plan['refine_seed'],2,model,positive,negative)
             del latent
         video,audio_latent=LTXVSeparateAVLatent.execute(sampled)
         if last is not None:

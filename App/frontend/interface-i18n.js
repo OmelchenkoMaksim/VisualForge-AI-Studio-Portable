@@ -20,7 +20,9 @@
       const source = entry[from];
       if (!exact[from].has(source)) exact[from].set(source, key);
       const tokens = [...source.matchAll(token)].filter(item => item[0] !== '%%');
-      if (tokens.length && source.replace(token, '').trim()) {
+      // A template whose fixed text has no letter at all ('{0} → {1}', '{0} — {1}') would match any text with that separator and swallow its translation,
+      // so such templates are used only by key (found 2026-11-01: 'Первый / последний кадр, Звук → видео' stayed Russian in the English interface).
+      if (tokens.length && /\p{L}/u.test(source.replace(token, ''))) {
         let cursor = 0, expression = '^', number = 0;
         const order = [];
         for (const item of tokens) {
