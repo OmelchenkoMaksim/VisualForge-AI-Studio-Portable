@@ -1,6 +1,5 @@
 """Direct LTX 2.5 on native ComfyUI; one owned offline process per generation."""
 import argparse
-import gc
 import hashlib
 import json
 import logging
@@ -13,6 +12,7 @@ import time
 import traceback
 import wave
 
+from video.comfy_memory import release_models
 from video.ltx_support import ASSETS, inference_plan
 
 
@@ -172,19 +172,7 @@ def run(root,models,folder,request,encode_only=False,conditioning_path=None,cont
     (folder/'ltx-inference-config.json').write_text(json.dumps(plan,indent=2),encoding='utf-8')
     if not encode_only:event('sampling_plan',**(plan|({'scope':'window'} if save_tail else {})))
     def release():
-        """Unload every model. The transformer first goes to host memory in 1 GB steps, returning the card's memory after each step.
-
-        `--disable-smart-memory` makes every unload a full one, and a single `.to(cpu)` of the partly loaded 22B transformer copies the
-        ~12 GB that sit on the card into fresh host tensors while the card's cached blocks stay allocated. On Windows the card's memory is
-        charged against the same commit limit as host memory, so the job needed ~12 GB of commit twice at once. Measured on 2026-10-31
-        (62 GB RAM, a normal desktop session): loading the model charged the process ~39 GB, the system had ~11 GB left, the copy ran it
-        out, and the failed host allocation surfaced as an access violation in c10.dll (frame: comfy_kitchen `_handle_to`, called from
-        ModelPatcher.unpatch_model) that killed the job. Stepping with `empty_cache` keeps the total flat."""
-        for loaded in memory.current_loaded_models:
-            patcher=loaded.model
-            while patcher.loaded_size()>0 and patcher.partially_unload(patcher.offload_device,1024**3)>0:
-                torch.cuda.empty_cache()
-        memory.unload_all_models();gc.collect();memory.soft_empty_cache()
+        release_models(memory,torch)
     with torch.inference_mode():
         if encode_only:
             event('encoder_start')

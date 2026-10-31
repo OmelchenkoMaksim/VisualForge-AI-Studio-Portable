@@ -93,7 +93,10 @@ LTX_COMMON = (
     'description (species or age, build, hair or fur, clothes, colors), the single action of this shot, the setting and light, and the SOUND.\n'
     '- Name every sound with a source that can be seen or placed in the frame ("paws crunch in the snow", "a kettle whistles on the stove"), '
     'never a mood word like "tense atmosphere". Show emotion with physical details a lens can see.\n'
-    '- If the idea contains speech, put the exact words in quotation marks, name the language, and let the shot begin with a short beat of silence.\n'
+    '- If the idea contains speech, put the exact words in quotation marks, name the language, and let the shot begin with a short beat of silence. '
+    'When a person is shown talking and the idea gives no words, write one short natural sentence (at most 12 words) for each shot where they '
+    'speak, so that the sentences of consecutive shots follow each other as one speech; a speaker without quoted words comes out as an '
+    'unintelligible murmur.\n'
     '- Use calm camera moves (static, slow push-in, slow pan, tracking). No on-screen text, subtitles or logos.\n'
     'Answer with a JSON array of {count} strings and nothing else.')
 

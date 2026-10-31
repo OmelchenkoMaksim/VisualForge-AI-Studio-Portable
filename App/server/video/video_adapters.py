@@ -47,7 +47,14 @@ def ltx_command(root,models,folder,row):
         '--root',str(root),'--models',str(model_root(models)),'--folder',str(folder),'--spec',str(spec)]
 
 
-ADAPTERS = {'freevideo_cli': freevideo_command, 'wan_comfy': wan_command,'wan_s2v':s2v_command,'ltx_native':ltx_command}
+def character_command(root,models,folder,row):
+    spec=folder/'character-request.json'
+    spec.write_text(json.dumps(row,ensure_ascii=False),encoding='utf-8')
+    return [str(root/'python/python.exe'),'-X','faulthandler','-u',str(Path(__file__).with_name('character_worker.py')),
+        '--root',str(root),'--models',str(models.parent),'--folder',str(folder),'--spec',str(spec)]
+
+
+ADAPTERS = {'freevideo_cli': freevideo_command, 'wan_comfy': wan_command,'wan_s2v':s2v_command,'ltx_native':ltx_command,'character_comfy':character_command}
 
 
 def build_command(root, models, folder, row):

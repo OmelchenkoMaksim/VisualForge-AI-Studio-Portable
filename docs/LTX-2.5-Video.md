@@ -185,3 +185,30 @@ transformer charges the worker ~39 GB of Windows commit (RAM + page file; the ca
 copy the ~12 GB held on the card into new host tensors. The failed host allocation surfaced as an access violation. `release()` in `ltx_worker.py` now moves the transformer out in 1 GB steps
 and returns the card's memory after each step, which fixed single-pass jobs. Two-pass ("standard") jobs can still stop with a CUDA out-of-memory error while the second load runs (one of four
 test runs passed) when other programs hold much commit; closing them or enlarging the Windows page file (system-managed was 8-16 GB here) helps. The service now explains exit code 0xC0000005 to the person.
+
+### 30-second clips: scenes, one shot and speech (2026-10-31)
+
+Test story: a woman watchmaker talks to the camera and repairs a pocket watch (two spoken lines in the idea), 768x512, "fast", seed 11, RTX 5070 Ti; Whisper (the studio's own) listens to the sound,
+`wan-prompts/analyze.py`-style checks measure the cuts, the colour drift and the loudness per second.
+
+| | Edited scenes (8 scenes) | One shot, one prompt | One shot, scenario with the lines |
+|---|---|---|---|
+| Time | 594 s cold, 275 s warm | 494 s | 524 s |
+| Length before the fixes | 32.33 s (8 x 97 frames, the model's 8n+1 grid) | 30.00 s | 30.00 s |
+| Picture | cinematic, the same woman and apron in every shot; hard cuts every 4 s as planned | one continuous take, the same woman and place, warm light, no cut | the same |
+| Speech | both lines word for word (Whisper) | a murmur: "and it's so encased and what with the real flay stuff..." | both lines word for word, one sentence split between two windows ("It is a delicate process that..." / "...only takes patience") |
+| Sound level | speech -24 dBFS, the ambience of the other scenes -55..-66 dBFS (silence) | speech -10..-18, ambience -60..-68 | the same |
+
+What was changed:
+
+* **Exactly the requested length.** The scenes come in 8n+1 frames, so 8 scenes for 30 s gave 32.3 s. `ltx_scenes.scene_keep()` now trims the tail of every scene (90 frames of 97) and the join is encoded once
+  (stream copy cannot cut on an exact frame: 5 extra frames were measured); an untrimmed clip is still copied. `video_service` compares the saved file with the requested total. Measured: 720 frames, 30.00 s.
+* **One loudness for all scenes.** `level_gain()` brings each scene's average level to -30 dB (at most +24 / -6 dB, the peak never above -2 dB). After the fix the ambience of the quiet scenes lies at -30..-45 dBFS next to speech at -25..-35 dBFS, and
+  Whisper hears the same words. The continuation (`ltx_continuation.LEVELING`) uses a dynamic normalizer with a limiter instead, because there are no scene borders: on the 30 s test sound the ambience rose from -65 to about -40 dBFS, the speech stayed at -14..-25 dBFS (offline check on the finished clip;
+  the real assembly of the continuation passes its tests with the filter, but a new 30 s job with it was not generated).
+* **A speaker always gets words.** LTX turns "she speaks calmly" into an unintelligible murmur, so the Gemma rewrite (`prompt_enhancer.py`) and the scenario planner (`scene_planner.py`) now write the exact words in quotes
+  (one short sentence of at most 12 words when the idea has none; consecutive shots continue one speech).
+* The panel shows the exact total for LTX scenes (`video.scene_info_trimmed_tails`).
+
+For a talking 30 s film: scenes give the best picture variety and the most reliable speech; one shot needs the scenario with the lines per window (the panel's "Scenario" block) to be intelligible.
+Not tested: speech in another language, two speakers, portrait sizes, the two-pass quality.

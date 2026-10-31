@@ -56,6 +56,13 @@ class VideoManager:
                         info['verification']=json.loads(evidence.read_text(encoding='utf-8-sig'))
                     except (OSError,ValueError):
                         pass
+            if engine['id'] in ('wan-animate2', 'scail2'):
+                evidence=Path(os.environ.get('VISUALFORGE_CHARACTER_VERIFICATION',self.paths.settings.parent/'Settings/character-verification.json'))
+                if evidence.is_file() and evidence.stat().st_size<32768:
+                    try:
+                        info['verification']=json.loads(evidence.read_text(encoding='utf-8-sig')).get(engine['id'])
+                    except (OSError,ValueError,AttributeError):
+                        pass
             engines.append(info)
         from model_policy import apply_profiles
         apply_profiles(self.paths.root, 'video', engines)

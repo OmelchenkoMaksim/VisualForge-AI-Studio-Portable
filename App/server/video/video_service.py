@@ -29,7 +29,8 @@ from video.video_adapters import build_command
 from video.wan_support import WAN_ID, S2V_ID, WAN_IDS, engine_missing, scratch as wan_scratch, archive_log
 
 from video.ltx_support import LTX_ID, validate_audio
-SCRATCH_IDS = (*WAN_IDS,LTX_ID)
+from video.character_support import CHARACTER_IDS, engine_missing as character_missing
+SCRATCH_IDS = (*WAN_IDS,LTX_ID,*CHARACTER_IDS)
 
 def atomic_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -223,11 +224,14 @@ class Jobs:
         folder = (wan_scratch(self.user) / 'Jobs' / ident) if spec['engine'] in SCRATCH_IDS else self.user / 'Cache/Video/Jobs' / ident
         folder.mkdir(parents=True, exist_ok=False)
         media = {'version': 1}
-        for field, key, needed in [('source_image', 'first', spec['mode'] in ('i2v', 'first_last','s2v') or spec['mode'] == 'a2v' and bool(data.get('source_image'))), ('end_image', 'last', spec['mode'] == 'first_last')]:
+        for field, key, needed in [('source_image', 'first', spec['mode'] in ('i2v', 'first_last','s2v','animate','replace') or spec['mode'] == 'a2v' and bool(data.get('source_image'))), ('end_image', 'last', spec['mode'] == 'first_last')]:
             if needed:
                 target = folder / (key + '.png')
                 spec[key + '_sha256'] = self.image(data.get(field), target)
                 media[key] = str(target)
+        if spec['engine'] in CHARACTER_IDS:
+            from video.character_input import prepare as prepare_character
+            prepare_character(self, data, folder, spec, media)
         if spec['mode'] == 'a2v':
             from video.ltx_audio import prepare as prepare_audio
             audio = prepare_audio(self, data, folder, spec['frames'], spec['fps'])
@@ -259,9 +263,14 @@ class Jobs:
 
     def check_request(self, data):
         spec = validate(data)
-        if spec['engine'] in SCRATCH_IDS and engine_missing(self.root,self.models,spec['engine']):
+        if spec['engine'] in CHARACTER_IDS:
+            from video.character_input import check as check_character
+            if character_missing(self.root, self.models, spec['engine'], spec['quality'], spec.get('relight', False), spec.get('fit_reference', False)):
+                raise ValueError(ENGINES[spec['engine']]['name']+': среда или модели не установлены. Скачайте их во вкладке «Компоненты».')
+            check_character(self, data)
+        elif spec['engine'] in SCRATCH_IDS and engine_missing(self.root,self.models,spec['engine']):
             raise ValueError(ENGINES[spec['engine']]['name']+': среда или модели не установлены. Скачайте их во вкладке «Компоненты».')
-        if spec['mode'] in ('i2v', 'first_last','s2v') or spec['mode'] == 'a2v' and data.get('source_image'):
+        if spec['mode'] in ('i2v', 'first_last','s2v','animate','replace') or spec['mode'] == 'a2v' and data.get('source_image'):
             self.image(data.get('source_image'), None)
         if spec['mode'] == 'a2v':
             self.audio_bytes(data['source_audio'])
@@ -535,7 +544,7 @@ class Jobs:
         event = value.get('event')
         if not isinstance(event, str):
             return
-        if event in ('wan_metrics','s2v_metrics','ltx_metrics'):
+        if event in ('wan_metrics','s2v_metrics','ltx_metrics','character_metrics'):
             metrics=row.setdefault('runtime_metrics',{})
             for key in ('inference_sec','peak_allocated_vram_mb','torch','python'):
                 if key in value:
@@ -546,6 +555,9 @@ class Jobs:
             return
         if event == 'scene_start':
             row.update(scene=value['scene'], scenes=value['scenes'], phase='Сцена %s / %s: подготовка' % (value['scene'], value['scenes']))
+            return
+        if event == 'tracking_start':
+            row['phase'] = 'Поиск людей и предметов в видео и на фото (SAM3)'
             return
         if event == 'voice_start':
             row['phase'] = 'Озвучка по образцу: ' + str(value['name'])
@@ -618,6 +630,9 @@ class Jobs:
                 # A long S2V clip takes its length from the speech, known only after the (possibly cloned) speech exists.
                 planned=json.loads((folder/'s2v-result.json').read_text(encoding='utf-8'))
                 row['frames'],row['segments']=planned['frames'],planned['segments']
+            if row['engine']==LTX_ID and row.get('scenes') and row.get('requested_frames'):
+                # LTX scenes come in 8n+1 frame steps; the join trims every scene's tail so the clip has exactly the requested length (ltx_scenes.scene_keep).
+                row['frames']=row['requested_frames']
             # Decoding every frame proves a short clip plays; for long ones (minutes) counting packets is the same frame count without a full decode.
             counter = '-count_frames' if row['frames'] <= 600 else '-count_packets'
             probe = subprocess.run([str(self.root / 'ffmpeg/bin/ffprobe.exe'), '-v', 'error', counter, '-show_streams', '-show_format', '-of', 'json', str(output)], capture_output=True, text=True, check=True, timeout=900)

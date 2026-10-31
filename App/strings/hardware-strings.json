@@ -658,5 +658,17 @@
   "hardware.model_requirements_audio_to_video": {
     "ru": "Звук → видео",
     "en": "Audio → video"
+  },
+  "hardware.model_requirements_character_animate": {
+    "ru": "фото повторяет движения видео",
+    "en": "photo repeats the motion of a video"
+  },
+  "hardware.model_requirements_character_replace": {
+    "ru": "замена человека в видео",
+    "en": "replace a person in a video"
+  },
+  "hardware.model_requirements_characteristics_reference_video_sound": {
+    "ru": "звук берётся из референсного видео",
+    "en": "the sound comes from the reference video"
   }
 }

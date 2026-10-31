@@ -1896,8 +1896,8 @@
     "en": "Lip accuracy depends on the scene, language and voice: the audio encoder was trained on English speech, so Russian and singing are less precise; slow ballads sync better than fast rap and dense vocals. Faces and hands in a small frame are soft, and the look can drift a little from the reference. Always 16 frames per second, so motion is less smooth than ordinary video. The 512 × 512 square loses detail; 832 × 480 is clearly sharper. The result depends on the seed. The first frame of a clip is often smeared: the model takes a few frames to assemble the picture from the reference."
   },
   "video.assessment_s2v_limits_text": {
-    "ru": "Один фрагмент до 4,8125 с (77 кадров). Речь до 75 с собирается монтажом из сцен: каждая сцена снимается заново из того же референса со своим куском речи, склейки приходятся на паузы, а описание камеры для каждой сцены пишет Gemma. Цепочка фрагментов, продолжающих друг друга, проверена и убрана: она дольше, лицо медленно «уплывает» (к 22 секундам волосы светлеют, лицо худеет), а по отзывам на минутном ролике синхронизация губ рушится. Один говорящий и один референс; нет первого и последнего кадра, нескольких героев и видео без речи (для него Wan TI2V). Референс обрезается по центру под выбранный размер. Ускоряющий LoRA не используется: он убирает динамику. Тяжёлая модель 14B: на RTX 5070 Ti 16 ГБ около 3,6 минуты на каждые 4,8 с при 512 × 512 и около 6,5 минут при 832 × 480.",
-    "en": "One segment of up to 4.8125 s (77 frames). Speech of up to 75 s is assembled as an edit of scenes: each scene is generated afresh from the same reference with its own piece of the speech, the cuts fall on pauses, and Gemma writes the camera description of every scene. A chain of segments continuing each other was tested and removed: it is slower, the face slowly drifts (by 22 seconds the hair lightens and the face thins), and reports say lip sync collapses on a one-minute clip. One speaker and one reference; no first/last frame, several characters or video without speech (use Wan TI2V for that). The reference is center-cropped to the selected size. No speed-up LoRA is used: it removes the dynamics. A heavy 14B model: on an RTX 5070 Ti 16 GB about 3.6 minutes per 4.8 s at 512 × 512 and about 6.5 minutes at 832 × 480."
+    "ru": "Один фрагмент до 4,8125 с (77 кадров). Речь до 75 с собирается монтажом из сцен: каждая сцена снимается заново из того же референса со своим куском речи, склейки приходятся на паузы, а описание камеры для каждой сцены пишет Gemma. Склейки жёсткие: в каждой сцене поза возвращается к позе референса, а ракурс камеры из описания модель почти не меняет, поэтому на длинном ролике (в тесте на 30 с их было семь) это выглядит как «прыжки» одного и того же кадра. Цепочка фрагментов, продолжающих друг друга, проверена и убрана: она дольше, лицо медленно «уплывает» (к 22 секундам волосы светлеют, лицо худеет), а по отзывам на минутном ролике синхронизация губ рушится. Один говорящий и один референс; нет первого и последнего кадра, нескольких героев и видео без речи (для него Wan TI2V). Референс обрезается по центру под выбранный размер. Ускоряющий LoRA не используется: он убирает динамику. Тяжёлая модель 14B: на RTX 5070 Ti 16 ГБ около 3,6 минуты на каждые 4,8 с при 512 × 512 и около 6,5 минут при 832 × 480.",
+    "en": "One segment of up to 4.8125 s (77 frames). Speech of up to 75 s is assembled as an edit of scenes: each scene is generated afresh from the same reference with its own piece of the speech, the cuts fall on pauses, and Gemma writes the camera description of every scene. The cuts are hard: every scene starts from the reference pose and the model hardly changes the camera angle the description asks for, so on a long clip (seven cuts in the 30 s test) they read as jump cuts of one and the same shot. A chain of segments continuing each other was tested and removed: it is slower, the face slowly drifts (by 22 seconds the hair lightens and the face thins), and reports say lip sync collapses on a one-minute clip. One speaker and one reference; no first/last frame, several characters or video without speech (use Wan TI2V for that). The reference is center-cropped to the selected size. No speed-up LoRA is used: it removes the dynamics. A heavy 14B model: on an RTX 5070 Ti 16 GB about 3.6 minutes per 4.8 s at 512 × 512 and about 6.5 minutes at 832 × 480."
   },
   "video.assessment_s2v_evidence_text": {
     "ru": "Проверено 30.10.2026 на RTX 5070 Ti 16 ГБ: готовая запись речи («Привет! Как дела?») и портрет гитариста, 20 шагов, seed 7. 512 × 512: 242 с с ускоренным вниманием (349 с с обычным, картинка та же), пик видеопамяти 11,5 ГБ; 832 × 480: 395 с, пик 10,6 ГБ; вертикальный 480 × 832 с негативным промптом: 391 с, пик 10,6 ГБ. Губы двигаются на слова и закрываются в тишине, руки играют на гитаре, внешность близка к референсу. Длинный ролик: речь 21,4 с (голос Windows), портрет, 5 сцен со сценарием Gemma, 512 × 512: 1115 с, звук и картинка по 21,56 с, лицо в каждой сцене близко к референсу; цепочка того же ролика заняла 1222 с и к концу заметно «уплыла». Не проверялись: точность отдельных звуков, пение, речь длиннее 22 с, клонирование голоса в длинном ролике.",
@@ -2050,5 +2050,285 @@
   "video.enhance_prompt_status_ready": {
     "ru": "Готово. Текст можно поправить вручную.",
     "en": "Done. You can edit the text by hand."
+  },
+  "video.character_reference_video_too_short": {
+    "ru": "Референсное видео слишком короткое: нужно не короче секунды.",
+    "en": "The reference video is too short: at least one second is needed."
+  },
+  "video.character_reference_video_unreadable": {
+    "ru": "Не удалось прочитать референсное видео. Нужен ролик до 60 секунд в обычном формате (MP4, MOV, WebM).",
+    "en": "The reference video could not be read. Use a clip of up to 60 seconds in a common format (MP4, MOV, WebM)."
+  },
+  "video.character_reference_video_required": {
+    "ru": "Добавьте референсное видео: человек с фото повторит его движения.",
+    "en": "Add a reference video: the person of the photo will repeat its motion."
+  },
+  "video.character_reference_video_too_large": {
+    "ru": "Референсное видео пустое или больше 64 МиБ.",
+    "en": "The reference video is empty or larger than 64 MiB."
+  },
+  "video.character_invalid_object_word": {
+    "ru": "Слово для поиска объекта: латиницей, до 40 знаков (например, human или car).",
+    "en": "The word that finds the object: Latin letters, up to 40 characters (for example human or car)."
+  },
+  "video.character_fields_scail_only": {
+    "ru": "Слова объектов, дополнительные объекты и подсветка есть только в SCAIL-2.",
+    "en": "Object words, extra objects and relighting exist only in SCAIL-2."
+  },
+  "video.character_invalid_subjects": {
+    "ru": "Дополнительных объектов может быть до двух; у каждого нужна картинка PNG.",
+    "en": "There can be up to two extra objects, each with a PNG picture."
+  },
+  "video.character_invalid_options": {
+    "ru": "Недопустимые параметры: подсветка работает только в режиме замены SCAIL-2, описание движения нужно только Wan Animate 2.",
+    "en": "Invalid options: relighting works only in SCAIL-2 replacement, and the motion description belongs to Wan Animate 2 only."
+  },
+  "video.character_fields_character_engines_only": {
+    "ru": "Референсное видео и связанные с ним поля нужны только Wan Animate 2 и SCAIL-2.",
+    "en": "The reference video and its fields belong only to Wan Animate 2 and SCAIL-2."
+  },
+  "video.registry_character_3_s": {
+    "ru": "Не больше 3,4 с (81 кадр)",
+    "en": "Up to 3.4 s (81 frames)"
+  },
+  "video.registry_character_7_s": {
+    "ru": "Не больше 6,7 с (161 кадр)",
+    "en": "Up to 6.7 s (161 frames)"
+  },
+  "video.registry_character_10_s": {
+    "ru": "Не больше 10 с (241 кадр)",
+    "en": "Up to 10 s (241 frames)"
+  },
+  "video.registry_character_15_s": {
+    "ru": "Не больше 15 с (361 кадр)",
+    "en": "Up to 15 s (361 frames)"
+  },
+  "video.registry_character_20_s": {
+    "ru": "Не больше 20 с (481 кадр)",
+    "en": "Up to 20 s (481 frames)"
+  },
+  "video.registry_character_30_s": {
+    "ru": "Не больше 30 с (721 кадр)",
+    "en": "Up to 30 s (721 frames)"
+  },
+  "video.registry_animate_standard_label": {
+    "ru": "Быстро · 10 шагов (distilled)",
+    "en": "Fast · 10 steps (distilled)"
+  },
+  "video.registry_animate_high_label": {
+    "ru": "Качество · 6 шагов, полная модель с ускоряющей LoRA",
+    "en": "Quality · 6 steps, the full model with the speed LoRA"
+  },
+  "video.registry_scail_standard_label": {
+    "ru": "Быстро · 6 шагов (ускоряющая LoRA)",
+    "en": "Fast · 6 steps (speed LoRA)"
+  },
+  "video.registry_scail_high_label": {
+    "ru": "Максимум · 40 шагов, очень медленно",
+    "en": "Maximum · 40 steps, very slow"
+  },
+  "video.registry_limitations_wan_animate_2": {
+    "ru": "Человек с вашего фото повторяет движения и мимику референсного видео; фон и камеру задаёт текст. Кадрирование фото должно быть похоже на кадрирование человека в видео (полный рост к полному росту, портрет к портрету). Длина ролика равна длине референса, до выбранного предела. Звук берётся из референса. Предметы и сцену видео заменить нельзя.",
+    "en": "The person of your photo repeats the motion and expression of the reference video; the background and the camera come from the text. The framing of the photo should resemble the person in the video (full body to full body, portrait to portrait). The clip is as long as the reference, up to the chosen limit, and keeps its sound. Objects and the scene of the video cannot be replaced."
+  },
+  "video.registry_limitations_scail_2": {
+    "ru": "Замена человека в видео на человека с вашего фото с сохранением сцены или анимация фото по движению видео; несколько объектов (человек и машина) - экспериментально. Длина ролика равна длине референса, до выбранного предела; звук берётся из референса. Свет и тени вокруг заменённого человека модель подстраивает не всегда.",
+    "en": "Replaces a person in a video with the person of your photo and keeps the scene, or animates the photo with the motion of the video; several objects (a person and a car) are experimental. The clip is as long as the reference, up to the chosen limit, and keeps its sound. The light and shadows around the replaced person do not always match."
+  },
+  "video.mode_animate_character": {
+    "ru": "Фото + движения видео · Wan Animate / SCAIL-2",
+    "en": "Photo + video motion · Wan Animate / SCAIL-2"
+  },
+  "video.mode_replace_character": {
+    "ru": "Заменить человека в видео · SCAIL-2",
+    "en": "Replace a person in a video · SCAIL-2"
+  },
+  "video.source_person_photo_label": {
+    "ru": "Фото человека — кто будет в видео",
+    "en": "Photo of the person who will be in the video"
+  },
+  "video.driving_video_label": {
+    "ru": "Референсное видео — чьи движения повторить · до 60 с, до 64 МиБ",
+    "en": "Reference video — whose motion to repeat · up to 60 s, up to 64 MiB"
+  },
+  "video.keep_audio_label": {
+    "ru": "Оставить звук референсного видео",
+    "en": "Keep the sound of the reference video"
+  },
+  "video.reference_object_label": {
+    "ru": "Кто на фото — слово для поиска",
+    "en": "Who is in the photo — the word to look for"
+  },
+  "video.reference_object_tooltip": {
+    "ru": "Слово на английском, по которому модель находит человека на фото: human, man, woman. Через запятую можно добавить число: human:2",
+    "en": "An English word the model uses to find the person in the photo: human, man, woman. A count can follow after a colon: human:2"
+  },
+  "video.driving_object_label": {
+    "ru": "Кого заменить в видео — слово для поиска",
+    "en": "Whom to replace in the video — the word to look for"
+  },
+  "video.driving_object_tooltip": {
+    "ru": "Слово на английском, по которому модель находит в видео того, кого нужно заменить или оживить: human, man, woman",
+    "en": "An English word the model uses to find the person to replace or animate in the video: human, man, woman"
+  },
+  "video.relight_match_scene_label": {
+    "ru": "Подстроить свет и тени под сцену (relight)",
+    "en": "Match light and shadows to the scene (relight)"
+  },
+  "video.extra_object_summary_label": {
+    "ru": "Заменить ещё и предмет, например машину · экспериментально",
+    "en": "Replace an object too, for example a car · experimental"
+  },
+  "video.subject_picture_label": {
+    "ru": "Картинка предмета",
+    "en": "Picture of the object"
+  },
+  "video.subject_preview_alt": {
+    "ru": "Предмет",
+    "en": "Object"
+  },
+  "video.subject_reference_label": {
+    "ru": "Слово предмета на картинке",
+    "en": "The object's word in its picture"
+  },
+  "video.subject_driving_label": {
+    "ru": "Слово предмета в видео",
+    "en": "The object's word in the video"
+  },
+  "video.enhanced_motion_label": {
+    "ru": "Описание движения для модели",
+    "en": "Description of the motion for the model"
+  },
+  "video.quality_help_character": {
+    "ru": "Быстро: ускоренная модель, 6-10 шагов. «Максимум» у SCAIL-2: 40 шагов, в разы дольше. Клип делается сегментами по 81 кадру, и каждый считается несколько минут.",
+    "en": "Fast: a sped-up model, 6-10 steps. SCAIL-2 \"Maximum\": 40 steps, several times slower. The clip is made in segments of 81 frames and each takes several minutes."
+  },
+  "video.profile_hint_character": {
+    "ru": "24 кадра/с; размеры кратны 32; клип длиной с референс (до выбранного предела), звук берётся из референса.",
+    "en": "24 frames per second; sizes are multiples of 32; the clip is as long as the reference (up to the chosen limit) and keeps its sound."
+  },
+  "video.prompt_guide_animate2": {
+    "ru": "Опишите, кто на фото и где он находится: «Внешность: … Фон: …». Движения берутся из референсного видео, слова о действиях не нужны. Оба текста за вас напишет Gemma (галочка под полем).",
+    "en": "Say who is in the photo and where the person is: \"Appearance: … Background: …\". The motion comes from the reference video, so no action words are needed. Gemma writes both texts for you (the checkbox under the field)."
+  },
+  "video.prompt_guide_scail2": {
+    "ru": "Опишите готовое видео: кто в кадре (одежда с фото), что делает, что рядом (стул, машина), где и как снимают. Это не команда «замени». Gemma составит текст за вас (галочка под полем).",
+    "en": "Describe the finished video: who is in the frame (the clothes of the photo), what they do, what is around (chair, car), where and how it is filmed. It is not a \"replace\" command. Gemma writes the text for you (the checkbox under the field)."
+  },
+  "video.header_animate_character": {
+    "ru": "Человек с фото повторяет движения референсного видео",
+    "en": "The person of a photo repeats the motion of a reference video"
+  },
+  "video.header_replace_character": {
+    "ru": "Заменить человека в видео на человека с фото",
+    "en": "Replace a person in a video with the person of a photo"
+  },
+  "video.generation_add_driving_video": {
+    "ru": "Добавьте референсное видео: человек с фото повторит его движения.",
+    "en": "Add a reference video: the person of the photo will repeat its motion."
+  },
+  "video.generation_driving_video_too_large": {
+    "ru": "Референсное видео больше 64 МиБ.",
+    "en": "The reference video is larger than 64 MiB."
+  },
+  "video.driving_video_unreadable": {
+    "ru": "Не удалось прочитать референсное видео.",
+    "en": "The reference video could not be read."
+  },
+  "video.driving_video_length_info": {
+    "ru": "Референс длится {0} с; в клип войдёт {1} с.",
+    "en": "The reference lasts {0} s; {1} s of it go into the clip."
+  },
+  "video.driving_help_animate2": {
+    "ru": "Человек с фото повторит движения и мимику из этого видео. Фон и камеру задаёт текст. С галочкой «подогнать масштаб» человек с фото вырезается и ставится в масштаб человека в видео, так что селфи тоже подходит.",
+    "en": "The person of the photo repeats the motion and expression of this video. The background and the camera come from the text. With \"fit the photo\" on, the person of the photo is cut out and set to the scale of the person in the video, so a selfie works too."
+  },
+  "video.driving_help_replace": {
+    "ru": "Человека в этом видео заменит человек с фото; сцена, предметы и звук останутся. На фото человек должен быть виден чётко и в похожем масштабе.",
+    "en": "The person in this video is replaced by the person of the photo; the scene, the objects and the sound stay. The person must be clearly visible in the photo and at a similar scale."
+  },
+  "video.driving_help_scail_animate": {
+    "ru": "Человек с фото будет двигаться как в видео, а сцену модель возьмёт с фото.",
+    "en": "The person of the photo moves as in the video, and the scene comes from the photo."
+  },
+  "video.fit_reference_label": {
+    "ru": "Подогнать масштаб фото под человека в видео",
+    "en": "Fit the photo to the size of the person in the video"
+  },
+  "video.registry_character_60_s": {
+    "ru": "Не больше 60 с (1441 кадр)",
+    "en": "Up to 60 s (1441 frames)"
+  },
+  "video.assessment_animate2_strong_text": {
+    "ru": "Человек с вашего фото повторяет движения и мимику референсного видео; лицо и причёска узнаются на всех сегментах. Фото само подгоняется под масштаб человека в видео: человек вырезается и ставится в нужный размер, а место действия берётся из текста, так что подходит и селфи. Если фото уже в том же масштабе, что видео, сцена, поза, свет и даже надписи на фоне воспроизводятся почти один в один. Длина клипа равна длине референса (до 60 с), звук берётся из него. 704 × 1280 даёт чёткие мелкие детали и надписи.",
+    "en": "The person of your photo repeats the motion and expression of the reference video; the face and hair are recognizable in every segment. The photo fits itself to the scale of the person in the video: the person is cut out and set to the right size, and the place comes from the text, so a selfie works too. When the photo is already at the scale of the video, the scene, the pose, the light and even the lettering in the background are reproduced almost exactly. The clip is as long as the reference (up to 60 s) and keeps its sound. 704 × 1280 gives sharp small details and lettering."
+  },
+  "video.assessment_animate2_variable_text": {
+    "ru": "При выключенной подгонке результат сильно зависит от кадрирования фото: если на фото вы крупно, а в видео человек далеко, модель сначала держится за комнату на фото, потом переходит к описанному месту, а человек может уйти из кадра. В первые доли секунды вокруг вырезанного человека виден серый фон, потом появляется сцена из текста. Режим «Качество» похож на быстрый, но в полтора раза дольше. Текст почти не влияет на движение; он решает фон и одежду, которых нет на фото.",
+    "en": "With the fit off the result depends strongly on the framing of the photo: if you are shown large in the photo and small in the video, the model first keeps the room of the photo, then moves to the described place, and the person may leave the frame. For the first fraction of a second the cut-out person stands on a grey ground, then the scene of the text appears. The \"Quality\" mode looks like the fast one but takes one and a half times longer. The text hardly changes the motion; it decides the background and the clothes that the photo does not show."
+  },
+  "video.assessment_animate2_limits_text": {
+    "ru": "Предметы и сцену видео заменить нельзя. Нужен референс с одним понятным человеком. Время на RTX 5070 Ti: 3-5 минут на 3,4 секунды в 512 × 896 и около 10 минут в 704 × 1280; 12-секундный клип считается около 15 минут, минутный в 512 × 896 - порядка часа.",
+    "en": "Objects and the scene of the video cannot be replaced. The reference must show one clear person. Time on an RTX 5070 Ti: 3-5 minutes for 3.4 seconds at 512 × 896 and about 10 minutes at 704 × 1280; a 12-second clip takes about 15 minutes, a one-minute clip at 512 × 896 about an hour."
+  },
+  "video.assessment_animate2_evidence_text": {
+    "ru": "Проверено на RTX 5070 Ti 16 ГБ: 3,4 с в 512 × 896 за 3-6 минут (быстро), 9 минут («качество»), 704 × 1280 за 10 минут; пик памяти видеокарты 12-13 ГБ; подгонка масштаба селфи (3,5 минуты вместе с загрузкой); три текста (свой, Gemma, короткий) дали одно и то же видео. Не проверено: клипы дольше 12 с, несколько людей в референсе.",
+    "en": "Tested on an RTX 5070 Ti 16 GB: 3.4 s at 512 × 896 in 3-6 minutes (fast), 9 minutes (\"Quality\"), 704 × 1280 in 10 minutes; peak GPU memory 12-13 GB; the scale fit of a selfie (3.5 minutes with loading); three texts (own, Gemma, short) gave the same video. Not tested: clips longer than 12 s, several people in the reference."
+  },
+  "video.assessment_scail2_strong_text": {
+    "ru": "Заменяет человека в видео человеком с вашего фото и оставляет всё остальное: сцену, предметы, пыль, звук. На 12-секундном ролике из четырёх сегментов лицо стабильно, сцена совпадает с оригиналом. Фото само подгоняется под масштаб человека в видео (достаточно селфи), а relight вписывает свет и тени. Можно заменить и второй объект: в тесте грузовик стал гоночной Honda Civic. Режим «Анимация» оживляет фото движениями видео в сцене фото.",
+    "en": "Replaces a person in the video with the person of your photo and keeps everything else: the scene, the objects, the dust, the sound. On a 12-second clip of four segments the face is stable and the scene matches the original. The photo fits itself to the scale of the person in the video (a selfie is enough) and relight matches the light and the shadows. A second object can be replaced too: in the test a truck became a race Honda Civic. The \"Animation\" mode brings the photo to life with the motion of the video in the scene of the photo."
+  },
+  "video.assessment_scail2_variable_text": {
+    "ru": "Тело и одежду ниже фото модель достраивает по тексту. Надписи на заднем плане в 512 × 896 слегка искажаются, в 704 × 1280 читаются. У второго объекта окраска может не совпасть с картинкой, особенно если ракурс картинки и видео разный. Режим «Максимум» (40 шагов) не дал видимого выигрыша и в двенадцать раз медленнее.",
+    "en": "The body and the clothes below the photo are drawn from the text. Lettering in the background is slightly distorted at 512 × 896 and readable at 704 × 1280. The colouring of a second object may not match its picture, especially when the picture and the video are seen from different sides. The \"Maximum\" mode (40 steps) gave no visible gain and is twelve times slower."
+  },
+  "video.assessment_scail2_limits_text": {
+    "ru": "Нужны слово для поиска человека (human) и чёткий человек в кадре; если SAM3 никого не нашёл, задача остановится с понятным сообщением. Время на RTX 5070 Ti: около 2,5 минуты на сегмент в 512 × 896 (12 секунд за 11 минут), около 6 минут на сегмент в 704 × 1280.",
+    "en": "A word that finds the person (human) and a clear person in the frame are needed; if SAM3 finds nobody the job stops with a clear message. Time on an RTX 5070 Ti: about 2.5 minutes per segment at 512 × 896 (12 seconds in 11 minutes), about 6 minutes per segment at 704 × 1280."
+  },
+  "video.assessment_scail2_evidence_text": {
+    "ru": "Проверено на RTX 5070 Ti 16 ГБ: замена человека в клипе 12 с со звуком, человек и машина вместе (5 с), анимация фото, relight, подгонка масштаба, 704 × 1280 (пик памяти видеокарты 6,8-9,8 ГБ), весь путь через панель. Не проверено: клип 60 с до конца, два человека сразу.",
+    "en": "Tested on an RTX 5070 Ti 16 GB: replacing a person in a 12 s clip with sound, a person and a car together (5 s), photo animation, relight, scale fit, 704 × 1280 (peak GPU memory 6.8-9.8 GB), the whole path through the panel. Not tested: a 60 s clip to the end, two people at once."
+  },
+  "video.rating_option_suffix_label": {
+    "ru": "оценка {0}/10",
+    "en": "score {0}/10"
+  },
+  "video.rating_overall_score_label": {
+    "ru": "Оценка качества и мощи: {0} из 10",
+    "en": "Quality and power score: {0} out of 10"
+  },
+  "video.rating_scale_anchor_hint": {
+    "ru": "10 — реальный мир, снятый хорошей камерой. 8 — на беглый взгляд не отличить. 6 — похоже на видео, но при внимательном просмотре видны искажения. 4 — сразу видно, что это генерация. 2 — черновик. Это оценка студии по её собственным тестам на RTX 5070 Ti, а не независимый тест; у моделей, которые берут движение из вашего видео (Wan Animate 2, SCAIL-2), движение настоящее, и итог зависит от референса.",
+    "en": "10 is the real world filmed by a good camera. 8 cannot be told apart at a glance. 6 looks like video, but distortions show on a careful look. 4 is plainly generated. 2 is a draft. This is the studio's own judgement from its tests on an RTX 5070 Ti, not an independent benchmark; for the models that take the motion from your video (Wan Animate 2, SCAIL-2) the motion is real and the result depends on the reference."
+  },
+  "video.rating_axis_picture_label": {
+    "ru": "Картинка: детали, свет, лица",
+    "en": "Picture: detail, light, faces"
+  },
+  "video.rating_axis_motion_label": {
+    "ru": "Движение: естественность",
+    "en": "Motion: naturalness"
+  },
+  "video.rating_axis_consistency_label": {
+    "ru": "Стабильность: лицо, предметы, сцена",
+    "en": "Consistency: face, objects, scene"
+  },
+  "video.rating_axis_sound_label": {
+    "ru": "Звук и речь",
+    "en": "Sound and speech"
+  },
+  "video.rating_axis_control_label": {
+    "ru": "Послушность запросу",
+    "en": "Following the request"
+  },
+  "video.rating_axis_not_applicable": {
+    "ru": "нет: своего звука модель не делает",
+    "en": "none: the model makes no sound of its own"
+  },
+  "video.scene_info_trimmed_tails": {
+    "ru": "{0} сцен по {1} кадров ({2} с); у каждой сцены обрезается хвост, итого ровно {3} кадров, {4} с.",
+    "en": "{0} scenes of {1} frames ({2} s); every scene gives up its tail, {3} frames, exactly {4} s in total."
   }
 }

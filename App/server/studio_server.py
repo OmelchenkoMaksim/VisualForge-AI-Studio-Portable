@@ -220,7 +220,7 @@ if SPEECH is not None and TEXT is not None:
 SCENE_PLANNER = PROMPT_ENHANCER = None
 if TEXT is not None:
     from video.scene_planner import ScenePlanner
-    from video.prompt_enhancer import PromptEnhancer
+    from video.prompt_enhancer import PromptEnhancer, character_note
     SCENE_PLANNER = ScenePlanner(TEXT, GPU, GPU_SUBMISSION_LOCK)
     PROMPT_ENHANCER = PromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
 if TEXT is not None:
@@ -644,7 +644,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(raw)))
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Cache-Control', 'no-store')
-        self.send_header('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:%d; base-uri 'none'; form-action 'self'" % PORT)
+        self.send_header('Content-Security-Policy', "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; script-src 'self'; style-src 'self'; connect-src 'self' ws://127.0.0.1:%d; base-uri 'none'; form-action 'self'" % PORT)
         self.send_header('Referrer-Policy', 'no-referrer')
         self.end_headers()
         self.wfile.write(raw)
@@ -672,7 +672,14 @@ class Handler(BaseHTTPRequestHandler):
             return self.response_json(503, {'error': ui_text('video.plan_text_section_unavailable')})
         try:
             pictures = [data.get('source_image')] + ([data.get('end_image')] if data.get('end_image') else [])
-            return self.response_json(200, PROMPT_ENHANCER.enhance(data.get('prompt'), data.get('engine'), data.get('mode'), [p for p in pictures if p], data.get('variant')))
+            note = ''
+            if data.get('mode') in ('animate', 'replace'):
+                # Character animation: the photo, the extra object pictures and a few frames of the reference video, told apart by a note.
+                extras, frames = (data.get(key) if isinstance(data.get(key), list) else [] for key in ('subject_images', 'driving_frames'))
+                extras, frames = [p for p in extras[:2] if isinstance(p, str)], [p for p in frames[:4] if isinstance(p, str)]
+                pictures += extras + frames
+                note = character_note(data.get('objects'), len(extras), len(frames))
+            return self.response_json(200, PROMPT_ENHANCER.enhance(data.get('prompt'), data.get('engine'), data.get('mode'), [p for p in pictures if p], data.get('variant'), note))
         except Busy as error:
             return self.response_json(409, {'error': str(error)})
         except GpuUnavailable as error:

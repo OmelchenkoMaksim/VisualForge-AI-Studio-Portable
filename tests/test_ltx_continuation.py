@@ -174,6 +174,18 @@ class SceneTests(unittest.TestCase):
                 self.assertIn(str(folder/('ltx-conditioning-%02d.pt'%index)),calls[index+1])
             self.assertTrue((folder/'scene-01/first.png').is_file() and not (folder/'scene-02/first.png').exists())
 
+    def test_scene_tails_are_trimmed_to_the_requested_total_and_sound_levels_are_limited(self):
+        from video import ltx_scenes
+        self.assertEqual(ltx_scenes.scene_keep(720,8,97),[90]*8)                 # a 30 s request: 8 scenes of 97 frames give 776, the tails go
+        self.assertEqual(sum(ltx_scenes.scene_keep(725,8,97)),725)
+        self.assertEqual(ltx_scenes.scene_keep(725,8,97)[:6],[91]*5+[90])
+        self.assertEqual(ltx_scenes.scene_keep(1000,3,49),[49]*3)               # never more than the scenes hold
+        self.assertEqual(ltx_scenes.level_gain(-60,-30),24.0)                    # a quiet ambience is raised, but only by the cap
+        self.assertEqual(ltx_scenes.level_gain(-35,-4),2.0)                      # 5 dB would reach the target, the peak limit allows 2
+        self.assertEqual(ltx_scenes.level_gain(-45,-12),10.0)                    # the peak ends exactly on the limit
+        self.assertEqual(ltx_scenes.level_gain(-20,-3),-6.0)                     # loud sound is cut by 6 dB at most
+        self.assertEqual(ltx_scenes.level_gain(None,None),0.0)
+
     @unittest.skipUnless((RUNTIME/'ffmpeg/bin/ffmpeg.exe').is_file(),'Optional Video runtime')
     def test_real_join_has_exact_frames_and_sound_without_a_gap(self):
         from video import ltx_scenes
@@ -194,3 +206,12 @@ class SceneTests(unittest.TestCase):
             self.assertEqual(int(streams['video']['nb_read_packets']),3*49)
             self.assertAlmostEqual(float(streams['audio']['duration']),3*49/24,delta=.05)
             self.assertEqual((streams['audio']['channels'],int(streams['audio']['sample_rate'])),(2,48000))
+            # the tails are cut and the levels corrected: the picture and the sound keep exactly the requested length
+            keep=[40,45,49]
+            (root/'result.mp4').unlink()
+            result=subprocess.run(ltx_scenes.assembly_command(ffmpeg,root,parts,49,24,keep,[0.0,12.0,-3.0]),capture_output=True,timeout=90)
+            self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace')[-1800:])
+            probe=subprocess.run([str(RUNTIME/'ffmpeg/bin/ffprobe.exe'),'-v','error','-count_packets','-show_streams','-of','json',str(root/'result.mp4')],capture_output=True,text=True,timeout=30)
+            streams={s['codec_type']:s for s in json.loads(probe.stdout)['streams']}
+            self.assertEqual(int(streams['video']['nb_read_packets']),sum(keep))
+            self.assertAlmostEqual(float(streams['audio']['duration']),sum(keep)/24,delta=.05)

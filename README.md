@@ -11,7 +11,7 @@ Image, Video and Music history cards include a confirmed «Удалить» acti
 | Tab | What it does | Engines |
 |---|---|---|
 | **Image** | edit a picture, edit with reference pictures, or draw from a prompt; 2x/4x upscaling | Qwen Image Edit 2511, Qwen Image 2.1 Uncensored (FP8), Z-Image Turbo INT8 (prompt, detail and optional Union/Tile guidance), FLUX.3 Klein INT8 on ComfyUI |
-| **Video** | text/image to video with sound, character references, speech, talking characters; export for Instagram/Reels, sound mixer | FreeVideo H3 (MiniMax H3 INT8), Wan 2.2 TI2V-5B, Wan 2.2 S2V-14B, Qwen3-TTS |
+| **Video** | text/image to video with sound, character references, speech, talking characters, motion transfer from a reference video; export for Instagram/Reels, sound mixer | FreeVideo H3 (MiniMax H3 INT8), Wan 2.2 TI2V-5B, Wan 2.2 S2V-14B, LTX 2.5, Wan Animate 2 and SCAIL-2 (a person of your photo repeats a reference video, or replaces a person in it), Qwen3-TTS |
 | **Music** | songs from lyrics, instrumentals | ACE-Step 1.5 Turbo, MiniMax Music3 INT8, Stable Audio 3 Medium (music and sound effects) |
 | **Text** | private chat with pictures, history, thinking blocks | any model of the Ollama registry (default Gemma 4) |
 | **Components** | see what is installed, download missing models | - |

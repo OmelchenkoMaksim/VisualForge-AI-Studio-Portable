@@ -13,12 +13,14 @@ COMPONENTS = {
     'video:wan22-ti2v-5b': 'video.model.wan-ti2v-5b',
     'video:wan22-s2v-14b': 'video.model.wan-s2v-14b',
     'video:ltx25-distilled': 'video.model.ltx25',
+    'video:wan-animate2': 'video.model.wan-animate2',
+    'video:scail2': 'video.model.scail2',
     'music:ace-step-15-turbo': 'music.model.ace-step',
     'music:minimax-music3-int8': 'music.model.minimax-music3',
     'music:stable-audio-3-medium': 'music.model.stable-audio-3',
 }
 MODES = dict(t2v=ui_text('hardware.model_requirements_video_text'), i2v=ui_text('hardware.model_requirements_image_animation'), first_last=ui_text('hardware.model_requirements_first_last_frame'),
-    characters=ui_text('hardware.model_requirements_characters_references'), s2v=ui_text('hardware.model_requirements_speech_video'), a2v=ui_text('hardware.model_requirements_audio_to_video'), instrumental=ui_text('hardware.generation_instrumental_mode_label'), song=ui_text('hardware.model_requirements_song_vocals'),
+    characters=ui_text('hardware.model_requirements_characters_references'), s2v=ui_text('hardware.model_requirements_speech_video'), a2v=ui_text('hardware.model_requirements_audio_to_video'), animate=ui_text('hardware.model_requirements_character_animate'), replace=ui_text('hardware.model_requirements_character_replace'), instrumental=ui_text('hardware.generation_instrumental_mode_label'), song=ui_text('hardware.model_requirements_song_vocals'),
     single=ui_text('hardware.model_requirements_editing'), reference=ui_text('hardware.model_requirements_editing_reference'), prompt=ui_text('hardware.model_requirements_image_text'),
     audio=ui_text('hardware.model_requirements_music_sounds_description'), detail=ui_text('hardware.model_requirements_image_detail_mode'),
     control=ui_text('hardware.model_requirements_image_control_mode'), inpaint=ui_text('hardware.model_requirements_image_inpaint_mode'), tile=ui_text('hardware.model_requirements_image_tile_mode'),
@@ -53,7 +55,7 @@ def facts(module, ident, model=None):
             (ui_text('hardware.model_requirements_characteristics_frame_dimensions'), ', '.join('%d×%d' % tuple(size) for size in engine['resolutions'])),
             (ui_text('hardware.model_requirements_characteristics_frame_rate'), '%g FPS' % engine['fps']),
             (ui_text('hardware.model_requirements_characteristics_durations'), ' · '.join(('%g' % round(n / engine['fps'], 3)).replace('.', ',') for n in engine['frames']) + ui_text('hardware.duration_seconds_unit_suffix')),
-            (ui_text('hardware.model_requirements_characteristics_audio'), ui_text('hardware.model_requirements_characteristics_joint_video_audio_generation') if ident == 'ltx25-distilled' else ui_text('hardware.model_requirements_characteristics_speech_synchronization') if ident == 'wan22-s2v-14b' else ui_text('hardware.model_requirements_characteristics_no_audio_generation') if ident == 'wan22-ti2v-5b' else ui_text('hardware.model_requirements_characteristics_video_audio_voice_cloning_separately')),
+            (ui_text('hardware.model_requirements_characteristics_audio'), ui_text('hardware.model_requirements_characteristics_joint_video_audio_generation') if ident == 'ltx25-distilled' else ui_text('hardware.model_requirements_characteristics_speech_synchronization') if ident == 'wan22-s2v-14b' else ui_text('hardware.model_requirements_characteristics_reference_video_sound') if ident in ('wan-animate2', 'scail2') else ui_text('hardware.model_requirements_characteristics_no_audio_generation') if ident == 'wan22-ti2v-5b' else ui_text('hardware.model_requirements_characteristics_video_audio_voice_cloning_separately')),
             (ui_text('hardware.model_requirements_characteristics_features'), engine['limitations'])]
     if module == 'music':
         from music.music_registry import ENGINES

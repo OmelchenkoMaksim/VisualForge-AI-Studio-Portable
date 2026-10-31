@@ -66,3 +66,33 @@ Completed output follows existing Video settings, meaningful unique filenames, m
 `Runtime/Video/wan-verification.json` records exact GPU-tested modes, settings, timing and decoded output properties. An absent verification file means NOT TESTED, even if assets exist. The interface displays this scoped evidence. A short successful clip does not verify larger profiles, visual consistency, long videos or S2V.
 
 Targeted CPU checks are in `tests/test_wan.py` (modes, sizes, negative prompt, assets, bounded logs), alongside existing Video ownership/storage checks. No Image GPU regression suite is required for this adapter-only change.
+
+## Prompt enhancement by Gemma (2026-10-31)
+
+The panel can rewrite the request with Gemma before generation, for text-to-video and image-to-video (`App/server/video/prompt_enhancer.py`, route `/api/video/enhance`; the block hides when
+a chain or a scene plan is active, because the planner already writes those prompts). The person's own words stay in the history; the rewritten text is shown and editable.
+The TI2V-5B card has no prompt guide of its own, so the instructions restate the English prompt-extension rules the Wan 2.2 repository ships for its A14B models (`wan/utils/system_prompt.py`):
+text-to-video: a "film director" who keeps the subject and the action, puts up to four cinematic tags first (time of day, light source and quality, colour tone, shot size, camera angle, composition),
+adds visible detail, describes motion as a process and writes 60-200 words; image-to-video: only the dynamic content (the action and the camera), nothing the picture already shows, at most 100 words.
+
+Test: 832x480, 81 frames, "standard", seed 11, RTX 5070 Ti, three request levels (5 / 16 / 62 words); motion is the mean frame difference.
+
+| Variant | Words | Short request | Medium request | Detailed request |
+|---|---|---|---|---|
+| raw (no rewrite) | - | motion 6.3, fox walks but the picture is overexposed | motion 9.5, the fox is a speck in the forest | motion 6.1, the fox is small and far |
+| director (the default, 80-140 words) | ~120 | motion 4.0, wide shot, the fox mostly sits and turns its head | motion 8.6, close tracking shot, fox trots through blue-and-gold snow | motion 5.8, close low-angle shot, the rim light and the film grain of the request are kept |
+| concise (40-70 words) | ~55 | motion 4.6, the fox walks | motion 11.7, a wide scene, the fox walks away | motion 5.9, the fox runs out of the frame |
+
+Verdict: `director` is the default for text-to-video: the subject stays large and in the frame at every level and the specifics of a detailed request survive. `concise` gives more motion for one-line
+requests; it stays selectable through the `variant` field. An added rule that the subject must move did not change the short request much (4.0 against 3.4): "a fox in the snow" invites a pose.
+
+Image-to-video (the selfie of the Character tests as the first frame, three requests of 2 / 15 / 43 words):
+
+| Variant | Words | Result |
+|---|---|---|
+| raw | - | short: a smile; medium and detailed: the head and the hair change a lot, the hand fills the frame (motion 10-11) |
+| motion (the default, at most 100 words, the camera "calm and steady") | ~48 | the same actions, the face and the background stay put, a clean wave in the frame (motion 4.9 / 9.0 / 8.4) |
+| brief (at most 45 words) | ~23 | the strongest motion (6.9 / 20.3 / 9.2) but the hand covers the face on the medium request and the framing drifts |
+
+Verdict: `motion` is the default for image-to-video. One seed and one picture per level, judged by contact sheets and motion; hair and background drift a little with every variant, so this is not a measure of identity.
+Not tested: non-English requests, 1280x704, the chain and the edited scenes with a rewritten first prompt.

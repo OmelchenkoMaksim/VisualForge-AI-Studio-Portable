@@ -13,6 +13,8 @@
     'wan22-ti2v-5b': ['28.07.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/Wan-Video/Wan2.2'],
     'wan22-s2v-14b': ['26.08.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/Wan-Video/Wan2.2'],
     'ltx25-distilled': ['11.08.2026', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/Lightricks/LTX-2/releases/tag/v1.2.0'],
+    'wan-animate2': ['14.07.2026', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://huggingface.co/Wan-AI/Wan2.2-Animate-2-14B'],
+    'scail2': ['09.06.2026', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://github.com/zai-org/SCAIL-2'],
     'text-qwen38-27b': ['14.08.2026', StudioI18n.t("settings.studio_ui_releases_base_model_release"), 'https://github.com/QwenLM/Qwen3.8#news'],
     'text-qwen36-35b-a3b': ['16.04.2026', StudioI18n.t("settings.studio_ui_releases_base_model_release"), 'https://github.com/QwenLM/Qwen3.8#news'],
     'text-gemma4-26b-a4b': ['31.03.2026', StudioI18n.t("settings.studio_ui_releases_base_model_release"), 'https://ai.google.dev/gemma/docs/releases#march_31_2026']

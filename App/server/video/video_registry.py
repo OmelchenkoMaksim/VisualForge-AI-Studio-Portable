@@ -1,6 +1,7 @@
 """Explicit capabilities and validation for tested local video profiles."""
 from ui_strings import source as ui_text
 import secrets
+from .character_support import CHARACTER_FIELDS, CHARACTER_IDS, validate_fields as validate_character_fields
 
 ENGINES = {'freevideo-h3-int8': {
     'id': 'freevideo-h3-int8', 'name': 'FreeVideo · MiniMax H3 int8', 'file_label': 'FreeVideo MiniMax H3',
@@ -20,7 +21,7 @@ ENGINES['wan22-ti2v-5b'] = {
     'model_repository': 'Comfy-Org/Wan-2.2', 'license': 'Apache-2.0',
     # 1280x704 / 704x1280 is the model's native "720P" size; 832x480 is the ComfyUI template's lighter size.
     # 512x288 was removed: it produced severe shape artifacts and is far below the training resolution.
-    'modes': ['t2v','i2v'], 'fps': 24, 'resolutions': [[832,480],[480,832],[1280,704],[704,1280]],
+    'modes': ['t2v','i2v'], 'prompt_enhancer': ['t2v','i2v'], 'fps': 24, 'resolutions': [[832,480],[480,832],[1280,704],[704,1280]],
     # Frames above 121 are a chain of 121-frame segments (see WAN_SEGMENTS): each continues from the previous last frame.
     'frames': [33,81,121,240,360,720,1440,2880], 'qualities': ['preview','standard','high'],
     'duration_labels': {240: ui_text('video.registry_wan_10_s_chain'), 360: ui_text('video.registry_wan_15_s_chain'),
@@ -38,7 +39,7 @@ ENGINES['wan22-s2v-14b'] = {
     'release':'2.2 · S2V-14B','release_date':'2025-08-26','commit':None,
     'model_revision':'ee6f4a40737a995bf5818954cfce6d59443b0f04',
     'model_repository':'Comfy-Org/Wan-2.2','license':'Apache-2.0',
-    'modes':['s2v'],'fps':16,'resolutions':[[512,512],[832,480],[480,832]],'frames':[77],'negative_prompt':True,
+    'modes':['s2v'],'prompt_enhancer':['s2v'],'fps':16,'resolutions':[[512,512],[832,480],[480,832]],'frames':[77],'negative_prompt':True,
     'qualities':['standard'],'qualities_by_mode':{'s2v':['standard']},'steps':{'standard':20},
     'minimum_free_vram_mb':12000,
     'requirements':ui_text('video.registry_requirements_windows_10_11_x64_nvidia_cuda_short_generation_tested_rtx'),
@@ -58,6 +59,67 @@ ENGINES['ltx25-distilled'] = {
     'requirements':ui_text('video.registry_requirements_windows_x64_nvidia_cuda_16_gb'),
     'limitations':ui_text('video.registry_limitations_synchronized_video_audio_generation_text_first'),
 }
+
+# Character animation from a reference video: the person of the picture does what the video shows. `frames` are the most pictures
+# taken from the reference video (the clip is as long as the video, up to this limit); sizes are multiples of 32.
+CHARACTER_RESOLUTIONS = [[512,896],[896,512],[704,1280],[1280,704]]
+CHARACTER_FRAMES = [81,161,241,361,481,721,1441]
+CHARACTER_LABELS = {81:ui_text('video.registry_character_3_s'),161:ui_text('video.registry_character_7_s'),241:ui_text('video.registry_character_10_s'),
+                    361:ui_text('video.registry_character_15_s'),481:ui_text('video.registry_character_20_s'),721:ui_text('video.registry_character_30_s'),
+                    1441:ui_text('video.registry_character_60_s')}
+
+ENGINES['wan-animate2'] = {
+    'id':'wan-animate2','name':'Wan Animate 2','file_label':'Wan Animate 2','adapter':'character_comfy',
+    'release':'2.0 · INT8 ConvRot','release_date':'2026-07-14','commit':None,
+    'model_revision':'e7181fe1896b7f2ce34120d1a3663413548240d7',
+    'model_repository':'Comfy-Org/Wan-Animate-2','license':'Apache-2.0',
+    'modes':['animate'],'fps':24,'prompt_enhancer':['animate'],'needs_driving_video':True,
+    'resolutions':CHARACTER_RESOLUTIONS,'frames':CHARACTER_FRAMES,'duration_labels':CHARACTER_LABELS,
+    'qualities':['standard','high'],'qualities_by_mode':{'animate':['standard','high']},
+    'steps':{'standard':10,'high':6},
+    'quality_labels':{'standard':ui_text('video.registry_animate_standard_label'),'high':ui_text('video.registry_animate_high_label')},
+    'minimum_free_vram_mb':8000,
+    'requirements':ui_text('video.registry_requirements_windows_x64_nvidia_cuda_16_gb'),
+    'limitations':ui_text('video.registry_limitations_wan_animate_2'),
+}
+
+ENGINES['scail2'] = {
+    'id':'scail2','name':'SCAIL-2','file_label':'SCAIL-2','adapter':'character_comfy',
+    'release':'2.0 · INT8 ConvRot','release_date':'2026-06-09','commit':None,
+    'model_revision':'fe3c728bc793ba21ca674688f822afb709ad44fb',
+    'model_repository':'Comfy-Org/SCAIL-2','license':'MIT',
+    'modes':['replace','animate'],'fps':24,'prompt_enhancer':['replace','animate'],'needs_driving_video':True,
+    'resolutions':CHARACTER_RESOLUTIONS,'frames':CHARACTER_FRAMES,'duration_labels':CHARACTER_LABELS,
+    'qualities':['standard','high'],'qualities_by_mode':{'replace':['standard','high'],'animate':['standard','high']},
+    'steps':{'standard':6,'high':40},
+    'quality_labels':{'standard':ui_text('video.registry_scail_standard_label'),'high':ui_text('video.registry_scail_high_label')},
+    'minimum_free_vram_mb':8000,
+    'requirements':ui_text('video.registry_requirements_windows_x64_nvidia_cuda_16_gb'),
+    'limitations':ui_text('video.registry_limitations_scail_2'),
+}
+
+# Quality and power of each engine on a 0-10 scale where 10 is the real world filmed by a good camera (docs/Video-Model-Ratings.md). These are the
+# developer's judgement from the studio's own tests on an RTX 5070 Ti, not a benchmark: picture (detail, texture, light, faces), motion (physics and
+# naturalness), consistency (the same face, object and place over time), sound (speech and noise the engine itself produces; None when the engine makes
+# no sound of its own), control (how closely the result follows the request). `overall` is the mean of the numbers that exist, in steps of 0.5.
+RATING_AXES = ('picture', 'motion', 'consistency', 'sound', 'control')
+
+
+def rating(picture, motion, consistency, sound, control):
+    values = dict(picture=picture, motion=motion, consistency=consistency, sound=sound, control=control)
+    known = [value for value in values.values() if value is not None]
+    values['overall'] = round(sum(known) / len(known) * 2) / 2
+    return values
+
+
+# Character engines (Wan Animate 2, SCAIL-2) take the motion of a real reference video, so their motion and, for SCAIL-2 replacement, their scene are
+# real; the weakest part there is the new person's identity over a long clip.
+ENGINES['freevideo-h3-int8']['rating'] = rating(3, 4, 4, 4, 4)
+ENGINES['wan22-ti2v-5b']['rating'] = rating(5, 5, 5, None, 5)
+ENGINES['wan22-s2v-14b']['rating'] = rating(6, 5, 6, 5, 4)
+ENGINES['ltx25-distilled']['rating'] = rating(7, 7, 6.5, 6.5, 7)
+ENGINES['wan-animate2']['rating'] = rating(6.5, 7.5, 6.5, None, 5)
+ENGINES['scail2']['rating'] = rating(7, 7.5, 6.5, None, 6)
 
 # Total frames -> number of 121-frame segments. Every segment after the first drops its first frame (it repeats the previous
 # last frame), so n segments give 121 + 120 * (n - 1) frames and the last one is trimmed to the requested total.
@@ -89,7 +151,7 @@ def scene_frames(total, scenes, engine='wan22-ti2v-5b'):
 def validate(data):
     if not isinstance(data, dict):
         raise ValueError(ui_text('video.validation_expected_video_request_object'))
-    if set(data) - {'engine', 'mode', 'prompt', 'quality', 'width', 'height', 'frames', 'fps', 'seed', 'source_image', 'end_image', 'characters','speech_mode','speech_text','voice_audio','source_audio','language','negative_prompt','segment_prompts','scenes','structure','user_prompt'}:
+    if set(data) - ({'engine', 'mode', 'prompt', 'quality', 'width', 'height', 'frames', 'fps', 'seed', 'source_image', 'end_image', 'characters','speech_mode','speech_text','voice_audio','source_audio','language','negative_prompt','segment_prompts','scenes','structure','user_prompt'} | set(CHARACTER_FIELDS)):
         raise ValueError(ui_text('video.validation_request_contains_unsupported_video_parameters'))
     if not isinstance(data.get('engine', 'freevideo-h3-int8'), str):
         raise ValueError(ui_text('video.validation_invalid_video_engine'))
@@ -124,7 +186,7 @@ def validate(data):
     if isinstance(seed, bool) or not str(seed).isascii() or not str(seed).isdigit() or not 0 <= int(seed) < 2**64:
         raise ValueError(ui_text('video.validation_seed_must_integer_0_18446744073709551615'))
     for key in ('source_image', 'end_image'):
-        required = key == 'source_image' and mode in ('i2v', 'first_last','s2v') or key == 'end_image' and mode == 'first_last'
+        required = key == 'source_image' and mode in ('i2v', 'first_last','s2v','animate','replace') or key == 'end_image' and mode == 'first_last'
         if required and not isinstance(data.get(key), str):
             raise ValueError(ui_text('video.validation_add_source_frame_if_required_ending'))
     if mode == 'first_last' and engine['id'] == 'ltx25-distilled' and frames > 121:
@@ -224,4 +286,8 @@ def validate(data):
         if speech_mode=='clone' and data.get('source_audio') or speech_mode=='audio' and (data.get('voice_audio') or data.get('speech_text')):
             raise ValueError(ui_text('video.validation_use_selected_speech_preparation_method'))
         result['speech_mode']=speech_mode
+    if engine['id'] in CHARACTER_IDS:
+        result.update(validate_character_fields(data, engine['id'], mode))
+    elif any(key in data for key in CHARACTER_FIELDS):
+        raise ValueError(ui_text('video.character_fields_character_engines_only'))
     return result

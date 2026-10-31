@@ -25,6 +25,7 @@ These are studio recommendations for the shipped quantizations/offload paths, no
 | Wan 2.2 TI2V | 16 | 32 | Video registry; launch gate 6500 MiB free VRAM. |
 | Wan 2.2 S2V | 16 | 64 | Tested native offload profile; launch gate 12000 MiB free VRAM. |
 | LTX 2.5 Distilled | 16 | 64 | Video registry and LTX acceptance; launch gate 8000 MiB free VRAM. |
+| Wan Animate 2 / SCAIL-2 | 16 | 64 | Tested native offload profile (peak 12.1 GB allocated for Wan Animate 2, 6.8 GB for SCAIL-2 at 512x896); launch gate 8000 MiB free VRAM; a job needs about 40 GB of the Windows commit limit (RAM + page file), see `docs/Character-Animation.md`. |
 | ACE-Step 1.5 Turbo | 16 | 32 | Music registry, RAM minimum 16; Music launch gate 8000 MiB free VRAM. |
 | Stable Audio 3 Medium | 16 | 32 | Estimate: runs in the Image ComfyUI (about 9.2 GB model and 1.2 GB text encoder); measured with nvidia-smi on the RTX 5070 Ti: about 5 GB above idle for 10–20 s clips and about 12.5 GB for 120 s (the decode grows with length), so the launch gate waits for 8000 / 10000 / 14000 MiB free for up to 30 / 60 / 120 s. |
 | MiniMax Music3 INT8 | 16 | 64 | Music registry; Music launch gate 8000 MiB free VRAM. |

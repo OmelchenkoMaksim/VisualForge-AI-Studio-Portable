@@ -61,6 +61,8 @@ the worker (512×512: 349 s -> 242 s at the same seed, same picture; the audio e
 rewrite had removed `export_video` from `wan_worker.py`, which broke S2V and the LTX picture step at start; `test_wan.py` now checks that sibling
 workers only import names `wan_worker` defines.
 
+**Known limitation (2026-10-31):** the scene cuts are hard jump cuts: every scene starts from the reference pose and the camera angle asked for by the scenario is hardly carried out, so a long clip reads as jump cuts of one shot (seven cuts in a 30 s test). It is noted in the panel under "Limitations".
+
 ## Long clips: scenes (chosen) and the chain (tried and removed), 2026-10-30
 
 One segment is 77 frames (4.8125 s). Speech up to 75 seconds (a ready recording, or a typed line of up to 1000 characters for the voice sample)
@@ -92,3 +94,29 @@ own chain). Reasons: it is a tenth faster, the quality is the same in the first 
 report collapsing. The price is hard cuts: every scene starts from the reference pose.
 
 Not tested: speech longer than 22 s, voice cloning in a long clip, singing, 832×480 and vertical clips in the scenes structure.
+
+## Prompt enhancement by Gemma (2026-10-31)
+
+The text of S2V is optional: the speech drives the mouth, the head and the hands, the photo is the first frame, and the card's examples are one line of style and scene ("Summer beach vacation style, a white
+cat wearing sunglasses sits on a surfboard", "a person is singing"). The hidden Gemma instruction (`prompt_enhancer.py`, mode `s2v`; the photo goes with the request) therefore never writes what is said,
+the sound or the lips: it describes the person as the photo shows, how they deliver the speech (look into the camera, small head movements and hand gestures), the place, the shot size and a steady
+camera, in English. The block hides for scene plans.
+
+Test: the studio's own photo (a young man in a room), a 4.2 s English line made with Windows speech synthesis, 512x512, 77 frames, "standard" (20 steps), seed 11, RTX 5070 Ti, 4-6 minutes per clip
+(the first one 6 minutes because of the cold start from the HDD); two requests: "a man talks" and "A man talks to the camera in a friendly, relaxed way."
+
+| Variant | Words | What came out | Motion (mean frame difference) |
+|---|---|---|---|
+| raw (no rewrite) | - | mouth follows the speech, the head almost still, a small hand in one frame | 1.8 / 2.5 |
+| scene (the default, 30-60 words) | ~50 | the same face and room, more head movement, a raised hand and a pointing gesture in the middle of the line | 3.2 / 4.1 |
+| brief (at most 20 words) | ~17 | like raw, a little livelier mouth | 2.0 / 2.1 |
+
+Verdict: `scene` is the default. The face, the room and the sync of the mouth were the same in all three variants; the text changed only the amount of gesture. One photo, one voice and one seed;
+singing, voice cloning and longer speech were not compared.
+
+### 30 seconds with a voice (2026-10-31)
+
+A 31.4 s English recording (Windows speech synthesis, 98 words), the studio's selfie as the reference, 512x512, "standard", seed 11, Gemma scenario for 7 scenes, structure "scenes": 1952 s (32.5 minutes).
+Result: 32.12 s, 514 frames at 16 fps, the sound is the recording itself (Whisper returned the text word for word); the face, the room, the hair and the colour (mean brightness 155-162 over the whole clip) are the same
+in all seven scenes; seven hard cuts on identical framing (a jump cut: the pose resets to the reference pose at every scene). The Gemma scenario asked for different camera distances, but every scene came out as the same medium
+close-up, so the cuts read as jump cuts of one talking head. The last 0.7 s are silent (the recording ended). Not tested: a cloned voice in a 30 s clip, 832x480, a vertical clip.

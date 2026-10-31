@@ -52,6 +52,8 @@ Additional dates checked on 2026-10-26:
 | Installed choice | Displayed date | Meaning and author source |
 |---|---|---|
 | LTX 2.5 Distilled | 2026-08-11 | LTX 2.5 release; [author release v1.2.0](https://github.com/Lightricks/LTX-2/releases/tag/v1.2.0) adds LTX 2.5 support. |
+| Wan Animate 2 | 2026-07-14 | First upload of the ComfyUI files `Comfy-Org/Wan-Animate-2` (the author repository `Wan-AI/Wan2.2-Animate-2-14B` appeared the same day), [files history](https://huggingface.co/Comfy-Org/Wan-Animate-2/commits/main). |
+| SCAIL-2 | 2026-06-09 | First upload of `zai-org/SCAIL-2` and of the ComfyUI files `Comfy-Org/SCAIL-2`, [author page](https://github.com/zai-org/SCAIL-2). |
 | Q38Light | 2026-08-14 | Base Qwen3.8-27B release, [Qwen news](https://github.com/QwenLM/Qwen3.8#news). Local GGUF metadata names Qwen3.8-27B and links to Qwen/Qwen3.8-27B. |
 | Hauhau Q6 | 2026-04-16 | Base Qwen3.6-35B-A3B release, [Qwen news](https://github.com/QwenLM/Qwen3.8#news). Local GGUF names Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive. |
 | Gemma 4 A4B | 2026-03-31 | Base Gemma 4 26B A4B release, [Google release log](https://ai.google.dev/gemma/docs/releases#march_31_2026). Local Ollama config identifies Gemma 4 and the installed MoE weights identify the 26B build. Google announcement posts are dated April 2; this label follows its explicit model release log. |

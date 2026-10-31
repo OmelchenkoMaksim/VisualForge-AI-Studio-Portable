@@ -5,6 +5,11 @@ LONG_FRAMES = (360, 720, 1440)
 WINDOW_FRAMES = 121
 STRIDE_FRAMES = 96
 OVERLAP_FRAMES = WINDOW_FRAMES - STRIDE_FRAMES
+# The generated sound is very uneven: speech reached -10..-25 dBFS while the ambience between the lines sat at -60..-68 dBFS, i.e. silence (measured
+# 2026-10-31 on a 30 s clip). A dynamic normalizer raises the quiet stretches by up to 20x (about 26 dB) over a window of a quarter second and a
+# smoothing of 15 frames, and a limiter keeps the peaks below -2 dBFS; on that clip the ambience came up to about -40 dBFS, the speech stayed
+# between -14 and -25 dBFS and Whisper heard the same words.
+LEVELING = 'dynaudnorm=f=250:g=15:p=0.6:m=20:s=0,alimiter=limit=0.8:level=disabled'
 
 
 def windows(frames):
@@ -45,7 +50,7 @@ def assembly_command(ffmpeg, folder, parts, frames, fps=24):
                     f'[{audio}][a{index}]acrossfade=ns={OVERLAP_FRAMES*48000//fps}:c1=tri:c2=tri[{next_audio}]']
         video, audio = next_video, next_audio
     filters += [f'[{video}]fps={fps},trim=end_frame={frames},setpts=PTS-STARTPTS[video]',
-                f'[{audio}]apad,atrim=end_sample={frames*48000//fps},asetpts=PTS-STARTPTS[audio]']
+                f'[{audio}]apad,atrim=end_sample={frames*48000//fps},asetpts=PTS-STARTPTS,{LEVELING}[audio]']
     graph = folder/'ltx-continuation-filter.txt'
     graph.write_text(';\n'.join(filters), encoding='utf-8')
     command += ['-filter_complex_threads', '2', '-filter_complex', ';'.join(filters),

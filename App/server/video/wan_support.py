@@ -25,8 +25,11 @@ def engine_missing(root, h3_models, engine):
     if engine == 'ltx25-distilled':
         from .ltx_support import engine_missing as ltx_missing
         return ltx_missing(root,h3_models)
+    if engine in ('wan-animate2', 'scail2'):
+        from .character_support import engine_missing as character_missing
+        return character_missing(root,h3_models,engine,fit=True)
     root, h3_models = Path(root), Path(h3_models)
-    common = [root / path for path in ('python/python.exe','ffmpeg/bin/ffprobe.exe','ffmpeg/bin/ffmpeg.exe')]
+    common =[root / path for path in ('python/python.exe','ffmpeg/bin/ffprobe.exe','ffmpeg/bin/ffmpeg.exe')]
     if engine in WAN_IDS:
         common += [root/'vendor/ComfyUI/comfy_extras/nodes_wan.py']
         if engine == S2V_ID:

@@ -156,6 +156,12 @@ details.hint-more>:not(summary){margin-top:0!important}
 .model-assessment dl{margin:12px 0}
 .model-assessment dt{margin-top:10px}
 .model-assessment dd{margin:2px 0 0;color:var(--text-2)}
+.model-rating{margin-block:12px;padding:12px 14px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2);font-size:13px;line-height:1.5}
+.model-rating-head{margin:0 0 8px;font-size:15px}
+.model-rating dl{display:grid;grid-template-columns:minmax(120px,max-content) minmax(80px,1fr) 3.2em;gap:6px 12px;align-items:center;margin:0}
+.model-rating dt{color:var(--text-2)}
+.model-rating dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.model-rating meter{width:100%;height:10px}
 .flux-layout-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-block:12px;padding:12px;border:1px solid var(--border);border-radius:var(--r)}
 .flux-layout-row label{display:flex;flex-direction:column;gap:4px;font-size:12px;min-width:0}
 .flux-layout-row input{width:100%;min-width:0}
