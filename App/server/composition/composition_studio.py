@@ -13,11 +13,10 @@ class CompositionStudio(Studio):
     def capabilities(self):
         return capabilities(self.request('/api/preflight', timeout=60))
 
-    def image(self, step, sources, canvas, seed, cancel):
+    def image(self, step, sources, canvas, seed, cancel, note=''):
         payload = dict(image_options(step), canvas=canvas, seed=seed)
-        if sources:
-            payload['prompt'] += (' Complete any empty canvas padding coherently with the requested scene, preserving the actual '
-                                  'source content. Keep genuinely transparent space only when the requested output needs transparency.')
+        if note:                                  # the first picture was put on a canvas (`composition_media.prepare`): the model is told what the margins are
+            payload['prompt'] += ' ' + note
         images = [dict(base64=base64.b64encode(raw).decode('ascii')) for raw in sources]
         if images:
             payload['image1'] = images[0]
@@ -28,7 +27,8 @@ class CompositionStudio(Studio):
         if cancel.is_set():
             raise DirectorCancelled()
         # The request may include a slow Gemma pass. Cancel its preparation owner as well as an already queued image.
-        answer = self.request('/api/generate', payload, timeout=1800)
+        # `start` waits out a 409 (the card is held for a moment by another module) instead of ending the whole composition at the first refusal.
+        answer = self.start('/api/generate', payload, timeout=1800)
         ident, token = answer['prompt_id'], answer['cancel_token']
         row = self.wait(lambda: self.request('/api/status?id=' + ident, timeout=60), cancel,
                         lambda _: self.request('/api/cancel', dict(prompt_id=ident, cancel_token=token)), limit=8 * 3600)

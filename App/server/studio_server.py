@@ -36,7 +36,7 @@ from portable_paths import from_server
 from engines.image_registry import DEFAULT_ENGINE, get_engine
 from engines.workflow_builder import validate_request, build_workflow, collect_outputs, collect_expansion, resolve_expansion, resolve_workflow_mode, resolve_detail_strength, resolve_control_settings
 from engines.image_inputs import validate_edit_mask, grayscale_png
-from engines.image_prompt_enhancer import PromptEnhancer as ImagePromptEnhancer
+from engines.image_prompt_enhancer import ImagePreparationCancelled, PromptEnhancer as ImagePromptEnhancer
 import image_convert
 from range_response import serve_file
 from video import video_routes
@@ -1575,6 +1575,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.response_json(409, {'error': str(exc)})
         except GpuUnavailable as exc:
             return self.response_json(503, {'error': str(exc)})
+        except ImagePreparationCancelled as exc:
+            return self.response_json(400, {'error':str(exc), 'cancelled':True})
         except (ValueError, TypeError, KeyError) as exc:
             return self.response_json(400, {'error': str(exc)[:600]})
         except HTTPError as exc:

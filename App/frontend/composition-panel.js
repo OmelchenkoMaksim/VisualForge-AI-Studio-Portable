@@ -20,8 +20,9 @@
     const response = await fetch('/api/composition/' + route, body === undefined ? {} : {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
-    const value = await response.json();
-    if (!response.ok) throw new Error(StudioI18n.remote(value.error));
+    let value = {};
+    try {value = await response.json();} catch { /* An answer that is not JSON (a proxy page, a crash) is reported by the message below. */ }
+    if (!response.ok) throw new Error(StudioI18n.remote(value.error) || t('unavailable'));
     return value;
   };
   let saved = {};
@@ -42,6 +43,7 @@
   const start = say(h('button', {id:'compositionStart', type:'button'}), 'start');
   const stop = say(h('button', {id:'compositionStop', type:'button', hidden:true}), 'stop');
   const status = h('p', {id:'compositionStatus', role:'status', 'aria-live':'polite'});
+  const progress = h('p', {class:'preset-hint', hidden:true});
   const steps = h('div', {class:'composition-steps'});
   const results = h('div', {id:'compositionResults', class:'composition-results'});
   const history = h('div', {class:'composition-history'});
@@ -49,7 +51,7 @@
   panel.append(say(h('h2'), 'name'), say(h('p'), 'intro'), say(h('p', {class:'preset-hint'}), 'quality'),
     say(h('p', {class:'preset-hint'}), 'material_hint'), groups, label('prompt', prompt),
     h('div', {class:'composition-fields'}, label('variants', variants), label('canvas', canvas)),
-    h('div', {class:'actions'}, start, stop), status, steps, results, say(h('p', {class:'preset-hint'}), 'output_hint'),
+    h('div', {class:'actions'}, start, stop), status, progress, steps, results, say(h('p', {class:'preset-hint'}), 'output_hint'),
     h('details', {}, say(h('summary'), 'history'), history));
   workspace.prepend(switcher, panel);
   StudioI18n.bind(prompt, 'placeholder', () => t('placeholder'), true);
@@ -79,8 +81,9 @@
   async function upload(file, group) {
     await mutate(async () => {
       const response = await fetch('/api/composition/attach?' + new URLSearchParams({draft, group, name:file.name}), {method:'POST', body:file});
-      const value = await response.json();
-      if (!response.ok) throw new Error(StudioI18n.remote(value.error));
+      let value = {};
+      try {value = await response.json();} catch { /* see `api` */ }
+      if (!response.ok) throw new Error(StudioI18n.remote(value.error) || t('unavailable'));
       return value;
     });
   }
@@ -116,6 +119,10 @@
     if (value.state !== 'none') {
       if (value.error) report(new Error(value.error)); else say(status, state);
     }
+    // A composition can be dozens of images: once the plan exists the person sees how far it is and how long the whole may take (a rough server estimate).
+    const total = (value.plan?.variants || []).reduce((sum, row) => sum + row.steps.length, 0), finished = (value.steps || []).filter(row => row.state === 'done').length;
+    progress.hidden = !total;
+    if (total) say(progress, 'progress', [Math.min(finished + (working ? 1 : 0), total), total, value.estimate_minutes || 1]);
     steps.replaceChildren(...(value.steps || []).map(row => {
       const node = h('div');
       StudioI18n.bind(node, 'textContent', () => t('step', [row.variant, row.step, row.engine]) + ' · ' + StudioI18n.remote(row.state), true);

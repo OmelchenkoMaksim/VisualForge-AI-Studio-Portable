@@ -44,4 +44,35 @@ for (const [id, info] of Object.entries(engines))
   for (const mode of state.MODES)
     assert.strictEqual(Boolean(guides.get(id, mode)), info.modes.includes(mode), id + ' ' + mode);
 
+// Translating backend text must not change the protocol states used to choose a progress message.
+const fs = require('fs'), vm = require('vm');
+const studioScript = fs.readFileSync(path.join(__dirname, '../App/frontend/image-studio.js'), 'utf8');
+const progressSource = studioScript.slice(studioScript.indexOf('function renderLiveStatus()'), studioScript.indexOf('function startLiveStatus('));
+let rendered = '';
+const progressContext = {
+  liveState:{phase:'preparing', detail:'PREPARING DETAIL', startedAt:Date.now(), lastPollAt:Date.now(), promptId:''},
+  StudioI18n:{t:(key,args=[])=>key+' '+args.join('|'), remote:value=>({preparing:'Подготовка',running:'В работе',queued:'В очереди',submitted:'Принято',cancelling:'Отмена'}[value] || value)},
+  formatDuration:()=> '00:00', setStatusText:value=>{rendered=value;}
+};
+vm.createContext(progressContext);
+vm.runInContext(progressSource, progressContext);
+progressContext.renderLiveStatus();
+assert.ok(rendered.includes('PREPARING DETAIL'), rendered);
+assert.ok(!rendered.includes('comfy_ui_responded'), 'No ComfyUI poll exists during Gemma preparation');
+for (const [phase, expected] of Object.entries({submitted:'live_task_submitted',queued:'live_waiting_queue',running:'agent_step_running',cancelling:'live_comfy_ui_finishing'})) {
+  progressContext.liveState.phase=phase; progressContext.liveState.promptId='test-job';
+  progressContext.renderLiveStatus();
+  assert.ok(rendered.includes(expected), phase+': '+rendered);
+}
+let failedNotifications = 0;
+progressContext.finishLiveStatus = value => {rendered=value;};
+progressContext.StudioUI = {notify:()=>{failedNotifications++;}};
+progressContext.activeJob = null;
+vm.runInContext(studioScript.slice(studioScript.indexOf('function reportImageError('), studioScript.indexOf('async function runGeneration(')), progressContext);
+progressContext.reportImageError({message:'cancelled', cancelled:true});
+assert.ok(rendered.includes('image.prompt_manager_cancelled'));
+assert.strictEqual(failedNotifications, 0, 'An acknowledged Stop is not a failed image notification');
+progressContext.reportImageError({message:'real failure'});
+assert.strictEqual(failedNotifications, 1);
+
 console.log('engine state ok');

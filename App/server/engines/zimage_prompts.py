@@ -1,7 +1,7 @@
 """Z-Image Turbo guides researched on 2026-11-01; sources and evidence limits: docs/Z-Image-Prompting.md."""
 
 ENGINE = 'z-image-turbo-int8'
-VERSION = 'zimage-turbo-2026-11-01-v1'
+VERSION = 'zimage-turbo-2026-11-01-v3'
 CLARIFICATION_VERSION = 'zimage-clarification-v1'
 TEMPERATURE = 0.4
 DECISION_TEMPERATURE = 0.3
@@ -38,6 +38,8 @@ MODEL_RULES = (
     'This is Z-Image Turbo INT8 with Qwen3, not Z-Image Base, Edit or Omni. Write a coherent natural-language visual caption, '
     'not a chat reply, an editing command list, JSON, headings, booru tags or weighted tokens. '
     'Lock the requested subjects, counts, actions, relationships, colors, framing and style before adding compatible detail. '
+    'Keep an explicit exact count explicit (use "exactly"). For a few countable foreground objects, prefer clearly separated '
+    'positions over an ambiguous overlapping pile unless the person requests that arrangement. '
     'Describe one visible moment: turn an action into a readable pose and an abstract design request into a concrete composition. '
     'For a simple idea, aim for 80-160 English words; a detailed request may need more. Never pad or drop requested facts to meet a length. '
     'Add purposeful composition, spatial depth, light, palette and material detail, only where unspecified. '
@@ -63,7 +65,9 @@ MODE_RULES = {
     'detail': (
         'Image 1 is the existing picture for low-denoise detail refinement after enlargement, not an instruction-editing model. '
         'Write a grounded caption of that same picture, including its actual subjects, positions, crop, medium, colors and lighting; '
-        'then describe the requested local texture or clarity. Keep identity, object count and composition. Do not add objects, '
+        'then describe the requested local texture or clarity. Name only clearly visible broad attributes. For small secondary '
+        'parts, preserve their original appearance by reference instead of guessing an exact color, material, anatomy or lettering. '
+        'Do not create a new fine-grained inventory: it can contradict the actual image. Keep identity, object count and composition. Do not add objects, '
         'recolor or restyle the scene, remove image defects by inventing content, or promise recovery of authentic missing detail.'
     ),
     'control': (
@@ -82,7 +86,8 @@ MODE_RULES = {
     'tile': (
         'Image 1 is the source for Tile ControlNet enlargement. Caption the same scene in detail: subjects and their positions, '
         'silhouettes, palette, medium, lighting and existing surface materials. Describe finer plausible texture without changing '
-        'identity, lettering, layout or style. This adds synthesized detail, not verified recovery. Do not turn enlargement into '
+        'identity, lettering, layout or style. Preserve small parts by reference to their original appearance; do not guess their '
+        'colors, materials or writing when the preview is unclear. This adds synthesized detail, not verified recovery. Do not turn enlargement into '
         'new objects, a different crop, a redesign or a different camera view.'
     ),
 }

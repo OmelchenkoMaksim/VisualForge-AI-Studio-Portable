@@ -45,5 +45,6 @@
   "composition.panel_material_limit_text":{"ru":"Лимит группы или общий размер материалов превышен (200 МиБ).","en":"The group limit or total material size was exceeded (200 MiB)."},
   "composition.panel_already_running_text":{"ru":"Композиция уже создаётся. Дождитесь результата или остановите её.","en":"A composition is already running. Wait for it or stop it."},
   "composition.panel_invalid_run_text":{"ru":"Композиция или её результат не найдены.","en":"The composition or its result was not found."},
-  "composition.panel_unavailable_text":{"ru":"Режим Композиция сейчас недоступен. Проверьте Text и Image.","en":"Composition is currently unavailable. Check Text and Image."}
+  "composition.panel_unavailable_text":{"ru":"Режим Композиция сейчас недоступен. Проверьте Text и Image.","en":"Composition is currently unavailable. Check Text and Image."},
+  "composition.panel_progress_text":{"ru":"Этап {0} из {1}; всего примерно {2} мин","en":"Stage {0} of {1}; about {2} min in all"}
 }

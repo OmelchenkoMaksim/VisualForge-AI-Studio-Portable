@@ -68,12 +68,12 @@ class Studio:
             raise DirectorError(ui_text('director.studio_not_answering', path)) from error
         return raw if binary else json.loads(raw)
 
-    def start(self, path, data):
+    def start(self, path, data, timeout=300):
         """POST a job; a 409 (another module holds the card for a moment) is waited out for up to ten minutes."""
         deadline = time.monotonic() + BUSY_WAIT_SECONDS
         while True:
             try:
-                return self.request(path, data, timeout=300)
+                return self.request(path, data, timeout=timeout)
             except StudioBusy:
                 if time.monotonic() > deadline:
                     raise

@@ -67,6 +67,8 @@ class Engine:
     # Optional, mode-specific prompt enhancers must not become base-engine requirements.
     expansion_assets: dict = field(default_factory=dict)
     prompt_manager: bool = False
+    # Subjective scores belong to the installed profile and its dated visual sample, never to the model family as a whole.
+    rating: dict = field(default_factory=dict)
 
     def required_vram(self, mode, megapixels=1):
         return self.native_claim_vram_mb.get(megapixels, self.claim_vram_mb) if mode in self.text_modes else self.claim_vram_mb

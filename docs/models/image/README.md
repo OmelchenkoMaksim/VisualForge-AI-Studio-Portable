@@ -13,7 +13,7 @@ Evidence: [card rules](../README.md). Section comparisons are draft summaries of
 
 [Composition](../../VisualForge-Composition.md) orchestrates these models from one idea and optional materials. It is a workspace, not a fifth checkpoint; current capabilities and each engine's guide remain authoritative.
 
-* **The first picture sets the output proportions** in the edit modes of Klein and Qwen 2.1 (the requested canvas applies only to text modes). A portrait photo first gives a portrait result: put a picture of the wanted shape first, or pad the first one onto a canvas of that shape (`director/media.py frame_pictures`). **[recorded 2026-11-01, Klein]**
+* **The first picture sets the output proportions** in the edit modes of Klein and Qwen 2.1 (the requested canvas applies only to text modes). A portrait photo first gives a portrait result: put a picture of the wanted shape first, or pad the first one onto a canvas of that shape (`director/media.py frame_pictures` for keyframes; `composition/composition_media.py prepare` for Composition: stretch when the shape is within 6 %, else fit over a blurred copy of the picture). **[recorded 2026-11-01, Klein]**
 * **Successful status is not visual correctness**: counts (three gears came out four), lettering, small parts and the boundaries of an edit are the weak points of all four models. Look at the picture.
 * **More steps or pixels are not automatically better**; native 4K changed composition and counts in Klein.
 * **AI Upscale** (Real-ESRGAN x2, once or twice) sharpens and invents texture; it is not restoration, and it is separate from native resolution.

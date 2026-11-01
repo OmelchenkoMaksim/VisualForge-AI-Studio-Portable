@@ -307,8 +307,9 @@ class BridgeTests(unittest.TestCase):
 
     def test_stopped_preparation_cannot_submit_an_image(self):
         self.text.on_answer = self.text.cancel.set
-        status, _ = self.generate()
+        status, response = self.generate()
         self.assertEqual(status, 400)
+        self.assertTrue(response['cancelled'])
         self.assertEqual(self.graphs, [])
         self.gpu.claim.assert_called_once_with('text')
         self.assertEqual(self.text.owners, [])

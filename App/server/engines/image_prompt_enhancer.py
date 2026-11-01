@@ -87,6 +87,10 @@ def vision_image(raw, *, mask=False, alpha_matte=False):
         raise ValueError(ui_text('image.prompt_manager_source_invalid')) from error
 
 
+class ImagePreparationCancelled(ValueError):
+    """The person stopped preparation; keep it distinct from an invalid model answer."""
+
+
 class PromptEnhancer(PromptEnhancerTemplate):
     SECTION = 'Image'
     OWNER = 'image-prompt'
@@ -213,11 +217,11 @@ class PromptEnhancer(PromptEnhancerTemplate):
         with self.session() as cancel:
             for attempt in range(2):
                 if cancel.is_set():
-                    raise ValueError(ui_text('image.prompt_manager_cancelled'))
+                    raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
                 raw = self.ask(messages, cancel, num_ctx=self._context_size(prompt, pictures),
                                num_predict=1800, temperature=guide.DECISION_TEMPERATURE, top_p=0.9)
                 if cancel.is_set():
-                    raise ValueError(ui_text('image.prompt_manager_cancelled'))
+                    raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
                 try:
                     value = json.loads(re.sub(r'^```[^\n]*\n|\n```$', '', raw.strip()))
                     if isinstance(value, dict) and value.get('state') == 'ready':
@@ -244,11 +248,11 @@ class PromptEnhancer(PromptEnhancerTemplate):
         with self.session() as cancel:
             for attempt in range(2):
                 if cancel.is_set():
-                    raise ValueError(ui_text('image.prompt_manager_cancelled'))
+                    raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
                 answer = self.ask(messages, cancel, num_ctx=self._context_size(prompt, pictures),
                                   num_predict=1800, temperature=self.ACTIVE_GUIDES[engine].TEMPERATURE, top_p=0.9)
                 if cancel.is_set():
-                    raise ValueError(ui_text('image.prompt_manager_cancelled'))
+                    raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
                 result = self._caption(answer, prompt, engine, mode, pictures, context)
                 if result is not None:
                     return dict(prompt=result, model=self.text.gemma_model(), guide_version=self.ACTIVE_GUIDES[engine].VERSION)

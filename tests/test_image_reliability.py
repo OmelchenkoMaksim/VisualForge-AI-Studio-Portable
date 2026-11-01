@@ -11,6 +11,16 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 from job_history import JobHistory
 import studio_server as server
+from smart_filenames import infer_title
+
+
+class FilenameIntentTests(unittest.TestCase):
+    def test_subject_suffixes_and_scene_lighting_do_not_invent_edit_actions(self):
+        self.assertNotIn('Mustache', infer_title('Акварельный робот поливает кактус', 'prompt'))
+        self.assertNotIn('Mustache', infer_title('Синий парус на лодке', 'prompt'))
+        self.assertNotIn('Cat', infer_title('Лиса, которая нашла гриб', 'prompt'))
+        self.assertNotIn('Adjusted', infer_title('Лиса в лесу, мягкий зимний свет', 'prompt'))
+        self.assertEqual(infer_title('Удали усы у мужчины, сохрани бороду', 'single'), 'Man With Mustache Removed')
 
 
 class HistoryTests(unittest.TestCase):

@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 import copy
 import json
+import os
 from pathlib import Path
 import secrets
 import threading
@@ -11,8 +12,8 @@ import uuid
 from director.studio import DirectorCancelled
 from generation_identity import begin, finish, scope
 from ui_strings import source as ui_text
-from .composition_media import IDENT, Materials, atomic_json, prepare_inputs
-from .composition_plan import GROUPS, request_data
+from .composition_media import IDENT, Materials, atomic_json, prepare, prune_drafts, prune_runs
+from .composition_plan import GROUPS, estimate_minutes, request_data
 
 TERMINAL = ('done', 'error', 'cancelled', 'interrupted')
 
@@ -28,11 +29,16 @@ class CompositionManager:
         self.cancel_preparation = cancel_preparation
         # A restart cannot resume a half-completed GPU graph safely. Preserve completed variants and mark the rest explicitly.
         for path in self.runs.glob('*/run.json'):
-            value = json.loads(path.read_text(encoding='utf-8'))
+            try:
+                value = json.loads(path.read_text(encoding='utf-8'))
+            except (OSError, ValueError):
+                continue                          # a run file that cannot be read never keeps the workspace from opening
             if value.get('state') not in TERMINAL:
                 value.update(state='interrupted', finished_at=time.time())
                 finish(value.get('generation'), state='interrupted')
                 atomic_json(path, value)
+        prune_drafts(self.materials.root)
+        prune_runs(self.runs)
 
     def busy(self):
         return self.thread is not None and self.thread.is_alive()
@@ -60,7 +66,11 @@ class CompositionManager:
         with self.lock:
             if self.busy():
                 raise ValueError(ui_text('composition.panel_already_running_text'))
-            draft = self.draft(data.get('draft'))
+            # A start without a draft would silently make an empty one and shoot a composition without the person's photos.
+            if not isinstance(data.get('draft'), str) or not data['draft']:
+                raise ValueError(ui_text('composition.panel_invalid_draft_text'))
+            draft = self.draft(data['draft'])
+            os.utime(self.materials.folder(draft['id']))          # a draft that a composition is made of is in use: the weekly clean-up must not take it
             # Intake and snapshot share the material lock: deleting/uploading in another tab cannot change an in-flight composition.
             with self.materials.lock:
                 files = {row['id']: self.materials.path(draft['id'], row['id']).read_bytes() for row in draft['items']}
@@ -129,7 +139,7 @@ class CompositionManager:
                 caps = self.studio.capabilities()
                 plan = self.brain.make_plan(run['request'], caps, run['materials'], files, cancel)
                 with self.lock:
-                    run.update(plan=plan, state='running')
+                    run.update(plan=plan, state='running', estimate_minutes=estimate_minutes(plan))
                     self._save()
                 seed = secrets.randbelow(2 ** 31)
                 for variant in plan['variants']:
@@ -142,8 +152,8 @@ class CompositionManager:
                             run['steps'].append(entry)
                             self._save()
                         raws = [previous if source == 'previous' else files[source] for source in step['sources']]
-                        inputs = prepare_inputs(raws, plan['canvas']) if raws else []
-                        previous, receipt = self.studio.image(step, inputs, plan['canvas'], seed + variant['number'] * 7919 + index, cancel)
+                        inputs, note = prepare(raws, plan['canvas']) if raws else ([], '')
+                        previous, receipt = self.studio.image(step, inputs, plan['canvas'], seed + variant['number'] * 7919 + index, cancel, note=note)
                         if cancel.is_set():
                             raise DirectorCancelled()
                         with self.lock:

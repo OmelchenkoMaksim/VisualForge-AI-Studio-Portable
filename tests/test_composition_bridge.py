@@ -82,7 +82,7 @@ class CompositionBridgeTests(unittest.TestCase):
             self.manager.cancel.set()
             return dict(prompt=fixture.FOX, model='fake', guide_version='test')
         with patch.object(self.server.IMAGE_PROMPT_ENHANCER, 'enhance', side_effect=late):
-            self.manager.start(dict(prompt='Лиса'))
+            self.manager.start(dict(draft=self.manager.draft()['id'], prompt='Лиса'))
             self.assertEqual(self.wait()['state'], 'cancelled')
         self.assertEqual(self.fixture.graphs, [])
 

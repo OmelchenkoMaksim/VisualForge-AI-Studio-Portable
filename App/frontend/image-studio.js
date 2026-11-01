@@ -38,8 +38,7 @@ function isTextMode(value = mode) { return (engineCatalog[selectedEngine]?.text_
 function nativeFourK() { return selectedEngine === 'flux3-klein-int8' && isTextMode() && byId('fluxResolution').value === '16'; }
 function multiModeLabel() { return StudioI18n.t(selectedEngine === 'qwen-edit-2511' ? 'image.qwen_multi_mode_label' : 'image.flux_multi_mode_label'); }
 function imageQualityLabel(engine, quality, steps) {
-  if (engine === 'qwen-image-21-uc-fp8') return StudioI18n.t('image.next_element_sibling_steps', [steps ?? engineCatalog[engine]?.quality_steps[quality] ?? '?']);
-  if (engine !== 'qwen-edit-2511') return String(quality || '').toUpperCase();
+  if (engine !== 'qwen-edit-2511') return StudioI18n.t('image.next_element_sibling_steps', [steps ?? engineCatalog[engine]?.quality_steps[quality] ?? '?']);
   // Historical 50/60-step receipts must retain their actual budget after the UI presets change.
   if (!['fast','low'].includes(quality)) return StudioI18n.t('image.qwen_quality_legacy', [quality || '?', steps ?? '?']);
   return StudioI18n.t(quality === 'fast' ? 'image.qwen_quality_fast' : 'image.qwen_quality_standard');
@@ -169,11 +168,33 @@ function rememberEngine(id) {
   try { localStorage.setItem('qwen.successfulEngine', id); } catch { /* Storage may be disabled. */ }
 }
 function engineReady() { return QwenEngineState.canGenerate(engineCatalog, selectedEngine, mode); }
+function imageRatingText(value) {
+  return Number(value).toLocaleString(StudioI18n.locale, {maximumFractionDigits:1});
+}
+function renderImageRating(rating) {
+  byId('imageRating').hidden = !Number.isFinite(rating?.overall);
+  if (!Number.isFinite(rating?.overall)) return;
+  StudioI18n.bind(byId('imageRatingOverall'), 'textContent', () => StudioI18n.t('image.rating_overall_score_label', [imageRatingText(rating.overall)]), true);
+  StudioI18n.bind(byId('imageRatingScale'), 'textContent', () => StudioI18n.t('image.rating_scale_anchor_hint'), true);
+  StudioI18n.bind(byId('imageRatingScope'), 'textContent', () => StudioI18n.t('image.rating_local_sample_scope', [rating.reviewed, rating.samples]), true);
+  const rows = [];
+  for (const axis of ['picture', 'detail', 'consistency']) {
+    const term = document.createElement('dt'), meter = document.createElement('dd'), number = document.createElement('dd');
+    StudioI18n.bind(term, 'textContent', () => StudioI18n.t(`image.rating_axis_${axis}_label`), true);
+    const bar = document.createElement('meter');
+    bar.min = 0; bar.max = 10; bar.value = rating[axis];
+    bar.setAttribute('aria-label', StudioI18n.t(`image.rating_axis_${axis}_label`));
+    meter.append(bar); number.textContent = imageRatingText(rating[axis]);
+    rows.push(term, meter, number);
+  }
+  byId('imageRatingAxes').replaceChildren(...rows);
+}
 function renderEngine() {
   if (byId('imageWorkspace').classList.contains('composition-mode')) return;
   const info = engineCatalog[selectedEngine];
   engineSelect.value = selectedEngine;
   if (info) {
+    renderImageRating(info.rating);
     renderPromptGuide();
     const preset = info.mode_presets?.[mode] || info;
     QUALITY_STEPS = preset.quality_steps;
@@ -344,18 +365,19 @@ function renderLiveStatus() {
   const elapsedSec = Math.floor((now - liveState.startedAt) / 1000);
   const sinceUpdateSec = Math.floor((now - liveState.lastPollAt) / 1000);
   let firstLine = StudioI18n.t("image.generation_live_status_prefix");
-  if (StudioI18n.remote(liveState.phase) === 'preparing') {
+  // Protocol states must stay untranslated: localized words no longer match these branch values.
+  if (liveState.phase === 'preparing') {
     firstLine += liveState.detail || StudioI18n.t("image.live_preparing_data");
-  } else if (StudioI18n.remote(liveState.phase) === 'submitted') {
+  } else if (liveState.phase === 'submitted') {
     firstLine += StudioI18n.t("image.live_task_submitted_comfy_ui");
     if (liveState.promptId) firstLine += ` · ID ${liveState.promptId}`;
-  } else if (StudioI18n.remote(liveState.phase) === 'queued') {
+  } else if (liveState.phase === 'queued') {
     firstLine += StudioI18n.t("image.live_waiting_queue");
     if (Number.isFinite(liveState.queuePosition)) {
       firstLine += StudioI18n.t("image.generation_queue_position_template", [liveState.queuePosition]);
       if (Number.isFinite(liveState.queueTotal)) firstLine += StudioI18n.t("image.generation_queue_total_template", [liveState.queueTotal]);
     }
-  } else if (StudioI18n.remote(liveState.phase) === 'running') {
+  } else if (liveState.phase === 'running') {
     firstLine += StudioI18n.t("image.agent_step_running_status");
     if (liveState.progressPct !== null && liveState.progressPct !== undefined) {
       firstLine += ` · ${liveState.progressPct}%`;
@@ -365,10 +387,12 @@ function renderLiveStatus() {
     } else if (liveState.detail) {
       firstLine += ` · ${liveState.detail}`;
     }
-  } else if (StudioI18n.remote(liveState.phase) === 'cancelling') {
+  } else if (liveState.phase === 'cancelling') {
     firstLine += StudioI18n.t("image.live_comfy_ui_finishing_interrupted_task");
   }
-  let secondLine = StudioI18n.t("image.live_elapsed_comfy_ui_responded_s_ago", [formatDuration(elapsedSec), sinceUpdateSec]);
+  let secondLine = liveState.promptId
+    ? StudioI18n.t("image.live_elapsed_comfy_ui_responded_s_ago", [formatDuration(elapsedSec), sinceUpdateSec])
+    : StudioI18n.t('image.live_elapsed_preparing_label', [formatDuration(elapsedSec)]);
   if (liveState.detail2) secondLine += ` · ${liveState.detail2}`;
   setStatusText(`${firstLine}\n${secondLine}`);
 }
@@ -541,7 +565,11 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request(url, options) {
   const r = await fetch(url, {cache:'no-store',...options});
   const body = await r.json();
-  if (!r.ok) throw new Error(StudioI18n.remote(body.error) || `HTTP ${r.status}`);
+  if (!r.ok) {
+    const error = new Error(StudioI18n.remote(body.error) || `HTTP ${r.status}`);
+    error.cancelled = body.cancelled === true;
+    throw error;
+  }
   return body;
 }
 async function loadSettings() {
@@ -720,7 +748,7 @@ async function check() {
     engineInitialized = true;
     for (const option of engineSelect.options) {
       const info = engineCatalog[option.value];
-      StudioI18n.bind(option, "textContent", () => (`${StudioUI.modelLabel(option.value, info ? info.name : option.value)} — ${info && info.ready ? StudioI18n.t("image.component_installation_installed_label") : StudioI18n.t("image.model_availability_unavailable_label")}`), true);
+      StudioI18n.bind(option, "textContent", () => (`${StudioUI.modelLabel(option.value, info ? info.name : option.value)}${Number.isFinite(info?.rating?.overall) ? ' · ' + imageRatingText(info.rating.overall) + '/10' : ''} — ${info && info.ready ? StudioI18n.t("image.component_installation_installed_label") : StudioI18n.t("image.model_availability_unavailable_label")}`), true);
       StudioI18n.bind(option, "title", () => (StudioUI.modelSource(option.value)), true);
     }
     StudioI18n.bind(byId('engineDependencyDetails'), "textContent", () => (Object.values(engineCatalog).map(info =>
@@ -855,6 +883,10 @@ function variationPrompt(originalPrompt) {
 }
 
 function reportImageError(error) {
+  if (error.cancelled) {
+    finishLiveStatus(StudioI18n.t('image.prompt_manager_cancelled'));
+    return;
+  }
   finishLiveStatus(StudioI18n.t("image.generation_error_notification_prefix") + StudioI18n.remote(error.message));
   StudioUI.notify({module:'Image', id:activeJob?.prompt_id, error:true, message:StudioI18n.remote(error.message), onLogs:() => byId('openLogs').click()});
 }

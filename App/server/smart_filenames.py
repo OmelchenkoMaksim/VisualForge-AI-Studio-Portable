@@ -24,7 +24,10 @@ RU_TERMS = [
     (r'город\w*', 'city'), (r'лет\w*', 'flying'), (r'машин\w*|автомобил\w*', 'vehicles'),
     (r'ноч\w*', 'night'), (r'красн\w*', 'red'), (r'син\w*|голуб\w*', 'blue'),
     (r'зелен\w*|зелён\w*', 'green'), (r'черн\w*|чёрн\w*', 'black'), (r'бел\w*', 'white'),
-    (r'кот\w*|кошк\w*', 'cat'), (r'собак\w*', 'dog'), (r'портрет\w*', 'portrait'),
+    (r'кот(?:[ауые]|ом|ов|ам|ами|ах|ик\w*|ён\w*|ен\w*)?\b|кошк\w*', 'cat'),
+    (r'лис(?:а|у|ы|е|ой|ою|ам|ами|ах|иц\w*)\b', 'fox'),
+    (r'робот\w*', 'robot'), (r'кактус\w*', 'cactus'), (r'гриб\w*', 'mushroom'), (r'лес\w*', 'forest'),
+    (r'собак\w*', 'dog'), (r'портрет\w*', 'portrait'),
     (r'куртк\w*', 'jacket'), (r'плать\w*', 'dress'), (r'лиц\w*', 'face'),
     (r'улыб\w*', 'smile'), (r'детал\w*', 'details'), (r'резкост\w*', 'sharpness'),
 ]
@@ -44,20 +47,22 @@ def infer_title(prompt, mode='single'):
     raw = re.split(r'\b(?:preserve|keep|do not|don.t change)\b|\b(?:сохрани|не меняй|оставь)\b',raw,maxsplit=1)[0]
     operation = next((name for name,pattern in OPERATIONS if re.search(pattern,raw)),None)
     text=raw
-    for pattern,translation in RU_TERMS:text=re.sub(pattern,translation,text)
+    # A stem must begin a word: the suffix of "кактус" or "парус" is not a mustache edit.
+    for pattern,translation in RU_TERMS:text=re.sub(r'\b(?:'+pattern+')',translation,text)
     words=re.findall(r'[a-z]+',text)
     wordset=set(words)
-    if 'mustache' in wordset:
+    editing = mode not in ('prompt', 'layout')
+    if editing and 'mustache' in wordset:
         state='Removed' if operation=='remove' else 'Added' if operation=='add' else 'Edited'
         subject='Woman' if wordset & {'woman','girl'} else 'Man' if wordset & {'man','boy'} else None
         return f'{subject} With Added Mustache' if subject and state=='Added' else f'{subject} With Mustache Removed' if subject and state=='Removed' else f'Mustache {state}'
-    if 'background' in wordset and operation=='replace':
+    if editing and 'background' in wordset and operation=='replace':
         # Only use the replacement side, not the discarded background description.
         replacement=re.split(r'\b(?:with|to)\b|\bна\b',text,maxsplit=1)
         tail=replacement[-1] if len(replacement)>1 else text
         attrs=[w for w in re.findall(r'[a-z]+',tail) if w in {'snowy','mountain','forest','beach','city','white','black','blue','red','green','plain','studio','sunset','ocean'}]
         return ' '.join(dict.fromkeys(attrs+['background'])).title() if attrs else 'Background Replaced'
-    if 'lighting' in wordset:
+    if editing and 'lighting' in wordset:
         attrs=[w for w in ['warm','cool','soft','dramatic','cinematic','natural'] if w in wordset or (w=='warm' and 'warmer' in wordset)]
         return (' '.join(attrs+['lighting'])).title() if attrs else 'Lighting Adjusted'
     excluded={'please','make','create','generate','draw','edit','change','add','insert','put','remove','delete','erase','replace','swap','improve','enhance','sharpen','transform','turn','convert','upscale','enlarge','recolor','the','a','an','to','of','and','at','in','on','from','into','this','image','picture','photo','more','looking','natural','s','it','is','as','by','for'}

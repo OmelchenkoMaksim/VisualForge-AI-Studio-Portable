@@ -244,8 +244,8 @@
     "en": "Gemma is working for voice input (loading or editing text). Starting a generation will wait a few seconds; other actions are available."
   },
   "settings.banner_generation_running_tabs_model_selection_text": {
-    "ru": "Идёт генерация: {0}. Вкладки, выбор нейросети и ввод текста доступны; запускать новое нельзя до конца.",
-    "en": "Generation running: {0}. Tabs, model selection and text input are available; starting a new task must wait until completion."
+    "ru": "Идёт генерация: {0}. Можно просматривать другие разделы. Новый запуск — после завершения или остановки.",
+    "en": "Generation running: {0}. You can browse other sections. Start a new task after completion or cancellation."
   },
   "settings.subtitle_edit_images_local_model": {
     "ru": "Редактирование изображения с помощью локальной модели",

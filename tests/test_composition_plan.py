@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from composition.composition_plan import capabilities, image_options, normalize, request_data, GROUPS  # noqa: E402
+from composition.composition_plan import capabilities, estimate_minutes, image_options, normalize, request_data, GROUPS  # noqa: E402
 from composition.composition_brain import CompositionBrain  # noqa: E402
 from engines.image_registry import ENGINES  # noqa: E402
 from gpu_coordinator import Busy, GpuCoordinator  # noqa: E402
@@ -82,6 +82,48 @@ class CompositionPlanTests(unittest.TestCase):
         value = step(); value['upscale'] = 4
         unavailable = caps(); unavailable['upscale'] = False
         with self.assertRaises(ValueError): normalize(plan([value]), request_data(dict(prompt='Лиса')), unavailable, [])
+
+    def test_a_refused_plan_says_why_so_that_the_retry_can_fix_it(self):
+        items = [dict(id='m1'), dict(id='m2')]
+        request = request_data(dict(prompt='Лиса'))
+        cases = [([step('unknown')], 'engine'), ([step('z-image-turbo-int8', 'single', ['m1', 'm2'])], 'modes'),
+                 ([step('qwen-edit-2511', 'single', ['m1', 'm2'])], 'takes 1 sources, not 2'), ([step('qwen-edit-2511', 'single', ['previous'])], '"previous" does not exist in the first step'),
+                 ([step('qwen-edit-2511', 'single', ['zzz'])], '"zzz" is not a material ID'),
+                 ([step('flux3-klein-int8', 'single', ['m1']), step('qwen-edit-2511', 'single', ['m2'])], 'FIRST source'),
+                 ([step('qwen-edit-2511', 'single', ['m1'], prompt='Короткий?')], 'prompt is unusable'),
+                 ([step('flux3-klein-int8', 'single', ['m1'])], 'leaves out: m2')]
+        for steps, reason in cases:
+            with self.subTest(reason=reason), self.assertRaises(ValueError) as caught:
+                normalize(plan(steps), request, caps(), items)
+            self.assertIn(reason, str(caught.exception))
+        again = plan(count=2); again['variants'][1]['steps'] = copy.deepcopy(again['variants'][0]['steps'])
+        with self.assertRaises(ValueError) as caught:
+            normalize(again, request_data(dict(prompt='Лиса', variants=2)), caps(), [])
+        self.assertIn('variant 2 repeats', str(caught.exception))
+
+    def test_the_picture_may_not_grow_beyond_four_k_and_a_crowded_qwen_stage_stays_at_one_megapixel(self):
+        request = request_data(dict(prompt='Лиса'))
+        for native, upscale, allowed in ((1, 4, True), (4, 2, True), (4, 4, False), (16, 1, True), (16, 2, False)):
+            value = step('flux3-klein-int8'); value.update(native_megapixels=native, upscale=upscale)
+            with self.subTest(native=native, upscale=upscale):
+                if allowed:
+                    self.assertEqual(normalize(plan([value]), request, caps(), [])['variants'][0]['steps'][0]['native_megapixels'], native)
+                else:
+                    with self.assertRaises(ValueError) as caught: normalize(plan([value]), request, caps(), [])
+                    self.assertIn('16', str(caught.exception))
+        items = [dict(id='m%d' % i) for i in range(6)]
+        crowded = step('qwen-image-21-uc-fp8', 'multi', [row['id'] for row in items]); crowded['native_megapixels'] = 4
+        few = step('qwen-image-21-uc-fp8', 'multi', ['m0', 'm1', 'm2']); few['native_megapixels'] = 4
+        self.assertEqual(normalize(plan([crowded]), request, caps(), items)['variants'][0]['steps'][0]['native_megapixels'], 1)
+        self.assertEqual(normalize(plan([few]), request, caps(), items[:3])['variants'][0]['steps'][0]['native_megapixels'], 4)
+
+    def test_the_estimate_grows_with_steps_resolution_and_upscale(self):
+        one = normalize(plan([step('flux3-klein-int8')]), request_data(dict(prompt='Лиса')), caps(), [])
+        many = normalize(plan([step('flux3-klein-int8', 'prompt'), step('qwen-edit-2511', 'single', ['previous'])]), request_data(dict(prompt='Лиса')), caps(), [])
+        self.assertEqual(estimate_minutes(one), round((120 + 40 * 1.5 + 45) / 60))
+        self.assertGreater(estimate_minutes(many), estimate_minutes(one))
+        five = dict(canvas='square', variants=one['variants'] * 5)
+        self.assertGreater(estimate_minutes(five), 2 * estimate_minutes(one))
 
     def test_composition_reservation_blocks_other_modules_but_admits_its_own_steps(self):
         gpu = GpuCoordinator(probes=dict(composition=lambda:True))

@@ -142,7 +142,7 @@ def engine_readiness(engine, obj, upscale_enabled=True, disabled_components=()):
     for mode, label in guided_capabilities.items():
         if mode in available_modes:
             capability_parts.append(label)
-    return {'id':engine.id, 'name':engine.name, 'ready':ready,
+    return {'id':engine.id, 'name':engine.name, 'ready':ready, 'rating':engine.rating,
             'status':'installed' if ready else ('incompatible' if missing_classes or schema_errors else 'unavailable'),
             'reasons':reasons, 'missing_node_types':sorted(missing_classes),
             'missing_assets':missing_assets, 'schema_errors':schema_errors,

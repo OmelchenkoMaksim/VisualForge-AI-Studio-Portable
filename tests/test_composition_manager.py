@@ -10,9 +10,10 @@ from unittest.mock import Mock, patch
 from test_composition_plan import caps, plan, step
 import test_image_prompt_manager as fixture
 from composition.composition_manager import CompositionManager
-from composition.composition_media import Materials, prepare_inputs
+from composition.composition_media import Materials, PAD_NOTE, TRANSPARENT_NOTE, prepare, prepare_inputs
 from composition.composition_routes import handle
 from composition.composition_studio import CompositionStudio
+from director.studio import StudioBusy
 from engines.image_registry import ENGINES
 from gpu_coordinator import GpuCoordinator
 from PIL import Image
@@ -44,7 +45,7 @@ class CompositionManagerTests(unittest.TestCase):
 
     def test_plain_prompt_produces_multiple_variants_and_durable_history(self):
         self.brain.make_plan.return_value = plan(count=3)
-        started = self.manager.start(dict(prompt='Лиса', variants=3))
+        started = self.manager.start(dict(draft=self.manager.draft()['id'], prompt='Лиса', variants=3))
         self.assertIn(started['state'], ('planning', 'running', 'done'))
         result = self.wait()
         self.assertEqual(result['state'], 'done', result.get('error'))
@@ -87,9 +88,10 @@ class CompositionManagerTests(unittest.TestCase):
             return plan()
         self.brain.make_plan.side_effect = brain
         self.manager.cancel_preparation = Mock()
-        value = self.manager.start(dict(prompt='Лиса'))
+        draft = self.manager.draft()['id']
+        value = self.manager.start(dict(draft=draft, prompt='Лиса'))
         self.assertTrue(entered.wait(3))
-        with self.assertRaises(ValueError): self.manager.start(dict(prompt='Ещё'))
+        with self.assertRaises(ValueError): self.manager.start(dict(draft=draft, prompt='Ещё'))
         self.manager.cancel_run(value['id']); release.set()
         self.assertEqual(self.wait()['state'], 'cancelled')
         self.studio.image.assert_not_called()
@@ -99,11 +101,49 @@ class CompositionManagerTests(unittest.TestCase):
     def test_partial_results_remain_after_a_later_failure(self):
         self.brain.make_plan.return_value = plan(count=2)
         self.studio.image.side_effect = [(fixture.png(), dict(job='one', save_dir=str(self.root))), ValueError('Second image failed')]
-        self.manager.start(dict(prompt='Лиса', variants=2))
+        self.manager.start(dict(draft=self.manager.draft()['id'], prompt='Лиса', variants=2))
         value = self.wait()
         self.assertEqual(value['state'], 'error')
         self.assertEqual(len(value['results']), 1)
         self.assertTrue(self.manager.result_file(value['id'], 0).is_file())
+
+    def test_a_start_without_a_known_draft_is_refused_instead_of_shooting_without_the_photos(self):
+        for data in (dict(prompt='Лиса'), dict(prompt='Лиса', draft=''), dict(prompt='Лиса', draft=None), dict(prompt='Лиса', draft='f' * 32), dict(prompt='Лиса', draft=5)):
+            with self.subTest(data=data), self.assertRaises(ValueError):
+                self.manager.start(data)
+        self.assertEqual(sorted(path.name for path in (self.root / 'runs').iterdir()), [])
+        self.assertEqual(self.studio.image.call_count, 0)
+
+    def test_the_estimate_is_kept_with_the_plan(self):
+        self.brain.make_plan.return_value = plan(count=2)
+        self.manager.start(dict(draft=self.manager.draft()['id'], prompt='Лиса', variants=2))
+        value = self.wait()
+        self.assertEqual(value['state'], 'done', value.get('error'))
+        self.assertGreaterEqual(value['estimate_minutes'], 1)
+
+    def test_a_broken_run_file_does_not_keep_the_workspace_from_opening(self):
+        folder = self.root / 'runs' / ('c' * 32); folder.mkdir()
+        (folder / 'run.json').write_text('{"id": ', encoding='utf-8')
+        CompositionManager(self.root, self.brain, self.studio, self.gpu, self.lock, 'another-token')
+
+    def test_old_drafts_and_runs_beyond_the_thirty_listed_are_removed_at_start(self):
+        import os, time
+        old = self.manager.draft()['id']; fresh = self.manager.draft()['id']
+        folder = self.root / 'drafts' / old
+        for path in (folder, folder / 'materials.json'):
+            os.utime(path, (time.time() - 9 * 86400,) * 2)
+        runs = self.root / 'runs'
+        for number in range(34):
+            run = runs / ('%032x' % number); run.mkdir()
+            (run / 'run.json').write_text(json.dumps(dict(id=run.name, state='done')), encoding='utf-8')
+            os.utime(run / 'run.json', (time.time() - 1000 + number,) * 2)
+        CompositionManager(self.root, self.brain, self.studio, self.gpu, self.lock, 'another-token')
+        self.assertFalse(folder.exists())
+        self.assertTrue((self.root / 'drafts' / fresh).exists())
+        left = sorted(path.name for path in runs.iterdir())
+        self.assertEqual(len(left), 30)
+        self.assertNotIn('%032x' % 0, left)                      # the oldest went
+        self.assertIn('%032x' % 33, left)                        # the newest stayed
 
     def test_running_state_is_marked_interrupted_on_restart_without_losing_results(self):
         folder = self.root / 'runs' / ('b'*32); folder.mkdir()
@@ -135,6 +175,56 @@ class CompositionMediaTests(unittest.TestCase):
             self.assertGreater(result.width, result.height)
             self.assertEqual(result.getpixel((result.width//2, result.height//2)), (255, 0, 0, 255))
             self.assertEqual(result.getchannel('A').getextrema(), (255, 255))
+
+    def test_a_picture_of_the_shape_of_the_canvas_fills_it_and_one_of_another_shape_sits_on_its_own_blur(self):
+        def photo(size, left=(220, 30, 30), right=(30, 30, 220)):
+            image = Image.new('RGBA', size, left); image.paste(Image.new('RGBA', (size[0] - size[0] // 2, size[1]), right), (size[0] // 2, 0))
+            output = BytesIO(); image.save(output, 'PNG'); return output.getvalue()
+
+        def grey(png):
+            with Image.open(BytesIO(png)).convert('RGB') as image:
+                cells = [image.getpixel((x, y)) for x in range(0, image.width, 32) for y in range(0, image.height, 32)]
+            return sum(cell == (127, 127, 127) for cell in cells) / len(cells)
+
+        wide, note = prepare([photo((1152, 768))], 'landscape')                      # the shape of the canvas: nothing is padded, it was 69 % grey once
+        self.assertEqual((Image.open(BytesIO(wide[0])).size, note, grey(wide[0])), ((2048, 1365), '', 0))
+        tall, note = prepare([photo((768, 1152))], 'landscape')
+        self.assertEqual((Image.open(BytesIO(tall[0])).size, note, grey(tall[0])), ((2048, 1365), PAD_NOTE, 0))
+        with Image.open(BytesIO(tall[0])).convert('RGB') as image:
+            self.assertTrue(image.getpixel((1024 - 20, 600))[0] > 180 and image.getpixel((1024 + 20, 600))[2] > 180)        # the photo itself fills the height, untouched in the middle
+            self.assertTrue(image.getpixel((20, 600))[0] > 100 or image.getpixel((20, 600))[2] > 100)                      # and its blur, not grey, is at the edge
+        square, note = prepare([photo((1000, 1000))], 'square')
+        self.assertEqual((Image.open(BytesIO(square[0])).size, note), ((2048, 2048), ''))
+        near, note = prepare([photo((1100, 768))], 'landscape')                      # 4 % off the shape: stretched to it, a sliver of the edge is cropped
+        self.assertEqual((Image.open(BytesIO(near[0])).size, note), ((2048, 1365), ''))
+        clear = Image.new('RGBA', (400, 800), (255, 0, 0, 0)); clear.paste(Image.new('RGBA', (200, 400), (255, 0, 0, 255)), (100, 200)); out = BytesIO(); clear.save(out, 'PNG')
+        kept, note = prepare([out.getvalue()], 'landscape')                           # transparency keeps a transparent frame so that the alpha survives
+        self.assertEqual(note, TRANSPARENT_NOTE)
+        self.assertEqual(Image.open(BytesIO(kept[0])).getchannel('A').getextrema()[0], 0)
+        later, note = prepare([photo((1152, 768)), photo((5000, 4000))], 'landscape')
+        self.assertLessEqual(max(Image.open(BytesIO(later[1])).size), 2048)           # the others are only shrunk to the route's budget
+
+    def test_a_lookup_of_a_material_never_makes_a_draft(self):
+        with tempfile.TemporaryDirectory(prefix='composition-media-') as folder:
+            store = Materials(folder)
+            for ident in (None, '', 'f' * 32):
+                with self.subTest(ident=ident), self.assertRaises(ValueError):
+                    store.path(ident, 'a' * 32)
+            self.assertEqual(list(Path(folder).iterdir()), [])
+
+    def test_a_busy_card_is_waited_out_and_the_padding_sentence_goes_only_with_a_padded_picture(self):
+        studio = CompositionStudio(123, 'token', pause=lambda _: None)
+        studio.request = Mock(side_effect=[StudioBusy('another module holds the card'), dict(prompt_id='one', cancel_token='secret'), dict(state='done', save_dir='C:/output'), fixture.png()])
+        raw, receipt = studio.image(step('flux3-klein-int8', 'single', ['m1']), [fixture.png()], 'square', 1, threading.Event(), note=PAD_NOTE)
+        self.assertEqual(raw, fixture.png())
+        generate = studio.request.call_args_list[1]
+        self.assertEqual(generate.args[0], '/api/generate')
+        self.assertTrue(generate.args[1]['prompt'].endswith(PAD_NOTE))
+        self.assertEqual(generate.kwargs['timeout'], 1800)                               # the call may include a slow Gemma pass
+        studio.request = Mock(side_effect=[dict(prompt_id='two', cancel_token='secret'), dict(state='done'), fixture.png()])
+        studio.image(step('flux3-klein-int8', 'single', ['m1']), [fixture.png()], 'square', 2, threading.Event())
+        self.assertNotIn('canvas', studio.request.call_args_list[0].args[1]['prompt'])
+        self.assertEqual(studio.request.call_args_list[0].args[1]['prompt'], step('flux3-klein-int8', 'single', ['m1'])['prompt'])
 
     def test_route_refuses_cross_origin_and_invalid_raw_body_before_mutation(self):
         handler, manager = Mock(), Mock()
