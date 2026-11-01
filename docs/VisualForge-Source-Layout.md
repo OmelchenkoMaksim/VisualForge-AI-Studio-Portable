@@ -7,6 +7,11 @@ material; only `Support/Licenses` is published from `Support`.
 
 Use short names that identify the feature when a file is viewed outside its directory:
 
+Every new project-owned filename must be unique across source directories, compared case-insensitively. Check the Git source file list
+before creating or renaming a file. Add the section, model or feature instead of duplicating a generic basename: use
+`image_prompt_enhancer.py`, `video_prompt_enhancer.py`, `music_prompt_enhancer.py` and `voiceover_prompt_enhancer.py`.
+The conventional discovery names below are exceptions; vendor/runtime files retain their upstream names.
+
 - Python modules use underscores: `image_registry.py`, `speech_worker.py`,
   `gpu_coordinator.py`, `studio_server.py`.
 - Browser assets use hyphens: `image-studio.js`, `video-panel.css`,
@@ -19,7 +24,7 @@ Use short names that identify the feature when a file is viewed outside its dire
 - Documentation uses a product/model name and a topic, such as
   `VisualForge-Voice-Input.md` or `Qwen-Image-2.1.md`.
 
-Keep conventional discovery filenames when another tool depends on them: `README.md`,
+Keep conventional discovery filenames when another tool depends on them: `AGENTS.md`, `README.md`,
 `__init__.py`, `__main__.py`, `sitecustomize.py`, Git configuration/hooks and license notices.
 Do not add forwarding copies under former generic names: update callers and references
 together, so the published tree has one source for each implementation.

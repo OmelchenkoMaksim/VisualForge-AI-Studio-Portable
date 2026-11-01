@@ -2,9 +2,8 @@
 
 `App/server/video/video_mixer.py` lays up to three music tracks under a finished Video clip and saves a **new** MP4 next to it.
 Post-processing with the bundled FFmpeg: no generation, no GPU. The source file is never modified and the picture is
-copied bit for bit (`-c:v copy`); only the audio is rebuilt as AAC stereo 48 kHz 192 kb/s. Status: **implemented and
-installed in release `2026.10.25-mixer.1` (application files verified by SHA-256; the installed EXE was not launched for
-this release).**
+copied bit for bit (`-c:v copy`); only the audio is rebuilt as AAC stereo 48 kHz 192 kb/s. This is the Video mixer;
+the Director assembles and masters its own soundtrack separately in `director/soundtrack.py`.
 
 ## What a mix contains
 

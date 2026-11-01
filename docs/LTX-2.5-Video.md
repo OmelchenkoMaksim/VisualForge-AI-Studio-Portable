@@ -145,7 +145,7 @@ What was changed:
 * **One loudness for all scenes.** `level_gain()` brings each scene's average level to -30 dB (at most +24 / -6 dB, the peak never above -2 dB). After the fix the ambience of the quiet scenes lies at -30..-45 dBFS next to speech at -25..-35 dBFS, and
   Whisper hears the same words. The continuation (`ltx_continuation.LEVELING`) uses a dynamic normalizer with a limiter instead, because there are no scene borders: on the 30 s test sound the ambience rose from -65 to about -40 dBFS, the speech stayed at -14..-25 dBFS (offline check on the finished clip;
   the real assembly of the continuation passes its tests with the filter, but a new 30 s job with it was not generated).
-* **A speaker always gets words.** LTX turns "she speaks calmly" into an unintelligible murmur, so the Gemma rewrite (`prompt_enhancer.py`) and the scenario planner (`scene_planner.py`) now write the exact words in quotes
+* **A speaker always gets words.** LTX turns "she speaks calmly" into an unintelligible murmur, so the Gemma rewrite (`video_prompt_enhancer.py`) and the scenario planner (`scene_planner.py`) now write the exact words in quotes
   (one short sentence of at most 12 words when the idea has none; consecutive shots continue one speech).
 * The panel shows the exact total for LTX scenes (`video.scene_info_trimmed_tails`).
 
@@ -165,7 +165,7 @@ Seven Russian ideas went through the Gemma rewrite (LTX t2v and i2v, Wan t2v and
 | no words in the idea | an invented Russian line `"Этот механизм требует предельной точности"` | exactly that sentence |
 
 Found and fixed: with no words in a Russian request Gemma first invented an **English** line, and later added an English translation in brackets after the Russian one. Now the guides ask for the invented line in the
-language of the request (`prompt_enhancer.py`, `scene_planner.py`: "in the language of the idea", spoken words keep the language of the speech) and `clean()` removes a bracketed all-ASCII translation right after a quote that
+language of the request (`video_prompt_enhancer.py`, `scene_planner.py`: "in the language of the idea", spoken words keep the language of the speech) and `clean()` removes a bracketed all-ASCII translation right after a quote that
 contains non-ASCII words (the model refused the rule once in two tries, so the removal is mechanical). The Wan, S2V, Animate 2 and SCAIL-2 guides take Russian ideas without changes.
 Not tested: a Russian line longer than one sentence per window, Ukrainian and other languages, Russian lines in Wan/S2V (they have no speech of their own).
 
@@ -195,7 +195,7 @@ and verbs such as continues, concludes, begins, adds, explains.
 
 ### Prompt enhancement by Gemma
 
-The Video panel can rewrite the request with Gemma before generation (`App/server/video/prompt_enhancer.py`, route `/api/video/enhance`). Each engine and mode has its own hidden instruction;
+The Video panel can rewrite the request with Gemma before generation (`App/server/video/video_prompt_enhancer.py`, route `/api/video/enhance`). Each engine and mode has its own hidden instruction;
 the person's own words stay in the history (`user_prompt`) and the rewritten text is shown and editable. The block hides when a multi-scene plan is active: the planner already writes those prompts.
 The instructions restate Lightricks' training-caption style in our own words (action first, observable detail only, one shot type + one camera move + viewpoint woven into prose, the whole soundscape,
 chronological order, one paragraph, judged against the ORIGINAL request) and the community advice (short, concrete, no "4K/photorealistic" filler, one camera move).
@@ -220,7 +220,7 @@ Not tested: two-pass quality, portrait sizes, rewrites of non-English requests.
 Everything Gemma writes for a video model is **English**, whatever language the idea is in: English reads best for the models and costs the fewest tokens. The one exception is text that must be
 **spoken or written in the picture**: it stays exactly as the person wrote it (Russian or English are the languages that matter), in straight double quotes, and is never translated. The person may mark such
 words with quotes (`«...»`, `"..."`) or brackets (`(...)`), but the rewrite recognises them without any mark after words such as "говорит", "says", "надпись". The hint under the prompt field says so.
-The rule is rule 8 of the LTX guides (`LTX_LANGUAGE` in `prompt_enhancer.py`) and the first rule of the scenario planner; the other models have no speech of their own.
+The rule is rule 8 of the LTX guides (`LTX_LANGUAGE` in `video_prompt_enhancer.py`) and the first rule of the scenario planner; the other models have no speech of their own.
 
 Checked live on 2026-10-31 (Russian ideas through the real Gemma): a voice-over given in brackets came back as `a deep, calm voice-over in Russian says, "Река просыпается раньше, чем город."`; speech given without any mark ("говорит Сегодня клюёт отлично...") was
 recognised and quoted in Russian; an idea with no speech got no invented dialogue and stayed pure English; a shop sign `«КОФЕ У ПЕТРА»` in a Wan prompt stayed Russian inside straight quotes. All 19 guides carry the rule (`LANGUAGE_RULE`

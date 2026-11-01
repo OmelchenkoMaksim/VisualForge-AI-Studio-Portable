@@ -42,15 +42,15 @@ songs and music under them. The **Ultra** switch (on by default) asks for the be
 Everything runs on your computer and there is no cloud service behind it; the only network traffic is the download of the
 programs and models from their original publishers (the model libraries run in offline mode).
 
-This repository contains **only source code, scripts and documentation** (a few MB). The runtimes (about 10 GB) and the models
-(up to about 234 GB) are downloaded by the setup program from the original sources, and every file is checked against a SHA-256
-recorded in this repository.
+This repository contains **only source code, scripts and documentation**. Setup downloads runtimes and selected models from their original
+sources and checks each file against the repository's pinned SHA-256. Download/storage requirements depend on your selection; use the
+component catalog and setup summary rather than a fixed total for every optional model.
 
 ## Requirements
 
 - Windows 10 or 11 (64-bit), Git, an internet connection for the setup
 - An NVIDIA video card; 16 GB of video memory is what the defaults are tuned for (smaller cards can use the smaller models)
-- Disk space: about 17 GB for the programs, plus the models you choose (see below). A fast SSD helps a lot with model loading
+- Disk space for the runtimes and selected models (see the setup summary and component catalog). A fast SSD helps with model loading
 - Install into a **short path** such as `D:\VisualForge` (Windows paths longer than 260 characters break some Python packages)
 
 ## Install

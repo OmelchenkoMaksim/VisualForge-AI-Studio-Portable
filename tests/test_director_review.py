@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_scene_planner import FakeGpu, FakeText  # noqa: E402
 from video import director_review as review  # noqa: E402
-from video.prompt_enhancer import guide  # noqa: E402
+from video.video_prompt_enhancer import guide  # noqa: E402
 
 RUNTIME = Path(__file__).resolve().parents[1] / 'Runtime/Video'
 FIXED = 'A medium shot of a large red fox with thick orange fur walking left to right through deep snow in a pine forest at dawn, the camera tracks it.'

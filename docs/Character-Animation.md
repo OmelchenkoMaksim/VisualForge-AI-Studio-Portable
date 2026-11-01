@@ -122,7 +122,7 @@ So Gemma's value here is controlling clothes and the setting, not the quality of
 ## Files
 
 `App/server/video/character_support.py` (ids, files, plan, probe, validation), `character_input.py` (job inputs), `character_worker.py`
-(the job), `comfy_memory.py` (unloading), `prompt_enhancer.py` (guides), `video_registry.py` (engines), `component-catalog.json`,
+(the job), `comfy_memory.py` (unloading), `video_prompt_enhancer.py` (guides), `video_registry.py` (engines), `component-catalog.json`,
 `tests/test_character.py`, `tests/test_prompt_enhancer.py`.
 
 ## 30-second clips (2026-10-31)

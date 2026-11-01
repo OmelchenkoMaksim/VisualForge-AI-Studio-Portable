@@ -1,8 +1,7 @@
 # Text (local chat with an Ollama-format model)
 
-The **Text** tab is a chat with history on a model that runs entirely inside the portable folder. Status: **implemented and
-installed in release `2026.10.25-text.2` (text chat in `text.1`, pictures in messages in `text.2`; application files, runtime and
-model verified by SHA-256; the installed EXE was not launched for these releases).**
+The **Text** tab is a chat with history on a model that runs entirely inside the portable folder. This page describes the source
+contract; dated qualification results below are not a statement of which model is installed in a fresh clone.
 
 > **Gemma is required** (video scenarios, screenshot and voice reading, dictation editing). Every installation gets one: E4B by default, other sizes
 > by choice, from the Ollama registry or its Hugging Face / ModelScope mirrors, or from a local GGUF file; see `VisualForge-Component-Setup.md`.
@@ -29,7 +28,7 @@ Weights and private tuning remain excluded from Git. No registry download or mod
 
 ## Why Ollama, and why a private copy
 
-The installed model (`150ts-Gemma4A4B-9.41-AndroidKotlin-Logic-Math-Algorithms-C32K`, architecture `gemma4`, 25.2 B
+The initial qualification model (`150ts-Gemma4A4B-9.41-AndroidKotlin-Logic-Math-Algorithms-C32K`, architecture `gemma4`, reported 25.2 B
 parameters with about 4 B active, Q4_0, 14.4 GB weights + 1.2 GB vision projector, thinking and tools capable) was built for
 Ollama: its Modelfile uses `RENDERER gemma4` / `PARSER gemma4`, which are Ollama features, not plain llama.cpp ones, and the
 Ollama engine is what the owner tuned it on. ComfyUI has no chat engine for it. So the studio runs **its own Ollama
@@ -38,7 +37,7 @@ process** instead of reusing the owner's:
 | | Owner's Ollama | Studio's private Ollama |
 |---|---|---|
 | Binary | `%LOCALAPPDATA%\Programs\Ollama` (untouched) | `Runtime/Text/ollama/` (a copy of `ollama.exe` + `lib/ollama`, without the AMD ROCm folder) |
-| Models | `~/.ollama/models` (untouched) | `Models/Text/ollama/` (a copy of manifest + blobs of this model, digests verified) |
+| Models | `~/.ollama/models` (untouched) | `Models/Text/ollama/` (private manifests and blobs for the chosen models) |
 | Port | 11434 | 8292 on 127.0.0.1 (`TextPort` in `runtime.settings.json` or `VISUALFORGE_TEXT_PORT`) |
 | Home / keys / logs | the user's profile | `UserData/Cache/Text/home`, log `UserData/Logs/text-backend.log` |
 | Life cycle | tray app, keep-alive forever | started on first use, killed with the application (Windows job object) |
@@ -49,10 +48,11 @@ Nothing is pulled from the internet; other `OLLAMA_*` variables of the user are 
 
 ## GPU sharing
 
-The model needs almost the whole 16 GB card (about 15.9 GB with a 32 K context, of which about 14.4 GB on the GPU). Therefore:
+The initial large-model probe used about 15.9 GB with a 32 K context; memory use differs by model/context. Admission rules are shared with
+Image, Video, Music and Voiceover; [GPU coordination](VisualForge-GPU-Coordination.md) is the maintained contract:
 
-- A chat answer is **refused** (409) while Image, Video or Music is working; idle Image models are freed first.
-- Starting Image, Video or Music **unloads the chat model automatically** (`release_gpu`); while an answer is being written these
+- A chat answer is **refused** (409) while another generation module works; idle Image models and voice-input workers are released first.
+- Starting another generation module **unloads the chat model automatically** (`release_gpu`); while an answer is being written these
   routes answer 409 "GPU занят Text" and the chat must be stopped first.
 - A chat cannot be deleted while it answers; only one chat answers at a time.
 - "Выгрузить модель из памяти" frees the card by hand.

@@ -36,6 +36,7 @@ from portable_paths import from_server
 from engines.image_registry import DEFAULT_ENGINE, get_engine
 from engines.workflow_builder import validate_request, build_workflow, collect_outputs, collect_expansion, resolve_expansion, resolve_workflow_mode, resolve_detail_strength, resolve_control_settings
 from engines.image_inputs import validate_edit_mask, grayscale_png
+from engines.image_prompt_enhancer import PromptEnhancer as ImagePromptEnhancer
 import image_convert
 from range_response import serve_file
 from video import video_routes
@@ -74,8 +75,8 @@ JOBS_LOCK = Lock()
 HISTORY = JobHistory(PATHS.settings / 'image-job-history.json', portable_root=PATHS.root)
 GPU_SUBMISSION_LOCK = RLock()
 # Keep admission and start atomic so competing modules cannot both claim the GPU.
-# Locking every POST previously let a modal folder dialog block Stop.
-GPU_START_ROUTES = frozenset(('/api/generate', '/api/video/generate', '/api/music/generate', '/api/voiceover/generate', '/api/voiceover/voices-build', '/api/components/install', '/api/text/unload',
+# Image locks its submission below, after Gemma; whole-answer locks would block Stop and other modules for minutes.
+GPU_START_ROUTES = frozenset(('/api/video/generate', '/api/music/generate', '/api/voiceover/generate', '/api/voiceover/voices-build', '/api/components/install', '/api/text/unload',
                               '/api/components/model-toggle', '/api/components/model-remove-plan', '/api/components/model-remove', '/api/components/repair'))
 DIALOG_LOCK = Lock()
 # The launcher's splash waits for the page it opened (`?launch=<nonce>`) to report that its ComfyUI check finished.
@@ -120,6 +121,7 @@ AGENTS = None  # constructed below, after the GPU coordinator it needs
 DIRECTOR = None  # the same: a film in the making is a module of the coordinator (see gpu_coordinator.MODULES)
 STATIC = {'/flux-controls.js': ('static/flux-controls.js', 'application/javascript; charset=utf-8'), '/engine-state.js': ('static/engine-state.js', 'application/javascript; charset=utf-8'), '/': ('static/studio-index.html','text/html; charset=utf-8'), '/image-studio.js': ('static/image-studio.js','application/javascript; charset=utf-8'), '/image-studio.css': ('static/image-studio.css','text/css; charset=utf-8'), '/progress-save.css': ('static/progress-save.css','text/css; charset=utf-8')}
 STATIC['/prompt-guides.js'] = ('static/prompt-guides.js', 'application/javascript; charset=utf-8')
+STATIC['/image-clarification.js'] = ('static/image-clarification.js', 'application/javascript; charset=utf-8')
 STATIC['/studio-images.js'] = ('static/studio-images.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.js'] = ('static/video-panel.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.css'] = ('static/video-panel.css', 'text/css; charset=utf-8')
@@ -225,9 +227,10 @@ if SPEECH is not None and TEXT is not None:
     from speech.dictation_polish import Polisher
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
 SCENE_PLANNER = PROMPT_ENHANCER = DIRECTOR_REVIEW = None
+IMAGE_PROMPT_ENHANCER = ImagePromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
 if TEXT is not None:
     from video.scene_planner import ScenePlanner
-    from video.prompt_enhancer import PromptEnhancer
+    from video.video_prompt_enhancer import PromptEnhancer
     SCENE_PLANNER = ScenePlanner(TEXT, GPU, GPU_SUBMISSION_LOCK)
     PROMPT_ENHANCER = PromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
     from video.director_review import DirectorReview
@@ -1278,10 +1281,10 @@ class Handler(BaseHTTPRequestHandler):
             is_speech = route in ('/api/speech/settings', '/api/speech/unload', '/api/speech/prepare')
             is_agents = route in ('/api/agents/chats', '/api/agents/chat-update', '/api/agents/permission', '/api/agents/stop', '/api/agents/settings',
                                   '/api/agents/choose-workspace')
-            if not is_video and not is_music and not is_voiceover and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
+            if not is_video and not is_music and not is_voiceover and not is_text and not is_components and not is_speech and not is_agents and route not in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/stop-generation', '/api/generate', '/api/image/clarification-cancel', '/api/cancel', '/api/settings', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir', '/api/favorites'):
                 return self.response_json(404, {'error': 'Not found'})
             size = int(self.headers.get('Content-Length', '0') or '0')
-            max_size = 4096 if route in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
+            max_size = 4096 if route in ('/api/event-history/session', '/api/history/delete', '/api/launch-ready', '/api/image/clarification-cancel', '/api/cancel', '/api/stop-generation', '/api/choose-save-dir', '/api/open-save-dir', '/api/open-output-dir') else (32768 if route == '/api/favorites' else (8192 if route == '/api/settings' else LIMIT))
             if is_video:
                 max_size = {'generate': 100 * 1024 * 1024, 'plan': 8 * 1024 * 1024, 'enhance': 8 * 1024 * 1024, 'review': 4096, 'cancel': 4096, 'settings': 8192, 'prompts': 32768,
                             'export': 4096, 'export-cancel': 4096, 'mix': 16384, 'mix-preview': 16384, 'delete': 4096}[route.rsplit('/', 1)[-1]]
@@ -1305,6 +1308,8 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(body)
             if not isinstance(data, dict):
                 raise ValueError(ui_text('common.studio_bridge_post_expected_json_object'))
+            if route == '/api/image/clarification-cancel':
+                return self.response_json(200, dict(cancelled=IMAGE_PROMPT_ENHANCER.clarifications.discard(data.get('clarification_token'))))
             if route == '/api/event-history/session':
                 return self.microphone_event(data)
             if route == '/api/video/plan':
@@ -1373,6 +1378,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self.response_json(200, {'opened': True, **settings, 'opened_path': opened})
 
             engine = get_engine(data.get('engine'))
+            clarify = data.get('clarify', False)
+            if type(clarify) is not bool:
+                raise ValueError(ui_text('image.clarification_invalid_request'))
+            if (data.get('clarification_token') is not None or data.get('clarification_answer') is not None) and (
+                    not clarify or not IMAGE_PROMPT_ENHANCER.supported(engine.id, data.get('mode'))):
+                raise ValueError(ui_text('image.clarification_session_expired'))
             selected_mode, quality, upscale, prompt, fixed_seed, canvas = validate_request(engine, data)
             operation = data.get('operation', 'generate')
             mode = resolve_workflow_mode(engine, selected_mode, operation)
@@ -1402,9 +1413,11 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError(ui_text('common.studio_bridge_post_ai_upscale_requires_real_esrgan_x2'))
             if not load_settings().get('save_dir_available',True):
                 raise ValueError(load_settings()['save_dir_warning'])
-            # Validate ALL image payloads before uploading either input.
+            # Validate ALL image payloads before enhancement or uploading either input.
+            prompt_images = []
             if mode not in engine.text_modes:
                 source_bytes, _, _ = check_image(data.get('image1'))
+                prompt_images.append(source_bytes)
                 combined_bytes = len(source_bytes)
                 if mode in ('reference', 'inpaint', 'multi'):
                     second_bytes, _, _ = check_image(data.get('image2'))
@@ -1412,6 +1425,7 @@ class Handler(BaseHTTPRequestHandler):
                     if mode == 'inpaint':
                         prepared_mask = validate_edit_mask(source_bytes, second_bytes)
                         data = {**data, 'image2': {'base64':base64.b64encode(prepared_mask).decode('ascii')}}
+                        prompt_images.append(prepared_mask)
                 if control_type == 'gray':
                     data = {**data, 'image1': {'base64':base64.b64encode(grayscale_png(source_bytes)).decode('ascii')}}
                 for item in extra_payloads:
@@ -1419,61 +1433,86 @@ class Handler(BaseHTTPRequestHandler):
                     combined_bytes += len(extra_bytes)
                 if mode == 'multi' and combined_bytes > IMAGE_LIMIT:
                     raise ValueError(ui_text('image.extra_images_count_error', engine.max_reference_images - 2))
+            enhancement = None
+            if IMAGE_PROMPT_ENHANCER.supported(engine.id, mode):
+                # The manager sees the validated source/mask, never unrelated uploads selected in Prompt mode.
+                # This lives on the server so API clients receive the same automatic preparation as the page.
+                context = dict(
+                    canvas=canvas if mode in engine.text_modes else None, control_type=control_type, detail_strength=detail_strength,
+                    images_in_order=['source', 'white_edit_black_keep_mask'] if mode == 'inpaint' else ['source'] if prompt_images else [])
+                if clarify:
+                    enhancement = IMAGE_PROMPT_ENHANCER.prepare(prompt, engine.id, mode, prompt_images, context,
+                        binding=dict(quality=quality, upscale=upscale, seed=fixed_seed, control_strength=control_strength,
+                                     operation=operation, native_megapixels=native_megapixels),
+                        token=data.get('clarification_token'), answer=data.get('clarification_answer'),
+                        language='English' if data.get('language') == 'English' else 'Russian')
+                    if enhancement.get('state') == 'clarification':
+                        return self.response_json(200, enhancement)
+                else:
+                    # The Director and existing automation use this noninteractive path: they have no person to answer a question.
+                    enhancement = IMAGE_PROMPT_ENHANCER.enhance(prompt, engine.id, mode, prompt_images, context)
+                prompt = enhancement['prompt']
             # Refuses while Video/Music/Text work; unloads an idle chat model first; waits for the engine's own memory estimate.
             claim_vram_mb = engine.required_vram(mode, native_megapixels)
-            GPU.claim('image', claim_vram_mb)
-            input1 = input2 = None
-            if mode == 'prompt' and not engine.native_prompt:
-                input1 = prompt_base_image(canvas)
-            elif mode not in engine.text_modes:
-                input1 = upload_image(data['image1'])
-                if mode in ('reference', 'inpaint', 'multi'):
-                    input2 = upload_image(data['image2'])
-            extra_inputs = [upload_image(item) for item in extra_payloads]
-            seed = fixed_seed if fixed_seed is not None else int.from_bytes(os.urandom(6), 'big')
-            graph, engine_meta = build_workflow(engine, mode, prompt, input1, input2,
+            with GPU_SUBMISSION_LOCK:
+                GPU.claim('image', claim_vram_mb)
+                input1 = input2 = None
+                if mode == 'prompt' and not engine.native_prompt:
+                    input1 = prompt_base_image(canvas)
+                elif mode not in engine.text_modes:
+                    input1 = upload_image(data['image1'])
+                    if mode in ('reference', 'inpaint', 'multi'):
+                        input2 = upload_image(data['image2'])
+                extra_inputs = [upload_image(item) for item in extra_payloads]
+                seed = fixed_seed if fixed_seed is not None else int.from_bytes(os.urandom(6), 'big')
+                graph, engine_meta = build_workflow(engine, mode, prompt, input1, input2,
                                                 quality, upscale, seed, canvas, expand, detail_strength, control_type, control_strength,
                                                 extra_inputs, layout_boxes, native_megapixels,
                                                 negative_prompt if engine.id == 'qwen-edit-2511' else None,
                                                 use_uncensored_lora if engine.id == 'qwen-edit-2511' else None)
-            engine_meta.update(selected_mode=selected_mode, operation=operation)
-            answer = json_upstream('/prompt', {'prompt': graph, 'client_id': CLIENT_ID}, timeout=30)
-            if 'prompt_id' not in answer:
-                raise ValueError(ui_text('common.studio_bridge_post_comfy_ui_rejected_graph') + str(answer)[:700])
-            ident = answer['prompt_id']
-            token = secrets.token_urlsafe(32)
-            submitted_at = time.time()
-            generation_info = generation_begin('Image')
-            technical = []
-            # These operations share one ComfyUI graph; their intervals are graph scopes, not individual node timings.
-            if mode == 'detail':
-                technical.append(generation_begin('ImageRefinement', parent_id=generation_info['id']))
-            if mode in ('control', 'inpaint', 'tile'):
-                technical.append(generation_begin('ImageControlNet', parent_id=generation_info['id']))
-            if expand and (engine.expand_nodes or engine.expansion_assets):
-                technical.append(generation_begin('ImagePromptExpansion', parent_id=generation_info['id']))
-            for _ in range({1: 0, 2: 1, 4: 2}[upscale]):
-                technical.append(generation_begin('ImageUpscale', parent_id=generation_info['id']))
-            filename_base = build_filename_base(original_prompt, selected_mode, submitted_at, operation=operation, upscale=upscale)
-            with JOBS_LOCK:
-                JOB_TOKENS[ident] = token
-                JOB_META[ident] = {
-                    **engine_meta,
-                    'generation': generation_info,
-                    '_technical': technical,
-                    'quality': quality,
-                    'steps': engine_meta['steps'],
-                    'upscale': upscale,
-                    'seed': seed,
-                    'mode': mode,
-                    'submitted_at': submitted_at,
-                    'saved_files': None,
-                    'filename_base': filename_base,
-                    'original_prompt': original_prompt,
-                    'save_dir': load_settings()['save_dir'],
-                    'input_files': [value for value in (input1, input2, *extra_inputs) if value],
-                }
-                SAVE_LOCKS[ident] = Lock()
+                engine_meta.update(selected_mode=selected_mode, operation=operation)
+                if enhancement:
+                    engine_meta.update(enhanced_prompt=prompt, prompt_enhancement={
+                        'engine': engine.id, 'mode': mode, 'model': enhancement['model'], 'guide_version': enhancement['guide_version']})
+                    if enhancement.get('clarification'):
+                        engine_meta['prompt_enhancement']['clarification'] = enhancement['clarification']
+                answer = json_upstream('/prompt', {'prompt': graph, 'client_id': CLIENT_ID}, timeout=30)
+                if 'prompt_id' not in answer:
+                    raise ValueError(ui_text('common.studio_bridge_post_comfy_ui_rejected_graph') + str(answer)[:700])
+                ident = answer['prompt_id']
+                token = secrets.token_urlsafe(32)
+                submitted_at = time.time()
+                generation_info = generation_begin('Image')
+                technical = []
+                # These operations share one ComfyUI graph; their intervals are graph scopes, not individual node timings.
+                if mode == 'detail':
+                    technical.append(generation_begin('ImageRefinement', parent_id=generation_info['id']))
+                if mode in ('control', 'inpaint', 'tile'):
+                    technical.append(generation_begin('ImageControlNet', parent_id=generation_info['id']))
+                if expand and (engine.expand_nodes or engine.expansion_assets):
+                    technical.append(generation_begin('ImagePromptExpansion', parent_id=generation_info['id']))
+                for _ in range({1: 0, 2: 1, 4: 2}[upscale]):
+                    technical.append(generation_begin('ImageUpscale', parent_id=generation_info['id']))
+                filename_base = build_filename_base(original_prompt, selected_mode, submitted_at, operation=operation, upscale=upscale)
+                with JOBS_LOCK:
+                    JOB_TOKENS[ident] = token
+                    JOB_META[ident] = {
+                        **engine_meta,
+                        'generation': generation_info,
+                        '_technical': technical,
+                        'quality': quality,
+                        'steps': engine_meta['steps'],
+                        'upscale': upscale,
+                        'seed': seed,
+                        'mode': mode,
+                        'submitted_at': submitted_at,
+                        'saved_files': None,
+                        'filename_base': filename_base,
+                        'original_prompt': original_prompt,
+                        'save_dir': load_settings()['save_dir'],
+                        'input_files': [value for value in (input1, input2, *extra_inputs) if value],
+                    }
+                    SAVE_LOCKS[ident] = Lock()
             print('[generation] ' + json.dumps({k: engine_meta[k] for k in ('engine', 'workflow_version', 'seed', 'sampler_parameters', 'workflow_sha256')}, ensure_ascii=True), flush=True)
             Thread(target=self.autosave_watcher, args=(ident,), daemon=True).start()
             return self.response_json(200, {

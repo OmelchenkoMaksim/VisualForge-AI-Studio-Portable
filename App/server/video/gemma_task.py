@@ -1,6 +1,6 @@
-"""What every Gemma helper of the Video section has in common: is the model there, take the video card for the text module, run one chat call.
+"""Shared Gemma task lifecycle: model availability, Text GPU admission, cancellation and one chat call.
 
-The prompt rewrite (`prompt_enhancer.py`), the scenario planner (`scene_planner.py`) and the clip review (`director_review.py`) all follow one pattern:
+Video's prompt rewrite, scenario planner and clip review, and Image's separate prompt manager all follow one pattern:
 check that Gemma is installed, claim the card for the Text module under the bridge's submission lock, tell the Text manager who is using the model
 (so a chat message or a video job can ask it to stop), run the call(s), and always give the model back. A helper subclasses `GemmaTask`, names its
 `OWNER` and `OPERATION`, and does its own work inside `with self.session() as cancel:`.

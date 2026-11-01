@@ -69,7 +69,7 @@ Targeted CPU checks are in `tests/test_wan.py` (modes, sizes, negative prompt, a
 
 ## Prompt enhancement by Gemma (2026-10-31)
 
-The panel can rewrite the request with Gemma before generation, for text-to-video and image-to-video (`App/server/video/prompt_enhancer.py`, route `/api/video/enhance`; the block hides when
+The panel can rewrite the request with Gemma before generation, for text-to-video and image-to-video (`App/server/video/video_prompt_enhancer.py`, route `/api/video/enhance`; the block hides when
 a chain or a scene plan is active, because the planner already writes those prompts). The person's own words stay in the history; the rewritten text is shown and editable.
 The TI2V-5B card has no prompt guide of its own, so the instructions restate the English prompt-extension rules the Wan 2.2 repository ships for its A14B models (`wan/utils/system_prompt.py`):
 text-to-video: a "film director" who keeps the subject and the action, puts up to four cinematic tags first (time of day, light source and quality, colour tone, shot size, camera angle, composition),

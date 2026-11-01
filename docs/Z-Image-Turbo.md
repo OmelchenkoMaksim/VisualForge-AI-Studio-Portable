@@ -23,6 +23,12 @@ The [official ComfyUI INT8 package](https://huggingface.co/Comfy-Org/Z-Image-Tur
 
 Optional modes are exposed only when their actual nodes/checkpoints are available and enabled. Missing/disabled Union or Tile does not disable Prompt or independent detail refinement. The ordinary Single/Reference editing modes remain unavailable. The permanently disabled variant button is hidden for Turbo.
 
+Since 2026-11-01 a separate Gemma manager automatically prepares the caption for all five modes, including source/mask context when needed.
+The interface keeps the original request and can offer numbered clarification choices when needed (maximum two questions; a second only
+for an explicit conflict). No prompt-engineering control is required. Publisher/community research, the chosen per-mode rules,
+saved provenance and the limits of CPU-only verification are documented in [Z-Image-Prompting](Z-Image-Prompting.md). The real-job observations
+below predate that manager and do not measure its effect.
+
 ## Observed strengths and weaknesses
 
 - The clock scene rendered convincing metal, cloth, wood and lighting; a separate robot illustration exercised another style. Warm jobs in the tested profiles take seconds; the first HDD load was much slower. This is not a speed guarantee for other machines.

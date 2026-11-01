@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gpu_coordinator import Busy
 from test_scene_planner import FakeGpu, FakeText
-from video import prompt_enhancer
-from video.prompt_enhancer import DEFAULT_VARIANT, GUIDES, PromptEnhancer, character_note, clean, guide, split_parts, supported
+from video import video_prompt_enhancer
+from video.video_prompt_enhancer import DEFAULT_VARIANT, GUIDES, PromptEnhancer, character_note, clean, guide, split_parts, supported
 from video.video_registry import ENGINES
 
 PARAGRAPH = 'A red fox trots through knee-deep snow between pines at dawn, its breath steaming, while the camera stays low and static.'
@@ -130,8 +130,8 @@ class EnhanceTests(unittest.TestCase):
         self.assertIn('a fox in the snow', messages[1]['content'])
         self.assertNotIn('images', messages[1])
         self.assertEqual(gpu.claimed, ['text'])
-        self.assertEqual(text.owners[0], ('begin', prompt_enhancer.OWNER))
-        self.assertEqual(text.owners[-1], ('end', prompt_enhancer.OWNER))
+        self.assertEqual(text.owners[0], ('begin', video_prompt_enhancer.OWNER))
+        self.assertEqual(text.owners[-1], ('end', video_prompt_enhancer.OWNER))
 
     def test_pictures_are_attached_as_base64_png_for_image_modes(self):
         enhancer, text, _ = self.make([PARAGRAPH])

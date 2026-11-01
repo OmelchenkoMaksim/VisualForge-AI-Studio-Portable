@@ -1,19 +1,19 @@
 # VisualForge AI Studio: user guide
 
-This README is intentionally English. The owner normally communicates in **Russian**, and the application interface and user-facing assistance should remain Russian.
+Feature guide for the portable studio. The interface supports Russian and English; source architecture and per-model evidence are indexed in [README.md](README.md).
 
 ## Start the studio
 
 Run `Start-VisualForge.cmd` (or `VisualForge AI Studio.exe` if you have the launcher) in this folder. Keep the portable directory structure together. Python, the model runtimes and the installed model files are bundled; you do not need to install a system Python for these installed features.
 
-The application opens its own maximized window. Image, Video and Music share the GPU sequentially. Closing the application's own window normally stops its owned services and can stop an active generation. Save your work and wait for completion before closing it.
+The application opens its own maximized window. Image, Video, Music, Text and Voiceover share the GPU sequentially. Closing the application's own window normally stops its owned services and can stop an active generation. Save your work and wait for completion before closing it.
 
 ## Installed features
 
 ### Image
 
 - Qwen Image Edit 2511, Qwen Image 2.1 Uncensored FP8, Z-Image Turbo INT8 and FLUX.3 Klein INT8.
-- Single-image editing, reference-image editing and prompt modes.
+- Single-image editing, reference-image editing and prompt modes where supported by the selected engine.
 - Quality presets, variations, cancellation, prompt archive/favorites and automatic saving.
 - Separate AI upscaling at 2×/4× and image paste/preview.
 
@@ -23,11 +23,15 @@ Qwen Image 2.1 uses native Prompt, Single, Reference and Multiple references (3�
 
 For 2511, Prompt mode uses a neutral canvas; it is not native text-to-image. The 2.1 profile supports native text-to-image. Z-Image Turbo INT8 has an 8-step Prompt preset (CFG 1, no negative prompt), optional 2K detail refinement and separately installed Union/Tile modes for structure guidance, masked editing and guided enlargement. Ordinary Single/Reference and similar-variant editing are unavailable. See [capabilities and scoped verification](Z-Image-Turbo.md).
 
+Z-Image automatically prepares the English model prompt. If a material ambiguity remains, it can offer numbered choices beside the original request;
+select several with `1,3`, or use `0` to delegate the choice. Only conflicting options permit a second clarification; there is no third question.
+Russian lettering stays in its original language. The protocol and current CPU-only validation limits are in [Z-Image-Prompting.md](Z-Image-Prompting.md).
+
 FLUX.3 Klein INT8 is the distilled 16-step, CFG 1 checkpoint. It offers Prompt, Single, Reference (two images), Multiple references (3–10 images) and Layout (object boxes). Editing normalizes the first image to about 1 MP and uses its proportions. Prompt and Layout offer native 1 MP, 2K and 4K; Real-ESRGAN enlargement is separate. Native 4K is expensive and can introduce counting/composition errors. The official Qwen3.5 upsampler expands short requests into English and sees all reference images; the switch is available in every FLUX mode. Turn it off for a complete caption or to compare its effect. Expanded captions and actual settings are retained in history. Box coordinates are percentages measured from the top-left of the frame; they guide location and scale, without pixel-level clipping. See [research, measured checks and limits](FLUX-3-Klein.md). Weights require the publisher's gated-repository access; consult the linked model card and license for their terms. Transparency behavior depends on the model and workflow.
 
 ### Video and character speech
 
-- LTX 2.5 Distilled: joint local video and sound from text or an initial image. Start with 768x512, 49 frames (2.0417 seconds), 24 fps. Fast uses 8 steps; Two-pass uses 8 steps, learned latent enlargement and 3 refinement steps. Both modes were GPU-tested at this size. New 15, 30 and 60 second presets continue one scene through overlapping video/audio context; choose the duration marked «продолжение». Details, lighting and sounds may drift between fragments. Larger resolutions and long I2V remain experimental. Describe the scene, motion and sound together. See [LTX documentation](LTX-2.5-Video.md) and local evidence in `UserData/Settings/ltx25-verification.json`.
+- LTX 2.5 Distilled generates picture and sound together. It supports text/image prompts, first/last frames and audio conditioning. Fast uses 8 steps; Two-pass adds learned latent enlargement and 3 refinement steps. Longer work uses continuation windows or scenes; details, light and sound can drift at joins. Describe the scene, motion and sound together. Current profiles, measured runs and unverified combinations are maintained in [LTX documentation](LTX-2.5-Video.md).
 
 - Under every finished one-prompt clip of the Video history there is "Gemma review": Gemma looks at frames and measurements, says what is wrong and offers a corrected prompt; see [the review](Gemma-Clip-Review.md). Gemma writes the prompts for the neural networks in English; put words that must be spoken or written in the picture in quotes or brackets and they stay as you wrote them.
 - Pictures of any common format (WebP, AVIF, GIF, BMP, TIFF, PSD, TGA... and screenshots pasted with Ctrl+V) can be attached anywhere; the studio converts them to what the chosen neural network reads and scales oversized ones. HEIC photos from an iPhone work too, see [the converter](Image-Converter.md).
@@ -70,9 +74,9 @@ See [Music implementation and limitations](VisualForge-Music-Generation.md).
 
 ### Text
 
-- Local chat with history (new): the **Text** tab runs the model "150ts-Gemma4A4B-9.41-…-C32K" (Gemma 4, 25B with about 4B active, Q4_0) through a private Ollama that lives inside this folder (`Runtime/Text`, model in `Models/Text/ollama`, port 8292, started on first use, stopped with the application). Chats are saved as files in `UserData/Text/Chats`. The model can think before answering (shown in a collapsed block), code blocks have a copy button, an answer can be stopped (the part already written is kept), regenerated, and the chat renamed or deleted. The studio does not use or change the Ollama installed on the computer. See [Text documentation](VisualForge-Text-Chat.md).
-- The model takes almost the whole video card (about 15.9 GB with a 32K context). Text, Image, Video and Music work one at a time: a chat answer is refused while another module works, and starting Image, Video or Music unloads the chat model automatically. The first load from the disk can take a few minutes; the model leaves the memory by itself after the idle time set in the chat settings.
-- Pictures in messages (new): the **Прикрепить изображение** button, Ctrl+V or dragging files onto the input attaches up to 4 PNG/JPEG pictures (shrunk in the page to 1536 px) to a message; the model sees them, and later questions in the same chat can refer to them. Pictures are stored with the chat in `UserData/Text/Chats` and deleted with it. Each picture costs about 250 tokens of context.
+- The **Text** tab uses a private Ollama in `Runtime/Text`; selected models live in `Models/Text/ollama`. Gemma is required for studio helpers, while chat can use other compatible installed models. Chats are saved in `UserData/Text/Chats`; replies can be stopped or regenerated, and chats renamed or deleted. Thinking and vision depend on the selected model. The studio does not change the system Ollama. See [Text documentation](VisualForge-Text-Chat.md).
+- Text shares GPU admission with Image, Video, Music and Voiceover. Starting another module unloads an idle chat model; a running answer must finish or be stopped. Memory use depends on the model and context, and a cold HDD load can take minutes.
+- Vision-capable models accept up to four pictures by attachment, paste or drop. The page limits their long side to 2560 px; Gemma's configured vision budget is up to 1120 tokens per image. Attachments remain with the chat for later questions and are deleted with it. Supported formats and preprocessing are described in [Image-Converter.md](Image-Converter.md); screenshot evidence is in [Gemma-Screenshot-OCR.md](Gemma-Screenshot-OCR.md).
 
 ### Voiceover (Озвучка)
 
@@ -157,7 +161,8 @@ On the development machine: 30 s clips with LTX 2.5, Wan 2.2 S2V, Wan Animate 2 
 Not validated: three simultaneous characters or several different cloned speakers in one H3 job, numerical voice similarity, lip synchronization beyond what Whisper and the eye can tell, forced out-of-memory recovery,
 other GPUs. Do not interpret a feature option as a promise of perfect identity preservation.
 
-Not offered: clips longer than two minutes, the video-to-video and IC-LoRA modes of LTX, a pose video for Wan S2V, several speakers in one Wan S2V clip.
+Individual Video-engine jobs do not offer clips beyond two minutes; this is separate from the Director's assembled films of up to five minutes.
+LTX video-to-video and IC-LoRA, a pose video for Wan S2V and several speakers in one Wan S2V clip are not offered.
 
 ## Logs and support
 

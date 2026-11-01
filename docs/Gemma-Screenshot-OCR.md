@@ -24,7 +24,7 @@ describe-only. Model: `150ts-Gemma4A4B-…-C32K` (Q4_0), RTX 5070 Ti, context 81
 
 | Configuration | mean CER | median CER | key recall | loops / cut off | median s per image |
 |---|---:|---:|---:|---:|---:|
-| **studio today** (model's own system prompt, thinking on, temperature 1, picture shrunk to 1536 px, 280 tokens) | 0.312 | 0.050 | 0.661 | 7 | 16.1 |
+| **studio before the budget change** (model's own system prompt, thinking on, temperature 1, picture shrunk to 1536 px, 280 tokens) | 0.312 | 0.050 | 0.661 | 7 | 16.1 |
 | plain OCR instruction, no thinking, temperature 0, 1536 px, 280 tokens | 0.107 | 0.050 | 0.885 | 3 | 1.4 |
 | same, 1024-token budget, original pixels | 0.049 | 0.013 | 0.936 | 3 | 2.5 |
 | **same, 1120-token budget (chosen)** | **0.044** | **0.013** | **0.990** | 3 | 2.5 |

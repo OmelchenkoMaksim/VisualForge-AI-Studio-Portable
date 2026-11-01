@@ -1,9 +1,8 @@
 # Delivery export (Instagram / social presets)
 
 `App/server/video/video_delivery.py` re-encodes an **existing** clip into a delivery preset with the bundled FFmpeg. It does not
-generate, enhance or mix anything and needs no GPU. The source file is never modified. Status: **implemented in the dev
-checkout and wired into the Video service, bridge and Video panel; installed in release `2026.10.25-delivery.1`
-(application files verified by SHA-256; the installed EXE was not launched for this release).**
+generate, enhance or mix anything and needs no GPU. The source file is never modified. The Video service, bridge and panel provide
+the integration; the measured checks below describe their stated test scope, not the current installed release.
 
 ## Integration
 

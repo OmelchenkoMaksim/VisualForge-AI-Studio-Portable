@@ -247,9 +247,17 @@ class RunnerTests(unittest.TestCase):
         status = self.film(music=None)
         self.assertEqual(status['state'], 'done')
         self.assertEqual([call[0] for call in self.studio.calls], ['shoot', 'shoot', 'register', 'forget', 'forget'])
-        self.assertEqual(self.studio.calls[2][1], 'film.mp4')                              # nothing to lay under it: the assembled film is the film
+        self.assertEqual(self.studio.calls[2][1], 'film-mix.mp4')                          # native-only films still pass the final loudness stage
         self.assertEqual(status['result'], dict(id='film-1'))
-        self.assertEqual([step['id'] for step in status['steps']], ['scene-1', 'scene-2', 'assemble'])
+        self.assertEqual([step['id'] for step in status['steps']], ['scene-1', 'scene-2', 'assemble', 'mix'])
+        self.assertEqual(status['sound']['scenes_gain_db'], 0.0)
+        loudness = status['sound']['mix']['loudness']
+        self.assertIsNotNone(loudness['before_lufs'])
+        # The synthetic assembly is already loud enough to hit the -6 dB attenuation bound; mastering must report the achieved level rather than promise the target.
+        self.assertAlmostEqual(loudness['after_lufs'] - loudness['before_lufs'], loudness['makeup_gain_db'], delta=0.5)
+        self.assertLessEqual(loudness['after_true_peak_db'], 0.0)
+        saved = json.loads((self.manager.root / 'runs' / status['id'] / 'run.json').read_text(encoding='utf-8'))
+        self.assertEqual(saved['sound']['mix']['loudness'], loudness)
 
     # --- speech ---------------------------------------------------------------------------------------------------------------------------
     def speech_plan(self, items):
@@ -292,8 +300,8 @@ class RunnerTests(unittest.TestCase):
         status = self.film(caps=SPEECH_CAPS, **self.speech_plan(items))
         self.assertEqual(status['state'], 'done', status.get('error'))
         self.assertEqual(len(status['notes']), 2)
-        self.assertEqual(self.studio.calls[-3][1], 'film.mp4')                              # no line and no music left: the assembled film is registered as it is
-        self.assertEqual([step['state'] for step in status['steps'] if step['kind'] == 'mix'], ['skipped'])
+        self.assertEqual(self.studio.calls[-3][1], 'film-mix.mp4')                          # no lines left, but the native sound still gets mastered
+        self.assertEqual([step['state'] for step in status['steps'] if step['kind'] == 'mix'], ['done'])
 
     def test_lines_the_listener_doubted_are_reported(self):
         self.studio.caps = SPEECH_CAPS
@@ -584,7 +592,7 @@ class StepTests(unittest.TestCase):
         self.assertEqual([step['id'] for step in runner.build_steps(full, True)], ['keyframe-1', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
         self.assertEqual([step['id'] for step in runner.build_steps(full, False)], ['scene-1', 'scene-2', 'music', 'assemble', 'mix'])
         silent = plan_for(REQUEST, CAPS, music=None)
-        self.assertEqual([step['id'] for step in runner.build_steps(silent, False)], ['scene-1', 'scene-2', 'assemble'])
+        self.assertEqual([step['id'] for step in runner.build_steps(silent, False)], ['scene-1', 'scene-2', 'assemble', 'mix'])
         self.assertEqual(runner.scene_prompt(full, 0)[:12], '35mm film Ph')
         self.assertEqual(runner.scene_prompt(dict(full, style=dict(phrase='')), 1), PROMPT)
 

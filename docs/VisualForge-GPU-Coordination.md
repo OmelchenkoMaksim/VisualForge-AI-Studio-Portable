@@ -1,11 +1,10 @@
 # One GPU, five modules: coordinator, global lock and the Stop banner
 
-Image, Video, Music, Text and Voiceover take the video card **one at a time** (Voiceover was added later: a worker process per job,
-nothing stays in video memory afterwards; see [VisualForge-Voiceover-Guide.md](VisualForge-Voiceover-Guide.md)). The tables below describe the first four.
+Image, Video, Music, Text and Voiceover take the video card **one at a time**. The coordinator and each module's admission path are
+the source of truth; the historical measurements below describe their test scope, not a current installation health check.
 A sixth entry, **`director`**, is not a model but a film in the making ([VisualForge-Director.md](VisualForge-Director.md)): it is busy from its first step to its last, so nothing else can start in the gap
 between two steps, and the banner and the Stop button cover it. Its own requests to the other modules carry the run token and are handled inside `GpuCoordinator.acting_for('director')` (a per-thread
-setting), which skips `director` when the other modules look for a rival; any other module that works still blocks them. Status: **installed in release `2026.10.25-gpu.2`
-(application files verified by SHA-256; the installed EXE was not launched for this release).**
+setting), which skips `director` when the other modules look for a rival; any other module that works still blocks them.
 
 ## What stays in video memory when a module is idle
 
@@ -13,13 +12,15 @@ setting), which skips `director` when the other modules look for a rival; any ot
 |---|---|---|
 | Video (FreeVideo, Wan TI2V, Wan S2V) | one worker process per job | **nothing**: the process exits and frees everything |
 | Music (ACE-Step, MiniMax) | one worker process per job | **nothing**, same reason |
+| Music (Stable Audio 3) | the Image ComfyUI via `music/comfy_backend.py` | follows ComfyUI's cache/release policy; no separate music inference worker |
+| Voiceover | per-job synthesis workers | released when the worker exits |
 | Image | ComfyUI, started by the installed launcher with `--cache-none` | **about 0.2 GB** (only the CUDA context): the models are dropped when the job ends. Measured: 15.4 GB peak during a Qwen Image 2.1 job, 0.17 GB above the empty card right after it |
 | Text | private Ollama keeps the chat model for the keep-alive time (default 10 min) | **about 15.9 GB** (measured with a 32 K context) until unloaded |
+| Voice input | a reusable Whisper worker | can retain a loaded model; coordinator admission releases it through the `speech` releaser |
 
-So in practice only **Text** holds memory while idle; the answer to "do idle networks eat video memory" is no for Video, Music and
-Image, and yes for Text until it is unloaded, which the studio does automatically when anything else starts (and `claim()` also asks
-ComfyUI to free itself, which protects against a launch without `--cache-none`). A finished Video or Music job needs no unloading, because it
-left nothing behind. (The small Video service process that the bridge starts on first use holds no GPU memory and also runs the CPU-only
+Idle residency depends on the backend: Ollama and the voice-input worker can retain models, and ComfyUI can cache them when launched
+without `--cache-none`. Admission asks other idle backends to release memory before starting work. Process-per-job workers release
+their models on exit. (The small Video service process that the bridge starts on first use holds no GPU memory and also runs the CPU-only
 export and mixer jobs, so it is deliberately **not** closed when another module starts.)
 
 ## `gpu_coordinator.py`: one `claim(module)` for every "start" button
@@ -42,7 +43,9 @@ This replaced four copies of the same checks and the separate Text hook; the beh
 answer is remembered for 10 s so that busy checks and starts do not each wait about 2 s for a refused connection.
 
 The bridge's submission lock covers only the POST routes that check the card and start or free GPU work (`GPU_START_ROUTES` in
-`studio_server.py`: Image/Video/Music `generate`, components `install`, Text `unload`) plus the Text and voice-Gemma admissions. Stop, settings,
+`studio_server.py`: Video/Music/Voiceover `generate`, components `install`, Text `unload`) plus Image's inner submission and Gemma admissions.
+Image prepares Z-Image prompts with `GemmaTask` before taking its Image admission: Gemma's answer never holds the global lock, and
+Image claim/upload/queue submission remain atomic. See [Z-Image-Prompting](Z-Image-Prompting.md). Stop, settings,
 favorites and the native folder dialog (modal, open for minutes) run outside it: Stop once waited for as long as that dialog stayed open
 (`tests/test_bridge_locks.py`). Module locks guard in-memory state only, never a network call or a file read: the Text manager does not hold
 its lock across Ollama calls, the Video service copies its rows under `jobs.lock` and reads logs, decodes pictures and probes voice samples
@@ -55,8 +58,9 @@ While `GET /api/busy` says a module generates, the buttons that **start or distu
 regenerating a chat message (and Enter in the chat field), the Text chat list / new / rename / delete, saving Text settings, unloading the
 model, mixing and exporting a clip, changing a save folder, installing components (the `BLOCKED` list at the top of the lock section of
 `studio-ui.js`, the same list dims them in `studio-ui.css`). **Tabs, the choice of engines and modes, settings, scrolling, expanding sections
-and typing in prompt fields stay free**, and the Stop buttons (`data-allow-busy`) always work. Capture-phase handlers swallow mouse
-events on the blocked buttons, the `submit` of the four start forms and Enter in the chat field, so the module scripts never run. It holds
+and typing in prompt fields stay free** at the global level; a module can still freeze its own active job's inputs. Z-Image, for example,
+keeps the request/source stable during clarification. The Stop buttons (`data-allow-busy`) always work. Capture-phase handlers swallow mouse
+events on blocked buttons, submissions of the start forms and Enter in the chat field, so the module scripts never run. It holds
 across tabs and after a page reload because it follows the server's state, polled every 1.2 s (and shortly after any click).
 `studio:busy` / `studio:idle` events carry `detail.kind`; kind `voice` means the only job is Gemma editing a dictation (see VisualForge-Voice-Input.md), and the
 banner words that differently.
@@ -75,18 +79,11 @@ Ollama drops the request. Measured: the GPU is free again about 2 s after Stop d
 
 ## Evidence
 
-`tests/test_gpu.py` (9 tests: who is released for each starting module, refusal in all 12 busy/start combinations without freeing
-anything, a module never blocks itself, the message names every working module, waiting for memory and giving up with numbers, an unreadable
-card is a separate error, failing probes/releases never block a start, a release that finds Text answering stops the start); the Music
-admission tests now run on the coordinator; `tests/test_text.py` has 29 tests (Stop during a simulated load, chunked decoding at every
-split). In the in-app browser with the real model: the banner appears and everything except Stop is blocked (clicks of tabs, new chat,
-unload, settings, the main Logs button; typing, Enter, select mouse-down) while Tab stays usable and the Stop button is highlighted;
-a Video start answers 409 "GPU занят Text"; Stop during the load frees the server in about 2 s and unlocks the interface.
+CPU regressions cover admission/refusal/release and memory estimates (`tests/test_gpu.py`), cancellable Text streaming (`tests/test_text.py`),
+nonblocking routes (`tests/test_bridge_locks.py`) and a real bridge on throw-away state (`tests/test_bridge_smoke.py`). These tests do not
+run the models. Historical real-job observations follow; they do not override the current interface behavior described above.
 
-`tests/test_bridge_smoke.py` (3 tests) starts the real `studio_server.py` from a copy of `App` on throw-away state and walks every route family;
-it exists because of the bug below.
-
-## Real jobs on the installed copy (RTX 5070 Ti 16 GB, models on the H hard disk)
+## Historical real jobs (recorded for `2026.10.25-gpu.2`, RTX 5070 Ti 16 GB, models on a SATA HDD)
 
 - **Image idle:** a Qwen Image 2.1 FP8 job (low quality, 159 s, peak 15.4 GB) left 0.17 GB above the baseline; `/api/busy` showed Image
   while it ran and idle afterwards.
@@ -98,9 +95,7 @@ it exists because of the bug below.
 - **Unload on start:** with the chat model still in memory (15.85 GB), a Music job was started: `claim()` unloaded the model, the job ran
   to the end (125 s, peak 5.5 GB, would not have fitted otherwise) and `/api/text/status` showed no loaded model afterwards.
 
-**A bug found by this check and fixed in `gpu.2`:** in `gpu.1` the *GET* branch of `/api/music` still called `music.music_routes.handle` with its
-old signature, so music availability, history, status and result dropped the connection. The first real Music job exposed it; the fix is
-one line and `tests/test_bridge_smoke.py` fails on the old call and passes on the fix. `gpu.1` was installed for about 20 minutes.
+The bridge smoke test also guards route-signature drift: an old Music GET handler dropped connections after a helper signature changed.
 
-Not tested: the installed EXE, a real Image job stopped through the banner endpoint (the Image branch is exercised only by the busy
+Not tested in that qualification: the installed EXE, a real Image job stopped through the banner endpoint (the Image branch was exercised by the busy
 probe and by the path "started in this session -> ComfyUI cancel"), Wan jobs through the lock, two browser windows at once.

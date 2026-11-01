@@ -159,6 +159,18 @@
     <button id="fluxLayoutAdd" type="button" class="secondary"><!--i18n:image.flux_layout_add_label-->Добавить объект</button>
   </div>
   <label for="prompt" class="prompt-label"><span id="promptLabelText"><!--i18n:image.prompt_what_should_change-->Что изменить?</span><textarea id="prompt" required maxlength="5000" rows="5" placeholder="Describe the edit in detail. Preserve the original composition unless specified."></textarea></label>
+  <section id="imageClarification" class="image-clarification" hidden aria-labelledby="imageClarificationQuestion">
+    <p id="imageClarificationQuestion" role="status"></p>
+    <ol id="imageClarificationOptions"></ol>
+    <label for="imageClarificationAnswer"><!--i18n:image.clarification_answer_label-->Номера выбранных вариантов</label>
+    <input id="imageClarificationAnswer" type="text" inputmode="numeric" maxlength="40" autocomplete="off" aria-describedby="imageClarificationHint imageClarificationError">
+    <p id="imageClarificationHint" class="preset-hint"><!--i18n:image.clarification_answer_hint-->Выберите один или несколько номеров через запятую. 0 — на ваш вкус, сразу к генерации.</p>
+    <p id="imageClarificationError" role="alert"></p>
+    <div class="actions">
+      <button id="imageClarificationApply" type="button"><!--i18n:image.clarification_apply_choices-->Применить выбор</button>
+      <button id="imageClarificationCancel" type="button" class="secondary"><!--i18n:image.clarification_cancel_request-->Отмена</button>
+    </div>
+  </section>
   <div id="qwenEditControls" class="panel-inner" hidden>
     <p class="preset-hint"><!--i18n:image.qwen_normalization_hint-->Исходник или автоматически созданный холст приводится примерно к 1 Мп без обрезки краёв. Результат — RGB; исходная прозрачность не сохраняется.</p>
     <label class="preset-option"><input type="checkbox" id="qwenCommunityLora" checked><span><!--i18n:image.qwen_community_label-->Дополнительная NSFW LoRA</span></label>
@@ -697,4 +709,5 @@
 <script src="/studio-shell.js" defer></script>
 <script src="/engine-state.js" defer></script>
 <script src="/flux-controls.js" defer></script>
+<script src="/image-clarification.js" defer></script>
 <script src="/prompt-guides.js"></script><script src="/image-studio.js" defer></script><script src="/video-panel.js" defer></script><script src="/director-panel.js" defer></script><script src="/music-panel.js" defer></script><script src="/voiceover-panel.js" defer></script><script src="/agent-panel.js" defer></script><script src="/text-chat.js" defer></script><script src="/component-manager.js" defer></script><script src="/gemma-gate.js" defer></script><script src="/voice-gate.js" defer></script><script src="/voice-input.js" defer></script></body></html>

@@ -411,6 +411,8 @@ function refreshVariantButton() {
     : StudioI18n.t("image.variant_button_create_similar_variation_latest_result_target")), true);
 }
 function clearTask() {
+  ImageClarification.dismiss();
+  lockPromptInputs(false);
   busy = false;
   activeJob = null;
   cancellationInFlight = false;
@@ -427,9 +429,17 @@ function beginTask() {
   busy = true;
   byId('generate').disabled = true;
   lockPresets(true);
+  if (selectedEngine === 'z-image-turbo-int8') lockPromptInputs(true);
   variantButton.disabled = true;
   cancelButton.hidden = false;
   cancelButton.disabled = true;
+}
+function lockPromptInputs(locked) {
+  // A numbered answer belongs to this exact request and source; keep them visible but stable until the flow ends.
+  byId('prompt').readOnly = locked;
+  byId('image1').disabled = locked || isTextMode();
+  byId('image2').disabled = locked || !['reference', 'inpaint', 'multi'].includes(mode);
+  byId('pick1').disabled = byId('pick2').disabled = locked;
 }
 cancelButton.addEventListener('click', async () => {
   if (!busy || !activeJob || cancellationInFlight) return;
@@ -873,11 +883,9 @@ async function runGeneration(isVariant) {
     const image2 = ['reference', 'inpaint', 'multi'].includes(requestMode) ? await encodeFile(referenceFile) : null;
     const extraImages = [];
     for (const file of fluxInputs.files) extraImages.push(await encodeFile(file));
-    updateLiveStatus({phase:'preparing', detail:StudioI18n.t("image.run_generation_uploading_images_local_comfy_ui")});
-    const result = await request('/api/generate', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
+    updateLiveStatus({phase:'preparing', detail:StudioI18n.t(requestEngine === 'z-image-turbo-int8'
+      ? "image.run_generation_preparing_generation" : "image.run_generation_uploading_images_local_comfy_ui")});
+    const payload = {
         engine:requestEngine,
         mode:requestMode,
         operation:isVariant ? 'variation' : 'generate',
@@ -894,8 +902,19 @@ async function runGeneration(isVariant) {
         control_type:requestMode === 'control' ? byId('controlType').value : undefined,
         control_strength:['control', 'inpaint', 'tile'].includes(requestMode) ? Number(byId('controlStrength').value) : undefined,
         expand:engineCatalog[requestEngine]?.expansion ? (isVariant ? prior.expand : canExpand(engineCatalog[requestEngine],requestMode) && byId('expandPrompt').checked) : undefined
-      })
-    });
+      };
+    const send = data => request('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    const result = requestEngine === 'z-image-turbo-int8' && !isVariant
+      ? await ImageClarification.run(send, {...payload, clarify:true, language:StudioI18n.language === 'en' ? 'English' : 'Russian'}, {
+        onState:state => updateLiveStatus({phase:'preparing', detail:StudioI18n.t({waiting:'image.clarification_waiting_choices',
+          preparing:'image.clarification_applying_choices', accepted:'image.clarification_data_accepted'}[state])}),
+        onCancel:token => request('/api/image/clarification-cancel', {method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({clarification_token:token})}),
+        isCurrent:() => selectedEngine === requestEngine && mode === requestMode && byId('prompt').value.trim() === originalPrompt &&
+          (isTextMode(requestMode) || byId('image1').files[0] === sourceFile) &&
+          (requestMode !== 'inpaint' || byId('image2').files[0] === referenceFile)
+      }) : await send(payload);
+    if (!result) { finishLiveStatus(StudioI18n.t('image.prompt_manager_cancelled')); return; }
     activeJob = {prompt_id:result.prompt_id,cancel_token:result.cancel_token,engine:result.engine,node_names:result.node_names,sampler_node_ids:result.sampler_node_ids};
     cancelButton.disabled = false;
     updateLiveStatus({phase:'submitted', promptId: result.prompt_id});

@@ -146,3 +146,11 @@ button.paste-target[aria-pressed="true"],button.paste-target[aria-pressed="true"
 .history-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.history-actions a{color:var(--link)}
 #promptGuide summary{color:var(--link)}
 #guideQuality,#guideLanguage{color:var(--muted);font-size:.88rem}
+
+.image-clarification{margin:12px 0 18px;padding:16px;border:1px solid var(--border-strong);border-radius:var(--r);background:var(--surface-2)}
+.image-clarification[hidden]{display:none}
+#imageClarificationQuestion{font-weight:600;margin:0 0 10px;white-space:pre-wrap}
+#imageClarificationOptions{list-style:none;padding:0;margin:0 0 14px;display:grid;gap:8px;overflow-wrap:anywhere}
+.image-clarification > label{display:block;margin-bottom:8px;font-size:13px;font-weight:600;color:var(--text-2)}
+#imageClarificationAnswer{width:100%;max-width:300px}
+#imageClarificationError{color:var(--danger-ink);font-size:.9rem;min-height:1em}

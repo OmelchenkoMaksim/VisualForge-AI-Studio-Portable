@@ -5,8 +5,8 @@ the invariants that are easy to break, and the result of the full audit of 2026-
 
 ## Verdict
 
-* **The section is complete and its ceiling is now the models, not the studio.** Every flagship engine makes 30 s clips; Gemma writes the scenario and the prompts, watches the
-  finished clip and proposes a correction; Whisper checks that spoken lines were really spoken. Further polishing of the section would be new features, not repairs.
+* **The 2026-11-01 audit found working generation paths for the listed engines.** Its scoped runs included 30 s flagship clips, Gemma planning/rewrite/review and Whisper
+  speech checks. This is evidence for those profiles, not a completeness guarantee or qualification of later features; limits and untested cases remain per engine.
 * **No architectural rewrite is needed.** The boundaries are right: the bridge admits and routes, the Video service owns jobs, one worker process per engine does the GPU
   work, the registry is the single description of what a request may contain. The audit extracted the three places where the same scaffolding had grown three times (see "Fixed").
 * Open, deliberately not done: split `video_service.py` / `video-panel.js` by feature, a storyboard job for per-scene keyframes, a hooks table that gathers the per-engine
@@ -18,7 +18,7 @@ the invariants that are easy to break, and the result of the full audit of 2026-
 browser (video-panel.js, studio-images.js, video-panel.css)
    |  JSON over HTTP, :8189
 studio_server.py  (the bridge: admission, GPU claim, static files, Gemma routes)
-   |-- video_routes.py ---- prompt_enhancer.py | scene_planner.py | director_review.py   (all three are GemmaTask, gemma_task.py)
+   |-- video_routes.py ---- video_prompt_enhancer.py | scene_planner.py | director_review.py   (all three are GemmaTask, gemma_task.py)
    |                              |  claim 'text' on the GPU coordinator, stream a chat answer from the private Ollama (TextManager)
    |                              `- speech_check.py Listener -> speech_worker.py (Whisper, in the Music runtime)  [review and LTX scenes]
    |-- range_response.py -- ranged MP4 for the player (shared with Music and Voiceover)
@@ -62,7 +62,7 @@ server. Pictures reach a job as data URLs and are converted to PNG by `image_con
 
 | Engine | Worker | Modes | Long clips | Rating | Gemma guide | Document |
 |---|---|---|---|---|---|---|
-| FreeVideo H3 int8 (legacy) | `video_pipeline.py` + CLI | t2v, i2v, first_last, characters | scenes of 17n+5 frames | 4 | none | `video-integration-ru.md` |
+| FreeVideo H3 int8 (legacy) | `video_pipeline.py` + CLI | t2v, i2v, first_last, characters | scenes of 17n+5 frames | 4 | none | [FreeVideo-H3.md](FreeVideo-H3.md) |
 | Wan 2.2 TI2V-5B | `wan_worker.py` | t2v, i2v | chain of 121-frame segments, or scenes (4n+1) | 5 | yes | `Wan-2.2-Video.md` |
 | Wan 2.2 S2V-14B | `s2v_worker.py` | s2v (speech to video) | scenes cut at speech pauses | 5 | yes | `Wan-S2V.md` |
 | LTX 2.5 Distilled | `ltx_worker.py`, `ltx_scenes.py`, `ltx_long.py` | t2v, i2v, first_last, a2v | continuation windows, scenes (8n+1), one shot with a scenario | 7 | yes | `LTX-2.5-Video.md` |
@@ -83,7 +83,7 @@ Ratings (0-10, 10 = a real camera) and their meaning: `Video-Model-Ratings.md`. 
 All three derive from `GemmaTask` (`gemma_task.py`): `session()` checks that Gemma is available, claims `'text'` on the coordinator, marks the owner, always gives it back;
 `ask()` streams the answer with `think=False` (thinking blocks only cost time here). Language policy: Gemma thinks and writes **English** for the networks, whatever the person typed;
 **direct speech, voice-over and lettering stay verbatim in the person's language, in quotes**, with the language named. Only Russian and English are supported.
-Routes live in `video_routes.py`; guides in `prompt_enhancer.GUIDES` (every guide ends with the language rule; `tests/test_prompt_enhancer.py` counts exactly one).
+Routes live in `video_routes.py`; guides in `video_prompt_enhancer.GUIDES` (every guide ends with the language rule; `tests/test_prompt_enhancer.py` counts exactly one).
 
 ## Whisper in the Video section
 
@@ -116,7 +116,7 @@ seed (`reseed`, at most twice, the best try wins; a line too long for its scene 
 1. `ENGINES[...]` in `video_registry.py` (adapter, modes, frames, `rating()`, `prompt_enhancer` modes) and the validation of any new field.
 2. An adapter in `video_adapters.ADAPTERS`, a worker, its events in `Jobs.event`, `engine_missing` for the availability message.
 3. The catalog component(s) (`tools/build_catalog.py`), `model_requirements.COMPONENTS`, `componentIds` in `component-manager.js`, the release row in `studio-ui.js`.
-4. A guide per mode in `prompt_enhancer.GUIDES` (and the engine note in `director_review.NOTES`).
+4. A guide per mode in `video_prompt_enhancer.GUIDES` (and the engine note in `director_review.NOTES`).
 5. Strengths/limits text `video.assessment_<group>_{strong,variable,limits,evidence}_text` in both languages, and the group in the `assessed` table of `video-panel.js`.
 6. A rating row in `Video-Model-Ratings.md` and a verification file with both summaries.
 

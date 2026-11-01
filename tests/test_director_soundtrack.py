@@ -8,6 +8,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
@@ -120,6 +121,15 @@ def band(path, frequency, start, length):
     return -99.0 if found is None or found.group(1) == '-inf' else float(found.group(1))
 
 
+def measured_audio(path):
+    """Independent R128 summary from the decoded file, with float output so overshoots cannot be clipped by the measuring sink."""
+    done = subprocess.run([str(FFMPEG), '-hide_banner', '-nostdin', '-i', str(path), '-vn', '-af', 'ebur128=peak=true',
+                           '-c:a', 'pcm_f64le', '-f', 'null', '-'], capture_output=True, text=True, check=True)
+    lufs = re.findall(r'I:\s+(-?[\d.]+) LUFS', done.stderr)
+    peaks = re.findall(r'Peak:\s+(-?[\d.]+|-inf) dBFS', done.stderr)
+    return float(lufs[-1]), float(peaks[-1])
+
+
 @unittest.skipUnless(FFMPEG.is_file() and FFPROBE.is_file(), 'bundled FFmpeg not found')
 class MixdownTests(unittest.TestCase):
     @classmethod
@@ -148,7 +158,7 @@ class MixdownTests(unittest.TestCase):
         self.assertLess(during, before - 8, (before, during))                                       # about 12 dB lower while the line is spoken
         self.assertGreater(after, before - 3, (before, after))                                      # and back at its level when the line is over
         self.assertGreater(band(output, 1000, 4.6, 1.2), -35)                                       # the voice itself is heard
-        self.assertLess(band(output, 1000, 1.0, 2.0), -60)                                          # and only where it was put
+        self.assertLess(band(output, 1000, 1.0, 2.0) - result['loudness']['makeup_gain_db'], -60)   # only where it was put, allowing for the common gain
         self.assertEqual(result['seconds'], 10.0)
 
     def test_the_pictures_own_sound_gives_way_to_a_voice_too(self):
@@ -158,10 +168,92 @@ class MixdownTests(unittest.TestCase):
         self.assertGreater(band(output, 1000, 4.6, 1.2), -35)
 
     def test_the_music_alone_is_lowered_by_the_pictures_own_sound(self):
-        output, _ = self.mix('music.mp4', [self.bed], [])
+        output, result = self.mix('music.mp4', [self.bed], [])
         plain = band(self.work / 'music.wav', 440, 1.0, 2.0)
-        self.assertLess(band(output, 440, 1.0, 2.0), plain - 3)                                    # the film has a tone of its own, so the compressor works
+        # Remove only the common mastering gain when comparing with the unmixed source; the ducking itself must still reduce the music.
+        self.assertLess(band(output, 440, 1.0, 2.0) - result['loudness']['makeup_gain_db'], plain - 3)
         self.assertGreater(band(output, 150, 1.0, 2.0), -40)
+
+    def test_a_quiet_mix_reaches_the_target_with_a_bounded_linear_gain(self):
+        output, result = self.mix('quiet-master.mp4', [], [], native_db=3.0)
+        lufs, peak = measured_audio(output)
+        report = result['loudness']
+        self.assertLess(report['before_lufs'], -30)
+        self.assertGreater(report['makeup_gain_db'], 0)
+        self.assertLessEqual(report['makeup_gain_db'], soundtrack.MAX_MAKEUP_DB)
+        self.assertAlmostEqual(lufs, soundtrack.TARGET_LUFS, delta=1.5)
+        self.assertAlmostEqual(report['after_lufs'], lufs, delta=0.15)
+        self.assertAlmostEqual(lufs - report['before_lufs'], report['makeup_gain_db'], delta=0.3)
+        self.assertLess(peak, 0)
+
+    def test_a_mix_below_the_boost_budget_does_not_get_unlimited_gain(self):
+        output, result = self.mix('very-quiet-master.mp4', [], [], native_db=-6.0)
+        report = result['loudness']
+        self.assertEqual(report['makeup_gain_db'], soundtrack.MAX_MAKEUP_DB)
+        lufs, _ = measured_audio(output)
+        self.assertLess(lufs, soundtrack.TARGET_LUFS - 1.5)
+        self.assertAlmostEqual(lufs - report['before_lufs'], soundtrack.MAX_MAKEUP_DB, delta=0.3)
+
+    def test_a_loud_mix_is_attenuated_and_limited_before_aac(self):
+        output, result = self.mix('loud-master.mp4', [], [], native_db=45.0)
+        report = result['loudness']
+        self.assertEqual(report['makeup_gain_db'], soundtrack.MIN_MAKEUP_DB)
+        self.assertGreater(report['before_true_peak_db'], 0)
+        _, peak = measured_audio(output)
+        self.assertLessEqual(peak, 0)
+        self.assertLessEqual(report['after_true_peak_db'], 0)
+        self.assertLessEqual(result['max_db'], report['limiter_db'] + 0.8)  # decoded AAC may overshoot the PCM ceiling, but has headroom
+
+    def test_mastering_preserves_the_music_to_voice_balance(self):
+        reference = self.work / 'unmastered.wav'
+        text, inputs = soundtrack.graph(10.0, [self.bed], [self.line], measure=True)
+        subprocess.run([str(FFMPEG), '-v', 'error', '-nostdin', '-y', '-i', str(self.film), *inputs, '-filter_complex', text,
+                        '-map', '[aout]', '-c:a', 'pcm_f32le', str(reference)], check=True)
+        output, result = self.mix('balanced-master.mp4', [self.bed], [self.line])
+        self.assertGreater(result['loudness']['makeup_gain_db'], 0)
+        before = band(reference, 440, 4.6, 1.2) - band(reference, 1000, 4.6, 1.2)
+        after = band(output, 440, 4.6, 1.2) - band(output, 1000, 4.6, 1.2)
+        self.assertAlmostEqual(after, before, delta=0.5)
+
+    def test_silence_gets_no_makeup_gain_and_is_not_published(self):
+        film = self.work / 'zero-film.mp4'
+        subprocess.run([str(FFMPEG), '-v', 'error', '-nostdin', '-y', '-i', str(self.film), '-af', 'volume=0',
+                        '-c:v', 'copy', '-c:a', 'aac', str(film)], check=True)
+        before = soundtrack.measure_loudness(FFMPEG, film, 10.0)
+        self.assertIsNone(before['lufs'])
+        self.assertIsNone(before['true_peak_db'])
+        self.assertEqual(soundtrack.makeup_gain(before['lufs']), 0.0)
+        output = self.work / 'zero-master.mp4'
+        scans = []
+        measure = soundtrack.measure_loudness
+
+        def scan(*args, **kwargs):
+            found = measure(*args, **kwargs)
+            scans.append(found)
+            return found
+
+        with mock.patch.object(soundtrack, 'measure_loudness', side_effect=scan), self.assertRaisesRegex(DeliveryError, 'silent'):
+            soundtrack.mixdown(FFMPEG, FFPROBE, film, output, [], [])
+        self.assertEqual(len(scans), 2)
+        self.assertIsNone(scans[-1]['lufs'])
+        self.assertIsNone(scans[-1]['true_peak_db'])  # the encoded result also stayed exactly silent before rejection
+        self.assertFalse(output.exists())
+
+    def test_a_failed_or_cancelled_final_measurement_removes_the_unchecked_film(self):
+        measure = soundtrack.measure_loudness
+        for error in (DeliveryError('measurement failed'), DeliveryCancelled('stopped')):
+            with self.subTest(error=type(error).__name__):
+                output = self.work / 'unchecked.mp4'
+
+                def scan(ffmpeg, film, *args, target=output, failure=error, **kwargs):
+                    if Path(film) == target:
+                        self.assertTrue(target.is_file())
+                        raise failure
+                    return measure(ffmpeg, film, *args, **kwargs)
+
+                with mock.patch.object(soundtrack, 'measure_loudness', side_effect=scan), self.assertRaises(type(error)):
+                    soundtrack.mixdown(FFMPEG, FFPROBE, self.film, output, [], [])
+                self.assertFalse(output.exists())
 
     def test_the_picture_is_copied_and_the_sound_is_aac_stereo_of_the_length_of_the_film(self):
         output, _ = self.mix('check.mp4', [self.bed], [self.line])
@@ -181,19 +273,20 @@ class MixdownTests(unittest.TestCase):
         bed = dict(self.bed, path=short, offset=0.0, loop=True)
         output, _ = self.mix('loop.mp4', [bed], [])
         self.assertGreater(band(output, 440, 7.0, 2.0), band(output, 440, 1.0, 2.0) - 3)
-        silent, _ = self.mix('once.mp4', [dict(bed, loop=False)], [])
-        self.assertLess(band(silent, 440, 7.0, 2.0), -60)                                           # without the repeat the track ends at three seconds
+        silent, result = self.mix('once.mp4', [dict(bed, loop=False)], [])
+        self.assertLess(band(silent, 440, 7.0, 2.0) - result['loudness']['makeup_gain_db'], -60)    # without the repeat the track ends at three seconds
 
     def test_a_cut_excerpt_starts_where_it_is_told_and_fades(self):
         steps = self.work / 'steps.wav'
         subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-filter_complex',
                         'sine=f=300:d=5:r=48000[a];sine=f=800:d=5:r=48000[b];[a][b]concat=n=2:v=0:a=1', '-ac', '2', str(steps)], check=True)
         bed = dict(path=steps, offset=4.0, start=2.0, seconds=6.0, gain_db=0.0, fade_in=1.0, fade_out=1.0)      # the last second of the 300 Hz half, then the 800 Hz half
-        output, _ = self.mix('excerpt.mp4', [bed], [])
-        self.assertLess(band(output, 800, 2.0, 0.9), -55)                                            # the 300 Hz second plays from 2 s to 3 s of the film
+        output, result = self.mix('excerpt.mp4', [bed], [])
+        gain = result['loudness']['makeup_gain_db']
+        self.assertLess(band(output, 800, 2.0, 0.9) - gain, -55)                                  # the 300 Hz second plays from 2 s to 3 s of the film
         self.assertGreater(band(output, 800, 3.3, 3.5), -30)                                         # then the 800 Hz half, from the offset
-        self.assertLess(band(output, 800, 0.0, 1.6), -55)                                           # nothing before the start
-        self.assertLess(band(output, 800, 8.3, 1.5), -55)                                           # nothing after the end of the excerpt (8 s)
+        self.assertLess(band(output, 800, 0.0, 1.6) - gain, -55)                                  # nothing before the start
+        self.assertLess(band(output, 800, 8.3, 1.5) - gain, -55)                                  # nothing after the end of the excerpt (8 s)
         self.assertLess(band(output, 800, 7.6, 0.3), band(output, 800, 4.0, 0.5) - 8)                # and the last second is a fade-out
 
     def test_a_mix_nobody_can_hear_is_refused_and_leaves_no_file(self):

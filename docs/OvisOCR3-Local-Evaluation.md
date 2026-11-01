@@ -66,7 +66,7 @@ The authors explicitly document OCR, classification with candidate labels, VQA a
 
 ## Integration implications
 
-1. Keep original attachments for OCR; expose a pixel budget and source crop rather than unconditionally resizing to 1536. The current `MAX_SIDE=1536` in `App/frontend/text-chat.js` is a Studio preprocessing policy, not a measured Gemma architectural limit. Gemma was not benchmarked here.
+1. Keep original attachments for OCR; expose a pixel budget and source crop rather than treating a fixed resize as an architectural limit. The 1536-pixel Studio policy observed during this audit was subsequently raised to 2560 with Gemma's larger vision budget; see [Gemma-Screenshot-OCR.md](Gemma-Screenshot-OCR.md). Gemma was not benchmarked in the Ovis comparison itself.
 2. Separate text extraction from photo description. Use tested English task instructions for OCR/structured extraction; preserve recognized Russian text. Do not route arbitrary Russian free-form visual conversations through this model by default.
 3. Make extracted content reviewable before inserting it into the prompt. Detect repeated/truncated output, validate field JSON/table structure, and retain a crop/retry path. Do not interpret an EOS or valid JSON as evidence that its content is true.
 4. A future OCR worker must join the shared GPU coordinator, cancellation lifecycle and unified event history. These integrations, sustained UI operation, PDF/multipage tables, handwriting breadth, grounded coordinates and general visual benchmarks remain untested.

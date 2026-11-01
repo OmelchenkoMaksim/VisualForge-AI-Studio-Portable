@@ -1,4 +1,8 @@
 {
+  "events.operation_type_image_prompt_enhancement_label": {
+    "ru": "Подготовка промпта изображения",
+    "en": "Image prompt preparation"
+  },
   "events.history_no_matching_events_hint": {
     "ru": "Нет событий по выбранным фильтрам.",
     "en": "No events match the selected filters."

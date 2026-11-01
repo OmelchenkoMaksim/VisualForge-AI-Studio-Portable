@@ -1,6 +1,5 @@
 """Local cross-process event history; payloads never contain prompts, audio or images."""
 from ui_strings import source as ui_text
-import json
 import math
 from pathlib import Path
 import re
@@ -25,6 +24,7 @@ TECHNICAL_TYPES = {
     'SpeechTextPolishWarmup': ui_text('events.operation_type_speech_text_polish_warmup_label'),
     'ImageRecognition': ui_text('events.operation_type_image_recognition_label'),
     'ImagePromptExpansion': ui_text('events.operation_type_image_prompt_expansion_label'),
+    'ImagePromptEnhancement': ui_text('events.operation_type_image_prompt_enhancement_label'),
     'ImageUpscale': ui_text('events.operation_type_image_upscale_label'),
     'ImageRefinement': ui_text('events.operation_type_image_refinement_label'),
     'ImageControlNet': ui_text('events.operation_type_image_controlnet_label'),

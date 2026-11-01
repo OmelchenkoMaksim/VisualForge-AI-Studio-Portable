@@ -9,7 +9,7 @@ from pathlib import Path
 import re
 
 from gpu_coordinator import Busy, GpuUnavailable
-from video.prompt_enhancer import character_note, guide, supported
+from video.video_prompt_enhancer import character_note, guide, supported
 
 CLIP_ID = re.compile(r'[0-9a-f-]{36}')
 GENERIC_RULES = 'One English paragraph: the subject, the action, the place, the light and the camera.'
@@ -36,7 +36,7 @@ def plan(handler, planner, data):
 
 
 def enhance(handler, enhancer, data):
-    """Gemma rewrites one prompt for the chosen video model and mode (the hidden per-model instruction of prompt_enhancer.py)."""
+    """Gemma rewrites one prompt for the chosen video model and mode (the hidden instruction in video_prompt_enhancer.py)."""
     if enhancer is None:
         return handler.response_json(503, {'error': ui_text('video.plan_text_section_unavailable')})
 

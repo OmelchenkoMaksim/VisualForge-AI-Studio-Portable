@@ -16,7 +16,8 @@ class JobHistory:
               'steps', 'upscale', 'detail_strength', 'control_type', 'control_strength', 'input_megapixels', 'output_scale',
               'native_megapixels', 'reference_count', 'layout_boxes', 'negative_prompt', 'use_uncensored_lora', 'submitted_at', 'filename_base', 'original_prompt',
               'workflow_sha256', 'workflow_version', 'result_node_ids',
-              'graph_sha256', 'sampler_parameters', 'expansion', 'expansion_model', 'expanded_prompt', 'input_files', 'comfy_files', 'generation')
+              'graph_sha256', 'sampler_parameters', 'expansion', 'expansion_model', 'expanded_prompt', 'enhanced_prompt', 'prompt_enhancement',
+              'input_files', 'comfy_files', 'generation')
 
     def __init__(self, path, portable_root=None):
         self.path = Path(path)

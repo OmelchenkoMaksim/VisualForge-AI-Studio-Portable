@@ -41,8 +41,7 @@ def build_steps(plan, keyframes):
     if plan['music']:
         steps.append(dict(id='music', kind='music', index=0, state='pending'))
     steps.append(dict(id='assemble', kind='assemble', index=0, state='pending'))
-    if plan['music'] or plan['songs'] or plan['speech']:
-        steps.append(dict(id='mix', kind='mix', index=0, state='pending'))
+    steps.append(dict(id='mix', kind='mix', index=0, state='pending'))
     return steps
 
 
@@ -286,9 +285,7 @@ class DirectorManager:
             if cancel.is_set():
                 raise DirectorCancelled()
             self._step(run, 'assemble', 'done', '')
-            final = film
-            if plan['music'] or plan['songs'] or plan['speech']:
-                final = self._sound(run, files, folder, cancel, plan, film, track, spoken)
+            final = self._sound(run, files, folder, cancel, plan, film, track, spoken)
             row = self.studio.register(dict(path=str(final), prompt=run['request']['prompt'], scenes=[scene_prompt(plan, i) for i in range(len(scenes))], quality=plan['quality'],
                                             title=plan['title'], run=run['id'], name_prompt=plan['title'] if plan['title'].isascii() else scenes[0]['prompt'],
                                             log='\n'.join(json.dumps(step, ensure_ascii=False) for step in run['steps'])))
@@ -444,12 +441,10 @@ class DirectorManager:
                 continue
             voices.append(dict(path=spoken[index]['path'], start=where[0], tempo=where[1], gain_db=plan['speech'][index]['gain_db']))
         beds = soundtrack.beds_for(cues, sources)
-        if not beds and not voices:                  # every line was dropped and there is no music: the film keeps the sound the scenes came with
-            self._step(run, 'mix', 'skipped', '')
-            return film
         final = folder / 'film-mix.mp4'
         film_level = media.mean_level(media.levels(self.ffmpeg, film, seconds))
-        native = soundtrack.native_gain(film_level)
+        # Native-only films need the same final loudness stage, but no bed attenuation when nothing is laid over their sound.
+        native = soundtrack.native_gain(film_level) if beds or voices else 0.0
         # What was put where, kept in the run's log: the mix cannot be listened to from here, but a wrong place or level can be read.
         run['sound'] = dict(film_seconds=seconds, scenes_level_db=film_level, scenes_gain_db=native,
                             beds=[dict(start=bed['start'], seconds=bed['seconds'], offset=bed['offset'], gain_db=bed['gain_db'], loop=bool(bed.get('loop'))) for bed in beds],

@@ -98,7 +98,7 @@ Not tested: speech longer than 22 s, voice cloning in a long clip, singing, 832Ã
 ## Prompt enhancement by Gemma (2026-10-31)
 
 The text of S2V is optional: the speech drives the mouth, the head and the hands, the photo is the first frame, and the card's examples are one line of style and scene ("Summer beach vacation style, a white
-cat wearing sunglasses sits on a surfboard", "a person is singing"). The hidden Gemma instruction (`prompt_enhancer.py`, mode `s2v`; the photo goes with the request) therefore never writes what is said,
+cat wearing sunglasses sits on a surfboard", "a person is singing"). The hidden Gemma instruction (`video_prompt_enhancer.py`, mode `s2v`; the photo goes with the request) therefore never writes what is said,
 the sound or the lips: it describes the person as the photo shows, how they deliver the speech (look into the camera, small head movements and hand gestures), the place, the shot size and a steady
 camera, in English. The block hides for scene plans.
 

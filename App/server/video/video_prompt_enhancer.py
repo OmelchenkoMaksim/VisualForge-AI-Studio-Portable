@@ -1,4 +1,4 @@
-"""Gemma rewrites a short or rough video prompt into the form the chosen video model follows best.
+"""Video prompt enhancer: Gemma rewrites a rough request for the chosen video model.
 
 Every model and mode has its own hidden instruction (`GUIDES`), built from what the publisher recommends and what independent users
 found; the person never has to learn how to write a prompt for each network. The rewritten text is what the video model receives; the
@@ -316,6 +316,14 @@ def character_note(objects, extras, frames):
 class PromptEnhancer(GemmaTask):
     OWNER = OWNER
     OPERATION = 'VideoPromptEnhancement'
+
+    def clarification_status(self):
+        """Reserved for per-engine/per-mode clarification guides; existing Video routes never enter this path."""
+        return dict(available=False, state='template', max_questions=2)
+
+    def prepare_clarification(self, *args, **kwargs):
+        """Future integration can reuse prompt_clarification, after researching Video-specific choices and wiring its UI."""
+        raise NotImplementedError('Video clarification is a template; generation and enhancement are unchanged')
 
     def _ask(self, messages, cancel, pictures=0):
         # every picture costs the model a few hundred tokens of context; a photo plus frames of a video need more room than a single frame

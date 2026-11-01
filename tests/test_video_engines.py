@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT / 'App/server'))
 
 import model_requirements  # noqa: E402
 from video import video_registry as registry  # noqa: E402
-from video.prompt_enhancer import GUIDES  # noqa: E402
+from video.video_prompt_enhancer import GUIDES  # noqa: E402
 from video.video_adapters import ADAPTERS  # noqa: E402
 
 PANEL = (ROOT / 'App/frontend/video-panel.js').read_text(encoding='utf-8')
