@@ -279,7 +279,10 @@ class MusicManager:
             TOKENIZERS_PARALLELISM='false', TQDM_DISABLE='1', DO_NOT_TRACK='1',
             ACESTEP_CHECKPOINTS_DIR=str(self.models), ACESTEP_PROJECT_ROOT=str(self.root / 'vendor/ACE-Step'),
             HF_HOME=str(temp / 'huggingface'), TORCH_HOME=str(temp / 'torch'),
-            TORCHINDUCTOR_CACHE_DIR=str(temp / 'inductor'), TEMP=str(temp), TMP=str(temp))
+            TORCHINDUCTOR_CACHE_DIR=str(temp / 'inductor'), TEMP=str(temp), TMP=str(temp),
+            # The launcher puts these two inside the install folder, whose name may have Cyrillic letters, and Triton and CUDA reach their caches through narrow paths
+            # (see the same lines in the Voiceover manager: VoxCPM2's first compilation died of it); the compile caches stay on the ASCII path of the user's Temp.
+            TRITON_CACHE_DIR=str(temp / 'triton'), CUDA_CACHE_PATH=str(temp / 'cuda'))
         env.pop('PYTHONHOME', None)
         env.pop('PYTHONPATH', None)
         return env

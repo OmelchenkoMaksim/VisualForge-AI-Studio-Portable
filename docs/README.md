@@ -31,6 +31,7 @@ Start with **[VisualForge-Video-Architecture.md](VisualForge-Video-Architecture.
 | [Wan-2.2-Video.md](Wan-2.2-Video.md) | TI2V-5B: sizes, chains and scenes, speed-ups |
 | [Wan-S2V.md](Wan-S2V.md) | a talking character from a photo and a recording |
 | [Character-Animation.md](Character-Animation.md) | Wan Animate 2 and SCAIL-2: a photo repeats or replaces a person in a reference video |
+| [VisualForge-Director.md](VisualForge-Director.md) | the "Режиссёр" entry: a whole film from a description and optional materials (heroes, places, objects, reference videos, songs, voices): plan by Gemma, keyframes, scenes, voice-over, music, assembly, soundtrack |
 | [Video-Model-Ratings.md](Video-Model-Ratings.md) | 0-10 scale (10 = a real camera) and the evidence |
 | [Gemma-Clip-Review.md](Gemma-Clip-Review.md) | Gemma watches a finished clip and writes a corrected prompt |
 | [VisualForge-Video-Export.md](VisualForge-Video-Export.md), [VisualForge-Audio-Mixer.md](VisualForge-Audio-Mixer.md) | export presets for social networks, music under a clip |

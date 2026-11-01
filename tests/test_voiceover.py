@@ -566,6 +566,17 @@ class Manager(unittest.TestCase):
         self.voice = self.manager.add_voice(dict(name='Тестовый', consent=True, audio='data:audio/wav;base64,' + base64.b64encode(sample.read_bytes()).decode()))
         self.book = self.manager.prepare(dict(text=BOOK, title='Тест'))
 
+    def test_the_compile_caches_of_the_worker_stay_on_an_ascii_path_whatever_the_launcher_set(self):
+        """The launcher puts TRITON_CACHE_DIR and CUDA_CACHE_PATH inside the install folder; with Cyrillic letters in its name VoxCPM2's first torch.compile died
+        with a UnicodeDecodeError (found by the Director's first real film)."""
+        launcher = {'TRITON_CACHE_DIR': 'D:/Мои программы/UserData/Cache/Triton', 'CUDA_CACHE_PATH': 'D:/Мои программы/UserData/Cache/Cuda'}
+        with mock.patch.dict(os.environ, launcher):
+            env = self.manager._environment()
+        for name in ('TRITON_CACHE_DIR', 'CUDA_CACHE_PATH', 'TORCHINDUCTOR_CACHE_DIR', 'TEMP', 'TMP'):
+            with self.subTest(name=name):
+                self.assertTrue(env[name].isascii(), env[name])
+                self.assertTrue(Path(env[name]).is_relative_to(self.manager.state))
+
     def request(self, **extra):
         return dict(book_id=self.book['book_id'], voice_id=self.voice['id'], language='Russian', format='mp3', seed=7, **extra)
 

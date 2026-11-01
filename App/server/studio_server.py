@@ -1,6 +1,7 @@
 """Local-only VisualForge AI Studio UI bridge. Python stdlib; no remote dependencies."""
 import base64
 import binascii
+from contextlib import nullcontext
 import zlib
 import struct
 from functools import lru_cache
@@ -116,11 +117,14 @@ except (ImportError, OSError, ValueError) as _text_error:
     TEXT = TEXT_STORE = None
     print(ui_text('common.studio_bridge_text_unavailable') + str(_text_error), flush=True)
 AGENTS = None  # constructed below, after the GPU coordinator it needs
+DIRECTOR = None  # the same: a film in the making is a module of the coordinator (see gpu_coordinator.MODULES)
 STATIC = {'/flux-controls.js': ('static/flux-controls.js', 'application/javascript; charset=utf-8'), '/engine-state.js': ('static/engine-state.js', 'application/javascript; charset=utf-8'), '/': ('static/studio-index.html','text/html; charset=utf-8'), '/image-studio.js': ('static/image-studio.js','application/javascript; charset=utf-8'), '/image-studio.css': ('static/image-studio.css','text/css; charset=utf-8'), '/progress-save.css': ('static/progress-save.css','text/css; charset=utf-8')}
 STATIC['/prompt-guides.js'] = ('static/prompt-guides.js', 'application/javascript; charset=utf-8')
 STATIC['/studio-images.js'] = ('static/studio-images.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.js'] = ('static/video-panel.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.css'] = ('static/video-panel.css', 'text/css; charset=utf-8')
+STATIC['/director-panel.js'] = ('static/director-panel.js', 'application/javascript; charset=utf-8')
+STATIC['/director-panel.css'] = ('static/director-panel.css', 'text/css; charset=utf-8')
 STATIC['/music-panel.js'] = ('static/music-panel.js', 'application/javascript; charset=utf-8')
 STATIC['/music-panel.css'] = ('static/music-panel.css', 'text/css; charset=utf-8')
 STATIC['/voiceover-panel.js'] = ('static/voiceover-panel.js', 'application/javascript; charset=utf-8')
@@ -211,7 +215,7 @@ def _comfy_held_mb():
 # Every "start" route calls GPU.claim(module): refuse while another module works, free what the idle ones still hold.
 GPU = GpuCoordinator(
     probes=dict(image=_image_busy, video=lambda: VIDEO is not None and VIDEO.busy(), music=lambda: MUSIC is not None and MUSIC.busy(), text=lambda: TEXT is not None and TEXT.busy(),
-                voiceover=lambda: VOICEOVER is not None and VOICEOVER.busy()),
+                voiceover=lambda: VOICEOVER is not None and VOICEOVER.busy(), director=lambda: DIRECTOR is not None and DIRECTOR.busy()),
     releasers=dict(image=_comfy_free, text=lambda: TEXT is not None and TEXT.release_gpu(), speech=lambda: SPEECH is not None and SPEECH.release_gpu()),
     free_vram=_gpu_free_mb, held=dict(image=_comfy_held_mb))
 if MUSIC is not None:
@@ -228,6 +232,17 @@ if TEXT is not None:
     PROMPT_ENHANCER = PromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
     from video.director_review import DirectorReview
     DIRECTOR_REVIEW = DirectorReview(TEXT, GPU, GPU_SUBMISSION_LOCK)
+if VIDEO is not None:
+    try:
+        from director.brain import DirectorBrain
+        from director.runner import DirectorManager
+        from director.studio import Studio
+        from video.video_delivery import ffmpeg_paths as _ffmpeg_paths
+        _director_token = secrets.token_urlsafe(24)     # what the Director's own requests carry; the bridge recognises them by it
+        DIRECTOR = DirectorManager(PATHS.settings.parent / 'Director', PATHS.cache / 'Director', *_ffmpeg_paths(PATHS.root / 'Runtime/Video'),
+                                   DirectorBrain(TEXT, GPU, GPU_SUBMISSION_LOCK, log=PATHS.logs / 'Director/plans.log') if TEXT is not None else None, Studio(PORT, _director_token, VIDEO), GPU, GPU_SUBMISSION_LOCK, _director_token)
+    except (ImportError, OSError, ValueError) as _director_error:
+        print(ui_text('common.studio_bridge_director_unavailable') + str(_director_error), flush=True)
 if TEXT is not None:
     try:
         from agents.agent_manager import AgentManager
@@ -263,6 +278,8 @@ def busy_state():
 def stop_generation():
     """Stop whatever generates right now, whichever module started it (the banner's Stop button)."""
     stopped = []
+    if DIRECTOR is not None and DIRECTOR.stop():           # first: the film must not start its next step when the current job is cancelled below
+        stopped.append('director')
     if AGENTS is not None and AGENTS.stop()['stopped']:
         stopped.append('agent')
     if TEXT is not None:
@@ -668,7 +685,10 @@ class Handler(BaseHTTPRequestHandler):
         if VIDEO is None:
             return self.response_json(503, {'available': False, 'error': VIDEO_WARNING})
         if route == 'availability':
-            return self.response_json(200, VIDEO.availability())
+            answer = VIDEO.availability()
+            if DIRECTOR is not None:        # the Director is an entry of the engine list that is not a model: the page shows its own panel for it
+                answer['engines'] = answer['engines'] + [DIRECTOR.profile(answer['engines'])]
+            return self.response_json(200, answer)
         try:
             if route == 'generate':
                 policy = ModelPolicy(PATHS.root)
@@ -1037,11 +1057,24 @@ class Handler(BaseHTTPRequestHandler):
             'scope': scope, 'text': result, 'files': len(pieces), 'truncated': abbreviated
         })
 
+    def acting(self):
+        """The Director's own requests (they carry the token of the film in progress) are not refused because the Director holds the card."""
+        if DIRECTOR is not None and DIRECTOR.acting(self.headers.get('X-VisualForge-Run')):
+            return GPU.acting_for('director')
+        return nullcontext()
+
     def do_GET(self):
+        with self.acting():
+            return self._do_GET()
+
+    def _do_GET(self):
         if not self.safe_origin():
             return
         u = urlparse(self.path)
         try:
+            if u.path.startswith('/api/director/'):
+                from director.routes import handle_get as director_get
+                return director_get(self, DIRECTOR, u.path.removeprefix('/api/director/'), u.query)
             if u.path.startswith('/api/music/'):
                 from music.music_routes import handle
                 return handle(self, MUSIC, GPU, u.path.removeprefix('/api/music/'), None, u.query)
@@ -1120,7 +1153,15 @@ class Handler(BaseHTTPRequestHandler):
             self.response_json(502, {'error': str(exc)[:600]})
 
     def do_POST(self):
+        with self.acting():
+            return self._post()
+
+    def _post(self):
         route = urlparse(self.path).path
+        if route == '/api/director/attach':
+            return self._director_attach()    # raw picture or video bytes (a video streams to disk); never waits for the GPU
+        if route.startswith('/api/director/'):
+            return self._director_post(route.removeprefix('/api/director/'))
         if route == '/api/text/send':
             return self._text_send()  # streams for minutes: only the admission below holds the GPU lock
         if route == '/api/agents/send':
@@ -1133,6 +1174,27 @@ class Handler(BaseHTTPRequestHandler):
             return self._do_POST()  # Stop, settings, the folder dialog (open for minutes) never wait behind a start
         with GPU_SUBMISSION_LOCK:
             return self._do_POST()
+
+    def _director_attach(self):
+        if not self.safe_origin():
+            return
+        from director.routes import attach
+        return attach(self, DIRECTOR, urlparse(self.path).query, PATHS.cache / 'Director/uploads')
+
+    def _director_post(self, route):
+        if not self.safe_origin():
+            return
+        try:
+            size = int(self.headers.get('Content-Length', '0') or '0')
+            if not 0 < size <= 4 * 1024 * 1024:
+                return self.response_json(413, {'error': ui_text('common.studio_bridge_send_request_too_large')})
+            data = json.loads(self.rfile.read(size))
+            if not isinstance(data, dict):
+                raise ValueError(ui_text('common.studio_bridge_post_expected_json_object'))
+        except (ValueError, UnicodeDecodeError) as error:
+            return self.response_json(400, {'error': str(error)[:300]})
+        from director.routes import handle_post as director_post
+        return director_post(self, DIRECTOR, route, data)
 
     def _speech_transcribe(self):
         if not self.safe_origin():

@@ -1,0 +1,846 @@
+{
+  "director.rules_seconds_range": {
+    "ru": "Длина фильма — от {0} до {1} секунд",
+    "en": "The film must last from {0} to {1} seconds"
+  },
+  "director.rules_scenes_whole_number": {
+    "ru": "Число сцен — целое число",
+    "en": "The number of scenes must be a whole number"
+  },
+  "director.rules_scenes_for_length_below_minute": {
+    "ru": "Сцен: {0}. До минуты в фильме ровно {1} сцены (уровень 0); больше сцен — с длиной от одной минуты",
+    "en": "Scenes: {0}. Below a minute a film has exactly {1} scenes (level 0); more scenes come with a length of a minute or more"
+  },
+  "director.rules_scenes_for_length": {
+    "ru": "Сцен: {0}, а для такой длины можно от {1} до {2}: не меньше одной на каждую минуту (сцена длится не дольше минуты) и не больше {3} на каждую минуту",
+    "en": "Scenes: {0}, but this length allows {1} to {2}: at least one for every minute (a scene lasts a minute at most) and at most {3} for every minute"
+  },
+  "director.rules_scene_too_long": {
+    "ru": "Сцена не может быть длиннее {0} секунд",
+    "en": "A scene cannot be longer than {0} seconds"
+  },
+  "director.media_body_size": {
+    "ru": "Файл пустой или больше {0} МиБ",
+    "en": "The file is empty or larger than {0} MiB"
+  },
+  "director.media_upload_interrupted": {
+    "ru": "Загрузка файла оборвалась",
+    "en": "The upload was interrupted"
+  },
+  "director.media_video_unreadable": {
+    "ru": "Не удалось прочитать видео: файл повреждён или это не видео",
+    "en": "The video could not be read: the file is damaged or is not a video"
+  },
+  "director.media_video_too_long": {
+    "ru": "Видео длиннее {0} минут",
+    "en": "The video is longer than {0} minutes"
+  },
+  "director.media_video_conversion_failed": {
+    "ru": "Не удалось преобразовать видео в MP4",
+    "en": "The video could not be converted to MP4"
+  },
+  "director.media_unknown_attachment": {
+    "ru": "Такого файла среди материалов нет",
+    "en": "There is no such file among the materials"
+  },
+  "director.media_unknown_draft": {
+    "ru": "Черновик фильма не найден",
+    "en": "The film draft was not found"
+  },
+  "director.plan_answer_unreadable": {
+    "ru": "Ответ Gemma не удалось прочитать как план фильма",
+    "en": "Gemma's answer could not be read as a film plan"
+  },
+  "director.plan_wrong_scene_count": {
+    "ru": "Нужно ровно {0} сцен, а в плане {1}",
+    "en": "Exactly {0} scenes are needed, the plan has {1}"
+  },
+  "director.plan_scene_unreadable": {
+    "ru": "Сцена {0} записана неверно",
+    "en": "Scene {0} is written wrongly"
+  },
+  "director.plan_scene_prompt_missing": {
+    "ru": "У сцены {0} нет описания",
+    "en": "Scene {0} has no description"
+  },
+  "director.brain_planning_was_stopped": {
+    "ru": "Составление плана остановлено",
+    "en": "Planning was stopped"
+  },
+  "director.brain_plan_not_written": {
+    "ru": "Gemma не смогла составить план фильма: {0}",
+    "en": "Gemma could not write the film plan: {0}"
+  },
+  "director.studio_request_failed": {
+    "ru": "Студия отклонила запрос {0} (код {1})",
+    "en": "The studio refused the request {0} (code {1})"
+  },
+  "director.studio_not_answering": {
+    "ru": "Студия не отвечает на запрос {0}",
+    "en": "The studio does not answer the request {0}"
+  },
+  "director.studio_job_too_slow": {
+    "ru": "Задача не закончилась за отведённое время и остановлена",
+    "en": "The job did not finish in time and was stopped"
+  },
+  "director.studio_keyframe_failed": {
+    "ru": "Не удалось нарисовать ключевой кадр",
+    "en": "The keyframe could not be drawn"
+  },
+  "director.studio_scene_failed": {
+    "ru": "Не удалось снять сцену",
+    "en": "The scene could not be shot"
+  },
+  "director.studio_music_failed": {
+    "ru": "Не удалось сочинить музыку",
+    "en": "The music could not be composed"
+  },
+  "director.studio_register_failed": {
+    "ru": "Не удалось добавить готовый фильм в историю Video: {0}",
+    "en": "The finished film could not be added to the Video history: {0}"
+  },
+  "director.manager_gemma_missing": {
+    "ru": "Для Режиссёра нужна установленная Gemma",
+    "en": "The Director needs the Gemma model to be installed"
+  },
+  "director.manager_film_in_progress": {
+    "ru": "Режиссёр уже снимает фильм. Дождитесь конца или остановите съёмку",
+    "en": "The Director is already shooting a film. Wait for the end or stop the shooting"
+  },
+  "director.manager_prompt_needed": {
+    "ru": "Опишите, какой фильм нужен (до 5000 символов)",
+    "en": "Describe the film you want (up to 5000 characters)"
+  },
+  "director.manager_no_such_run": {
+    "ru": "Такой съёмки нет",
+    "en": "There is no such shooting"
+  },
+  "director.manager_film_was_interrupted": {
+    "ru": "Съёмка прервана: студия была закрыта",
+    "en": "The shooting was interrupted: the studio was closed"
+  },
+  "director.manager_unexpected_error": {
+    "ru": "Непредвиденная ошибка Режиссёра: {0}: {1}",
+    "en": "Unexpected Director error: {0}: {1}"
+  },
+  "director.manager_scene_failed": {
+    "ru": "Сцена {0} не снята: {1}",
+    "en": "Scene {0} was not shot: {1}"
+  },
+  "director.manager_music_failed": {
+    "ru": "Музыка не готова: {0}",
+    "en": "The music is not ready: {0}"
+  },
+  "director.engine_list_name": {
+    "ru": "Режиссёр",
+    "en": "Director"
+  },
+  "director.engine_list_requirements": {
+    "ru": "Нужны Gemma (план и разбор материалов) и LTX 2.5 (сцены); музыку и ключевые кадры берёт из установленных моделей музыки и картинок.",
+    "en": "Needs Gemma (the plan and the look at the materials) and LTX 2.5 (the scenes); takes music and keyframes from the installed music and picture models."
+  },
+  "director.engine_list_limitations": {
+    "ru": "Фильм от 5 секунд до 5 минут. До минуты — 2 сцены (уровень 0), дальше до 5 сцен на каждую минуту. Видео-референсы до 10 минут и 2 ГБ. Съёмка идёт подряд, долго: от минут до часов.",
+    "en": "A film of 5 seconds to 5 minutes. Below a minute: 2 scenes (level 0), then up to 5 scenes for every minute. Reference videos up to 10 minutes and 2 GB. The shooting goes scene after scene and takes long: minutes to hours."
+  },
+  "director.engine_needs_gemma": {
+    "ru": "Для Режиссёра нужна установленная Gemma",
+    "en": "The Director needs the Gemma model to be installed"
+  },
+  "director.engine_needs_ltx": {
+    "ru": "Для Режиссёра нужна установленная модель LTX 2.5",
+    "en": "The Director needs the LTX 2.5 model to be installed"
+  },
+  "director.routes_director_unavailable": {
+    "ru": "Режиссёр недоступен: проверьте журнал запуска студии",
+    "en": "The Director is unavailable: check the studio startup log"
+  },
+  "director.header_description_text": {
+    "ru": "Режиссёр: целый фильм по описанию, фото и видео",
+    "en": "Director: a whole film from a description, photos and videos"
+  },
+  "director.history_mode_label": {
+    "ru": "Режиссёр",
+    "en": "Director"
+  },
+  "director.header_ready_text": {
+    "ru": "Режиссёр готов: Gemma и LTX 2.5 установлены",
+    "en": "The Director is ready: Gemma and LTX 2.5 are installed"
+  },
+  "director.panel_remove_button": {
+    "ru": "Убрать",
+    "en": "Remove"
+  },
+  "director.panel_converting_video": {
+    "ru": "Конвертация видео…",
+    "en": "Converting the video…"
+  },
+  "director.panel_converting_photo": {
+    "ru": "Обработка…",
+    "en": "Processing…"
+  },
+  "director.panel_upload_failed": {
+    "ru": "Не удалось загрузить файл",
+    "en": "The file could not be uploaded"
+  },
+  "director.panel_video_info": {
+    "ru": "{0}, {1}×{2}",
+    "en": "{0}, {1}×{2}"
+  },
+  "director.panel_photo_info": {
+    "ru": "{0}×{1}",
+    "en": "{0}×{1}"
+  },
+  "director.panel_studio_unreachable": {
+    "ru": "Не удалось связаться со студией. Проверьте, что приложение запущено.",
+    "en": "Could not reach the studio. Check that the application is running."
+  },
+  "director.panel_bad_answer": {
+    "ru": "Студия ответила непонятно. Откройте журналы.",
+    "en": "The studio answered in an unreadable way. Open the logs."
+  },
+  "director.panel_film_title": {
+    "ru": "Фильм",
+    "en": "The film"
+  },
+  "director.panel_seconds_label": {
+    "ru": "Длительность, секунд",
+    "en": "Length, seconds"
+  },
+  "director.panel_scenes_label": {
+    "ru": "Сцены",
+    "en": "Scenes"
+  },
+  "director.panel_format_label": {
+    "ru": "Кадр",
+    "en": "Frame"
+  },
+  "director.panel_auto_choice": {
+    "ru": "Авто (по описанию)",
+    "en": "Auto (from the description)"
+  },
+  "director.panel_landscape_choice": {
+    "ru": "Горизонтальный",
+    "en": "Landscape"
+  },
+  "director.panel_portrait_choice": {
+    "ru": "Вертикальный",
+    "en": "Portrait"
+  },
+  "director.panel_quality_label": {
+    "ru": "Качество",
+    "en": "Quality"
+  },
+  "director.panel_quality_draft": {
+    "ru": "Черновик (быстро)",
+    "en": "Draft (fast)"
+  },
+  "director.panel_quality_standard": {
+    "ru": "Стандарт",
+    "en": "Standard"
+  },
+  "director.panel_quality_max": {
+    "ru": "Максимум (долго)",
+    "en": "Maximum (slow)"
+  },
+  "director.panel_seconds_range": {
+    "ru": "Длина фильма — от {0} до {1} секунд",
+    "en": "The film must last from {0} to {1} seconds"
+  },
+  "director.panel_scene_hint_level_zero": {
+    "ru": "До минуты в фильме ровно {0} сцены (уровень 0). Чтобы сцен было больше, сделайте фильм от минуты: тогда можно до {1} сцен на каждую минуту.",
+    "en": "Below a minute a film has exactly {0} scenes (level 0). For more scenes make the film a minute or longer: then up to {1} scenes for every minute."
+  },
+  "director.panel_scene_hint_range": {
+    "ru": "Фильм {0}: можно от {1} до {2} сцен (не больше {3} на каждую минуту).",
+    "en": "A film of {0}: from {1} to {2} scenes (at most {3} for every minute)."
+  },
+  "director.panel_prompt_label": {
+    "ru": "Что снять",
+    "en": "What to shoot"
+  },
+  "director.panel_prompt_placeholder": {
+    "ru": "Опишите фильм: сюжет, стиль, качество, музыку. Например: «Хочу фильм в максимальном качестве в стиле вот этих видео, с похожими переходами и цветовой палитрой. Герои — с моих фото, на одном из фото машина: пусть они едут на ней, а в сценах видно, как они выходят и закрывают дверь. На фоне ненавязчивая музыка в стиле вестерн с редким глубоким женским вокалом.»",
+    "en": "Describe the film: the story, the style, the quality, the music. For example: \"I want a film in the highest quality in the style of these videos, with similar transitions and colour palette. The characters are from my photos, one photo shows a car: they drive it, and the scenes show them getting out and closing the door. Quiet western-style music in the background with rare deep female vocals.\""
+  },
+  "director.panel_make_plan": {
+    "ru": "Составить план",
+    "en": "Write the plan"
+  },
+  "director.panel_enter_idea": {
+    "ru": "Опишите, какой фильм нужен",
+    "en": "Describe the film you want"
+  },
+  "director.panel_planning_status": {
+    "ru": "Gemma смотрит материалы и пишет план… это может занять несколько минут",
+    "en": "Gemma is looking at the materials and writing the plan… this may take a few minutes"
+  },
+  "director.panel_unavailable_reason": {
+    "ru": "Режиссёр недоступен: {0}",
+    "en": "The Director is unavailable: {0}"
+  },
+  "director.panel_plan_ready": {
+    "ru": "План готов: проверьте, при желании поправьте, затем нажмите «Снимать фильм»",
+    "en": "The plan is ready: check it, edit it if you like, then press \"Shoot the film\""
+  },
+  "director.panel_plan_title": {
+    "ru": "План фильма",
+    "en": "The film plan"
+  },
+  "director.panel_plan_name": {
+    "ru": "Название",
+    "en": "Title"
+  },
+  "director.panel_plan_style": {
+    "ru": "Общий стиль (начало каждой сцены, по-английски)",
+    "en": "Overall style (the start of every scene, in English)"
+  },
+  "director.panel_plan_warmth": {
+    "ru": "Теплота цвета (от −1 до 1)",
+    "en": "Colour warmth (-1 to 1)"
+  },
+  "director.panel_plan_contrast": {
+    "ru": "Контраст",
+    "en": "Contrast"
+  },
+  "director.panel_plan_saturation": {
+    "ru": "Насыщенность",
+    "en": "Saturation"
+  },
+  "director.panel_plan_music": {
+    "ru": "Музыка",
+    "en": "Music"
+  },
+  "director.panel_plan_music_use": {
+    "ru": "Сочинить музыку и положить под фильм",
+    "en": "Compose music and lay it under the film"
+  },
+  "director.panel_plan_music_caption": {
+    "ru": "Описание музыки (по-английски)",
+    "en": "Music description (in English)"
+  },
+  "director.panel_plan_music_lyrics": {
+    "ru": "Слова песни",
+    "en": "Lyrics"
+  },
+  "director.panel_plan_music_gain": {
+    "ru": "Громкость музыки, дБ",
+    "en": "Music volume, dB"
+  },
+  "director.panel_plan_no_music": {
+    "ru": "Музыка в плане не предусмотрена. Чтобы она была, упомяните её в описании и составьте план заново.",
+    "en": "The plan has no music. To get it, mention it in the description and write the plan again."
+  },
+  "director.panel_plan_scenes": {
+    "ru": "Сцены",
+    "en": "Scenes"
+  },
+  "director.panel_scene_number": {
+    "ru": "Сцена {0}",
+    "en": "Scene {0}"
+  },
+  "director.panel_scene_seconds": {
+    "ru": "Секунд",
+    "en": "Seconds"
+  },
+  "director.panel_scene_transition": {
+    "ru": "Переход к следующей",
+    "en": "Transition to the next"
+  },
+  "director.panel_scene_pictures": {
+    "ru": "Фото: {0}",
+    "en": "Pictures: {0}"
+  },
+  "director.panel_scene_keyframe": {
+    "ru": "Ключевой кадр (по-английски)",
+    "en": "Keyframe (in English)"
+  },
+  "director.panel_scene_prompt": {
+    "ru": "Описание сцены (по-английски)",
+    "en": "Scene description (in English)"
+  },
+  "director.panel_sum_exact": {
+    "ru": "Сумма сцен: {0} из {1} с",
+    "en": "The scenes add up to {0} of {1} s"
+  },
+  "director.panel_sum_fitted": {
+    "ru": "Сумма сцен: {0} с, а фильм — {1} с: длины будут подогнаны",
+    "en": "The scenes add up to {0} s but the film is {1} s: the lengths will be fitted"
+  },
+  "director.panel_estimate_time": {
+    "ru": "Примерное время съёмки на этом компьютере: около {0} мин. Пока идёт съёмка, видеокарта занята.",
+    "en": "Estimated shooting time on this computer: about {0} min. The video card is busy while the film is shot."
+  },
+  "director.panel_estimate_time_hours": {
+    "ru": "Примерное время съёмки на этом компьютере: около {0} ч {1} мин. Пока идёт съёмка, видеокарта занята.",
+    "en": "Estimated shooting time on this computer: about {0} h {1} min. The video card is busy while the film is shot."
+  },
+  "director.panel_ultra_title": {
+    "ru": "Ультра",
+    "en": "Ultra"
+  },
+  "director.panel_ultra_hint": {
+    "ru": "Лучшее, что умеют нейросети: максимальное качество картинки, ключевой кадр для каждой сцены, самый сильный музыкальный движок и подробные описания. Минута фильма может сниматься 2–3 часа. Выключите, и съёмка пойдёт в 2–3 раза быстрее (около часа на минуту).",
+    "en": "The best the models can do: the highest picture quality, a keyframe for every scene, the strongest music engine and detailed prompts. A minute of film can take 2-3 hours. Switch it off to shoot 2-3 times faster (about an hour for a minute)."
+  },
+  "director.panel_plan_mode_ultra": {
+    "ru": "Режим: Ультра (лучшее качество, долго)",
+    "en": "Mode: Ultra (the best quality, slow)"
+  },
+  "director.panel_plan_mode_normal": {
+    "ru": "Режим: обычный (быстрее)",
+    "en": "Mode: normal (faster)"
+  },
+  "director.panel_start_button": {
+    "ru": "Снимать фильм",
+    "en": "Shoot the film"
+  },
+  "director.panel_stop_button": {
+    "ru": "Остановить съёмку",
+    "en": "Stop the shooting"
+  },
+  "director.run_section_title": {
+    "ru": "Съёмка",
+    "en": "Shooting"
+  },
+  "director.step_scene_keyframe": {
+    "ru": "Ключевой кадр для сцены {0}",
+    "en": "Keyframe for scene {0}"
+  },
+  "director.step_shoot_scene": {
+    "ru": "Съёмка сцены {0}",
+    "en": "Shooting scene {0}"
+  },
+  "director.step_compose_music": {
+    "ru": "Музыка",
+    "en": "Music"
+  },
+  "director.step_edit_assemble": {
+    "ru": "Монтаж, переходы и цвет",
+    "en": "Editing, transitions and colour"
+  },
+  "director.step_mix_music": {
+    "ru": "Звук: голоса, песни и музыка под фильм",
+    "en": "Sound: voices, songs and music under the film"
+  },
+  "director.run_film_ready": {
+    "ru": "Фильм готов и лежит в истории Video",
+    "en": "The film is ready and is in the Video history"
+  },
+  "director.run_was_cancelled": {
+    "ru": "Съёмка остановлена",
+    "en": "The shooting was stopped"
+  },
+  "director.run_open_film": {
+    "ru": "Открыть фильм",
+    "en": "Open the film"
+  },
+  "director.transition_kind_cut": {
+    "ru": "Склейка",
+    "en": "Cut"
+  },
+  "director.transition_kind_fade": {
+    "ru": "Плавный переход",
+    "en": "Fade"
+  },
+  "director.transition_kind_dissolve": {
+    "ru": "Растворение",
+    "en": "Dissolve"
+  },
+  "director.transition_kind_fadeblack": {
+    "ru": "Через чёрное",
+    "en": "Through black"
+  },
+  "director.transition_kind_wipeleft": {
+    "ru": "Шторка влево",
+    "en": "Wipe left"
+  },
+  "director.transition_kind_slideright": {
+    "ru": "Сдвиг вправо",
+    "en": "Slide right"
+  },
+  "director.transition_kind_circleopen": {
+    "ru": "Раскрытие круга",
+    "en": "Circle open"
+  },
+  "director.transition_kind_smoothleft": {
+    "ru": "Мягкий сдвиг влево",
+    "en": "Smooth left"
+  },
+  "director.rules_unknown_group": {
+    "ru": "Такой группы материалов нет",
+    "en": "There is no such group of materials"
+  },
+  "director.media_audio_unreadable": {
+    "ru": "Не удалось прочитать звук: файл повреждён или это не аудио",
+    "en": "The sound could not be read: the file is damaged or is not audio"
+  },
+  "director.media_song_too_long": {
+    "ru": "Песня длиннее {0} минут",
+    "en": "The song is longer than {0} minutes"
+  },
+  "director.media_voice_too_long": {
+    "ru": "Запись голоса длиннее {0} минут",
+    "en": "The voice recording is longer than {0} minutes"
+  },
+  "director.media_voice_too_short": {
+    "ru": "В образце голоса меньше {0} секунд речи",
+    "en": "The voice sample has less than {0} seconds of speech"
+  },
+  "director.media_audio_conversion_failed": {
+    "ru": "Не удалось преобразовать звук",
+    "en": "The sound could not be converted"
+  },
+  "director.media_group_full": {
+    "ru": "В этой группе уже {0} файлов: больше добавить нельзя",
+    "en": "This group already has {0} files: no more can be added"
+  },
+  "director.media_wrong_group": {
+    "ru": "Этот файл нельзя добавить в эту группу",
+    "en": "This file cannot be added to this group"
+  },
+  "director.media_voice_silent": {
+    "ru": "В образце голоса не слышно речи",
+    "en": "No speech can be heard in the voice sample"
+  },
+  "director.plan_note_no_speech_engine": {
+    "ru": "Голоса загружены, но движок озвучки не установлен: фильм будет без озвучки",
+    "en": "Voices are attached but no speech engine is installed: the film will have no voice-over"
+  },
+  "director.plan_note_voices_unused": {
+    "ru": "Gemma не дала ни одной реплики загруженным голосам. Напишите в описании, что и кто должен говорить, и составьте план заново",
+    "en": "Gemma gave the attached voices no lines. Say in the description what should be said and by whom, and write the plan again"
+  },
+  "director.studio_speech_failed": {
+    "ru": "Не удалось озвучить реплики",
+    "en": "The lines could not be spoken"
+  },
+  "director.studio_speech_incomplete": {
+    "ru": "Озвучка вернулась без части реплик",
+    "en": "The voice-over came back without some of the lines"
+  },
+  "director.routes_unknown_kind": {
+    "ru": "Неизвестный блок материалов",
+    "en": "Unknown block of materials"
+  },
+  "director.routes_voice_consent_needed": {
+    "ru": "Чтобы добавить голос, подтвердите, что вы вправе его использовать",
+    "en": "To add a voice, confirm that you have the right to use it"
+  },
+  "director.manager_speech_engine_missing": {
+    "ru": "Для озвучки нужен установленный движок Voiceover (Qwen3-TTS или VoxCPM2)",
+    "en": "The voice-over needs an installed Voiceover engine (Qwen3-TTS or VoxCPM2)"
+  },
+  "director.manager_speech_failed": {
+    "ru": "Озвучка не готова: {0}",
+    "en": "The voice-over is not ready: {0}"
+  },
+  "director.run_note_speech_flagged": {
+    "ru": "{0} реплик не прошли проверку на слух до конца: послушайте их в готовом фильме",
+    "en": "{0} lines did not pass the listening check completely: listen to them in the finished film"
+  },
+  "director.run_note_speech_engine_changed": {
+    "ru": "Озвучка движком {0} не удалась: реплики читает {1}",
+    "en": "Voice-over by {0} failed: {1} reads the lines"
+  },
+  "director.run_note_line_dropped": {
+    "ru": "Реплика {0} не уместилась в фильм и пропущена",
+    "en": "Line {0} did not fit into the film and was left out"
+  },
+  "director.panel_materials_hint": {
+    "ru": "Всё необязательно: можно дать только описание, а можно заполнить всё. Файлы любого формата студия приведёт к нужному виду. Файл можно перетащить на нужный блок. Подпись («Алексей», «Главная песня») помогает Режиссёру понять, кто есть кто.",
+    "en": "Everything is optional: a description alone is enough, or fill in everything. The studio converts files of any format. Drop a file on the block it belongs to. A caption (\"Alex\", \"Main song\") helps the Director tell who is who."
+  },
+  "director.panel_intro_text": {
+    "ru": "Режиссёр снимает целый фильм по вашему описанию: смотрит ваши фото и видео, слушает ваши песни и голоса, сам выбирает, какие нейросети нужны (видео, картинки, музыка, озвучка), и ведёт съёмку сцена за сценой.",
+    "en": "The Director shoots a whole film from your description: it looks at your photos and videos, takes your songs and voices, chooses which neural networks are needed (video, pictures, music, voice-over) and shoots scene after scene."
+  },
+  "director.panel_materials_title": {
+    "ru": "Материалы (всё необязательно)",
+    "en": "Materials (all optional)"
+  },
+  "director.panel_label_placeholder": {
+    "ru": "Имя или подпись (необязательно)",
+    "en": "Name or caption (optional)"
+  },
+  "director.panel_converting_song": {
+    "ru": "Обработка песни… час звука занимает около минуты",
+    "en": "Processing the song… an hour of sound takes about a minute"
+  },
+  "director.panel_converting_voice": {
+    "ru": "Обработка голоса…",
+    "en": "Processing the voice…"
+  },
+  "director.panel_group_full": {
+    "ru": "Больше добавить нельзя: в этом блоке уже {0} файлов",
+    "en": "No more can be added: this block already has {0} files"
+  },
+  "director.panel_wrong_media": {
+    "ru": "Этот файл не подходит для этого блока",
+    "en": "This file does not fit this block"
+  },
+  "director.panel_file_too_big": {
+    "ru": "Файл больше {0} МБ",
+    "en": "The file is larger than {0} MB"
+  },
+  "director.panel_voice_consent": {
+    "ru": "Я подтверждаю, что вправе использовать эти голоса: это мой голос или голос человека, который разрешил.",
+    "en": "I confirm that I have the right to use these voices: my own voice or the voice of someone who allowed it."
+  },
+  "director.panel_voice_consent_needed": {
+    "ru": "Сначала подтвердите, что вы вправе использовать голос",
+    "en": "First confirm that you have the right to use the voice"
+  },
+  "director.panel_voice_engine_missing": {
+    "ru": "Движок озвучки (Qwen3-TTS или VoxCPM2) не установлен: голоса пока нельзя использовать. Его можно поставить в разделе «Компоненты».",
+    "en": "No speech engine (Qwen3-TTS or VoxCPM2) is installed: voices cannot be used yet. It can be installed in the \"Components\" section."
+  },
+  "director.panel_advice_range": {
+    "ru": "Для ваших материалов лучше всего хронометраж {0}–{1}.",
+    "en": "For your materials a running time of {0}-{1} works best."
+  },
+  "director.panel_advice_exact": {
+    "ru": "Для ваших материалов лучше всего хронометраж {0}.",
+    "en": "For your materials a running time of {0} works best."
+  },
+  "director.panel_advice_inside": {
+    "ru": "Сейчас выбрано {0}: это подходит.",
+    "en": "You have chosen {0}: that fits."
+  },
+  "director.panel_advice_outside": {
+    "ru": "Сейчас выбрано {0}: результат может выйти хуже.",
+    "en": "You have chosen {0}: the result may come out worse."
+  },
+  "director.panel_advice_apply": {
+    "ru": "Подставить {0}",
+    "en": "Use {0}"
+  },
+  "director.panel_advice_baseline": {
+    "ru": "Кадры лучше всего получаются по 4–8 секунд: фильм на {0}–{1} выходит самым цельным.",
+    "en": "Shots come out best at 4-8 seconds: a film of {0}-{1} comes out the most coherent."
+  },
+  "director.panel_advice_places": {
+    "ru": "Мест: {0}. У каждого должна быть своя сцена. До минуты в фильме ровно две сцены, дальше не больше пяти на минуту: нужно не меньше {1}.",
+    "en": "Places: {0}. Each needs its own scene. Below a minute a film has exactly two scenes, then at most five a minute: at least {1} is needed."
+  },
+  "director.panel_advice_voices": {
+    "ru": "Голосов: {0}. Каждому нужна хотя бы одна реплика: не меньше {1}.",
+    "en": "Voices: {0}. Each needs at least one line: no less than {1}."
+  },
+  "director.panel_advice_songs": {
+    "ru": "Песен: {0}. Чтобы они прозвучали целиком, нужно {1}.",
+    "en": "Songs: {0}. To play them in full the film needs {1}."
+  },
+  "director.panel_advice_song_excerpt": {
+    "ru": "Песни длиннее пяти минут прозвучат фрагментом: Режиссёр выберет самую подходящую часть.",
+    "en": "Songs longer than five minutes sound as an excerpt: the Director picks the best part."
+  },
+  "director.panel_plan_songs": {
+    "ru": "Ваши песни в фильме",
+    "en": "Your songs in the film"
+  },
+  "director.panel_plan_song_use": {
+    "ru": "Использовать фрагмент: {0}",
+    "en": "Use an excerpt of: {0}"
+  },
+  "director.panel_plan_song_offset": {
+    "ru": "С какой секунды песни",
+    "en": "From second of the song"
+  },
+  "director.panel_plan_song_start": {
+    "ru": "С какой секунды фильма",
+    "en": "At second of the film"
+  },
+  "director.panel_scene_speech": {
+    "ru": "Озвучка сцены",
+    "en": "Voice-over of the scene"
+  },
+  "director.panel_speech_voice": {
+    "ru": "Кто говорит",
+    "en": "Who speaks"
+  },
+  "director.panel_speech_text": {
+    "ru": "Слова",
+    "en": "Words"
+  },
+  "director.panel_speech_remove": {
+    "ru": "Убрать реплику",
+    "en": "Remove the line"
+  },
+  "director.panel_speech_add": {
+    "ru": "Добавить реплику",
+    "en": "Add a line"
+  },
+  "director.step_speak_voice": {
+    "ru": "Озвучка: {0}",
+    "en": "Voice-over: {0}"
+  },
+  "director.group_hero_title": {
+    "ru": "Герои",
+    "en": "Heroes"
+  },
+  "director.group_hero_hint": {
+    "ru": "Фото людей и персонажей: Режиссёр сохранит их облик в каждой сцене.",
+    "en": "Photos of people and characters: the Director keeps their looks the same in every scene."
+  },
+  "director.group_hero_add": {
+    "ru": "Добавить героя…",
+    "en": "Add a hero…"
+  },
+  "director.slot_hero_first": {
+    "ru": "Герой 1",
+    "en": "Hero 1"
+  },
+  "director.slot_hero_second": {
+    "ru": "Герой 2",
+    "en": "Hero 2"
+  },
+  "director.slot_hero_other": {
+    "ru": "Герой {0}",
+    "en": "Hero {0}"
+  },
+  "director.group_place_title": {
+    "ru": "Места и сцены",
+    "en": "Places and scenes"
+  },
+  "director.group_place_hint": {
+    "ru": "Город, пейзаж, интерьер: то, где происходит действие.",
+    "en": "A city, a landscape, an interior: where the action happens."
+  },
+  "director.group_place_add": {
+    "ru": "Добавить место…",
+    "en": "Add a place…"
+  },
+  "director.slot_place_first": {
+    "ru": "Место 1",
+    "en": "Place 1"
+  },
+  "director.slot_place_second": {
+    "ru": "Место 2",
+    "en": "Place 2"
+  },
+  "director.slot_place_other": {
+    "ru": "Место {0}",
+    "en": "Place {0}"
+  },
+  "director.group_prop_title": {
+    "ru": "Предметы",
+    "en": "Objects"
+  },
+  "director.group_prop_hint": {
+    "ru": "Машина, оружие, вещь, которая должна быть в кадре именно такой.",
+    "en": "A car, a weapon, a thing that must appear exactly as it is."
+  },
+  "director.group_prop_add": {
+    "ru": "Добавить предмет…",
+    "en": "Add an object…"
+  },
+  "director.slot_prop_first": {
+    "ru": "Предмет 1",
+    "en": "Object 1"
+  },
+  "director.slot_prop_second": {
+    "ru": "Предмет 2",
+    "en": "Object 2"
+  },
+  "director.slot_prop_other": {
+    "ru": "Предмет {0}",
+    "en": "Object {0}"
+  },
+  "director.group_video_title": {
+    "ru": "Видео-примеры",
+    "en": "Reference videos"
+  },
+  "director.group_video_hint": {
+    "ru": "Образец темпа, цвета и переходов: до 10 минут и до 2 ГБ каждое.",
+    "en": "An example of pace, colour and transitions: up to 10 minutes and 2 GB each."
+  },
+  "director.group_video_add": {
+    "ru": "Добавить видео…",
+    "en": "Add a video…"
+  },
+  "director.slot_video_first": {
+    "ru": "Видео 1",
+    "en": "Video 1"
+  },
+  "director.slot_video_second": {
+    "ru": "Видео 2",
+    "en": "Video 2"
+  },
+  "director.slot_video_other": {
+    "ru": "Видео {0}",
+    "en": "Video {0}"
+  },
+  "director.group_song_title": {
+    "ru": "Свои песни",
+    "en": "Your songs"
+  },
+  "director.group_song_hint": {
+    "ru": "До часа каждая. Режиссёр выберет фрагменты и положит их под сцены.",
+    "en": "Up to an hour each. The Director picks excerpts and lays them under the scenes."
+  },
+  "director.group_song_add": {
+    "ru": "Добавить песню…",
+    "en": "Add a song…"
+  },
+  "director.slot_song_first": {
+    "ru": "Песня 1",
+    "en": "Song 1"
+  },
+  "director.slot_song_second": {
+    "ru": "Песня 2",
+    "en": "Song 2"
+  },
+  "director.slot_song_other": {
+    "ru": "Песня {0}",
+    "en": "Song {0}"
+  },
+  "director.group_narrator_title": {
+    "ru": "Диктор",
+    "en": "Narrator"
+  },
+  "director.group_narrator_hint": {
+    "ru": "Образец голоса закадрового ведущего: 5–30 секунд чистой речи. Он читает текст, который напишет Режиссёр. Можно до трёх дикторов: например, один открывает фильм, другой закрывает.",
+    "en": "A sample of the off-screen narrator's voice: 5-30 seconds of clean speech. It reads the text the Director writes. Up to three narrators: for example one opens the film and another closes it."
+  },
+  "director.group_narrator_add": {
+    "ru": "Добавить голос диктора…",
+    "en": "Add a narrator voice…"
+  },
+  "director.slot_narrator_first": {
+    "ru": "Диктор",
+    "en": "Narrator"
+  },
+  "director.slot_narrator_second": {
+    "ru": "Диктор 2",
+    "en": "Narrator 2"
+  },
+  "director.slot_narrator_other": {
+    "ru": "Диктор {0}",
+    "en": "Narrator {0}"
+  },
+  "director.group_character_title": {
+    "ru": "Главные герои и персонажи (голоса)",
+    "en": "Main characters and characters (voices)"
+  },
+  "director.group_character_hint": {
+    "ru": "Голос актёра, 5–30 секунд чистой речи. Звучит поверх картинки, без синхронизации губ. Всего до десяти голосов.",
+    "en": "An actor's voice, 5-30 seconds of clean speech. It is heard over the picture, without lip sync. Up to ten voices in all."
+  },
+  "director.group_character_add": {
+    "ru": "Добавить голос героя…",
+    "en": "Add a character voice…"
+  },
+  "director.slot_character_first": {
+    "ru": "Главный герой",
+    "en": "Main character"
+  },
+  "director.slot_character_second": {
+    "ru": "Второй главный герой",
+    "en": "Second main character"
+  },
+  "director.slot_character_other": {
+    "ru": "Персонаж {0}",
+    "en": "Character {0}"
+  }
+}

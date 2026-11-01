@@ -31,6 +31,14 @@ watches the finished clip and proposes a corrected prompt; Whisper checks that L
 (HEIC, AVIF, WebP, TIFF...) are accepted everywhere and converted automatically. See the [Video architecture](docs/VisualForge-Video-Architecture.md),
 the [ratings](docs/Video-Model-Ratings.md), [Gemma clip review](docs/Gemma-Clip-Review.md) and the [index of all documents](docs/README.md).
 
+The last entry of the video engine list is the **Director**. Materials are optional (a description alone is enough); when you have some, they go into blocks: photos of heroes, places and objects,
+reference videos (any format, up to 10 minutes and 2 GB), your own songs (up to an hour each) and voices (up to three narrators and up to ten main characters and characters; a voice is a sample that the
+Director clones). The next slot of a block appears when the one before it is filled. Say how long the film is (5 seconds to 5 minutes; the panel advises a running time for your materials) and how many scenes
+it has (two below a minute, then up to five for every minute), describe it in your own words, and Gemma writes a plan that you can edit. Then the studio shoots the film scene by scene with the models it has
+(FLUX.3 Klein keyframes, LTX 2.5 scenes with sound, music from the music engines, voice-over with Qwen3-TTS or VoxCPM2), joins the scenes with transitions and a colour grade and builds the sound: voices on top,
+songs and music under them. The **Ultra** switch (on by default) asks for the best the models can make (the largest picture, a keyframe for every scene, the strongest music engine): a minute of film can take
+2-3 hours; switched off, the film is made two to three times faster. See [the Director](docs/VisualForge-Director.md).
+
 Everything runs on your computer and there is no cloud service behind it; the only network traffic is the download of the
 programs and models from their original publishers (the model libraries run in offline mode).
 

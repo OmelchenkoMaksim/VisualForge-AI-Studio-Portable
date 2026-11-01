@@ -130,6 +130,18 @@ class DamagedStateTests(unittest.TestCase):
         self.addCleanup(manager.close)
         return manager, paths
 
+    def test_the_compile_caches_of_the_worker_stay_on_an_ascii_path_whatever_the_launcher_set(self):
+        import os
+        from unittest import mock
+        manager, _ = self.manager()
+        launcher = {'TRITON_CACHE_DIR': 'D:/Мои программы/UserData/Cache/Triton', 'CUDA_CACHE_PATH': 'D:/Мои программы/UserData/Cache/Cuda'}
+        with mock.patch.dict(os.environ, launcher):
+            env = manager._environment()
+        for name in ('TRITON_CACHE_DIR', 'CUDA_CACHE_PATH', 'TORCHINDUCTOR_CACHE_DIR', 'TEMP', 'TMP'):
+            with self.subTest(name=name):
+                self.assertTrue(env[name].isascii(), env[name])
+                self.assertTrue(Path(env[name]).is_relative_to(manager.state))
+
     def test_a_damaged_history_is_kept_aside_and_music_still_starts(self):
         for damaged in (b'', b'{"entries": [', b'{"not": "a list"}', b'[1, 2]'):
             with self.subTest(content=damaged):

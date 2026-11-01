@@ -537,6 +537,46 @@ class Jobs:
                 self.warning = 'Ролик со звуком сохранён, но запись истории не удалась.'
         return ident
 
+    def register_film(self, data):
+        """A film that the Director assembled from its scenes becomes a history entry of its own: copied to the save folder under the usual name, so the player,
+        the export, the mixer and the deletion treat it like any clip. The file must lie in the Director's folder; only the bridge (never the page) calls this."""
+        source = Path(str(data.get('path') or ''))
+        allowed = (self.user / 'Director').resolve()
+        if not source.is_absolute() or source.suffix.lower() != '.mp4' or not source.is_file() or not source.resolve().is_relative_to(allowed):
+            raise ValueError('Файл фильма должен лежать в папке Режиссёра')
+        prompt = str(data.get('prompt') or '').strip()[:5000]
+        scenes = [str(text)[:1500] for text in (data.get('scenes') if isinstance(data.get('scenes'), list) else [])][:60]
+        if not prompt or len(scenes) < 2:
+            raise ValueError('У фильма нет описания или сцен')
+        probe = subprocess.run([str(self.root / 'ffmpeg/bin/ffprobe.exe'), '-v', 'error', '-count_frames', '-show_streams', '-show_format', '-of', 'json', str(source)],
+                               capture_output=True, text=True, check=True, timeout=300)
+        info = json.loads(probe.stdout)
+        video = next(s for s in info['streams'] if s['codec_type'] == 'video')
+        metadata = dict(width=video['width'], height=video['height'], fps=video['r_frame_rate'], duration=float(video['duration']), frames=int(video['nb_read_frames']),
+                        codec=video['codec_name'], has_audio=any(s['codec_type'] == 'audio' for s in info['streams']))
+        ident, submitted = str(uuid.uuid4()), time.time()
+        save_dir = self.settings()['save_dir']
+        folder = self.user / 'Cache/Video/Jobs' / ident
+        folder.mkdir(parents=True, exist_ok=False)
+        try:
+            (folder / 'backend.log').write_text(str(data.get('log') or '')[-48000:], encoding='utf-8')
+            target = copy_unique(source, save_dir, filename_base(str(data.get('name_prompt') or scenes[0]), submitted, 'Director'))
+            with target.open('rb') as stream:
+                digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+            row = dict(id=ident, generation=generation_finish(generation_begin('Video')), module='video', state='done', phase='Готово', engine='director', mode='director',
+                       quality=str(data.get('quality') or 'standard')[:20], width=metadata['width'], height=metadata['height'], frames=metadata['frames'], fps=24, seed='0',
+                       prompt=prompt, original_prompt=prompt, segment_prompts=scenes, director=dict(title=str(data.get('title') or '')[:120], run=str(data.get('run') or '')[:64]),
+                       submitted_at=submitted, finished_at=time.time(), folder=str(folder), save_dir=save_dir, output_path=str(target), saved_path=str(target),
+                       filename=target.name, output_sha256=digest, metadata=metadata, events=[])
+            with self.lock:
+                self.rows[ident] = row
+                self.rows = dict(list(self.rows.items())[-100:])
+                self.persist()
+            return self.public(row)
+        except BaseException:
+            shutil.rmtree(folder, ignore_errors=True)
+            raise
+
     def cancel_export(self, data):
         with self.lock:
             ident = data.get('id')
@@ -829,6 +869,8 @@ def make_handler(jobs, token, stop_server):
                     return self.reply(200, jobs.cancel_export(data))
                 if parsed.path == '/delete' and data is not None:
                     return self.reply(200, jobs.delete(data))
+                if parsed.path == '/register' and data is not None:
+                    return self.reply(200, jobs.register_film(data))
                 if parsed.path == '/generate' and data is not None:
                     return self.reply(200, jobs.submit(data))
                 if parsed.path == '/cancel' and data is not None:

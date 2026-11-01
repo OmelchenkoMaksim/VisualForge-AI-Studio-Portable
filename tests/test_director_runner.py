@@ -1,0 +1,601 @@
+"""The production line with a fake studio: the order of the steps, retries, a stop, a failure, speech, songs, and the film that comes out (real FFmpeg, no model, no GPU)."""
+import io
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import unittest
+from pathlib import Path
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'App/server'))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from PIL import Image  # noqa: E402
+
+from director import media, plan, runner, soundtrack  # noqa: E402
+from director.studio import DirectorCancelled, DirectorError  # noqa: E402
+from gpu_coordinator import Busy  # noqa: E402
+from video.video_delivery import DeliveryCancelled, DeliveryError, ffmpeg_paths  # noqa: E402
+
+RUNTIME = Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME') or ROOT / 'Runtime/Video')
+FFMPEG, FFPROBE = ffmpeg_paths(RUNTIME)
+CAPS = dict(keyframes=True, music=[dict(id='ace-step-15-turbo', modes=['instrumental', 'song'], max_duration=180, about='Songs.')], speech=None)
+SPEECH_CAPS = dict(CAPS, speech=dict(engine='voxcpm2', engines=['voxcpm2'], languages=['Russian', 'English']))
+TWO_ENGINES = dict(CAPS, speech=dict(engine='voxcpm2', engines=['voxcpm2', 'qwen3-tts-12hz-0.6b-base'], languages=['Russian', 'English']))
+PROMPT = 'Photorealistic western film, warm light. Wide shot of a red car on a desert road, a woman in a hat drives; tires hiss on sand; wind and a distant guitar.'
+REQUEST = dict(prompt='Road trip', seconds=10, scenes=2, orientation='landscape', quality='draft')
+PHOTO = dict(number=1, kind='photo', group='hero')
+
+
+def png():
+    buffer = io.BytesIO()
+    Image.new('RGB', (300, 200), (180, 60, 30)).save(buffer, 'PNG')
+    return buffer.getvalue()
+
+
+def sound(path, frequency, seconds, level=0.25):
+    subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'sine=frequency=%d:duration=%s:sample_rate=48000' % (frequency, seconds),
+                    '-af', 'volume=%s' % level, '-ac', '2', str(path)], check=True)
+
+
+def noise(path, seconds):
+    subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'anoisesrc=color=pink:amplitude=0.3:duration=%s:sample_rate=44100' % seconds,
+                    '-ac', '1', str(path)], check=True)
+
+
+class FakeStudio:
+    """Answers like the studio but makes the clips itself; `calls` is the order of what the Director asked for."""
+
+    def __init__(self, work, caps=CAPS):
+        self.work, self.caps, self.calls, self.fail = Path(work), caps, [], {}
+        self.hold = None            # an Event the next shot waits for (to test a stop)
+        self.hold_speech = None     # the same for the next speech job
+        self.on_speak = None        # something to do at the first speech job (the person removes a material while the film is shot)
+        self.fail_speech = False
+        self.fail_engines = set()   # engines whose speech jobs fail (the first engine may break while the second works)
+        self.line_seconds = None    # a fixed length for every spoken line; else 0.05 s a character, at least a second
+        self.flagged = []
+        self.jobs = 0
+        self.keyframe_photos = []   # the pictures of every keyframe job, in the order they were given
+
+    def capabilities(self):
+        return self.caps
+
+    def keyframe(self, prompt, photos, orientation, cancel, progress=None):
+        self.calls.append(('keyframe', prompt, len(photos), orientation))
+        self.keyframe_photos.append(photos)
+        return png()
+
+    def shoot(self, job, prompt, start_png, cancel, progress=None):
+        self.calls.append(('shoot', job['frames'], job['mode'], job['quality'], (job['width'], job['height']), start_png is not None, job['seed']))
+        if self.hold is not None:
+            self.hold.set()
+            cancel.wait(10)
+            raise DirectorCancelled()
+        index = sum(1 for call in self.calls if call[0] == 'shoot')
+        if self.fail.get(index):
+            self.fail[index] -= 1
+            raise DirectorError('the engine refused')
+        path = self.work / ('scene-%d.mp4' % len(self.calls))
+        seconds = job['frames'] / 24
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=%dx%d:rate=24:duration=%s' % (job['width'], job['height'], seconds),
+                        '-f', 'lavfi', '-i', 'sine=frequency=330:duration=%s' % seconds, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', str(path)], check=True)
+        return dict(id='clip-%d' % index, path=str(path))
+
+    def compose(self, music, cancel, progress=None):
+        self.calls.append(('compose', music['engine'], music['seconds']))
+        return 'music-1'
+
+    def track(self, ident):
+        self.calls.append(('track', ident))
+        path = self.work / 'track.wav'
+        sound(path, 2500, 12)
+        return path.read_bytes()
+
+    def speak(self, engine, sample, name, lines, language, cancel, progress=None):
+        """One WAV with a tone for every line (a different pitch for every job), a second and a half of silence between them, and the spans the studio would report."""
+        self.jobs += 1
+        self.calls.append(('speak', engine, name, tuple(lines), language, len(sample) > 0))
+        if self.on_speak is not None:
+            self.on_speak()
+            self.on_speak = None
+        if self.hold_speech is not None:
+            self.hold_speech.set()
+            cancel.wait(10)
+            raise DirectorCancelled()
+        if self.fail_speech or engine in self.fail_engines:
+            raise DirectorError('the voice engine fell over')
+        spans, clock, parts = {}, 0.0, []
+        for index, line in enumerate(lines):
+            seconds = self.line_seconds or max(1.0, 0.05 * len(line))
+            spans[index] = (round(clock, 3), round(clock + seconds, 3))
+            parts.append(('sine=frequency=%d:duration=%s:sample_rate=24000,volume=0.4' % (500 + 700 * self.jobs, seconds), seconds))
+            clock += seconds + 1.5
+        path = self.work / ('speech-%d.wav' % self.jobs)
+        graph = ';'.join('%s[l%d];anullsrc=r=24000:cl=mono,atrim=duration=1.5[g%d]' % (source, i, i) for i, (source, _) in enumerate(parts))
+        graph += ';' + ''.join('[l%d][g%d]' % (i, i) for i in range(len(parts))) + 'concat=n=%d:v=0:a=1' % (2 * len(parts))
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-filter_complex', graph, str(path)], check=True)
+        return dict(job='job-%d' % self.jobs, path=str(path), spans=spans, flagged=self.flagged)
+
+    def forget_speech(self, ident):
+        self.calls.append(('forget_speech', ident))
+
+    def register(self, film):
+        self.calls.append(('register', Path(film['path']).name, len(film['scenes'])))
+        self.film = film
+        shutil.copyfile(film['path'], self.work / 'registered.mp4')                      # the run folder keeps no copy after the film is registered: look at it here
+        result = subprocess.run([str(FFPROBE), '-v', 'error', '-count_frames', '-show_streams', '-of', 'json', film['path']], capture_output=True, text=True, check=True)
+        self.film_streams = json.loads(result.stdout)['streams']
+        return dict(id='film-1')
+
+    def forget_clip(self, ident):
+        self.calls.append(('forget', ident))
+
+
+class FakeBrain:
+    def __init__(self, available=True):
+        self.available = available
+        self.requests = []
+
+    def status(self):
+        return dict(available=self.available, reason='' if self.available else 'no model', model='gemma-test')
+
+    def make_plan(self, draft, request, capabilities, language):
+        self.requests.append((dict(request), language))
+        return plan_for(request, capabilities)
+
+
+class FakeGpu:
+    def __init__(self):
+        self.claims, self.error = [], None
+
+    def claim(self, module, *args):
+        if self.error:
+            raise self.error
+        self.claims.append(module)
+
+
+def scene(seconds, **values):
+    return dict(dict(seconds=seconds, prompt=PROMPT, references=[1], keyframe=None, transition='fade'), **values)
+
+
+def plan_for(request, caps, items=(PHOTO,), **changes):
+    raw = dict(title='Road', summary='Two scenes.', orientation='landscape', quality='draft', style=dict(phrase='35mm film', warmth=0.2, contrast=1.05, saturation=1.0),
+               music=dict(engine='ace-step-15-turbo', mode='instrumental', caption='western guitar, slow', gain_db=-16),
+               scenes=[scene(request['seconds'] / 2, keyframe='A woman by a red car'), scene(request['seconds'] / 2)])
+    raw.update(changes)
+    return plan.normalize(raw, request, caps, plan.Materials(items))
+
+
+@unittest.skipUnless(FFMPEG.is_file() and FFPROBE.is_file(), 'bundled FFmpeg not found')
+class RunnerTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.work = Path(self.temp.name)
+        self.studio, self.gpu = FakeStudio(self.work), FakeGpu()
+        self.manager = runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, FakeBrain(), self.studio, self.gpu)
+        self.draft_id = media.new_draft_id()
+        self.draft = media.open_draft(self.manager.cache, self.draft_id, FFMPEG, FFPROBE)
+        self.draft.add_photo(png(), 'car.png')
+
+    def film(self, wait=90, caps=None, items=(PHOTO,), **changes):
+        self.manager.start(self.draft_id, plan_for(REQUEST, caps or self.studio.caps, items, **changes), REQUEST)
+        self.manager.thread.join(wait)
+        return self.manager.status()
+
+    def add_voices(self):
+        """A narrator (number 2) and a character (number 3) in the draft; returns the items for `plan_for`."""
+        sample = self.work / 'sample.wav'
+        noise(sample, 8)
+        self.draft.add_voice(shutil.copyfile(sample, self.work / 'upload-1.part'), 'narrator.wav', 'narrator')
+        self.draft.add_voice(shutil.copyfile(sample, self.work / 'upload-2.part'), 'hero.wav', 'character')
+        self.draft.set_label(3, 'Alexey')
+        return [PHOTO] + [dict(row) for row in self.draft.items() if row['kind'] == 'voice']
+
+    def add_song(self, seconds=30):
+        path = self.work / 'song.wav'
+        sound(path, 1000, seconds)
+        self.draft.add_song(shutil.copyfile(path, self.work / 'upload-3.part'), 'song.wav')
+        return [dict(row) for row in self.draft.items() if row['kind'] == 'audio']
+
+    # --- a film with music ----------------------------------------------------------------------------------------------------------------
+    def test_a_film_is_made_in_the_order_that_loads_each_model_once(self):
+        status = self.film()
+        self.assertEqual((status['state'], status['result']), ('done', dict(id='film-1')), status.get('error'))
+        kinds = [call[0] for call in self.studio.calls]
+        self.assertEqual(kinds, ['keyframe', 'shoot', 'shoot', 'compose', 'track', 'register', 'forget', 'forget'])
+        self.assertEqual(self.studio.calls[0][2:], (1, 'landscape'))                      # the keyframe is composed from the scene's picture
+        first, second = self.studio.calls[1], self.studio.calls[2]
+        self.assertEqual((first[2], second[2]), ('i2v', 'i2v'))                            # the keyframe, and the first attached picture, are start frames
+        self.assertEqual((first[3], first[4]), ('preview', (768, 512)))
+        self.assertEqual(self.studio.calls[3][1:], ('ace-step-15-turbo', 10))
+        self.assertEqual(self.studio.calls[5][1], 'film-mix.mp4')                        # the film that is registered is the one with the music under it
+        self.assertEqual(self.studio.calls[6:], [('forget', 'clip-1'), ('forget', 'clip-2')])
+        self.assertEqual(self.gpu.claims, ['director'])
+        self.assertTrue(all(step['state'] == 'done' for step in status['steps']))
+        self.assertEqual([step['id'] for step in status['steps']], ['keyframe-1', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        self.assertEqual((status['progress'], status['notes']), (1.0, []))
+        self.assertTrue(self.studio.film['scenes'][0].startswith('35mm film'))             # the style phrase opens every scene prompt
+
+    def test_the_film_file_is_exactly_as_long_as_planned(self):
+        self.film()
+        path = Path(self.studio.film['path'])
+        self.assertEqual(path.parent.parent.name, 'runs')
+        self.assertEqual(sorted(child.name for child in path.parent.iterdir()), ['keyframe-1.png', 'run.json'])      # registered, so the run keeps its keyframe and its log only
+        streams = self.studio.film_streams
+        video = next(s for s in streams if s['codec_type'] == 'video')
+        self.assertEqual((int(video['nb_read_frames']), video['width'], video['height']), (240, 768, 512))
+        audio = next(s for s in streams if s['codec_type'] == 'audio')
+        self.assertEqual((audio['codec_name'], audio['sample_rate']), ('aac', '48000'))
+
+    def test_the_generated_track_is_heard_under_the_scenes_own_sound(self):
+        self.film()
+        registered = self.work / 'registered.mp4'
+        from test_director_soundtrack import band
+        self.assertGreater(band(registered, 2500, 1.0, 3.0), -55)                         # the track (2500 Hz, a bed under the scenes) is in the film
+        self.assertGreater(band(registered, 330, 1.0, 3.0), -40)                          # and so is the sound the scenes came with (330 Hz)
+
+    def test_a_film_without_music_or_keyframes_skips_those_steps(self):
+        self.studio.caps = dict(keyframes=False, music=[], speech=None)
+        status = self.film(music=None)
+        self.assertEqual(status['state'], 'done')
+        self.assertEqual([call[0] for call in self.studio.calls], ['shoot', 'shoot', 'register', 'forget', 'forget'])
+        self.assertEqual(self.studio.calls[2][1], 'film.mp4')                              # nothing to lay under it: the assembled film is the film
+        self.assertEqual(status['result'], dict(id='film-1'))
+        self.assertEqual([step['id'] for step in status['steps']], ['scene-1', 'scene-2', 'assemble'])
+
+    # --- speech ---------------------------------------------------------------------------------------------------------------------------
+    def speech_plan(self, items):
+        lines = [dict(voice=2, scene=1, text='Это начало пути.', language='Russian', delay=0.5), dict(voice=3, scene=2, text='Поехали!', language='Russian', delay=0.3)]
+        return dict(speech=lines, music=None, items=items)
+
+    def test_voices_speak_first_and_every_line_lands_in_its_scene(self):
+        self.studio.caps = SPEECH_CAPS
+        items = self.add_voices()
+        status = self.film(caps=SPEECH_CAPS, **self.speech_plan(items))
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        order = [call[0] for call in self.studio.calls]
+        self.assertEqual(order, ['speak', 'forget_speech', 'speak', 'forget_speech', 'keyframe', 'shoot', 'shoot', 'register', 'forget', 'forget'])        # the voices are tried first
+        speak = [call for call in self.studio.calls if call[0] == 'speak']
+        self.assertEqual(speak[0][1:], ('voxcpm2', 'narrator.wav', ('Это начало пути.',), 'Russian', True))
+        self.assertEqual(speak[1][1:], ('voxcpm2', 'Alexey', ('Поехали!',), 'Russian', True))          # a voice is called by the name the person gave it
+        self.assertEqual([step['id'] for step in status['steps']], ['speech-2', 'speech-3', 'keyframe-1', 'scene-1', 'scene-2', 'assemble', 'mix'])
+        self.assertTrue(all(step['state'] == 'done' for step in status['steps']))
+        from test_director_soundtrack import band
+        registered = self.work / 'registered.mp4'
+        self.assertGreater(band(registered, 1200, 0.7, 0.6), -35)                         # the first job's tone, in the first scene, 0.5 s after it begins
+        self.assertGreater(band(registered, 1200, 0.7, 0.6), band(registered, 1200, 5.4, 0.6) + 20)           # and not in the second
+        self.assertGreater(band(registered, 1900, 5.4, 0.6), -35)                         # the second job's tone, in the second scene (5 s + 0.3 s)
+        self.assertGreater(band(registered, 1900, 5.4, 0.6), band(registered, 1900, 0.7, 0.6) + 20)
+
+    def test_lines_of_one_voice_are_one_job(self):
+        self.studio.caps = SPEECH_CAPS
+        items = self.add_voices()
+        lines = [dict(voice=2, scene=1, text='Первая фраза.'), dict(voice=2, scene=2, text='Вторая фраза.'), dict(voice=2, scene=2, text='Третья фраза.', language='English')]
+        status = self.film(caps=SPEECH_CAPS, speech=lines, music=None, items=items)
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        speak = [call for call in self.studio.calls if call[0] == 'speak']
+        self.assertEqual([(call[3], call[4]) for call in speak], [(('Первая фраза.', 'Вторая фраза.'), 'Russian'), (('Третья фраза.',), 'English')])      # one job per voice and language
+        self.assertEqual([step['id'] for step in status['steps'] if step['kind'] == 'speech'], ['speech-2'])
+
+    def test_a_line_that_does_not_fit_is_left_out_and_the_film_says_so(self):
+        self.studio.caps = SPEECH_CAPS
+        self.studio.line_seconds = 40                                                      # far longer than the film
+        items = self.add_voices()
+        status = self.film(caps=SPEECH_CAPS, **self.speech_plan(items))
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertEqual(len(status['notes']), 2)
+        self.assertEqual(self.studio.calls[-3][1], 'film.mp4')                              # no line and no music left: the assembled film is registered as it is
+        self.assertEqual([step['state'] for step in status['steps'] if step['kind'] == 'mix'], ['skipped'])
+
+    def test_lines_the_listener_doubted_are_reported(self):
+        self.studio.caps = SPEECH_CAPS
+        self.studio.flagged = [dict(key='a'), dict(key='b')]
+        status = self.film(caps=SPEECH_CAPS, **self.speech_plan(self.add_voices()))
+        self.assertEqual(status['state'], 'done')
+        self.assertEqual(len(status['notes']), 2)                                           # one note for each of the two jobs
+
+    def test_a_voice_that_fails_stops_the_film_before_any_shooting(self):
+        self.studio.caps = SPEECH_CAPS
+        self.studio.fail_speech = True
+        status = self.film(caps=SPEECH_CAPS, **self.speech_plan(self.add_voices()))
+        self.assertEqual(status['state'], 'error')
+        self.assertIn('the voice engine fell over', status['error'])
+        self.assertEqual([call[0] for call in self.studio.calls], ['speak'])                  # nothing was shot
+        states = {step['id']: step['state'] for step in status['steps']}
+        self.assertEqual((states['speech-2'], states['scene-1']), ('failed', 'pending'))
+        self.assertFalse(self.manager.busy())
+
+    def test_a_second_engine_takes_over_when_the_first_one_fails(self):
+        self.studio.caps = TWO_ENGINES
+        self.studio.fail_engines = {'voxcpm2'}
+        status = self.film(caps=TWO_ENGINES, **self.speech_plan(self.add_voices()))
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertEqual([(call[1]) for call in self.studio.calls if call[0] == 'speak'], ['voxcpm2', 'qwen3-tts-12hz-0.6b-base', 'voxcpm2', 'qwen3-tts-12hz-0.6b-base'])      # for each voice
+        self.assertEqual(len(status['notes']), 2)
+        self.assertIn('voxcpm2', status['notes'][0])
+        self.assertIn('qwen3-tts-12hz-0.6b-base', status['notes'][0])
+
+    def test_when_every_engine_fails_the_film_stops_before_any_shooting(self):
+        self.studio.caps = TWO_ENGINES
+        self.studio.fail_engines = {'voxcpm2', 'qwen3-tts-12hz-0.6b-base'}
+        status = self.film(caps=TWO_ENGINES, **self.speech_plan(self.add_voices()))
+        self.assertEqual(status['state'], 'error')
+        self.assertIn('the voice engine fell over', status['error'])
+        self.assertEqual([call[0] for call in self.studio.calls], ['speak', 'speak'])
+        self.assertEqual(len(status['notes']), 1)                                                   # the change of engine was noted, then the last failure ended the film
+
+    def test_a_stop_during_the_speech_ends_the_film(self):
+        self.studio.caps = SPEECH_CAPS
+        self.studio.hold_speech = threading.Event()
+        self.manager.start(self.draft_id, plan_for(REQUEST, SPEECH_CAPS, **self.speech_plan(self.add_voices())), REQUEST)
+        self.assertTrue(self.studio.hold_speech.wait(30))
+        self.assertTrue(self.manager.stop())
+        self.manager.thread.join(30)
+        self.assertEqual(self.manager.status()['state'], 'cancelled')
+        self.assertEqual([call[0] for call in self.studio.calls], ['speak'])
+
+    def test_a_plan_with_lines_is_refused_when_the_speech_engine_has_gone(self):
+        items = self.add_voices()
+        spoken = plan_for(REQUEST, SPEECH_CAPS, **self.speech_plan(items))
+        self.assertEqual(len(spoken['speech']), 2)
+        self.studio.caps = CAPS                                                            # the engine was removed between the plan and the start
+        with self.assertRaises(ValueError):
+            self.manager.start(self.draft_id, spoken, REQUEST)
+        self.assertIsNone(self.manager.thread)
+        self.assertEqual(self.gpu.claims, [])
+
+    def test_a_picture_or_a_voice_removed_during_the_film_does_not_break_it(self):
+        self.studio.caps = SPEECH_CAPS
+        items = self.add_voices()
+        self.studio.on_speak = lambda: (self.draft.remove(3), self.draft.remove(1))        # the page removes the second voice and the picture while the first voice speaks
+        status = self.film(caps=SPEECH_CAPS, **self.speech_plan(items))
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        speak = [call for call in self.studio.calls if call[0] == 'speak']
+        self.assertEqual([call[2] for call in speak], ['narrator.wav', 'Alexey'])                  # the voice that was removed still spoke: the film keeps its own links
+        self.assertEqual(next(call for call in self.studio.calls if call[0] == 'keyframe')[2], 1)       # and so was the picture that was removed still used
+        self.assertEqual({key: row['name'] for key, row in status['materials'].items()}, {'1': 'car.png', '2': 'narrator.wav', '3': 'hero.wav'})
+        self.assertEqual(sorted(child.name for child in Path(self.manager.root, 'runs', status['id']).iterdir()), ['keyframe-1.png', 'run.json'])      # the links are given back
+
+    # --- songs ----------------------------------------------------------------------------------------------------------------------------
+    def test_a_song_of_the_person_is_laid_under_the_film_with_the_generated_track_after_it(self):
+        song = self.add_song(30)
+        cue = dict(song=2, offset=3.0, start=0.0, seconds=5.0, gain_db=-6.0, fade_in=0.2, fade_out=0.5)
+        status = self.film(items=[PHOTO] + song, songs=[cue], music=dict(engine='ace-step-15-turbo', mode='instrumental', caption='western guitar, slow', start=5, gain_db=-12))
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertEqual([call[0] for call in self.studio.calls], ['keyframe', 'shoot', 'shoot', 'compose', 'track', 'register', 'forget', 'forget'])
+        self.assertEqual(self.studio.calls[3][1:], ('ace-step-15-turbo', 10))             # the generated track is asked for the whole film; the plan says where it begins
+        from test_director_soundtrack import band
+        registered = self.work / 'registered.mp4'
+        self.assertGreater(band(registered, 1000, 1.0, 3.0), -40)                         # the song fills the first five seconds
+        self.assertGreater(band(registered, 1000, 1.0, 3.0), band(registered, 1000, 6.5, 2.5) + 20)
+        self.assertGreater(band(registered, 2500, 6.5, 2.5), band(registered, 2500, 0.5, 3.0) + 20)               # and the generated track the rest
+
+    def test_songs_alone_need_no_generated_music(self):
+        song = self.add_song(12)
+        status = self.film(items=[PHOTO] + song, songs=[dict(song=2, offset=0, start=0, seconds=10, gain_db=-8)], music=None)
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertEqual([step['id'] for step in status['steps']], ['keyframe-1', 'scene-1', 'scene-2', 'assemble', 'mix'])
+        self.assertNotIn('compose', [call[0] for call in self.studio.calls])
+
+    # --- failures and stops -----------------------------------------------------------------------------------------------------------------
+    def test_a_scene_that_fails_once_is_shot_again_with_another_seed(self):
+        self.studio.fail = {1: 1}
+        status = self.film()
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        seeds = [call[6] for call in self.studio.calls if call[0] == 'shoot']
+        self.assertEqual(len(seeds), 3)
+        self.assertNotEqual(seeds[0], seeds[1])
+
+    def test_a_scene_that_fails_twice_stops_the_film_with_a_message(self):
+        self.studio.fail = {2: 1, 3: 1}                    # the second and the third shot of the film: scene 2 and its second try
+        status = self.film()
+        self.assertEqual(status['state'], 'error')
+        self.assertIn('2', status['error'])
+        self.assertEqual([step['state'] for step in status['steps'] if step['id'] == 'scene-2'], ['failed'])
+        self.assertFalse(self.manager.busy())
+
+    def test_a_stop_ends_the_film_and_the_slot_is_free_again(self):
+        self.studio.hold = threading.Event()
+        self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.assertTrue(self.studio.hold.wait(30))
+        self.assertTrue(self.manager.acting(self.manager.token))
+        self.assertFalse(self.manager.acting('not the token'))
+        self.assertTrue(self.manager.stop())
+        self.manager.thread.join(30)
+        self.assertEqual(self.manager.status()['state'], 'cancelled')
+        self.assertFalse(self.manager.acting(self.manager.token))                    # nobody is acting for a film that ended
+        self.assertFalse(self.manager.stop())
+
+    def test_a_mix_that_fails_or_is_stopped_ends_the_film_the_right_way(self):
+        with mock.patch.object(soundtrack, 'mixdown', side_effect=DeliveryError('the mix broke')):
+            status = self.film()
+        self.assertEqual((status['state'], status['error']), ('error', 'the mix broke'))
+        self.assertEqual([step['state'] for step in status['steps'] if step['id'] == 'mix'], ['failed'])
+        self.assertFalse((Path(self.manager.root) / 'runs' / status['id'] / 'film.mp4').exists())     # no half-made film is left in the run folder
+        with mock.patch.object(soundtrack, 'mixdown', side_effect=DeliveryCancelled('stopped')):
+            self.assertEqual(self.film()['state'], 'cancelled')
+
+    def test_an_edited_plan_is_checked_again_and_a_busy_card_starts_nothing(self):
+        broken = plan_for(REQUEST, CAPS)
+        broken['scenes'] = broken['scenes'][:1]
+        with self.assertRaises(ValueError):
+            self.manager.start(self.draft_id, broken, REQUEST)
+        self.assertIsNone(self.manager.thread)
+        self.gpu.error = Busy('image works')
+        with self.assertRaises(Busy):
+            self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.assertIsNone(self.manager.thread)
+        with self.assertRaises(ValueError):
+            self.manager.start('../x', plan_for(REQUEST, CAPS), REQUEST)
+
+    def test_a_second_film_cannot_start_while_one_is_running(self):
+        self.studio.hold = threading.Event()
+        self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.assertTrue(self.studio.hold.wait(30))
+        with self.assertRaises(ValueError):
+            self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.manager.stop()
+        self.manager.thread.join(30)
+
+    def test_a_film_keeps_its_draft_from_the_weekly_clean_up(self):
+        stamp = time.time() - 9 * 86400
+        os.utime(self.draft.folder, (stamp, stamp))
+        self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.manager.thread.join(90)
+        self.assertGreater(self.draft.folder.stat().st_mtime, time.time() - 3600)
+        self.assertEqual(media.prune_drafts(self.manager.cache, 7), 0)
+
+    def test_a_run_left_running_by_a_closed_studio_is_marked_interrupted(self):
+        folder = self.work / 'Director' / 'runs' / ('a' * 32)
+        folder.mkdir(parents=True)
+        (folder / 'run.json').write_text(json.dumps(dict(id='a' * 32, state='running', steps=[])), encoding='utf-8')
+        runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, None, self.studio, self.gpu)
+        self.assertEqual(json.loads((folder / 'run.json').read_text(encoding='utf-8'))['state'], 'interrupted')
+        self.assertEqual(self.manager.status('a' * 32)['state'], 'interrupted')
+        self.assertEqual(self.manager.status('b' * 32)['state'], 'none')
+
+    # --- the page's questions -------------------------------------------------------------------------------------------------------------
+    def test_the_engine_entry_says_what_is_missing(self):
+        ltx = [dict(id='ltx25-distilled', available=True)]
+        self.assertTrue(self.manager.profile(ltx)['available'])
+        self.assertIn('LTX', self.manager.profile([dict(id='ltx25-distilled', available=False)])['reason'] + 'LTX')
+        self.assertFalse(self.manager.profile([dict(id='ltx25-distilled', available=False)])['available'])
+        manager = runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, FakeBrain(False), self.studio, self.gpu)
+        self.assertEqual(manager.profile(ltx)['reason'], 'no model')
+        limits = self.manager.profile(ltx)['limits']
+        self.assertEqual((limits['max_seconds'], limits['max_song_seconds'], limits['voice_sample_seconds']), (300, 3600, 30))
+        self.assertEqual([(row['id'], row['limit']) for row in limits['groups'] if row['media'] == 'voice'], [('narrator', 3), ('character', 10)])
+        with self.assertRaises(ValueError):
+            runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, None, self.studio, self.gpu).make_plan(self.draft_id, dict(REQUEST), 'Russian')
+
+    # --- the Ultra toggle -------------------------------------------------------------------------------------------------------------------
+    def test_the_ultra_flag_travels_from_the_page_to_the_brain(self):
+        for sent, expected in ((True, True), (False, False), ('yes', False), (1, False), (None, False)):
+            with self.subTest(sent=sent):
+                self.manager.make_plan(self.draft_id, dict(REQUEST, ultra=sent), 'English')
+                self.assertIs(self.manager.brain.requests[-1][0]['ultra'], expected)
+        self.manager.make_plan(self.draft_id, dict(REQUEST), 'English')
+        self.assertIs(self.manager.brain.requests[-1][0]['ultra'], False)                    # a request without the flag is a normal one
+
+    def test_an_ultra_film_gets_a_keyframe_for_every_scene_and_the_style_for_a_picture_drawn_from_words(self):
+        request = dict(REQUEST, ultra=True)
+        plain = [scene(5.0, references=[]), scene(5.0, references=[])]
+        self.manager.start(self.draft_id, plan_for(request, self.studio.caps, scenes=plain), request)
+        self.manager.thread.join(90)
+        status = self.manager.status()
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertTrue(status['plan']['ultra'] and status['request']['ultra'])
+        self.assertEqual([step['id'] for step in status['steps']], ['keyframe-1', 'keyframe-2', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        keyframes = [call for call in self.studio.calls if call[0] == 'keyframe']
+        self.assertEqual([call[2] for call in keyframes], [0, 0])                                  # no photos: both were drawn from the words
+        self.assertTrue(all(call[1].startswith('35mm film. ') for call in keyframes))               # and the film's look was put in front of them
+        self.assertEqual([call[2] for call in self.studio.calls if call[0] == 'shoot'], ['i2v', 'i2v'])
+
+    def test_the_picture_model_is_asked_in_its_own_numbers(self):
+        """The plan says "picture 2" for the second picture of the draft; Klein is given the pictures of the scene in order and counts them from one."""
+        self.draft.add_photo(png(), 'harbour.png')
+        items = (PHOTO, dict(number=2, kind='photo', group='place'))
+        words = 'The woman from picture 1 walks along the harbour of picture 2 at dawn'
+        self.manager.start(self.draft_id, plan_for(REQUEST, self.studio.caps, items, scenes=[scene(5.0, references=[2, 1], keyframe=words), scene(5.0, references=[1])]), REQUEST)
+        self.manager.thread.join(90)
+        sent = [call for call in self.studio.calls if call[0] == 'keyframe']
+        self.assertEqual(sent[0][1:], ('The woman from picture 2 walks along the harbour of picture 1 at dawn', 2, 'landscape'))        # the harbour is the scene's first picture now
+        self.assertEqual(self.manager.status()['plan']['scenes'][0]['keyframe'], words)                                                  # and the plan shows what it showed
+
+    def add_tall_photo(self):
+        buffer = io.BytesIO()
+        Image.new('RGB', (200, 300), (30, 60, 180)).save(buffer, 'PNG')
+        self.draft.add_photo(buffer.getvalue(), 'tall.png')              # number 2: a hero who is taller than wide
+
+    def test_the_pictures_of_a_keyframe_are_given_in_the_shape_of_the_film(self):
+        """Klein draws on the proportions of the first picture: for a landscape film the wide picture of the scene goes first, and the words follow the new order."""
+        self.add_tall_photo()
+        items = (dict(PHOTO, group='place'), dict(number=2, kind='photo', group='hero'))
+        words = 'The woman from picture 2 stands in the harbour of picture 1'
+        self.manager.start(self.draft_id, plan_for(REQUEST, self.studio.caps, items, scenes=[scene(5.0, references=[2, 1], keyframe=words), scene(5.0, references=[1])]), REQUEST)
+        self.manager.thread.join(90)
+        sent = [call for call in self.studio.calls if call[0] == 'keyframe'][0]
+        self.assertEqual((sent[1], sent[2]), (words, 2))                           # picture 2 is still the second one the model gets, picture 1 the first
+        self.assertEqual([Image.open(io.BytesIO(raw)).size for raw in self.studio.keyframe_photos[0]], [(300, 200), (200, 300)])
+
+    def test_a_tall_photo_alone_goes_to_the_picture_model_on_a_wide_canvas(self):
+        self.add_tall_photo()
+        items = (PHOTO, dict(number=2, kind='photo', group='hero'))
+        words = 'The woman walks along the harbour at dawn'
+        self.manager.start(self.draft_id, plan_for(REQUEST, self.studio.caps, items, scenes=[scene(5.0, references=[2], keyframe=words), scene(5.0, references=[1])]), REQUEST)
+        self.manager.thread.join(90)
+        sent = [call for call in self.studio.calls if call[0] == 'keyframe'][0]
+        self.assertTrue(sent[1].startswith(words + '. ') and sent[1].endswith(media.PAD_NOTE['landscape']), sent[1])
+        self.assertEqual([Image.open(io.BytesIO(raw)).size for raw in self.studio.keyframe_photos[0]], [media.FRAME_CANVAS['landscape']])
+
+    def test_a_keyframe_made_of_photos_keeps_its_own_words(self):
+        request = dict(REQUEST, ultra=True)
+        self.manager.start(self.draft_id, plan_for(request, self.studio.caps), request)
+        self.manager.thread.join(90)
+        words = [call[1] for call in self.studio.calls if call[0] == 'keyframe']
+        self.assertEqual(words[0], 'A woman by a red car')                                         # Gemma's own keyframe: a photo already gives the look
+        self.assertEqual(words[1], 'Show the person from picture 1. Photorealistic western film, warm light.')
+
+    def test_planning_goes_through_the_brain_and_adds_an_estimate(self):
+        result = self.manager.make_plan(self.draft_id, dict(REQUEST), 'English')
+        self.assertEqual(len(result['scenes']), 2)
+        self.assertGreater(result['estimate_minutes'], 1)
+        with self.assertRaises(ValueError):
+            self.manager.make_plan(self.draft_id, dict(REQUEST, scenes=3), 'English')
+        with self.assertRaises(ValueError):
+            self.manager.make_plan(self.draft_id, dict(REQUEST, prompt=' '), 'English')
+
+    def test_the_draft_is_shown_without_paths_and_with_the_advice_on_running_time(self):
+        shown = self.manager.draft(self.draft_id)
+        self.assertEqual([row['number'] for row in shown['items']], [1])
+        self.assertNotIn('file', shown['items'][0])
+        self.assertEqual(shown['advice']['reasons'][0]['code'], 'baseline')
+        song = self.add_song(100)
+        self.assertEqual(self.manager.draft(self.draft_id)['advice']['ideal'], 100)
+        added = self.manager.label(self.draft_id, song[0]['number'], 'Main song')
+        self.assertEqual([row['label'] for row in added['items']], ['', 'Main song'])
+        removed = self.manager.detach(self.draft_id, song[0]['number'])
+        self.assertEqual([row['number'] for row in removed['items']], [1])
+        self.assertEqual(removed['advice']['ideal'], 30)
+
+    def test_an_attachment_can_be_played_back_by_its_number_only(self):
+        song = self.add_song(5)
+        path, kind = self.manager.media_file(self.draft_id, song[0]['number'])
+        self.assertEqual((path.suffix, kind), ('.m4a', 'audio/mp4'))
+        self.assertEqual(self.manager.media_file(self.draft_id, 1)[1], 'image/png')
+        for number in (99, 'x', True, None, -1):
+            with self.subTest(number=number), self.assertRaises(ValueError):
+                self.manager.media_file(self.draft_id, number)
+        with self.assertRaises(ValueError):
+            self.manager.media_file('../..', 1)
+
+
+class StepTests(unittest.TestCase):
+    def test_steps_follow_the_plan(self):
+        full = plan_for(REQUEST, CAPS)
+        self.assertEqual([step['id'] for step in runner.build_steps(full, True)], ['keyframe-1', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        self.assertEqual([step['id'] for step in runner.build_steps(full, False)], ['scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        silent = plan_for(REQUEST, CAPS, music=None)
+        self.assertEqual([step['id'] for step in runner.build_steps(silent, False)], ['scene-1', 'scene-2', 'assemble'])
+        self.assertEqual(runner.scene_prompt(full, 0)[:12], '35mm film Ph')
+        self.assertEqual(runner.scene_prompt(dict(full, style=dict(phrase='')), 1), PROMPT)
+
+    def test_every_voice_that_speaks_has_a_step_in_front_and_songs_have_a_mix_but_no_track(self):
+        items = [PHOTO, dict(number=2, kind='voice', group='narrator', seconds=9.0), dict(number=5, kind='voice', group='character', seconds=9.0), dict(number=7, kind='audio', group='song', seconds=60.0)]
+        lines = [dict(voice=5, scene=1, text='Привет, мир.'), dict(voice=2, scene=2, text='Пока, мир.'), dict(voice=5, scene=2, text='Ещё слово.')]
+        both = plan_for(REQUEST, SPEECH_CAPS, items, speech=lines, music=None)
+        self.assertEqual([step['id'] for step in runner.build_steps(both, False)], ['speech-5', 'speech-2', 'scene-1', 'scene-2', 'assemble', 'mix'])        # in the order of their first line
+        song = plan_for(REQUEST, CAPS, items, music=None, songs=[dict(song=7, offset=0, start=0, seconds=8)])
+        self.assertEqual([step['id'] for step in runner.build_steps(song, False)], ['scene-1', 'scene-2', 'assemble', 'mix'])
+
+
+if __name__ == '__main__':
+    unittest.main()

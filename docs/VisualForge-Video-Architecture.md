@@ -29,6 +29,11 @@ studio_server.py  (the bridge: admission, GPU claim, static files, Gemma routes)
        ltx_worker / ltx_scenes / ltx_long   wan_worker   s2v_worker (+ voice_worker)   character_worker   video_pipeline (FreeVideo CLI)
 ```
 
+The **Director** ([VisualForge-Director.md](VisualForge-Director.md)) sits beside the Video service, not inside it: `App/server/director/` plans with Gemma (`brain.py`) and then drives the studio's own routes
+(`studio.py` over the loopback bridge: voice-over through the Voiceover routes, Klein keyframes, LTX scenes, music) from a production thread (`runner.py`), assembles the scene clips with FFmpeg (`assemble.py`), builds the soundtrack (`soundtrack.py`: it does not use the Video mixer, whose ducking is too weak for speech) and hands the finished film to
+`Jobs.register_film`. It appears in the engine list as a virtual entry (`virtual: 'director'`, added to the availability answer by the bridge) and is **not** in `video_registry.ENGINES`, so the engine matrix
+test does not apply to it.
+
 ComfyUI (:8188) is the Image runtime; the Video workers import the ComfyUI code vendored in the isolated Video runtime (`Runtime/Video/vendor/ComfyUI`) in-process and never call that
 server. Pictures reach a job as data URLs and are converted to PNG by `image_convert.py` before any GPU job is committed. The services die together with the launcher window
 (Windows job object).

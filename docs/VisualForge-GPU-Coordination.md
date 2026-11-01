@@ -1,7 +1,10 @@
 # One GPU, five modules: coordinator, global lock and the Stop banner
 
 Image, Video, Music, Text and Voiceover take the video card **one at a time** (Voiceover was added later: a worker process per job,
-nothing stays in video memory afterwards; see [VisualForge-Voiceover-Guide.md](VisualForge-Voiceover-Guide.md)). The tables below describe the first four. Status: **installed in release `2026.10.25-gpu.2`
+nothing stays in video memory afterwards; see [VisualForge-Voiceover-Guide.md](VisualForge-Voiceover-Guide.md)). The tables below describe the first four.
+A sixth entry, **`director`**, is not a model but a film in the making ([VisualForge-Director.md](VisualForge-Director.md)): it is busy from its first step to its last, so nothing else can start in the gap
+between two steps, and the banner and the Stop button cover it. Its own requests to the other modules carry the run token and are handled inside `GpuCoordinator.acting_for('director')` (a per-thread
+setting), which skips `director` when the other modules look for a rival; any other module that works still blocks them. Status: **installed in release `2026.10.25-gpu.2`
 (application files verified by SHA-256; the installed EXE was not launched for this release).**
 
 ## What stays in video memory when a module is idle

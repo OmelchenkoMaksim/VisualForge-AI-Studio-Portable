@@ -38,6 +38,16 @@
   function configureEngine(){
     selectedEngine=el('videoEngine').value;
     const profile=profiles.find(p=>p.id===selectedEngine);if(!profile)return;
+    // The Director is an entry of the list that is not a model: its own panel (director-panel.js) takes the place of this form.
+    const director=profile.virtual==='director';
+    el('videoForm').classList.toggle('director-mode',director);       // CSS hides every field of the form but the engine list itself (director-panel.css)
+    window.dispatchEvent(new CustomEvent('visualforge:director-engine',{detail:{active:director,profile}}));
+    if(director){
+      available=profile.available;header();showRating(null);el('videoAssessment').hidden=true;
+      StudioI18n.bind(el('videoAvailability'),'textContent',()=>profile.available?StudioI18n.t("director.header_ready_text"):StudioI18n.remote(profile.reason),true);
+      StudioI18n.bind(el('videoModelDetails'),'textContent',()=>[StudioI18n.remote(profile.requirements),StudioI18n.remote(profile.limitations)].filter(Boolean).join(' '),true);
+      return;
+    }
     const saved=engineDrafts[selectedEngine] || {};
     // Modes an engine does not implement are hidden rather than greyed out, so the list shows only what works.
     for(const option of el('videoMode').options){option.disabled=!profile.modes.includes(option.value);option.hidden=option.disabled;}
@@ -305,7 +315,7 @@
       first_last:StudioI18n.t("video.header_generate_video_between_first_last_frames"), characters:StudioI18n.t("video.header_generate_video_reference_characters"),
       s2v:StudioI18n.t("video.header_talking_character_image_speech"), animate:StudioI18n.t("video.header_animate_character"), replace:StudioI18n.t("video.header_replace_character")};
     StudioUI.setHeader('video', {model:profile?.name || 'Video',
-      description:descriptions[el('videoMode').value] || StudioI18n.t("video.header_local_video_generation"),
+      description:(profile?.virtual==='director'?StudioI18n.t("director.header_description_text"):descriptions[el('videoMode').value]) || StudioI18n.t("video.header_local_video_generation"),
       tone:profile ? (available ? 'good' : 'bad') : 'muted',
       status:profile ? (available ? StudioI18n.t("video.header_video_engine_model_files_available_gpu") : StudioI18n.remote(profile.reason) || StudioI18n.t("video.header_selected_model_unavailable")) : StudioI18n.t("video.header_checking_video_models")});
   }
@@ -422,7 +432,7 @@
     const data=await api('history'); el('videoHistory').replaceChildren();
     for (const row of data.entries.slice(0,20)) {
       const card=document.createElement('div');card.className='video-history-card';
-      const title=document.createElement('p');StudioI18n.bind(title, "textContent", () => (`${engineName(row.engine)} · ${({t2v:StudioI18n.t("video.history_text_to_video_mode_label"),i2v:StudioI18n.t("video.history_image_to_video_mode_label"),first_last:StudioI18n.t("video.history_between_frames"),characters:StudioI18n.t("video.history_character_reference_mode_label"),s2v:StudioI18n.t("video.history_talking_character"),a2v:StudioI18n.t("video.history_audio_to_video")})[row.mode] || row.mode} · ${({preview:StudioI18n.t("video.generation_preview_quality_option"),standard:StudioI18n.t("video.generation_standard_quality_option"),high:StudioI18n.t("video.generation_high_quality_option")})[row.quality] || row.quality} · Seed ${row.seed} · ${row.state === 'done' ? StudioI18n.t("video.generation_completed_status_label") : row.state === 'cancelled' ? StudioI18n.t("video.generation_cancelled_status_label") : StudioI18n.t("video.generation_failed_status_label")}`), true);
+      const title=document.createElement('p');StudioI18n.bind(title, "textContent", () => (`${engineName(row.engine)} · ${({t2v:StudioI18n.t("video.history_text_to_video_mode_label"),i2v:StudioI18n.t("video.history_image_to_video_mode_label"),first_last:StudioI18n.t("video.history_between_frames"),characters:StudioI18n.t("video.history_character_reference_mode_label"),s2v:StudioI18n.t("video.history_talking_character"),a2v:StudioI18n.t("video.history_audio_to_video"),director:StudioI18n.t("director.history_mode_label")})[row.mode] || row.mode} · ${({preview:StudioI18n.t("video.generation_preview_quality_option"),standard:StudioI18n.t("video.generation_standard_quality_option"),high:StudioI18n.t("video.generation_high_quality_option")})[row.quality] || row.quality} · Seed ${row.seed} · ${row.state === 'done' ? StudioI18n.t("video.generation_completed_status_label") : row.state === 'cancelled' ? StudioI18n.t("video.generation_cancelled_status_label") : StudioI18n.t("video.generation_failed_status_label")}`), true);
       const prompt=document.createElement('p');StudioI18n.bind(prompt, "textContent", () => ((row.mix_summary?StudioI18n.remote(row.mix_summary)+' · ':'')+row.original_prompt), false);
       const reuse=document.createElement('button');reuse.type='button';reuse.className='secondary';StudioI18n.bind(reuse, "textContent", () => (StudioI18n.t("video.reuse_restore_prompt_seed")), true);reuse.onclick=()=>{el('videoPrompt').value=row.original_prompt;el('videoNegative').value=row.negative_prompt || '';el('videoSeed').value=row.seed;draft();};
       card.append(title,prompt,reuse);
@@ -844,6 +854,11 @@
   }
   window.addEventListener('visualforge:use-image-in-video',async event=>{
     try{await inputFrame(await fetchSourceImage(event.detail.url),'source');if(!el('videoPrompt').value)el('videoPrompt').value=event.detail.prompt || '';el('videoMode').value='i2v';modes();draft();module('video');}catch(error){StudioI18n.bind(el('videoStatus'), "textContent", () => (StudioI18n.remote(error.message)), true);module('video');}
+  });
+  // The Director finished a film: open it from the history (its entry is an ordinary clip: player, export, mixer, deletion).
+  window.addEventListener('visualforge:director-done',async event=>{
+    try{await history();const row=(await api('history')).entries.find(item=>item.id===event.detail.id);if(row)show(row);}
+    catch(error){StudioI18n.bind(el('videoStatus'),'textContent',()=>StudioI18n.remote(error.message),true);}
   });
   function imageActions() {
     for(const container of [el('images'),el('historyCards')])if(container)for(const link of container.querySelectorAll('a[href^="/api/result"]')){

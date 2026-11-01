@@ -426,5 +426,13 @@
   "common.image_convert_server_failed": {
     "ru": "Не удалось преобразовать картинку. Сохраните её как PNG или JPEG и повторите.",
     "en": "The picture could not be converted. Save it as PNG or JPEG and try again."
+  },
+  "common.gpu_wait_completion_cancel_director_film": {
+    "ru": "Дождитесь конца съёмки фильма Режиссёром или остановите её.",
+    "en": "Wait for the Director to finish shooting the film or stop it."
+  },
+  "common.studio_bridge_director_unavailable": {
+    "ru": "Режиссёр недоступен: ",
+    "en": "The Director is unavailable: "
   }
 }

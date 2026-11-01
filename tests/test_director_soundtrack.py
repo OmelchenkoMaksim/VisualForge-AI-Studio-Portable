@@ -1,0 +1,219 @@
+"""The soundtrack of a film: lines placed in time, excerpts laid under the picture's own sound, and the ducking measured on real audio (real FFmpeg, no model, no GPU)."""
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'App/server'))
+
+from director import soundtrack  # noqa: E402
+from video.video_delivery import DeliveryCancelled, DeliveryError, ffmpeg_paths  # noqa: E402
+
+RUNTIME = Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME') or ROOT / 'Runtime/Video')
+FFMPEG, FFPROBE = ffmpeg_paths(RUNTIME)
+
+
+class PlacementTests(unittest.TestCase):
+    def test_a_line_starts_with_its_scene_and_never_over_the_line_before(self):
+        placed = soundtrack.place_lines([(0.3, 3.0), (2.0, 4.0), (8.0, 1.0)], 12.0)
+        self.assertEqual(placed, [(0.3, 1.0), (3.55, 1.0), (8.0, 1.0)])                         # the second waits for the first and the gap of a quarter second
+
+    def test_a_line_that_runs_over_the_end_is_sped_up_a_little_or_dropped(self):
+        self.assertEqual(soundtrack.place_lines([(8.0, 2.0)], 10.0), [(8.0, 1.25)])               # 10 - 0.4 - 8 = 1.6 s of room for 2 s: 1.25 times faster
+        self.assertEqual(soundtrack.place_lines([(7.0, 2.0)], 10.0), [(7.0, 1.0)])               # it fits as it is
+        self.assertEqual(soundtrack.place_lines([(8.0, 4.0)], 10.0), [None])                         # 2.5 times faster is not speech
+        self.assertEqual(soundtrack.place_lines([(8.0, 2.0)], 9.9), [None])                          # 1.33 times is more than the limit of 1.3
+        self.assertEqual(soundtrack.place_lines([(9.8, 1.0)], 10.0), [None])                         # no room at all
+
+    def test_a_dropped_line_leaves_room_for_the_next(self):
+        placed = soundtrack.place_lines([(0.0, 2.0), (1.0, 30.0), (5.0, 2.0)], 12.0)
+        self.assertIsNone(placed[1])
+        self.assertEqual(placed[2], (5.0, 1.0))
+
+    def test_scenes_start_where_the_lengths_before_them_end(self):
+        self.assertEqual(soundtrack.scene_starts([dict(seconds=4.5), dict(seconds=5.5), dict(seconds=10)]), [0.0, 4.5, 10.0])
+
+
+class GainTests(unittest.TestCase):
+    def test_every_song_is_brought_to_one_level_before_its_own_gain(self):
+        self.assertEqual(soundtrack.normalizing_gain(-16.0), 0.0)
+        self.assertEqual(soundtrack.normalizing_gain(-30.0), 14.0)
+        self.assertEqual(soundtrack.normalizing_gain(-8.0), -8.0)
+        self.assertEqual(soundtrack.normalizing_gain(-80.0), 18.0)                                    # a nearly silent file is not boosted without end
+        self.assertEqual(soundtrack.normalizing_gain(10.0), -24.0)
+        self.assertEqual(soundtrack.normalizing_gain(None), 0.0)
+
+    def test_the_scenes_own_sound_is_brought_down_to_a_bed_under_songs_and_voices(self):
+        self.assertEqual(soundtrack.native_gain(-10.0), -16.0)                                       # a loud steady ambience goes down to -26 dB
+        self.assertEqual(soundtrack.native_gain(-26.0), 0.0)
+        self.assertEqual(soundtrack.native_gain(-30.0), 4.0)                                         # a quiet one is raised a little
+        self.assertEqual(soundtrack.native_gain(-60.0), 6.0)
+        self.assertEqual(soundtrack.native_gain(0.0), -18.0)                                         # but never silenced
+        self.assertEqual(soundtrack.native_gain(None), 0.0)
+
+    def test_cues_become_beds_with_the_gain_of_the_file_added(self):
+        cues = [dict(offset=12.0, start=3.0, seconds=8.0, gain_db=-10.0, fade_in=1.0, fade_out=2.0), dict(offset=0.0, start=0.0, seconds=20.0, gain_db=-16.0, fade_in=1.5, fade_out=3.0, loop=True)]
+        beds = soundtrack.beds_for(cues, {0: ('song.m4a', -26.0), 1: ('music.wav', None)})
+        self.assertEqual([bed['gain_db'] for bed in beds], [0.0, -16.0])
+        self.assertEqual([bed['loop'] for bed in beds], [False, True])
+        track = soundtrack.generated_cue(dict(gain_db=-18.0, start=30.0, loop=True), 40.0)
+        self.assertEqual((track['start'], track['seconds'], track['loop'], track['offset']), (30.0, 10.0, True, 0.0))
+        self.assertEqual(soundtrack.generated_cue(dict(gain_db=-18.0), 40.0)['seconds'], 40.0)
+
+
+class GraphTests(unittest.TestCase):
+    bed = dict(path='song.m4a', offset=12.0, start=2.0, seconds=8.0, gain_db=-6.0, fade_in=1.0, fade_out=2.0)
+    voice = dict(path='line-0.wav', start=4.0, tempo=1.25, gain_db=1.5)
+
+    def count(self, text, word):
+        return len(re.findall(word, text))
+
+    def test_music_alone_gives_way_to_the_pictures_own_sound(self):
+        text, inputs = soundtrack.graph(10.0, [self.bed], [])
+        self.assertEqual(self.count(text, 'sidechaincompress'), 1)
+        self.assertIn('afade=t=out:st=6.000:d=2.000', text)                                          # the fade-out begins 2 s before the end of the 8 s excerpt
+        self.assertIn('adelay=2000:all=1', text)
+        self.assertEqual(inputs, ['-ss', '12.000', '-t', '8.000', '-i', 'song.m4a'])
+
+    def test_speech_alone_lowers_the_pictures_own_sound(self):
+        text, inputs = soundtrack.graph(10.0, [], [self.voice])
+        self.assertEqual(self.count(text, 'sidechaincompress'), 1)
+        self.assertIn('atempo=1.2500', text)
+        self.assertIn('adelay=4000:all=1', text)
+        self.assertIn('volume=1.50dB', text)
+        self.assertEqual(inputs, ['-i', 'line-0.wav'])
+
+    def test_music_and_speech_together_are_ducked_by_both_in_turn(self):
+        text, inputs = soundtrack.graph(10.0, [self.bed, dict(self.bed, loop=True, offset=0.0)], [self.voice, dict(self.voice, tempo=1.0)])
+        self.assertEqual(self.count(text, 'sidechaincompress'), 3)
+        self.assertEqual(self.count(text, 'amix=inputs=2'), 2)                                       # one for the beds and one for the lines
+        self.assertEqual(self.count(text, 'amix=inputs=3'), 1)                                       # the last: the picture's sound, the music and the speech
+        self.assertEqual(self.count(text, 'atempo'), 1)                                              # the line at normal speed has no tempo filter
+        self.assertIn('-stream_loop', inputs)
+        self.assertEqual(inputs.count('-i'), 4)
+        for number in range(1, 5):                                                                   # every input is used exactly once
+            self.assertEqual(self.count(text, r'\[%d:a\]' % number), 1)
+        self.assertTrue(text.endswith('atrim=end_sample=480000,asetpts=PTS-STARTPTS[aout]'))
+
+    def test_nothing_to_add_leaves_the_pictures_own_sound(self):
+        text, inputs = soundtrack.graph(10.0, [], [])
+        self.assertIn('[native]anull[mixed]', text)
+        self.assertEqual(inputs, [])
+
+
+def tone(path, frequency, seconds, level=0.25, stereo=False):
+    subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'sine=frequency=%d:duration=%s:sample_rate=48000' % (frequency, seconds),
+                    '-af', 'volume=%s' % level, '-ac', '2' if stereo else '1', str(path)], check=True)
+
+
+def band(path, frequency, start, length):
+    """The mean level in dB of what lies near `frequency` in a stretch of a file: a tone is measured alone even when other tones sound with it."""
+    done = subprocess.run([str(FFMPEG), '-hide_banner', '-nostdin', '-ss', str(start), '-t', str(length), '-i', str(path), '-vn', '-af',
+                           'bandpass=f=%d:width_type=h:w=60,volumedetect' % frequency, '-f', 'null', '-'], capture_output=True, text=True)
+    found = re.search(r'mean_volume: (-?[\d.]+|-inf) dB', done.stderr)
+    return -99.0 if found is None or found.group(1) == '-inf' else float(found.group(1))
+
+
+@unittest.skipUnless(FFMPEG.is_file() and FFPROBE.is_file(), 'bundled FFmpeg not found')
+class MixdownTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.work = Path(tempfile.mkdtemp(prefix='vf-director-mix-'))
+        cls.film = cls.work / 'film.mp4'
+        tone(cls.work / 'native.wav', 150, 10)
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=320x180:rate=24:duration=10', '-i', str(cls.work / 'native.wav'),
+                        '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', str(cls.film)], check=True)
+        tone(cls.work / 'music.wav', 440, 12, 0.25, True)
+        tone(cls.work / 'line.wav', 1000, 2, 0.5)
+        cls.bed = dict(path=cls.work / 'music.wav', offset=1.0, start=0.0, seconds=10.0, gain_db=0.0, fade_in=0.0, fade_out=0.0)
+        cls.line = dict(path=cls.work / 'line.wav', start=4.0, tempo=1.0, gain_db=0.0)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.work, ignore_errors=True)
+
+    def mix(self, name, beds, voices, **options):
+        output = self.work / name
+        return output, soundtrack.mixdown(FFMPEG, FFPROBE, self.film, output, beds, voices, **options)
+
+    def test_the_music_gives_way_to_a_voice_and_comes_back(self):
+        output, result = self.mix('both.mp4', [self.bed], [self.line])
+        before, during, after = band(output, 440, 1.0, 2.0), band(output, 440, 4.6, 1.2), band(output, 440, 7.5, 2.0)
+        self.assertLess(during, before - 8, (before, during))                                       # about 12 dB lower while the line is spoken
+        self.assertGreater(after, before - 3, (before, after))                                      # and back at its level when the line is over
+        self.assertGreater(band(output, 1000, 4.6, 1.2), -35)                                       # the voice itself is heard
+        self.assertLess(band(output, 1000, 1.0, 2.0), -60)                                          # and only where it was put
+        self.assertEqual(result['seconds'], 10.0)
+
+    def test_the_pictures_own_sound_gives_way_to_a_voice_too(self):
+        output, _ = self.mix('speech.mp4', [], [self.line])
+        before, during = band(output, 150, 1.0, 2.0), band(output, 150, 4.6, 1.2)
+        self.assertLess(during, before - 3, (before, during))
+        self.assertGreater(band(output, 1000, 4.6, 1.2), -35)
+
+    def test_the_music_alone_is_lowered_by_the_pictures_own_sound(self):
+        output, _ = self.mix('music.mp4', [self.bed], [])
+        plain = band(self.work / 'music.wav', 440, 1.0, 2.0)
+        self.assertLess(band(output, 440, 1.0, 2.0), plain - 3)                                    # the film has a tone of its own, so the compressor works
+        self.assertGreater(band(output, 150, 1.0, 2.0), -40)
+
+    def test_the_picture_is_copied_and_the_sound_is_aac_stereo_of_the_length_of_the_film(self):
+        output, _ = self.mix('check.mp4', [self.bed], [self.line])
+        probe = subprocess.run([str(FFPROBE), '-v', 'error', '-count_frames', '-show_streams', '-of', 'json', str(output)], capture_output=True, text=True, check=True).stdout
+        source = subprocess.run([str(FFPROBE), '-v', 'error', '-count_frames', '-show_streams', '-of', 'json', str(self.film)], capture_output=True, text=True, check=True).stdout
+        import json
+        found, original = json.loads(probe)['streams'], json.loads(source)['streams']
+        video, first = next(s for s in found if s['codec_type'] == 'video'), next(s for s in original if s['codec_type'] == 'video')
+        audio = next(s for s in found if s['codec_type'] == 'audio')
+        self.assertEqual((video['nb_read_frames'], video['codec_name'], video['width']), (first['nb_read_frames'], first['codec_name'], first['width']))
+        self.assertEqual((audio['codec_name'], audio['sample_rate'], audio['channels']), ('aac', '48000', 2))
+        self.assertAlmostEqual(float(audio['duration']), 10.0, delta=0.1)
+
+    def test_a_track_shorter_than_its_place_is_repeated(self):
+        short = self.work / 'short.wav'
+        tone(short, 440, 3, 0.25, True)
+        bed = dict(self.bed, path=short, offset=0.0, loop=True)
+        output, _ = self.mix('loop.mp4', [bed], [])
+        self.assertGreater(band(output, 440, 7.0, 2.0), band(output, 440, 1.0, 2.0) - 3)
+        silent, _ = self.mix('once.mp4', [dict(bed, loop=False)], [])
+        self.assertLess(band(silent, 440, 7.0, 2.0), -60)                                           # without the repeat the track ends at three seconds
+
+    def test_a_cut_excerpt_starts_where_it_is_told_and_fades(self):
+        steps = self.work / 'steps.wav'
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-filter_complex',
+                        'sine=f=300:d=5:r=48000[a];sine=f=800:d=5:r=48000[b];[a][b]concat=n=2:v=0:a=1', '-ac', '2', str(steps)], check=True)
+        bed = dict(path=steps, offset=4.0, start=2.0, seconds=6.0, gain_db=0.0, fade_in=1.0, fade_out=1.0)      # the last second of the 300 Hz half, then the 800 Hz half
+        output, _ = self.mix('excerpt.mp4', [bed], [])
+        self.assertLess(band(output, 800, 2.0, 0.9), -55)                                            # the 300 Hz second plays from 2 s to 3 s of the film
+        self.assertGreater(band(output, 800, 3.3, 3.5), -30)                                         # then the 800 Hz half, from the offset
+        self.assertLess(band(output, 800, 0.0, 1.6), -55)                                           # nothing before the start
+        self.assertLess(band(output, 800, 8.3, 1.5), -55)                                           # nothing after the end of the excerpt (8 s)
+        self.assertLess(band(output, 800, 7.6, 0.3), band(output, 800, 4.0, 0.5) - 8)                # and the last second is a fade-out
+
+    def test_a_mix_nobody_can_hear_is_refused_and_leaves_no_file(self):
+        output = self.work / 'silent.mp4'
+        silent_film = self.work / 'silent-film.mp4'
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=160x90:rate=24:duration=3',
+                        '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-t', '3', str(silent_film)], check=True)
+        with self.assertRaises(DeliveryError) as caught:
+            soundtrack.mixdown(FFMPEG, FFPROBE, silent_film, output, [dict(self.bed, gain_db=-90.0, seconds=2.0)], [])
+        self.assertIn('silent', str(caught.exception))
+        self.assertFalse(output.exists())
+
+    def test_a_stop_before_the_start_writes_nothing(self):
+        cancel = threading.Event()
+        cancel.set()
+        output = self.work / 'stopped.mp4'
+        with self.assertRaises(DeliveryCancelled):
+            soundtrack.mixdown(FFMPEG, FFPROBE, self.film, output, [self.bed], [self.line], cancel=cancel)
+        self.assertFalse(output.exists())
+
+
+if __name__ == '__main__':
+    unittest.main()

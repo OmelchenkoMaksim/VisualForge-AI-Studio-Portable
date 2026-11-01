@@ -38,8 +38,8 @@ engines never share cache files (the engine id and revision are part of the frag
 
 VoxCPM2 is called as in its own package (`VoxCPM(...).generate(text, reference_wav_path=...)`) without the denoiser (it would need ModelScope and a download)
 and without text normalization (ours runs before). `torch.compile` costs about 110 s on the first call of a process and is cached in the job state
-(`TORCHINDUCTOR_CACHE_DIR`); it is lazy, so a missing compiler would fail at the first fragment, and the worker then reloads the model without it
-(`compile_failed` event). `VISUALFORGE_VOICEOVER_VOXCPM_OPTIMIZE=0` switches it off. The voice card has an optional **transcript**; with it VoxCPM2 continues the
+(`TORCHINDUCTOR_CACHE_DIR`); the package warms the model up inside its constructor, so a compilation that fails (no compiler, an Inductor error) is raised when the
+model is loaded, or at the first fragment if the warm-up passed, and in both places the worker reloads the model without the compilation (`compile_failed` event). `VISUALFORGE_VOICEOVER_VOXCPM_OPTIMIZE=0` switches it off. The voice card has an optional **transcript**; with it VoxCPM2 continues the
 sample, without it uses the sample as a reference (see "Measured: VoxCPM2"). The GPU claim is 9,000 MB for VoxCPM2 and 4,000 MB for Qwen3-TTS.
 
 ## Built-in voices

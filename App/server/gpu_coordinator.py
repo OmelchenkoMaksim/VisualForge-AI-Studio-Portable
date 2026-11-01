@@ -7,15 +7,19 @@ cached until told to drop them, and Ollama (Text) keeps the chat model for the k
 caller needs a minimum, waits until that much memory is really free.
 """
 from ui_strings import source as ui_text
+from contextlib import contextmanager
+import threading
 import time
 
-MODULES = ('image', 'video', 'music', 'text', 'voiceover')
+# `director` is not a model: it is a film in the making. It holds the card from the first step to the last, while it asks the other modules for their jobs
+# one after another (see `acting_for`), so nobody can start something in the gap between two steps.
+MODULES = ('image', 'video', 'music', 'text', 'voiceover', 'director')
 # Voice input is not a module that blocks others (it never locks the interface), but its worker may hold video memory: it is released like the rest.
 RELEASABLE = MODULES + ('speech',)
-NAMES = dict(image='Image', video='Video', music='Music', text='Text', voiceover='Voiceover')
+NAMES = dict(image='Image', video='Video', music='Music', text='Text', voiceover='Voiceover', director='Director')
 HINTS = dict(image=ui_text('common.gpu_wait_completion_cancel_task'), video=ui_text('common.gpu_wait_completion_cancel_video_task'),
              music=ui_text('common.gpu_wait_completion_cancel_music_task'), text=ui_text('common.gpu_wait_response_finish_stop'),
-             voiceover=ui_text('common.gpu_wait_completion_cancel_voiceover_task'))
+             voiceover=ui_text('common.gpu_wait_completion_cancel_voiceover_task'), director=ui_text('common.gpu_wait_completion_cancel_director_film'))
 
 
 class Busy(ValueError):
@@ -35,12 +39,24 @@ class GpuCoordinator:
         # it counts as available to that module, so a second job of the same engine is not refused for its own cache.
         self.held = dict(held or {})
         self.clock, self.sleep = clock, sleep
+        self._acting = threading.local()
+
+    @contextmanager
+    def acting_for(self, module):
+        """Requests handled on this thread are made by `module` for its own work (the Director asking for a scene): its being busy is not a reason to refuse them."""
+        previous = getattr(self._acting, 'module', None)
+        self._acting.module = module
+        try:
+            yield
+        finally:
+            self._acting.module = previous
 
     def busy_modules(self, exclude=None):
         """Modules working right now. A probe that fails (a service that is not running) counts as idle."""
         working = []
+        acting = getattr(self._acting, 'module', None)
         for module in MODULES:
-            if module == exclude or module not in self.probes:
+            if module == exclude or module == acting or module not in self.probes:
                 continue
             try:
                 if self.probes[module]():

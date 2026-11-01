@@ -558,6 +558,10 @@ class VoiceoverManager:
                    HF_HUB_DISABLE_PROGRESS_BARS='1', TOKENIZERS_PARALLELISM='false', TQDM_DISABLE='1', DO_NOT_TRACK='1',
                    HF_HOME=str(temp / 'huggingface'), TORCH_HOME=str(temp / 'torch'), TORCHINDUCTOR_CACHE_DIR=str(temp / 'inductor'),
                    TEMP=str(temp), TMP=str(temp))
+        # The launcher sets TRITON_CACHE_DIR and CUDA_CACHE_PATH inside the install folder; when its name has Cyrillic letters (for example "D:\Мои программы") Triton and
+        # CUDA reach their cache files through narrow paths, and the first torch.compile of VoxCPM2 died with "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd1
+        # in position 3" (the Director's first real film, 2026-11-01). Like the Video runtime does, the compile caches stay on the ASCII path of the user's Temp.
+        env.update(TRITON_CACHE_DIR=str(temp / 'triton'), CUDA_CACHE_PATH=str(temp / 'cuda'))
         env.pop('PYTHONHOME', None)
         env.pop('PYTHONPATH', None)
         return env

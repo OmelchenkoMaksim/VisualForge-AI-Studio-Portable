@@ -45,6 +45,30 @@ class CoordinatorTests(unittest.TestCase):
                         coordinator.claim(module)
                     self.assertEqual(calls, [])
 
+    def test_a_film_in_the_making_blocks_everyone_but_its_own_requests(self):
+        coordinator, calls, _ = make(busy=('director',))
+        with self.assertRaisesRegex(Busy, 'Director'):
+            coordinator.claim('video')
+        self.assertEqual(calls, [])
+        with coordinator.acting_for('director'):
+            self.assertEqual(coordinator.claim('video'), ['image', 'text'])
+        with self.assertRaises(Busy):
+            coordinator.claim('video')                                   # outside the block the film blocks again
+        coordinator, _, _ = make(busy=('director', 'music'))
+        with coordinator.acting_for('director'), self.assertRaisesRegex(Busy, 'Music'):
+            coordinator.claim('video')                                   # a job that another module still runs is a real reason to wait
+
+    def test_acting_for_belongs_to_one_thread(self):
+        import threading
+        coordinator, _, _ = make(busy=('director',))
+        seen = []
+        with coordinator.acting_for('director'):
+            thread = threading.Thread(target=lambda: seen.append(coordinator.busy_modules()))
+            thread.start()
+            thread.join()
+            self.assertEqual(coordinator.busy_modules(), [])
+        self.assertEqual(seen, [['director']])
+
     def test_a_module_does_not_block_itself(self):
         coordinator, _, _ = make(busy=('video',))
         self.assertEqual(coordinator.claim('video'), ['image', 'text'])

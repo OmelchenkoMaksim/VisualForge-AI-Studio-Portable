@@ -57,7 +57,17 @@ def main():
                 return VoxCPM(voxcpm_model_path=spec['model'], zipenhancer_model_path=None, enable_denoiser=False, optimize=optimize, device='cuda')
 
             optimize = bool(spec.get('optimize', False))
-            model = load(optimize)
+            try:
+                model = load(optimize)
+            except Exception as error:
+                if not optimize:
+                    raise
+                # The package warms the model up inside its constructor, so a compilation that fails (no compiler, an Inductor error) is raised here, before the first
+                # fragment where the handler below waits for it. The job goes on without the compilation, about two times slower.
+                event('compile_failed', error=str(error)[:300])
+                optimize, model = False, None
+                torch.cuda.empty_cache()
+                model = load(False)
             rate = model.tts_model.sample_rate
             references = {'reference_wav_path': spec['voice']}
             if spec.get('transcript'):

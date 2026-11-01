@@ -326,5 +326,13 @@
   "events.operation_type_video_review_label": {
     "ru": "Разбор ролика Gemma",
     "en": "Gemma review of a clip"
+  },
+  "events.operation_type_video_director_label": {
+    "ru": "Режиссёр: просмотр материалов и план фильма",
+    "en": "Director: looking at the materials and planning a film"
+  },
+  "events.operation_type_director_run_label": {
+    "ru": "Режиссёр: съёмка фильма",
+    "en": "Director: shooting a film"
   }
 }

@@ -1,0 +1,49 @@
+/* While the Director is the chosen engine the video form shows nothing but the engine list: the Director has its own panel below it. */
+#videoForm.director-mode>:not(label[for="videoEngine"]):not(#videoEngine){display:none}
+.director{display:grid;gap:10px;margin-top:8px}
+.director[hidden]{display:none}
+.director h3{margin:10px 0 0;font-size:15px}
+.director-materials{display:grid;gap:10px}
+.director-group{display:grid;gap:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r)}
+.director-group.dropping{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.director-group h4{margin:0;font-size:14px;display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.director-group h4 .muted{font-weight:400;font-size:12px;white-space:nowrap}
+.director-group .preset-hint{margin:0}
+.director-slots{display:flex;flex-wrap:wrap;gap:8px}
+.director-consent{display:grid;gap:4px;padding:8px 10px;border:1px dashed var(--border);border-radius:var(--r)}
+.director-item{display:grid;gap:3px;width:124px;padding:6px;border:1px solid var(--border);border-radius:var(--r);font-size:12px;align-content:start}
+.director-item.sound{width:210px}
+.director-item img{width:100%;height:78px;object-fit:cover;border-radius:6px}
+.director-item.sound img{height:44px}
+.director-item audio{width:100%;height:32px}
+.director-item.pending{width:170px;align-content:center}
+.director-item.adder{border-style:dashed;align-content:center;justify-items:center;text-align:center;min-height:96px;width:150px}
+.director-item.adder button{white-space:normal}
+.director-group[data-group="song"] .adder,.director-group[data-group="narrator"] .adder,.director-group[data-group="character"] .adder{width:210px}
+.director-item progress,.director-run progress{width:100%}
+.director-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.director-label{width:100%;box-sizing:border-box;font-size:12px}
+.director-fields{display:flex;flex-wrap:wrap;gap:10px}
+.director-field{display:grid;gap:3px;min-width:140px;flex:1}
+.director-field.wide{flex-basis:100%}
+.director-field>span{font-size:12px;color:var(--text-2)}
+.director-field input,.director-field select,.director-field textarea{width:100%;box-sizing:border-box}
+.director-advice{display:grid;gap:4px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);font-size:13px}
+.director-advice .ok{color:var(--ok)}
+.director-advice .warn{color:var(--danger-ink)}
+.director-advice[hidden]{display:none}
+.director-reasons{margin:0;padding-left:18px;font-size:12px;color:var(--text-2)}
+.director-scene{display:grid;gap:6px;padding:10px;border:1px solid var(--border);border-radius:var(--r)}
+.director-lines{display:grid;gap:6px}
+.director-line{display:grid;gap:6px;padding:6px;border:1px dashed var(--border);border-radius:var(--r)}
+/* The video workspace makes every label a grid and stretches what is in it: a checkbox would be as wide as the row, with its tick in the middle. The id outweighs that rule. */
+#directorPanel .director-check{display:flex;gap:8px;align-items:center;margin-top:0}
+#directorPanel .director-check input[type="checkbox"]{flex:none;width:auto;margin:0}
+.director-ultra{padding:8px 10px;border:1px solid var(--border);border-radius:var(--r);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.director-ultra strong{font-size:14px}
+.director-steps{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.director-steps li{display:flex;gap:8px;align-items:baseline}
+.director-steps li.running{color:var(--accent);font-weight:600}
+.director-steps li.done{color:var(--ok)}
+.director-steps li.failed{color:var(--danger-ink)}
+.director-mark{display:inline-block;width:1.2em;text-align:center}
