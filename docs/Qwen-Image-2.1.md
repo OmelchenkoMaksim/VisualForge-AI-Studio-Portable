@@ -1,5 +1,9 @@
 # Qwen Image 2.1: capabilities and scoped verification
 
+**Current path, 2026-11-01:** the studio now uses automatic Gemma preparation in all four modes and bypasses the native PE below.
+See the [current model card](models/image/image-qwen-image-21.md) for researched per-mode rules, alpha safeguards and evidence gaps.
+The GPU timings and native-PE failures in this report are historical; they do not qualify the new Gemma path.
+
 Audit date: 2026-10-29. Installed profile: `qwen-image-21-uc-fp8`, RTX 5070 Ti 16 GB / 64 GB RAM. This is a small functional audit, not a broad quality or identity benchmark. Test media, state and logs are in C user-temp `vfr-tests/qwen21-audit-20261029`; the owner's output folder remains `%USERPROFILE%\Desktop`. Heavy inference is sequential and uses the installed ComfyUI runtime with `--cache-none`. Timings include preparation, HDD loading and graph execution; warm and cold results are not interchangeable.
 
 ## Sources and checkpoint identity

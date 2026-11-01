@@ -8,7 +8,6 @@ Exit code 0 = clean, 1 = problems (listed one per line), 2 = Git is not availabl
 """
 import argparse
 import fnmatch
-import os
 from pathlib import Path
 import re
 import subprocess
@@ -33,7 +32,7 @@ FORBIDDEN_SUFFIXES = {
     '.dll', '.pyd', '.so', '.exe', '.msi', '.mp4', '.mov', '.webm', '.mkv', '.wav', '.flac', '.mp3', '.pem', '.key', '.pyc',
     '.sqlite', '.sqlite3', '.db', '.jsonl', '.ndjson', '.crdownload', '.dmp', '.sft', '.h5', '.hdf5', '.tflite', '.ot', '.npy',
     '.rar', '.xz', '.bz2', '.zst', '.gif', '.webp', '.jpeg', '.jpg', '.ogg', '.m4a', '.aac', '.avi', '.pdf', '.docx', '.xlsx', '.pptx', '.psd', '.blend',
-    '.log', '.tmp', '.part', '.partial', '.bak', '.pyo', '.pyd',
+    '.log', '.tmp', '.part', '.partial', '.bak', '.pyo',
     '.pkl', '.pickle', '.ggml', '.pb', '.tensor',
 }
 # Text that must never ship: the owner's drive/user names and credentials.
@@ -79,7 +78,12 @@ def check_content(posix, data, mode='100644'):
         problems.append('%s: unreviewed GitHub configuration' % posix)
     if mode not in ('100644', '100755'):
         problems.append('%s: symlinks and submodules are not source payloads' % posix)
-    if any(part.lower() in FORBIDDEN_DIRS for part in posix.split('/')[:-1]):
+    directories = posix.split('/')[:-1]
+    # docs/models contains reference cards, not weights. Exempt just that
+    # prefix for Markdown; nested private directories and payload checks stay active.
+    if directories[:2] == ['docs', 'models'] and path.suffix.lower() == '.md':
+        directories = directories[2:]
+    if any(part.lower() in FORBIDDEN_DIRS for part in directories):
         problems.append('%s: generated or private directory' % posix)
     name = path.name.lower()
     if name == '.env' or name.startswith('.env.') or any(fnmatch.fnmatchcase(name, pattern) for pattern in PRIVATE_NAMES):

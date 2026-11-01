@@ -43,6 +43,14 @@ class GuardTests(unittest.TestCase):
         for needle in ('model.safetensors: forbidden', 'big.json', 'top-level item "Models"', 'top-level item "Runtime"', 'only Support/Licenses'):
             self.assertIn(needle, text)
 
+    def test_model_cards_allow_only_markdown_outside_private_subdirectories(self):
+        card = self.put('docs/models/image/image-example.md', '# Example model\n')
+        self.assertEqual(check_repo.check(self.root, [card]), [])
+        for name in ('docs/models/weights.safetensors', 'docs/models/image/config.json',
+                     'docs/models/image/Runtime/note.md', 'App/models/note.md'):
+            with self.subTest(name=name):
+                self.assertTrue(check_repo.check(self.root, [self.put(name, 'not a card')]))
+
     def test_private_data_is_rejected(self):
         folder = '\u0421\u043e\u0444\u0442 - \u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b'
         samples = {
@@ -145,9 +153,11 @@ class GitignoreTests(unittest.TestCase):
             shutil.copyfile(ROOT / '.gitignore', work / '.gitignore')
             ignored = ['Models/Video/H3/a.safetensors', 'Runtime/Music/python/python.exe', 'UserData/Settings/x.json', 'UserData/Text/Chats/c.json',
                        'Support/Diagnostics/InstalledRelease.json', 'Notes.txt', 'App/server/__pycache__/a.pyc', 'App/bin/tool.exe',
-                       'App/frontend/clip.mp4', 'tools/cache/model.gguf', 'VisualForge AI Studio.exe', 'reports/x.json']
+                       'App/frontend/clip.mp4', 'tools/cache/model.gguf', 'VisualForge AI Studio.exe', 'reports/x.json',
+                       'docs/models/image/weights.safetensors', 'docs/models/image/config.json']
             kept = ['README.md', 'Setup-VisualForge.cmd', 'App/server/studio_server.py', 'App/frontend/image-studio.js', 'App/frontend/visualforge-icon.png',
-                    'docs/VisualForge-Text-Chat.md', 'tests/test_text.py', 'tools/check_repo.py', 'Support/Licenses/ComfyUI-License.txt', '.githooks/pre-commit']
+                    'docs/VisualForge-Text-Chat.md', 'docs/models/README.md', 'docs/models/image/image-example.md',
+                    'tests/test_text.py', 'tools/check_repo.py', 'Support/Licenses/ComfyUI-License.txt', '.githooks/pre-commit']
             for relative in ignored + kept:
                 path = work / relative
                 path.parent.mkdir(parents=True, exist_ok=True)

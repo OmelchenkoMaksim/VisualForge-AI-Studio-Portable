@@ -2,6 +2,10 @@
 
 Reviewed on 2026-10-29 using the installed distilled INT8 checkpoint, current source and real studio jobs on an RTX 5070 Ti 16 GB. This is a small functional audit, not a general quality benchmark. Existing weights were sufficient; this audit downloaded no additional models.
 
+**Prompt-path update, 2026-11-01:** start with the [model card](models/image/image-flux3-klein.md) for refreshed publisher/community research and the active per-mode Gemma guide.
+Studio requests now prepare the final prompt once in Gemma, with optional numbered clarification; native Qwen3.5 upsampler nodes are omitted and its switch is hidden.
+The observations below used the earlier native-expansion/direct-caption paths and do not measure the new manager's image quality.
+
 ## Publisher capabilities and the installed profile
 
 The [official ComfyUI model card](https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy) identifies a 5.6B image transformer, a separate Qwen3-VL-4B text encoder and up to ten reference images. Distilled Klein uses 16 steps and no classifier-free guidance; the separate Base checkpoint's 50-step/CFG 3.5 profile does not apply to these weights. The studio uses Euler/simple, CFG 1 and RGB output. Negative prompts and transparent output are not controls of this profile.
@@ -25,7 +29,7 @@ Consult the model card's linked FLUX Kommunity License for access and use terms.
 | Layout | General scene prompt and 1–8 object descriptions with percentage boxes | Measured from the canvas's top-left. Description/ID/geometry validated before GPU admission. |
 | Native resolution | Prompt/Layout latent is resized before sampling | 1 MP, approximately 4 MP/2K, or a 4K profile capped at a 4096-pixel longest edge. Rectangular 4K contains fewer than 16 MP. |
 | AI Upscale 2× / 4× | Installed Real-ESRGAN x2 once or twice after generation | Separate from native resolution. Sharpens and invents texture; not factual restoration. Disabled for native 4K to avoid accidental 8K/16K work. |
-| Expand prompt | Official Qwen3.5 captioning before generation/editing | Switch available in every FLUX mode. Off removes the upsampler nodes completely. |
+| Automatic prompt preparation | Gemma with researched Prompt/Single/Reference/Multi/Layout rules | Active since 2026-11-01; one final rewrite, no native Qwen3.5 pass. Stored templates retain the earlier upsampler for direct tooling. |
 | Another variant | Last result becomes the edit source | A creative variation, not a measured 80/20 similarity guarantee. Hidden after native 2K/4K because the edit profile would silently reduce it to about 1 MP. |
 
 Only one quality preset is exposed. The assessment block beside the model selector summarizes observed strengths and limits in Russian and English. The guide under the prompt changes with the selected mode.

@@ -1,4 +1,4 @@
-"""Image prompt enhancer: researched Z-Image modes, with inactive drafts for the other engines."""
+"""Researched per-engine Image guides with bounded clarification and source-aware validation."""
 import base64
 from io import BytesIO
 import json
@@ -9,6 +9,11 @@ from prompt_template import PromptEnhancerTemplate
 from ui_strings import source as ui_text
 from video.gemma_task import GemmaTask
 from . import zimage_prompts as zimage
+from . import klein_prompts as klein
+from . import qwen21_prompts as qwen21
+from . import qwen2511_prompts as qwen2511
+from .flux_inputs import layout_brief, resolve_flux_options
+from .image_registry import ENGINES
 
 QUOTES = re.compile(r'"([^"]+)"|«([^»]+)»|“([^”]+)”')
 CYRILLIC = re.compile(r'[\u0400-\u04ff]')
@@ -60,7 +65,7 @@ def caption(answer, request, has_source):
     return text
 
 
-def vision_image(raw, *, mask=False):
+def vision_image(raw, *, mask=False, alpha_matte=False):
     """Bounded, oriented PNG for Gemma. A missing or unreadable source is an error, never a text-only substitute."""
     from PIL import Image, ImageOps
     try:
@@ -69,7 +74,11 @@ def vision_image(raw, *, mask=False):
         with Image.open(BytesIO(raw)) as source:
             if max(source.size) > 8192 or source.width * source.height > 32_000_000:
                 raise ValueError('Image dimensions exceed the vision budget')
-            image = ImageOps.exif_transpose(source).convert('RGB')
+            image = ImageOps.exif_transpose(source)
+            if alpha_matte:
+                # Hidden RGB in transparent pixels is not visible content. Show a flat matte, never a checkerboard scene.
+                image = Image.alpha_composite(Image.new('RGBA', image.size, (127, 127, 127, 255)), image.convert('RGBA'))
+            image = image.convert('RGB')
             image.thumbnail((1024, 1024), Image.Resampling.NEAREST if mask else Image.Resampling.LANCZOS)
             output = BytesIO()
             image.save(output, 'PNG')
@@ -84,39 +93,20 @@ class PromptEnhancer(PromptEnhancerTemplate):
     PLANNED_OPERATION = 'ImagePromptEnhancement'
     OPERATION = PLANNED_OPERATION
     OUTPUT_FIELD = 'prompt'
-    VERBATIM_FIELDS = ('lettering',)
-    CONTEXT_FIELDS = ('images_in_order', 'lettering', 'negative_prompt', 'canvas', 'layout_boxes', 'control_type', 'detail_strength')
+    VERBATIM_FIELDS = ('lettering', 'negative_prompt')
+    CONTEXT_FIELDS = ('images_in_order', 'source_alpha', 'lettering', 'negative_prompt', 'sampling_profile', 'canvas', 'layout_boxes', 'layout_plan', 'control_type', 'detail_strength')
+    ACTIVE_GUIDES = {zimage.ENGINE: zimage, klein.ENGINE: klein, qwen21.ENGINE: qwen21, qwen2511.ENGINE: qwen2511}
     MODEL_RULES = {
-        'qwen-edit-2511': 'An instruction editor with up to three ordered images and RGB output. Prompt mode edits a neutral canvas; '
-                          'it is not native text-to-image. Do not invent RGBA, hard pixel locks or negative-prompt support for CFG-1 Lightning.',
-        'qwen-image-21-uc-fp8': 'A native generation/editing model with RGBA and up to ten ordered images. Keep explicit alpha and transparent-background '
-                              'requests literal; do not turn transparency into a drawn checkerboard. The first reference determines proportions.',
+        qwen2511.ENGINE: qwen2511.MODEL_RULES,
+        qwen21.ENGINE: qwen21.MODEL_RULES,
         'z-image-turbo-int8': zimage.MODEL_RULES,
-        'flux3-klein-int8': 'The distilled 16-step model supports instruction edits, ordered references and text layout. Do not transfer the Base '
-                            'checkpoint settings to it. Box guidance is probabilistic; editing follows the first image proportions. Output is RGB.',
+        klein.ENGINE: klein.MODEL_RULES,
     }
     MODE_RULES = {
-        'qwen-edit-2511': {
-            'single': 'State the requested change to Image 1 and what must stay as shown; do not replace the request with a caption of a new scene.',
-            'reference': 'Image 1 is the source and Image 2 is the reference. Name the attributes to transfer and the source details to preserve.',
-            'prompt': 'Describe the complete desired scene as an instruction for the supplied neutral canvas; ignore unrelated selected uploads.',
-            'multi': 'Keep the roles of Images 1, 2 and 3 distinct and their order unchanged. State which subject or property comes from each.',
-        },
-        'qwen-image-21-uc-fp8': {
-            'single': 'Edit <image1> by the requested instruction. Preserve explicit output-alpha requirements and do not promise exact segmentation.',
-            'reference': 'Use <image1> as the source and <image2> in its stated reference role. Keep the source composition unless asked to change it.',
-            'prompt': 'Write one complete visual description: subject, composition, action, setting, light and style. Include an explicit RGBA request when supplied.',
-            'multi': 'Address ordered references as <image1>, <image2> and so on, up to ten. Do not exchange their roles or invent absent references.',
-        },
+        qwen2511.ENGINE: qwen2511.MODE_RULES,
+        qwen21.ENGINE: qwen21.MODE_RULES,
         'z-image-turbo-int8': zimage.MODE_RULES,
-        'flux3-klein-int8': {
-            'single': 'Write a focused instruction for Image 1: the change and the details to keep. Do not recaption away an explicit edit boundary.',
-            'reference': 'Distinguish the source in Image 1 from the subject or attributes in Image 2; preserve their assigned roles.',
-            'prompt': 'Write a full still-image caption, preserving the requested camera, framing, subject count, light and lettering.',
-            'multi': 'Describe the roles of all ordered references, up to ten. Keep identities and sources distinct instead of merging them implicitly.',
-            'layout': 'Use the exact supplied object IDs and their requested properties. The validated box table stays separate and unchanged; '
-                      'do not invent positions that contradict it or duplicate objects.',
-        },
+        klein.ENGINE: klein.MODE_RULES,
     }
 
     def __init__(self, text, gpu, submission_lock=None):
@@ -124,26 +114,41 @@ class PromptEnhancer(PromptEnhancerTemplate):
         self.clarifications = Clarifications()
 
     def supported(self, engine, mode):
-        return isinstance(engine, str) and isinstance(mode, str) and engine == zimage.ENGINE and mode in zimage.MODE_RULES
+        return isinstance(engine, str) and isinstance(mode, str) and engine in self.ACTIVE_GUIDES and mode in self.MODE_RULES[engine]
 
     def status(self):
-        return dict(GemmaTask.status(self), state='active', engines={zimage.ENGINE: list(zimage.MODE_RULES)})
+        return dict(GemmaTask.status(self), state='active', engines={engine:list(guide.MODE_RULES) for engine, guide in self.ACTIVE_GUIDES.items()})
 
     def guide(self, engine, mode):
         result = super().guide(engine, mode)
         if self.supported(engine, mode):
-            result.update(state='active', version=zimage.VERSION)
+            result.update(state='active', version=self.ACTIVE_GUIDES[engine].VERSION)
         return result
 
     def _messages(self, prompt, engine, mode, images, context):
         if not self.supported(engine, mode):
             raise ValueError(ui_text('image.prompt_manager_unsupported'))
+        context = dict(context or {})
         draft = self.draft(prompt, engine, mode, context)
-        expected = 0 if mode == 'prompt' else 2 if mode == 'inpaint' else 1
-        if not isinstance(images, (tuple, list)) or len(images) != expected:
+        expected = ((0,) if mode in ENGINES[engine].text_modes else (2,) if mode in ('reference', 'inpaint') else
+                    range(3, ENGINES[engine].max_reference_images + 1) if mode == 'multi' else (1,))
+        if not isinstance(images, (tuple, list)) or len(images) not in expected:
             raise ValueError(ui_text('image.prompt_manager_source_invalid'))
-        pictures = [vision_image(raw, mask=mode == 'inpaint' and index == 1) for index, raw in enumerate(images)]
+        if engine == klein.ENGINE and mode == 'layout':
+            _, rows, _ = resolve_flux_options(ENGINES[engine], mode, {'layout_boxes':context.get('layout_boxes')})
+            context.update(layout_boxes=rows, layout_plan=layout_brief(rows))
+            draft = self.draft(prompt, engine, mode, context)
+        pictures = [vision_image(raw, mask=mode == 'inpaint' and index == 1, alpha_matte=engine == qwen21.ENGINE)
+                    for index, raw in enumerate(images)]
+        if engine == qwen21.ENGINE:
+            context['source_alpha'] = qwen21.source_alpha(images)
+            draft = self.draft(prompt, engine, mode, context)
         messages = draft['messages']
+        if engine == qwen2511.ENGINE:
+            profile = context.get('sampling_profile', 'standard')
+            if not isinstance(profile, str) or profile not in qwen2511.PROFILE_RULES:
+                raise ValueError(ui_text('image.qwen_quality_selection_error'))
+            messages[0]['content'] += '\n' + qwen2511.PROFILE_RULES[profile]
         if mode == 'control':
             control_type = (context or {}).get('control_type')
             if not isinstance(control_type, str) or control_type not in zimage.CONTROL_RULES:
@@ -153,10 +158,43 @@ class PromptEnhancer(PromptEnhancerTemplate):
             messages[1]['images'] = pictures
         return messages, len(pictures)
 
+    @staticmethod
+    def _caption(answer, prompt, engine, mode, pictures, context):
+        context = context or {}
+        literals = [prompt, *context.get('clarification_choices', [])]
+        if engine == klein.ENGINE and mode == 'layout':
+            literals.extend(row['desc'] for row in context['layout_boxes'])
+        result = caption(answer, '\n'.join(literals), bool(pictures))
+        if result is not None and engine == qwen2511.ENGINE and not qwen2511.valid_references(QUOTES.sub('', result), pictures):
+            return None
+        if result is not None and engine == klein.ENGINE:
+            prose = QUOTES.sub('', result)
+            tags = re.findall(r'<([^<>]+)>', prose)
+            ids = [row.get('id', 'obj_' + str(index + 1)) for index, row in enumerate(context['layout_boxes'])] if mode == 'layout' else []
+            # The authoritative table is appended by code, once. Gemma may cite each ID once, never replace the table.
+            if sorted(tags) != sorted(ids) or re.search(r'\[\s*\{', prose):
+                return None
+        if result is not None and engine == qwen21.ENGINE:
+            tags = set(re.findall(r'<([^<>]+)>', QUOTES.sub('', result)))
+            expected = {'image' + str(index + 1) for index in range(pictures)} if pictures > 1 else set()
+            # Multi-image edits need every real tag; a single-image edit uses no tags in the publisher contract.
+            if tags != expected:
+                return None
+            result = qwen21.rgba_prompt(result, '\n'.join(literals))
+            if len(result) > 5000:
+                return None
+        return result
+
+    @staticmethod
+    def _context_size(prompt, pictures):
+        # Ten reference thumbnails need a larger context than the original one-source Z-Image path.
+        return max(10240 if len(prompt) > 2500 or pictures > 1 else 6144, 4096 + 1536 * pictures)
+
     def prepare(self, prompt, engine, mode, images=(), context=None, *, binding=None, token=None, answer=None, language='Russian'):
         """Interactive Image path. Waiting questions retain bounded CPU state, never an active Text/GPU session."""
         if not self.supported(engine, mode):
             raise ValueError(ui_text('image.prompt_manager_unsupported'))
+        guide = self.ACTIVE_GUIDES[engine]
         if language not in ('Russian', 'English'):
             raise ValueError('Invalid clarification language')
         identity = fingerprint(prompt, engine, mode, context, binding, images)
@@ -166,26 +204,26 @@ class PromptEnhancer(PromptEnhancerTemplate):
                     return decision
                 agreed = [option['value'] for option in decision['choices']]
                 result = self.enhance(prompt, engine, mode, images, {**(context or {}), 'clarification_choices':agreed})
-                result['clarification'] = dict(decision['clarification'], version=zimage.CLARIFICATION_VERSION)
+                result['clarification'] = dict(decision['clarification'], version=guide.CLARIFICATION_VERSION)
                 return result
         if answer is not None:
             raise ValueError(ui_text('image.clarification_session_expired'))
         messages, pictures = self._messages(prompt, engine, mode, images, context)
-        messages[0]['content'] += zimage.CLARIFICATION_CONTRACT + '\n' + zimage.CLARIFICATION_RULES[mode] + '\nUI language: ' + language
+        messages[0]['content'] += guide.CLARIFICATION_CONTRACT + '\n' + guide.CLARIFICATION_RULES[mode] + '\nUI language: ' + language
         with self.session() as cancel:
             for attempt in range(2):
                 if cancel.is_set():
                     raise ValueError(ui_text('image.prompt_manager_cancelled'))
-                raw = self.ask(messages, cancel, num_ctx=10240 if len(prompt) > 2500 or pictures > 1 else 6144,
-                               num_predict=1800, temperature=0.3, top_p=0.9)
+                raw = self.ask(messages, cancel, num_ctx=self._context_size(prompt, pictures),
+                               num_predict=1800, temperature=guide.DECISION_TEMPERATURE, top_p=0.9)
                 if cancel.is_set():
                     raise ValueError(ui_text('image.prompt_manager_cancelled'))
                 try:
                     value = json.loads(re.sub(r'^```[^\n]*\n|\n```$', '', raw.strip()))
                     if isinstance(value, dict) and value.get('state') == 'ready':
-                        result = caption(value.get('prompt', ''), prompt, bool(pictures))
+                        result = self._caption(value.get('prompt', ''), prompt, engine, mode, pictures, context)
                         if result:
-                            return dict(prompt=result, model=self.text.gemma_model(), guide_version=zimage.VERSION)
+                            return dict(prompt=result, model=self.text.gemma_model(), guide_version=guide.VERSION)
                     elif isinstance(value, dict) and value.get('state') == 'clarification':
                         proposal = question(value)
                         if any(CYRILLIC.search(QUOTES.sub('', option['value'])) for option in proposal['options']):
@@ -200,7 +238,6 @@ class PromptEnhancer(PromptEnhancerTemplate):
     def enhance(self, prompt, engine, mode, images=(), context=None):
         messages, pictures = self._messages(prompt, engine, mode, images, context)
         agreed = (context or {}).get('clarification_choices', [])
-        literal_request = prompt + '\n' + '\n'.join(agreed)
         if agreed:
             messages[0]['content'] += ('\nThe person selected clarification_choices in the context. Apply these latest preferences, preserving '
                                        'unrelated original requirements. Omit unselected alternatives. This is the final caption step: never ask questions.')
@@ -208,20 +245,21 @@ class PromptEnhancer(PromptEnhancerTemplate):
             for attempt in range(2):
                 if cancel.is_set():
                     raise ValueError(ui_text('image.prompt_manager_cancelled'))
-                answer = self.ask(messages, cancel, num_ctx=10240 if len(prompt) > 2500 or pictures > 1 else 6144,
-                                  num_predict=1800, temperature=0.4, top_p=0.9)
+                answer = self.ask(messages, cancel, num_ctx=self._context_size(prompt, pictures),
+                                  num_predict=1800, temperature=self.ACTIVE_GUIDES[engine].TEMPERATURE, top_p=0.9)
                 if cancel.is_set():
                     raise ValueError(ui_text('image.prompt_manager_cancelled'))
-                result = caption(answer, literal_request, bool(pictures))
+                result = self._caption(answer, prompt, engine, mode, pictures, context)
                 if result is not None:
-                    return dict(prompt=result, model=self.text.gemma_model(), guide_version=zimage.VERSION)
+                    return dict(prompt=result, model=self.text.gemma_model(), guide_version=self.ACTIVE_GUIDES[engine].VERSION)
                 if attempt == 0:
                     # Keep the original request/images in the bounded context instead of appending another long, invalid answer.
                     messages[0]['content'] += (
                         '\nThe previous answer failed validation. Rewrite the final caption only, in English. '
                         'Keep every desired final quoted word and uppercase label exactly as supplied, '
                         'including Russian, inside straight double quotes. No Russian prose outside literal writing, no JSON or commentary. '
-                        'Use 30-5000 characters and preserve the original scene and mode constraints.')
+                        'Use 30-5000 characters and preserve the original scene and mode constraints. '
+                        'For Layout include every supplied <id> exactly once, no other bracket tokens or JSON table. '
+                        'For Qwen 2.1 with multiple images cite each real <imageN>; with zero or one image use no tags. '
+                        'For Edit 2511 use Picture 1 through the actual input count, never <imageN>; no Picture numbers in Prompt mode.')
         raise ValueError(ui_text('image.prompt_manager_invalid_answer'))
-
-# FLUX/Qwen remain drafts: their native upsamplers must not silently rewrite Gemma output a second time.

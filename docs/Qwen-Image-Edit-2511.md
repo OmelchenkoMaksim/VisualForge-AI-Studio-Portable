@@ -1,5 +1,9 @@
 # Qwen Image Edit 2511: capabilities and scoped verification
 
+**Current path, 2026-11-01:** all four modes now use automatic Gemma preparation with separate Standard/Lightning rules and optional numbered clarification.
+The [current model card](models/image/image-qwen-edit-2511.md) records the source research, routing checks and remaining quality tests.
+The real images and timings below predate this manager; they do not qualify the new Gemma prompts.
+
 Audited on 2026-10-29 using the installed FP8 mixed editor on an RTX 5070 Ti 16 GB / 64 GB RAM system. This is a small functional audit with real studio submissions, not a broad quality benchmark. No new weights were downloaded. Test state, inputs, outputs and logs live under the C user-temp `vfr-tests/qwen2511-audit-20261029` fixture; the owner's Image output folder remains `%USERPROFILE%\Desktop`.
 
 ## Research and the installed model

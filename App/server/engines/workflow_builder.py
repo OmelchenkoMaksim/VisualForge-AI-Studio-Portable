@@ -66,13 +66,16 @@ def resolve_control_settings(mode, data):
     return control_type, float(strength)
 
 
-def resolve_expansion(engine, data):
+def resolve_expansion(engine, data, *, managed=False):
     """Whether the prompt goes through the engine's upsampler; engines without one refuse a request for it."""
     value = data.get('expand')
+    if value is not None and type(value) is not bool:
+        raise ValueError(ui_text('image.resolve_expansion_prompt_yes_no'))
+    if managed:
+        # A prepared Gemma caption never enters the optional native PE, including its known alpha failure path.
+        return False
     if value is None:
         return bool(engine.expand_nodes)
-    if type(value) is not bool:
-        raise ValueError(ui_text('image.resolve_expansion_prompt_yes_no'))
     if value and not (engine.expand_nodes or engine.expansion_assets):
         raise ValueError(ui_text('image.resolve_expansion_model_does_not_expand_prompts'))
     if value and engine.expansion_assets:
@@ -94,9 +97,16 @@ def resolve_workflow_mode(engine, selected_mode, operation='generate'):
     return workflow_mode
 
 
+def bypass_upsampler(engine, graph, prompt):
+    """Wire an already prepared prompt without retaining a second model or dangling image-batch links."""
+    for ident in (*engine.expand_nodes, engine.expansion_preview):
+        graph.pop(ident, None)
+    graph[engine.encode_node]['inputs']['text'] = prompt
+
+
 def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed, canvas='square', expand=None, detail_strength=None,
                    control_type=None, control_strength=None, extra_images=None, layout_boxes=None, native_megapixels=1,
-                   negative_prompt=None, use_uncensored_lora=None):
+                   negative_prompt=None, use_uncensored_lora=None, *, managed_prompt=False):
     if mode not in engine.modes:
         raise ValueError(ui_text('image.validate_mode_not_supported_engine'))
     expand = bool(engine.expand_nodes) if expand is None else expand
@@ -155,16 +165,16 @@ def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed,
         prompt = ('Create a fully new, original image matching this description. '
                   'The input is only a completely blank neutral canvas; replace it entirely. '
                   'Do not preserve the blank background. The complete requested scene is: ' + prompt)
-    if mode == 'reference' and engine.reference_prefix:
+    # Managed prose already assigns both roles; a fixed edit-only prefix would contradict a requested new composition.
+    if mode == 'reference' and engine.reference_prefix and not managed_prompt:
         prompt = engine.reference_prefix + prompt
     if engine.expand_nodes and not expand:
         # Without expansion the upsampler is not loaded at all: its nodes leave the graph and the caption is the user's text.
         # Edit templates carry one more upsampler node (the image batch) than the prompt template, so absent ids are skipped.
-        for ident in (*engine.expand_nodes, engine.expansion_preview):
-            graph.pop(ident, None)
-        graph[engine.encode_node]['inputs']['text'] = prompt
+        bypass_upsampler(engine, graph, prompt)
         if mode == 'layout':
-            graph['30']['inputs']['string_a'] = prompt + ' ' + layout_names
+            # Gemma already describes and tags every box once; the fallback brief would repeat those objects.
+            graph['30']['inputs']['string_a'] = prompt if managed_prompt else prompt + ' ' + layout_names
             graph[engine.encode_node]['inputs']['text'] = ['30', 0]
     else:
         graph[engine.prompt_node]['inputs'][engine.prompt_key] = prompt

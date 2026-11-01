@@ -88,7 +88,7 @@ class ManagerTests(unittest.TestCase):
         text, gpu = Text(answers), Mock()
         return PromptEnhancer(text, gpu), text, gpu
 
-    def test_only_the_researched_five_modes_are_active(self):
+    def test_only_researched_models_and_modes_are_active(self):
         manager, text, gpu = self.manager()
         self.assertEqual(set(zimage.MODE_RULES), set(ENGINES[zimage.ENGINE].modes))
         self.assertEqual(set(zimage.CLARIFICATION_RULES), set(zimage.MODE_RULES))
@@ -96,7 +96,8 @@ class ManagerTests(unittest.TestCase):
         self.assertTrue(manager.status()['available'])
         for engine, modes in manager.MODE_RULES.items():
             for mode in modes:
-                self.assertEqual(manager.supported(engine, mode), engine == zimage.ENGINE)
+                self.assertEqual(manager.supported(engine, mode), engine in manager.ACTIVE_GUIDES)
+            self.assertEqual(ENGINES[engine].prompt_manager, engine in manager.ACTIVE_GUIDES)
         self.assertFalse(text.calls)
         gpu.assert_not_called()
 
@@ -179,7 +180,7 @@ class ManagerTests(unittest.TestCase):
                  ('text', zimage.ENGINE, 'inpaint', [png()], {}), ('text', zimage.ENGINE, 'detail', [b'broken'], {}),
                  ('text', zimage.ENGINE, 'control', [png()], {'control_type':'depth'}),
                  ('', zimage.ENGINE, 'prompt', [], {}), ('x' * 5001, zimage.ENGINE, 'prompt', [], {}),
-                 ('text', 'flux3-klein-int8', 'prompt', [], {}), ('text', zimage.ENGINE, 'single', [], {})]
+                 ('text', 'unknown-image', 'prompt', [], {}), ('text', zimage.ENGINE, 'single', [], {})]
         for request, engine, mode, images, context in cases:
             manager, text, gpu = self.manager()
             with self.subTest(engine=engine, mode=mode), self.assertRaises(ValueError):
@@ -312,13 +313,17 @@ class BridgeTests(unittest.TestCase):
         self.gpu.claim.assert_called_once_with('text')
         self.assertEqual(self.text.owners, [])
 
-    def test_other_models_keep_their_existing_prompt_path(self):
-        status, result = self.generate(engine='qwen-image-21-uc-fp8')
-        self.assertEqual(status, 200, result)
-        self.assertEqual(self.graphs[0]['40']['inputs']['prompt'], 'Нарисуй лису в хвойном лесу')
-        self.assertEqual(self.text.calls, [])
-        self.gpu.claim.assert_called_once_with('image', 0)
-        self.assertNotIn('prompt_enhancement', result)
+    def test_every_current_image_engine_prepares_its_prompt_automatically(self):
+        for engine in ENGINES.values():
+            with self.subTest(engine=engine.id):
+                self.text.answers = iter((FOX,))
+                before = len(self.text.calls)
+                status, result = self.generate(engine=engine.id)
+                self.assertEqual(status, 200, result)
+                node, key = (engine.encode_node, 'text') if engine.expand_nodes else (engine.prompt_node, engine.prompt_key)
+                self.assertIn(FOX, self.graphs[-1][node]['inputs'][key])
+                self.assertEqual(len(self.text.calls), before + 1)
+                self.assertEqual(result['prompt_enhancement']['engine'], engine.id)
 
     def test_interactive_sufficient_request_submits_without_a_question_or_second_rewrite(self):
         self.text.answers = iter((json.dumps(dict(state='ready', prompt=FOX)),))

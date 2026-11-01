@@ -101,18 +101,16 @@ class TemplateTests(unittest.TestCase):
             self.assertEqual(text.mock_calls, [])
             self.assertEqual(gpu.mock_calls, [])
 
-    def test_unresearched_image_pairs_are_drafts_without_a_generation_fallback(self):
+    def test_current_image_models_are_active_but_unknown_pairs_have_no_fallback(self):
         text, gpu = Mock(), Mock()
         manager = ImageEnhancer(text, gpu)
-        for engine, modes in manager.MODE_RULES.items():
-            if engine == 'z-image-turbo-int8':
-                continue
-            for mode in modes:
-                self.assertFalse(manager.supported(engine, mode))
-                self.assertEqual(manager.guide(engine, mode)['state'], 'template')
-                manager.draft('Тестовый запрос', engine, mode)
-                with self.assertRaises(ValueError):
-                    manager.enhance('Тестовый запрос', engine, mode)
+        self.assertEqual(set(manager.ACTIVE_GUIDES), set(IMAGE_ENGINES))
+        for engine, mode in (('unknown-image', 'prompt'), ('qwen-edit-2511', 'inpaint')):
+            self.assertFalse(manager.supported(engine, mode))
+            with self.assertRaises(ValueError):
+                manager.guide(engine, mode)
+            with self.assertRaises(ValueError):
+                manager.enhance('Тестовый запрос', engine, mode)
         self.assertEqual(text.mock_calls, [])
         self.assertEqual(gpu.mock_calls, [])
 

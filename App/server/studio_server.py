@@ -119,9 +119,12 @@ except (ImportError, OSError, ValueError) as _text_error:
     print(ui_text('common.studio_bridge_text_unavailable') + str(_text_error), flush=True)
 AGENTS = None  # constructed below, after the GPU coordinator it needs
 DIRECTOR = None  # the same: a film in the making is a module of the coordinator (see gpu_coordinator.MODULES)
+COMPOSITION = None
 STATIC = {'/flux-controls.js': ('static/flux-controls.js', 'application/javascript; charset=utf-8'), '/engine-state.js': ('static/engine-state.js', 'application/javascript; charset=utf-8'), '/': ('static/studio-index.html','text/html; charset=utf-8'), '/image-studio.js': ('static/image-studio.js','application/javascript; charset=utf-8'), '/image-studio.css': ('static/image-studio.css','text/css; charset=utf-8'), '/progress-save.css': ('static/progress-save.css','text/css; charset=utf-8')}
 STATIC['/prompt-guides.js'] = ('static/prompt-guides.js', 'application/javascript; charset=utf-8')
 STATIC['/image-clarification.js'] = ('static/image-clarification.js', 'application/javascript; charset=utf-8')
+STATIC['/composition-panel.js'] = ('static/composition-panel.js', 'application/javascript; charset=utf-8')
+STATIC['/composition-panel.css'] = ('static/composition-panel.css', 'text/css; charset=utf-8')
 STATIC['/studio-images.js'] = ('static/studio-images.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.js'] = ('static/video-panel.js', 'application/javascript; charset=utf-8')
 STATIC['/video-panel.css'] = ('static/video-panel.css', 'text/css; charset=utf-8')
@@ -217,7 +220,8 @@ def _comfy_held_mb():
 # Every "start" route calls GPU.claim(module): refuse while another module works, free what the idle ones still hold.
 GPU = GpuCoordinator(
     probes=dict(image=_image_busy, video=lambda: VIDEO is not None and VIDEO.busy(), music=lambda: MUSIC is not None and MUSIC.busy(), text=lambda: TEXT is not None and TEXT.busy(),
-                voiceover=lambda: VOICEOVER is not None and VOICEOVER.busy(), director=lambda: DIRECTOR is not None and DIRECTOR.busy()),
+                voiceover=lambda: VOICEOVER is not None and VOICEOVER.busy(), director=lambda: DIRECTOR is not None and DIRECTOR.busy(),
+                composition=lambda: COMPOSITION is not None and COMPOSITION.busy()),
     releasers=dict(image=_comfy_free, text=lambda: TEXT is not None and TEXT.release_gpu(), speech=lambda: SPEECH is not None and SPEECH.release_gpu()),
     free_vram=_gpu_free_mb, held=dict(image=_comfy_held_mb))
 if MUSIC is not None:
@@ -228,6 +232,23 @@ if SPEECH is not None and TEXT is not None:
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
 SCENE_PLANNER = PROMPT_ENHANCER = DIRECTOR_REVIEW = None
 IMAGE_PROMPT_ENHANCER = ImagePromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
+
+
+def composition_manager():
+    """Initialize persistent composition state only when this workspace is actually opened, not on a bridge import."""
+    global COMPOSITION
+    with GPU_SUBMISSION_LOCK:
+        if COMPOSITION is None:
+            from composition.composition_brain import CompositionBrain
+            from composition.composition_manager import CompositionManager
+            from composition.composition_studio import CompositionStudio
+            token = secrets.token_urlsafe(24)
+            COMPOSITION = CompositionManager(PATHS.settings.parent / 'Composition', CompositionBrain(TEXT, GPU, GPU_SUBMISSION_LOCK),
+                CompositionStudio(PORT, token), GPU, GPU_SUBMISSION_LOCK, token,
+                cancel_preparation=lambda: TEXT is not None and TEXT.stop_chat(IMAGE_PROMPT_ENHANCER.OWNER))
+        return COMPOSITION
+
+
 if TEXT is not None:
     from video.scene_planner import ScenePlanner
     from video.video_prompt_enhancer import PromptEnhancer
@@ -281,6 +302,8 @@ def busy_state():
 def stop_generation():
     """Stop whatever generates right now, whichever module started it (the banner's Stop button)."""
     stopped = []
+    if COMPOSITION is not None and COMPOSITION.stop():
+        stopped.append('composition')
     if DIRECTOR is not None and DIRECTOR.stop():           # first: the film must not start its next step when the current job is cancelled below
         stopped.append('director')
     if AGENTS is not None and AGENTS.stop()['stopped']:
@@ -1064,6 +1087,8 @@ class Handler(BaseHTTPRequestHandler):
         """The Director's own requests (they carry the token of the film in progress) are not refused because the Director holds the card."""
         if DIRECTOR is not None and DIRECTOR.acting(self.headers.get('X-VisualForge-Run')):
             return GPU.acting_for('director')
+        if COMPOSITION is not None and COMPOSITION.acting(self.headers.get('X-VisualForge-Run')):
+            return COMPOSITION.request_scope()
         return nullcontext()
 
     def do_GET(self):
@@ -1075,6 +1100,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         u = urlparse(self.path)
         try:
+            if u.path.startswith('/api/composition/'):
+                from composition.composition_routes import handle as composition_handle
+                return composition_handle(self, composition_manager(), u.path.removeprefix('/api/composition/'), u.query)
             if u.path.startswith('/api/director/'):
                 from director.routes import handle_get as director_get
                 return director_get(self, DIRECTOR, u.path.removeprefix('/api/director/'), u.query)
@@ -1161,6 +1189,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def _post(self):
         route = urlparse(self.path).path
+        if route.startswith('/api/composition/'):
+            if not self.safe_origin():
+                return
+            from composition.composition_routes import handle as composition_handle
+            return composition_handle(self, composition_manager(), route.removeprefix('/api/composition/'), urlparse(self.path).query, post=True)
         if route == '/api/director/attach':
             return self._director_attach()    # raw picture or video bytes (a video streams to disk); never waits for the GPU
         if route.startswith('/api/director/'):
@@ -1391,7 +1424,7 @@ class Handler(BaseHTTPRequestHandler):
             control_type, control_strength = resolve_control_settings(mode, data)
             extra_payloads, layout_boxes, native_megapixels = resolve_flux_options(engine, mode, data)
             negative_prompt, use_uncensored_lora = resolve_qwen_options(engine, data)
-            expand = resolve_expansion(engine, data)
+            expand = resolve_expansion(engine, data, managed=engine.prompt_manager)
             original_prompt = data.get('original_prompt', prompt) if operation == 'variation' else prompt
             if not isinstance(original_prompt, str) or len(original_prompt) > 5000:
                 raise ValueError('Invalid original prompt')
@@ -1426,24 +1459,32 @@ class Handler(BaseHTTPRequestHandler):
                         prepared_mask = validate_edit_mask(source_bytes, second_bytes)
                         data = {**data, 'image2': {'base64':base64.b64encode(prepared_mask).decode('ascii')}}
                         prompt_images.append(prepared_mask)
+                    else:
+                        prompt_images.append(second_bytes)
                 if control_type == 'gray':
                     data = {**data, 'image1': {'base64':base64.b64encode(grayscale_png(source_bytes)).decode('ascii')}}
                 for item in extra_payloads:
                     extra_bytes, _, _ = check_image(item)
                     combined_bytes += len(extra_bytes)
+                    prompt_images.append(extra_bytes)
                 if mode == 'multi' and combined_bytes > IMAGE_LIMIT:
                     raise ValueError(ui_text('image.extra_images_count_error', engine.max_reference_images - 2))
             enhancement = None
             if IMAGE_PROMPT_ENHANCER.supported(engine.id, mode):
-                # The manager sees the validated source/mask, never unrelated uploads selected in Prompt mode.
+                # Preserve the exact input order, including all references; text modes ignore unrelated selected uploads.
                 # This lives on the server so API clients receive the same automatic preparation as the page.
                 context = dict(
                     canvas=canvas if mode in engine.text_modes else None, control_type=control_type, detail_strength=detail_strength,
-                    images_in_order=['source', 'white_edit_black_keep_mask'] if mode == 'inpaint' else ['source'] if prompt_images else [])
+                    layout_boxes=layout_boxes if mode == 'layout' else [],
+                    images_in_order=['source', 'white_edit_black_keep_mask'] if mode == 'inpaint' else
+                                    ['Image ' + str(index + 1) for index in range(len(prompt_images))])
+                if engine.id == 'qwen-edit-2511':
+                    context.update(sampling_profile='lightning' if quality == 'fast' else 'standard', negative_prompt=negative_prompt)
                 if clarify:
                     enhancement = IMAGE_PROMPT_ENHANCER.prepare(prompt, engine.id, mode, prompt_images, context,
                         binding=dict(quality=quality, upscale=upscale, seed=fixed_seed, control_strength=control_strength,
-                                     operation=operation, native_megapixels=native_megapixels),
+                                     operation=operation, native_megapixels=native_megapixels,
+                                     negative_prompt=negative_prompt, use_uncensored_lora=use_uncensored_lora),
                         token=data.get('clarification_token'), answer=data.get('clarification_answer'),
                         language='English' if data.get('language') == 'English' else 'Russian')
                     if enhancement.get('state') == 'clarification':
@@ -1455,6 +1496,9 @@ class Handler(BaseHTTPRequestHandler):
             # Refuses while Video/Music/Text work; unloads an idle chat model first; waits for the engine's own memory estimate.
             claim_vram_mb = engine.required_vram(mode, native_megapixels)
             with GPU_SUBMISSION_LOCK:
+                # Stop can arrive while Gemma rewrites a composition step; never enqueue its image after cancellation.
+                if COMPOSITION is not None and COMPOSITION.cancelled_for(self.headers.get('X-VisualForge-Run')):
+                    raise ValueError(ui_text('composition.panel_cancelled_text'))
                 GPU.claim('image', claim_vram_mb)
                 input1 = input2 = None
                 if mode == 'prompt' and not engine.native_prompt:
@@ -1469,7 +1513,8 @@ class Handler(BaseHTTPRequestHandler):
                                                 quality, upscale, seed, canvas, expand, detail_strength, control_type, control_strength,
                                                 extra_inputs, layout_boxes, native_megapixels,
                                                 negative_prompt if engine.id == 'qwen-edit-2511' else None,
-                                                use_uncensored_lora if engine.id == 'qwen-edit-2511' else None)
+                                                use_uncensored_lora if engine.id == 'qwen-edit-2511' else None,
+                                                managed_prompt=bool(enhancement))
                 engine_meta.update(selected_mode=selected_mode, operation=operation)
                 if enhancement:
                     engine_meta.update(enhanced_prompt=prompt, prompt_enhancement={

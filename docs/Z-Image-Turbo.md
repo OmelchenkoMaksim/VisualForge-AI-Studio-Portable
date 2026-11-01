@@ -2,6 +2,8 @@
 
 Reviewed on 2026-10-29 against the current source and real studio jobs on an RTX 5070 Ti 16 GB. This is a small capability audit, not a broad image-quality benchmark. No new peak-VRAM measurement was made.
 
+For a concise development reference, start with the [Z-Image card](models/image/image-z-image-turbo.md); the observations below remain dated evidence.
+
 ## What the checkpoints support
 
 The [official Turbo model card](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo) describes a distilled 6B text-to-image model, 8 effective model evaluations, photorealism and English/Chinese lettering. Turbo has no classifier-free guidance; ComfyUI's CFG 1 disables the negative branch. This differs from the separate Base/Edit/Omni checkpoints: their capabilities must not be attributed to the installed Turbo weights.

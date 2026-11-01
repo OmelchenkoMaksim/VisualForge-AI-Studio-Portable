@@ -68,6 +68,7 @@ function imageResultSettings(value) {
     (value.use_uncensored_lora == null ? '' : ' · ' + StudioI18n.t(value.use_uncensored_lora ? 'image.qwen_community_on' : 'image.qwen_community_off'));
 }
 function renderMode() {
+  if (byId('imageWorkspace').classList.contains('composition-mode')) return;
   modeSelect.value = mode;
   StudioI18n.bind(byId('title'), "textContent", () => ('VisualForge AI Studio'), true);
   StudioUI.setHeader('image', {description: {single:StudioI18n.t("image.mode_source_image_editing_instruction"), reference:StudioI18n.t("image.mode_base_image_reference"), prompt:StudioI18n.t("image.mode_create_image_text"), detail:StudioI18n.t("image.detail_mode_description"), control:StudioI18n.t('image.control_mode_selector_label'), inpaint:StudioI18n.t('image.inpaint_mode_selector_label'), tile:StudioI18n.t('image.tile_mode_selector_label'), multi:multiModeLabel(), layout:StudioI18n.t('image.flux_layout_mode_label')}[mode]});
@@ -169,6 +170,7 @@ function rememberEngine(id) {
 }
 function engineReady() { return QwenEngineState.canGenerate(engineCatalog, selectedEngine, mode); }
 function renderEngine() {
+  if (byId('imageWorkspace').classList.contains('composition-mode')) return;
   const info = engineCatalog[selectedEngine];
   engineSelect.value = selectedEngine;
   if (info) {
@@ -429,7 +431,7 @@ function beginTask() {
   busy = true;
   byId('generate').disabled = true;
   lockPresets(true);
-  if (selectedEngine === 'z-image-turbo-int8') lockPromptInputs(true);
+  if (engineCatalog[selectedEngine]?.prompt_manager) lockPromptInputs(true);
   variantButton.disabled = true;
   cancelButton.hidden = false;
   cancelButton.disabled = true;
@@ -739,6 +741,7 @@ check().then(reportLaunch);
 document.addEventListener('studio:models-changed', () => check());
 // Recompute translated preset fragments without touching user inputs, files or an active job.
 window.addEventListener('studio-languagechange', renderEngine);
+window.addEventListener('visualforge:composition-mode', event => {if (!event.detail.active) {renderMode(); renderEngine();}});
 loadSettings();
 function selectPreview(id, pic, text) {
   const file = byId(id).files[0];
@@ -904,7 +907,7 @@ async function runGeneration(isVariant) {
         expand:engineCatalog[requestEngine]?.expansion ? (isVariant ? prior.expand : canExpand(engineCatalog[requestEngine],requestMode) && byId('expandPrompt').checked) : undefined
       };
     const send = data => request('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
-    const result = requestEngine === 'z-image-turbo-int8' && !isVariant
+    const result = engineCatalog[requestEngine]?.prompt_manager && !isVariant
       ? await ImageClarification.run(send, {...payload, clarify:true, language:StudioI18n.language === 'en' ? 'English' : 'Russian'}, {
         onState:state => updateLiveStatus({phase:'preparing', detail:StudioI18n.t({waiting:'image.clarification_waiting_choices',
           preparing:'image.clarification_applying_choices', accepted:'image.clarification_data_accepted'}[state])}),
@@ -912,7 +915,7 @@ async function runGeneration(isVariant) {
           body:JSON.stringify({clarification_token:token})}),
         isCurrent:() => selectedEngine === requestEngine && mode === requestMode && byId('prompt').value.trim() === originalPrompt &&
           (isTextMode(requestMode) || byId('image1').files[0] === sourceFile) &&
-          (requestMode !== 'inpaint' || byId('image2').files[0] === referenceFile)
+          (!['inpaint', 'reference', 'multi'].includes(requestMode) || byId('image2').files[0] === referenceFile)
       }) : await send(payload);
     if (!result) { finishLiveStatus(StudioI18n.t('image.prompt_manager_cancelled')); return; }
     activeJob = {prompt_id:result.prompt_id,cancel_token:result.cancel_token,engine:result.engine,node_names:result.node_names,sampler_node_ids:result.sampler_node_ids};

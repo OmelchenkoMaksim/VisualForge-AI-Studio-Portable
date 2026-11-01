@@ -16,7 +16,15 @@ Old reports are scoped evidence of one day, not a health check of the installed 
 | [VisualForge-Hardware-Compatibility.md](VisualForge-Hardware-Compatibility.md) | the "Your computer" card and model requirements |
 | [VisualForge-Portable-Layout.md](VisualForge-Portable-Layout.md) | folder contract of an installation |
 
+## Model cards (start here for any model)
+
+[models/README.md](models/README.md): cards grouped by section, with our versions, strengths, limits, modes, prompt rules and remaining checks.
+Evidence distinguishes **code**, **recorded observations**, **CPU/UI/GPU checks**, **external sources** and **unknowns**. All four Image models are researched; the other sections' cards are drafts seeded from project reports. Start with the card, refresh only facts needed for the next decision and verify at the appropriate level: [video](models/video/README.md) · [image](models/image/README.md) ·
+[music](models/music/README.md) · [voiceover](models/voiceover/README.md) · [text (Gemma)](models/text/README.md) · [speech (Whisper)](models/speech/README.md). The reports below are the long evidence the cards point to.
+
 ## Image
+
+[VisualForge-Composition](VisualForge-Composition.md): automatic model selection and multi-stage compositions from optional heroes, places, objects and references; 1–5 variations, always maximum-quality profiles.
 
 [Qwen-Image-Edit-2511](Qwen-Image-Edit-2511.md) · [Qwen-Image-2.1](Qwen-Image-2.1.md) · [Z-Image-Turbo](Z-Image-Turbo.md) · [FLUX-3-Klein](FLUX-3-Klein.md) ·
 [Z-Image-Prompting](Z-Image-Prompting.md) (publisher/community research and automatic per-mode Gemma preparation) ·
@@ -48,7 +56,7 @@ Start with **[VisualForge-Video-Architecture.md](VisualForge-Video-Architecture.
 
 ## Platform
 
-[VisualForge-Prompt-Managers](VisualForge-Prompt-Managers.md) (Video and automatic Z-Image preparation; remaining Image/Music/Voiceover templates) ·
+[VisualForge-Prompt-Managers](VisualForge-Prompt-Managers.md) (Video, automatic preparation for all four Image models, remaining audio drafts) ·
 [VisualForge-GPU-Coordination](VisualForge-GPU-Coordination.md) (one card, one holder, the global lock and Stop) ·
 [VisualForge-Event-History](VisualForge-Event-History.md) (operation types) · [VisualForge-Generation-Identity](VisualForge-Generation-Identity.md) (the four-field identity) ·
 [VisualForge-Source-Layout](VisualForge-Source-Layout.md) (file naming, entry points, what a rename must update).

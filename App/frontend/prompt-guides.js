@@ -43,9 +43,9 @@
       if (!['single', 'reference', 'prompt', 'multi'].includes(mode)) return null;
       const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
       return {title:text('image.qwen21_guide_' + mode + '_title'), purpose:text('image.qwen21_guide_' + mode + '_purpose'),
-        structure:text('image.qwen21_guide_structure'), language:text('image.qwen_guide_language'),
+        structure:text('image.qwen21_guide_structure'), language:text('image.qwen21_guide_language'),
         mistakes:text('image.qwen21_guide_limits'), quality:text('image.qwen21_quality_explanation'),
-        example:mode === 'multi' ? 'Keep the clock scene from <image1>. Apply the blue and yellow pattern from <image2> to the clock body only. Add the cactus in its red pot from <image3> on the right. Keep the CLOCK label readable.' : profiles[engine][mode]?.example || ''};
+        example:text('image.qwen21_example_' + mode)};
     }
     if (engine === 'qwen-edit-2511') {
       const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
@@ -54,7 +54,7 @@
       return {title:text('image.qwen_guide_' + mode + '_title'), purpose:text('image.qwen_guide_' + mode + '_purpose'),
         structure:text('image.qwen_guide_structure'), language:text('image.qwen_guide_language'),
         mistakes:text('image.qwen_guide_mistakes'), quality:text('image.qwen_quality_explanation'),
-        example:mode === 'multi' ? 'Keep the clock scene in Image 1. Apply the blue and yellow pattern from Image 2 to the clock body. Add the cactus in its red pot from Image 3 on the right. Keep the CLOCK card readable.' : profiles[engine][mode].example};
+        example:text('image.qwen_example_' + mode)};
     }
     const fluxModes = {
       prompt:['image.flux_guide_prompt_title','image.flux_guide_prompt_purpose'],

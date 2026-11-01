@@ -3,6 +3,9 @@
 Research date: **2026-11-01**. Scope: the installed **Z-Image Turbo INT8**, Qwen3-4B FP8 encoder, low-denoise detail workflow,
 Union Lite 2602 and Tile Lite 2601. Base, Edit and Omni are separate checkpoints. No model was downloaded or run for this research.
 
+Start with the [short model card](models/image/image-z-image-turbo.md) for versions, per-mode advice and evidence gaps.
+This report retains the detailed rationale and precise research citations; update the card with it when a finding changes.
+
 ## Publisher evidence
 
 * In the [official prompting discussion](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo/discussions/8), Tongyi-MAI recommends detailed
@@ -69,7 +72,7 @@ literals is rejected. Arbitrary unquoted lettering and lettering read from a sou
 the checks are not a complete semantic or OCR verifier. Failed/cancelled preparation does not enqueue an image or silently use a fallback.
 
 History retains `original_prompt`, `enhanced_prompt` and `prompt_enhancement` (engine, mode, Gemma model and guide version). Native
-FLUX/Qwen expansion remains distinct and unchanged. Music and Voiceover remain templates, and other Image engines await their own research.
+Qwen expansion remains distinct and unchanged. Klein now has its own researched Gemma path ([card](models/image/image-flux3-klein.md)); Music, Voiceover and the Qwen Gemma managers remain templates.
 
 ## Optional clarification inside the request panel
 
@@ -99,7 +102,7 @@ uses same-origin `/api/image/clarification-cancel` with a bounded body and no GP
 
 History adds the question/selected-label transcript, final English choices, question count and clarification version inside
 `prompt_enhancement.clarification`; continuation tokens and image payloads are not persisted. Calls without `clarify: true` never suspend for
-human input, preserving Director/automation behavior. Other models have no active clarification pass. Video exposes only an inactive
+human input, preserving Director/automation behavior. Klein now has its own mode-specific clarification rules; the Qwen Image managers remain inactive. Video exposes only an inactive
 `clarification_status()` / `prepare_clarification()` scaffold; its existing enhancement and generation routes are unchanged.
 
 CPU tests in `tests/test_image_prompt_manager.py` and `tests/test_prompt_clarification.py` exercise the five modes, control variants,

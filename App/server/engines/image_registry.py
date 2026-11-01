@@ -66,6 +66,7 @@ class Engine:
     quality_components: dict = field(default_factory=dict)
     # Optional, mode-specific prompt enhancers must not become base-engine requirements.
     expansion_assets: dict = field(default_factory=dict)
+    prompt_manager: bool = False
 
     def required_vram(self, mode, megapixels=1):
         return self.native_claim_vram_mb.get(megapixels, self.claim_vram_mb) if mode in self.text_modes else self.claim_vram_mb
@@ -97,6 +98,7 @@ ENGINES = {
          '148':ui_text('image.workflow_stage_references'), '147':'Conditioning', '156':'VAE encode',
          '169':'Sampling', '158':'VAE decode', '9':ui_text('image.workflow_stage_saving')},
         output_prefix='Qwen_Edit_2511', modes=('single', 'reference', 'prompt', 'multi'), optional_modes=('multi',), max_reference_images=3,
+        prompt_manager=True,
         quality_assets={'fast':(('LoraLoaderModelOnly', 'lora_name', QWEN_LIGHTNING),)},
         quality_components={'fast':'image.model.qwen-edit-lightning'}),
     'qwen-image-21-uc-fp8': Engine(
@@ -110,7 +112,7 @@ ENGINES = {
          '30':'KV cache', '40':'Conditioning Qwen 2.1', '50':ui_text('image.workflow_stage_latent_dimensions'),
          '60':'Sampling', '70':'VAE decode RGBA', '90':ui_text('image.workflow_stage_saving_png')},
         output_prefix='Qwen_Image_21_UC', modes=('single', 'reference', 'prompt', 'multi'), optional_modes=('multi',),
-        max_reference_images=10, native_megapixels=(1, 4),
+        max_reference_images=10, native_megapixels=(1, 4), prompt_manager=True,
         expansion_assets={'prompt':QWEN21_PE_T2I, 'single':QWEN21_PE_I2I,
                           'reference':QWEN21_PE_I2I, 'multi':QWEN21_PE_I2I},
         reference_prefix='Edit <image1> as the source image; use <image2> as the reference. Follow the user instruction: '),
@@ -133,7 +135,7 @@ ENGINES = {
                          'tile': ('image.model.z-image-controlnet-tile', 'image.model.upscale')},
         # Measured on the RTX 5070 Ti (nvidia-smi, whole GPU): peak about 13.6 GB above idle at 1024x1024. ComfyUI takes what is
         # free, so the peak is not a minimum; the estimate stays below it to pass with the usual 1-2.5 GB desktop use.
-        claim_vram_mb=11000),
+        claim_vram_mb=11000, prompt_manager=True),
     # The official workflow expands short requests to full scene captions before text encoding.
     'flux3-klein-int8': Engine(
         'flux3-klein-int8', 'FLUX.3 Klein INT8', True,
@@ -154,7 +156,7 @@ ENGINES = {
         expand_nodes=('23', '24', '25', '26', '28'), encode_node='40', expansion_preview='27',
         # Measured peaks above idle: about 13.9 GB for a prompt with the upsampler, 14.6-14.7 GB for Single/Reference. An estimate
         # below the peak, for the same reason as Z-Image; the peaks leave no room for a second GPU application.
-        claim_vram_mb=12000)
+        claim_vram_mb=12000, prompt_manager=True)
 }
 
 def get_engine(engine_id=None):

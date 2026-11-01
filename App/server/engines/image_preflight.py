@@ -1,6 +1,7 @@
 """Check each engine separately against the actual ComfyUI API schema."""
 from ui_strings import source as ui_text
 from .image_registry import ENGINES, UPSCALE_MODEL, QWEN_UNCENSORED
+from .workflow_builder import bypass_upsampler
 
 
 def combo_options(spec):
@@ -66,7 +67,18 @@ def engine_readiness(engine, obj, upscale_enabled=True, disabled_components=()):
     missing_classes, missing_assets, schema_errors = set(), [], []
     mode_reasons = {}
     templates = {mode: engine.template(mode) for mode in engine.modes}
-    for cls, key, filename in engine.assets:
+    assets = engine.assets
+    if engine.prompt_manager and engine.expand_nodes:
+        # Preflight must inspect the graph actually submitted: the Gemma path neither loads nor needs the native upsampler.
+        for mode, graph in templates.items():
+            bypass_upsampler(engine, graph, '__PREPARED_PROMPT__')
+            if mode == 'layout':
+                graph['30']['inputs']['string_a'] = '__PREPARED_PROMPT__'
+                graph[engine.encode_node]['inputs']['text'] = ['30', 0]
+        assets = tuple(asset for asset in assets if any(
+            node['class_type'] == asset[0] and node['inputs'].get(asset[1]) == asset[2]
+            for graph in templates.values() for node in graph.values()))
+    for cls, key, filename in assets:
         options = combo_options(input_specs(obj.get(cls, {})).get(key))
         if options is None or filename not in options:
             missing_assets.append(filename)
@@ -103,7 +115,7 @@ def engine_readiness(engine, obj, upscale_enabled=True, disabled_components=()):
         QWEN_UNCENSORED in (combo_options(input_specs(obj.get('LoraLoaderModelOnly', {})).get('lora_name')) or []) and
         'image.model.qwen-edit-uncensored' not in disabled_components)
     expansion_reasons = {}
-    if engine.expansion_assets:
+    if engine.expansion_assets and not engine.prompt_manager:
         from .qwen21_expansion import expansion_errors
         expansion_reasons = {mode:expansion_errors(engine, mode, obj, disabled_components) for mode in available_modes}
     if 'detail' in available_modes:
@@ -144,8 +156,9 @@ def engine_readiness(engine, obj, upscale_enabled=True, disabled_components=()):
             'text_modes':list(engine.text_modes), 'max_reference_images':engine.max_reference_images,
             'native_megapixels':list(engine.native_megapixels),
             'cfg':sampler['cfg'], 'sampler':sampler['sampler_name'] + ' / ' + sampler['scheduler'],
-            'expansion':bool(engine.expand_nodes or engine.expansion_assets),
-            'expansion_available_modes':[mode for mode in available_modes if not expansion_reasons.get(mode)] if engine.expansion_assets else available_modes if engine.expand_nodes else [],
+            'prompt_manager':engine.prompt_manager,
+            'expansion':not engine.prompt_manager and bool(engine.expand_nodes or engine.expansion_assets),
+            'expansion_available_modes':[] if engine.prompt_manager else [mode for mode in available_modes if not expansion_reasons.get(mode)] if engine.expansion_assets else available_modes if engine.expand_nodes else [],
             'expansion_reasons':expansion_reasons,
             'capabilities':'; '.join(capability_parts), 'capability_parts':capability_parts}
 

@@ -23,6 +23,8 @@ The conventional discovery names below are exceptions; vendor/runtime files reta
   `stableaudio3-text.api.json`. Mode IDs and model IDs remain independent of filenames.
 - Documentation uses a product/model name and a topic, such as
   `VisualForge-Voice-Input.md` or `Qwen-Image-2.1.md`.
+  Short model references live in `docs/models/<section>/<section>-<model>.md`
+  ([index and evidence rules](models/README.md)); longer capability/research reports stay in `docs/`.
 
 Keep conventional discovery filenames when another tool depends on them: `AGENTS.md`, `README.md`,
 `__init__.py`, `__main__.py`, `sitecustomize.py`, Git configuration/hooks and license notices.
@@ -33,6 +35,9 @@ Start the bridge through `App/Start-VisualForge.ps1`; its Python entry is
 `App/server/studio_server.py`. Image logic is in `App/server/engines`, video in
 `App/server/video`, audio in `music`, `speech` and `voiceover`, chat in `text`,
 coding agents in `agents`, and component installation in `provision`.
+The automatic creative workspaces use `App/server/director` for Video
+([Director](VisualForge-Director.md)) and `App/server/composition` for Image
+([Composition](VisualForge-Composition.md)); their stages call the studio's regular APIs.
 
 After a rename, check Python imports, subprocess entry paths, the bridge's `STATIC`
 table, HTML asset URLs, dynamic catalog/workflow filename construction, tests and

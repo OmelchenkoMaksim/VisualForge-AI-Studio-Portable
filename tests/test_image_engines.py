@@ -301,7 +301,9 @@ class Qwen21Tests(unittest.TestCase):
         self.assertEqual(list(graph['28']['inputs'].values()),[['11',0],['12',0],['110',0],['111',0]])
 
     def test_optional_expansion_missing_or_disabled_does_not_disable_base(self):
-        engine = ENGINES['qwen-image-21-uc-fp8']
+        from dataclasses import replace
+        # Direct tooling retains the native PE contract; studio readiness deliberately omits this optional dependency.
+        engine = replace(ENGINES['qwen-image-21-uc-fp8'], prompt_manager=False)
         info = object_info(engine)
         row = engine_readiness(engine,info)
         self.assertTrue(row['ready'])
@@ -413,7 +415,8 @@ class FluxWorkflowTests(unittest.TestCase):
         self.assertEqual(info['BatchImagesNode']['input']['optional']['images'][0], 'COMFY_AUTOGROW_V3')
         self.assertTrue(engine_readiness(FLUX, info)['ready'])
         info['BatchImagesNode']['input']['optional']['images'][1]['template']['max'] = 1  # only image0 exists
-        row = engine_readiness(FLUX, info)
+        from dataclasses import replace
+        row = engine_readiness(replace(FLUX, prompt_manager=False), info)
         self.assertIn('28: unknown input images.image1', ' '.join(row['schema_errors']))
 
     def test_every_mode_is_ready_when_nodes_and_files_exist(self):
@@ -547,21 +550,26 @@ class FluxInputTests(unittest.TestCase):
             resolve_flux_options(FLUX, 'layout', {'layout_boxes':[good, good]})
         self.assertEqual(resolve_flux_options(FLUX, 'layout', {'layout_boxes':[good]})[1], [good])
 
-    def test_readiness_needs_the_upsampler_and_flags_expansion(self):
-        # The upsampler file is one of two CLIPLoader files; the card and readiness both list it.
+    def test_managed_readiness_does_not_require_or_offer_native_upsampling(self):
         row = engine_readiness(FLUX, object_info(FLUX))
         self.assertTrue(row['ready'], row['reasons'])
-        self.assertTrue(row['expansion'])
+        self.assertFalse(row['expansion'])
+        self.assertTrue(row['prompt_manager'])
+        self.assertEqual(row['expansion_available_modes'], [])
         info = object_info(FLUX)
         info['CLIPLoader']['input']['optional']['clip_name'] = [['qwen3vl_4b_int8_convrot.safetensors']]
         missing = engine_readiness(FLUX, info)
-        self.assertFalse(missing['ready'])
-        self.assertEqual(missing['missing_assets'], ['qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors'])
+        self.assertTrue(missing['ready'], missing['reasons'])
+        self.assertEqual(missing['missing_assets'], [])
+        info.pop('TextGenerate')
+        self.assertTrue(engine_readiness(FLUX, info)['ready'])
 
     def test_a_nested_dynamic_combo_input_the_server_does_not_declare_is_reported(self):
         info = object_info(FLUX)
         info['TextGenerate']['input']['optional']['sampling_mode'][1]['options'][0]['inputs']['required'].pop('temperature')
-        row = engine_readiness(FLUX, info)
+        # The unpruned native workflow remains available to low-level tooling, with its own schema checks.
+        from dataclasses import replace
+        row = engine_readiness(replace(FLUX, prompt_manager=False), info)
         self.assertEqual(row['status'], 'incompatible')
         self.assertIn('sampling_mode.temperature', ' '.join(row['schema_errors']))
 
@@ -683,12 +691,12 @@ class GuidedImageTests(unittest.TestCase):
             graph, meta = (build_workflow(ZIMAGE, mode, 'scene', 'source.png', 'mask.png', 'low', 2, 42)
                            if mode == 'detail' else self.build(mode))
             self.assertEqual(graph_errors(graph, object_info(ZIMAGE)), [], mode)
-            def walk(ident, parents):
+            def walk(ident, parents, graph, mode):
                 self.assertNotIn(ident, parents, mode)
                 for value in graph[ident]['inputs'].values():
                     if isinstance(value, list) and len(value) == 2 and isinstance(value[0], str):
-                        walk(value[0], parents | {ident})
-            walk('90', set())
+                        walk(value[0], parents | {ident}, graph, mode)
+            walk('90', set(), graph, mode)
 
     def test_guidance_and_map_choices_reach_the_graph(self):
         canny, _ = self.build('control', control_type='canny', control_strength=0.65)

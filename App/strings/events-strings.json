@@ -1,4 +1,6 @@
 {
+  "events.operation_type_image_composition_label":{"ru":"Композиция изображения","en":"Image composition"},
+  "events.operation_type_composition_plan_label":{"ru":"Планирование композиции","en":"Composition planning"},
   "events.operation_type_image_prompt_enhancement_label": {
     "ru": "Подготовка промпта изображения",
     "en": "Image prompt preparation"

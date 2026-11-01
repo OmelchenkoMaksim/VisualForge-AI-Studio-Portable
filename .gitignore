@@ -160,6 +160,13 @@ chats.json
 *token*.txt
 *credentials*.json
 
+# Model reference cards are source Markdown. On Windows, **/Models/ also
+# matches docs/models/; reopen only this documentation subtree and its Markdown.
+!/docs/models/
+/docs/models/**
+!/docs/models/**/
+!/docs/models/**/*.md
+
 # Only explicitly reviewed publication workflows belong here.
 /.github/*
 !/.github/workflows/

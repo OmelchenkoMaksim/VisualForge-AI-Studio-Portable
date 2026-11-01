@@ -3,6 +3,8 @@
 ENGINE = 'z-image-turbo-int8'
 VERSION = 'zimage-turbo-2026-11-01-v1'
 CLARIFICATION_VERSION = 'zimage-clarification-v1'
+TEMPERATURE = 0.4
+DECISION_TEMPERATURE = 0.3
 
 CLARIFICATION_RULES = {
     'prompt': 'Clarify only an unresolved visual intent that would materially change this particular picture. A concrete scene such as a fox '

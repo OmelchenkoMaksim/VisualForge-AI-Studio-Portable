@@ -13,13 +13,13 @@ import time
 
 # `director` is not a model: it is a film in the making. It holds the card from the first step to the last, while it asks the other modules for their jobs
 # one after another (see `acting_for`), so nobody can start something in the gap between two steps.
-MODULES = ('image', 'video', 'music', 'text', 'voiceover', 'director')
+MODULES = ('image', 'video', 'music', 'text', 'voiceover', 'director', 'composition')
 # Voice input is not a module that blocks others (it never locks the interface), but its worker may hold video memory: it is released like the rest.
 RELEASABLE = MODULES + ('speech',)
-NAMES = dict(image='Image', video='Video', music='Music', text='Text', voiceover='Voiceover', director='Director')
+NAMES = dict(image='Image', video='Video', music='Music', text='Text', voiceover='Voiceover', director='Director', composition=ui_text('composition.panel_name_text'))
 HINTS = dict(image=ui_text('common.gpu_wait_completion_cancel_task'), video=ui_text('common.gpu_wait_completion_cancel_video_task'),
              music=ui_text('common.gpu_wait_completion_cancel_music_task'), text=ui_text('common.gpu_wait_response_finish_stop'),
-             voiceover=ui_text('common.gpu_wait_completion_cancel_voiceover_task'), director=ui_text('common.gpu_wait_completion_cancel_director_film'))
+             voiceover=ui_text('common.gpu_wait_completion_cancel_voiceover_task'), director=ui_text('common.gpu_wait_completion_cancel_director_film'), composition=ui_text('composition.panel_wait_hint_text'))
 
 
 class Busy(ValueError):
