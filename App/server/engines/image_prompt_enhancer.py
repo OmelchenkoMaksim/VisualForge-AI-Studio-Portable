@@ -19,14 +19,25 @@ QUOTES = re.compile(r'"([^"]+)"|«([^»]+)»|“([^”]+)”')
 CYRILLIC = re.compile(r'[\u0400-\u04ff]')
 
 
+LETTERING_NOUN = r'(?:надпис[а-яё]*|текст[а-яё]*|слов[а-яё]*|подпис[а-яё]*|lettering|text|words?|writing|labels?|captions?|signs?)'
+# Only these may sit between "without" and the quote for the quote to be the thing that is left out.
+WITHOUT_LETTERING = re.compile(r'\s*(?:(?:the|this|that|any|all|old|эт[а-яё]+|стар[а-яё]+|люб[а-яё]+|всю?|весь)\s+)*(?:' + LETTERING_NOUN + r')?\s*[:,-]?\s*', re.I)
+
+
 def obsolete_text(prefix):
     """Recognize explicit removal/replacement clauses so the quote guard does not force old lettering back into an edit."""
     clause = re.split(r'[.!?;\n]', prefix)[-1]
     replacement = re.search(r'\b(?:замени(?:те)?|заменить|replace)\b(.*)$', clause, re.I)
     if replacement and not re.search(r'\b(?:на|with)\b', replacement[1], re.I):
         return True
-    removal = re.search(r'\b(?:удали(?:те)?|удалить|убери(?:те)?|убрать|сотри(?:те)?|стереть|без|remove|erase|delete|without)\b(.*)$', clause, re.I)
-    return bool(removal and not re.search(r'\b(?:добавь(?:те)?|напиши(?:те)?|сохрани(?:те)?|add|write|keep)\b', removal[1], re.I))
+    # "without" governs only the phrase right after it. In "a cat without a hat with the text «LES»" the quote is wanted lettering;
+    # treating any later quote as removed switched the exact-text guard off for it (Gemma could then change the words unnoticed).
+    without = list(re.finditer(r'\b(?:без|without)\b', clause, re.I))
+    if without and WITHOUT_LETTERING.fullmatch(clause[without[-1].end():]):
+        return True
+    removal = re.search(r'\b(?:удали(?:те)?|удалить|убери(?:те)?|убрать|сотри(?:те)?|стереть|remove|erase|delete)\b(.*)$', clause, re.I)
+    return bool(removal and not re.search(r'\b(?:добавь(?:те)?|напиши(?:те)?|сохрани(?:те)?|поставь(?:те)?|помести(?:те)?|нарисуй(?:те)?|напечатай(?:те)?|'
+                                          r'add|write|keep|put|place|draw|print|type)\b', removal[1], re.I))
 
 
 def protected_words(request):
@@ -34,7 +45,8 @@ def protected_words(request):
     words = [next(part for part in match.groups() if part is not None) for match in QUOTES.finditer(request)
              if not obsolete_text(request[:match.start()])]
     # Without delimiters we can recognize an uppercase label, but cannot reliably parse arbitrary prose as an exact text span.
-    labels = re.finditer(r'(?i:надпис[ьиью]+|напиши(?:те)?|написано|текст(?:ом)?|слово(?:м)?|lettering|text|write|reads?)\s*:?\s*'
+    # The lookbehind keeps the cue words from matching inside longer words ("bread LOAF", "rewrite SIGN", "контекст ЛЕС").
+    labels = re.finditer(r'(?<![A-Za-zА-Яа-яЁё])(?i:надпис[ьиью]+|напиши(?:те)?|написано|текст(?:ом)?|слово(?:м)?|lettering|text|write|reads?)\s*:?\s*'
                          r'([А-ЯЁA-Z0-9][А-ЯЁA-Z0-9 \t-]*[А-ЯЁA-Z0-9])(?=$|[^а-яёa-zА-ЯЁA-Z0-9])', request)
     words += [match[1] for match in labels if not obsolete_text(request[:match.start(1)])]
     return tuple(dict.fromkeys(words))
@@ -47,7 +59,9 @@ def caption(answer, request, has_source):
         text = re.sub(r'^```[^\n]*\n|\n```$', '', text).strip()
     text = re.sub(r'^(?:enhanced prompt|rewritten prompt|prompt)\s*:\s*', '', text, flags=re.I).strip()
     text = QUOTES.sub(lambda match: '"' + next(part for part in match.groups() if part is not None) + '"', text)
-    if not 30 <= len(text) <= 5000 or text.startswith(('{', '[', '#', '```')) or '<think' in text.lower():
+    # A bounded edit such as "Make the car red." is a complete instruction (Edit 2511 is told to keep simple edits short), so the floor is
+    # only "not an empty or one-word reply"; the earlier 30-character floor refused it twice and failed the whole generation.
+    if not 12 <= len(text) <= 5000 or len(text.split()) < 3 or text.startswith(('{', '[', '#', '```')) or '<think' in text.lower():
         return None
     if any(ord(char) < 32 and char not in '\n\r\t' for char in text):
         return None
@@ -72,8 +86,12 @@ def vision_image(raw, *, mask=False, alpha_matte=False):
         if not isinstance(raw, bytes) or not raw or len(raw) > 100 * 1024 * 1024:
             raise ValueError('Invalid image bytes')
         with Image.open(BytesIO(raw)) as source:
-            if max(source.size) > 8192 or source.width * source.height > 32_000_000:
+            # The side limit equals image_convert's, so every picture the Image page accepts is accepted here. The earlier 32-megapixel cap refused
+            # ordinary 45 MP camera photos (8192x5464) after they had passed the upload check, and the whole generation failed as "invalid source".
+            if max(source.size) > 8192:
                 raise ValueError('Image dimensions exceed the vision budget')
+            # A JPEG decodes at a reduced scale (about 1/8 of the work); other formats ignore draft().
+            source.draft('RGB', (2048, 2048))
             image = ImageOps.exif_transpose(source)
             if alpha_matte:
                 # Hidden RGB in transparent pixels is not visible content. Show a flat matte, never a checkerboard scene.
@@ -85,6 +103,26 @@ def vision_image(raw, *, mask=False, alpha_matte=False):
         return base64.b64encode(output.getvalue()).decode('ascii')
     except (OSError, ValueError, Image.DecompressionBombError) as error:
         raise ValueError(ui_text('image.prompt_manager_source_invalid')) from error
+
+
+READY_JSON = re.compile(r'\{\s*"state"\s*:\s*"ready"\s*,\s*"prompt"\s*:\s*"(.*)"\s*\}', re.S)
+
+
+def parse_decision(raw):
+    """Parse Gemma's JSON decision, recovering one known slip.
+
+    The rules ask for requested lettering in straight double quotes, and a model often leaves those quotes unescaped inside the JSON
+    string ({"prompt":"a sign saying "СНЕГ" ..."}). json.loads refuses that, and the single retry tends to repeat it, so a request with
+    lettering failed outright. The ready caption is still checked by `caption()`; questions need a real structure and are never repaired.
+    """
+    text = re.sub(r'^```[^\n]*\n|\n```$', '', raw.strip())
+    try:
+        return json.loads(text)
+    except ValueError:
+        match = READY_JSON.search(text)
+        if match is None:
+            raise
+        return dict(state='ready', prompt=match[1].replace('\\"', '"').replace('\\n', '\n'))
 
 
 class ImagePreparationCancelled(ValueError):
@@ -223,7 +261,7 @@ class PromptEnhancer(PromptEnhancerTemplate):
                 if cancel.is_set():
                     raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
                 try:
-                    value = json.loads(re.sub(r'^```[^\n]*\n|\n```$', '', raw.strip()))
+                    value = parse_decision(raw)
                     if isinstance(value, dict) and value.get('state') == 'ready':
                         result = self._caption(value.get('prompt', ''), prompt, engine, mode, pictures, context)
                         if result:
@@ -262,7 +300,7 @@ class PromptEnhancer(PromptEnhancerTemplate):
                         '\nThe previous answer failed validation. Rewrite the final caption only, in English. '
                         'Keep every desired final quoted word and uppercase label exactly as supplied, '
                         'including Russian, inside straight double quotes. No Russian prose outside literal writing, no JSON or commentary. '
-                        'Use 30-5000 characters and preserve the original scene and mode constraints. '
+                        'Use a full sentence of at most 5000 characters and preserve the original scene and mode constraints. '
                         'For Layout include every supplied <id> exactly once, no other bracket tokens or JSON table. '
                         'For Qwen 2.1 with multiple images cite each real <imageN>; with zero or one image use no tags. '
                         'For Edit 2511 use Picture 1 through the actual input count, never <imageN>; no Picture numbers in Prompt mode.')

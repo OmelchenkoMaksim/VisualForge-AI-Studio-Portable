@@ -15,7 +15,7 @@ import uuid
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from engines.image_prompt_enhancer import PromptEnhancer, caption, protected_words, vision_image  # noqa: E402
+from engines.image_prompt_enhancer import PromptEnhancer, caption, parse_decision, protected_words, vision_image  # noqa: E402
 from engines import zimage_prompts as zimage  # noqa: E402
 from engines.image_registry import ENGINES  # noqa: E402
 from event_history import TECHNICAL_TYPES  # noqa: E402
@@ -158,8 +158,44 @@ class ManagerTests(unittest.TestCase):
         replaced = 'A wooden panel carrying the new heading "НОВОЕ" in large painted letters.'
         self.assertEqual(caption(replaced, 'Замени надпись «СТАРОЕ» на «НОВОЕ»', True), replaced)
 
+    def test_without_only_removes_the_phrase_right_after_it_and_cue_words_need_word_boundaries(self):
+        # "without" elsewhere in the sentence used to switch the exact-text guard off for every later quote (measured on 2026-11-02).
+        self.assertEqual(protected_words('Кот без шапки с надписью «ЛЕС»'), ('ЛЕС',))
+        self.assertEqual(protected_words('Плакат без людей: надпись «КОФЕ У ПЕТРА»'), ('КОФЕ У ПЕТРА',))
+        self.assertEqual(protected_words('A poster without people, with the text "OPEN"'), ('OPEN',))
+        self.assertEqual(protected_words('Remove the sticker and put «НОВОЕ» there'), ('НОВОЕ',))
+        self.assertEqual(protected_words('Кот без надписи «ЛЕС»'), ())
+        self.assertEqual(protected_words('A poster without any text "OPEN"'), ())
+        self.assertEqual(protected_words('Fresh bread LOAF and a rewrite SIGN'), (), 'cue words inside longer words are not cues')
+        self.assertEqual(protected_words('The sign reads OPEN'), ('OPEN',))
+
+    def test_a_short_complete_edit_is_a_valid_caption_but_a_stub_is_not(self):
+        for text in ('Make the car red.', 'Remove the lamp.'):
+            self.assertEqual(caption(text, 'Сделай машину красной', True), text)
+        for stub in ('Red car', 'OK', 'Done.'):
+            self.assertIsNone(caption(stub, 'Сделай машину красной', True))
+
+    def test_a_ready_decision_with_unescaped_lettering_quotes_is_recovered_but_questions_are_not(self):
+        sign = 'A wooden sign carrying the exact Cyrillic text "СНЕГ" in white painted letters.'
+        raw = '```json\n{"state":"ready","prompt":"' + sign + '"}\n```'
+        self.assertEqual(parse_decision(raw)['prompt'], sign)
+        self.assertEqual(parse_decision(json.dumps(dict(state='ready', prompt=sign)))['prompt'], sign, 'valid JSON is parsed as before')
+        manager, text, _ = self.manager((raw,))
+        self.assertEqual(manager.prepare('Табличка с надписью «СНЕГ»', zimage.ENGINE, 'prompt')['prompt'], sign)
+        self.assertEqual(len(text.calls), 1, 'recovered on the first answer, no retry spent')
+        with self.assertRaises(ValueError):
+            parse_decision('{"state":"clarification","question":"Which "style"?","options":[]}')
+
+    def test_every_picture_the_page_accepts_reaches_gemma_and_only_oversize_sides_are_refused(self):
+        buffer = BytesIO()
+        Image.new('RGB', (8192, 4096), (10, 120, 200)).save(buffer, 'JPEG', quality=30)  # 33.5 MP: over the old 32 MP cap
+        with Image.open(BytesIO(base64.b64decode(vision_image(buffer.getvalue())))) as image:
+            self.assertLessEqual(max(image.size), 1024)
+        wide = BytesIO(); Image.new('RGB', (8193, 8), 'white').save(wide, 'PNG')
+        with self.assertRaises(ValueError): vision_image(wide.getvalue())
+
     def test_invalid_answers_retry_once_and_never_fall_back_to_user_text(self):
-        manager, text, _ = self.manager(('Русский текст вместо промпта.', 'Still too short.'))
+        manager, text, _ = self.manager(('Русский текст вместо промпта.', 'Too short.'))
         with self.assertRaises(ValueError):
             manager.enhance('Лиса', zimage.ENGINE, 'prompt')
         self.assertEqual(len(text.calls), 2)

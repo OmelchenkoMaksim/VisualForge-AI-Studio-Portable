@@ -745,6 +745,10 @@
     "ru": "Расширенный промпт (upsampler)",
     "en": "Expanded prompt (upsampler)"
   },
+  "image.summary_prepared_prompt_gemma": {
+    "ru": "Промпт, подготовленный Gemma",
+    "en": "Prompt prepared by Gemma"
+  },
   "image.run_generation_image_created_but_autosave_failed": {
     "ru": "Изображение создано, но автосохранение не удалось: ",
     "en": "Image created, but autosave failed: "

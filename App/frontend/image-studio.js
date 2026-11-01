@@ -564,7 +564,9 @@ window.addEventListener('pagehide', () => {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request(url, options) {
   const r = await fetch(url, {cache:'no-store',...options});
-  const body = await r.json();
+  // An answer that is not JSON (a proxy page, a crashed handler) must read as an HTTP error, not as "Unexpected token <".
+  let body = {};
+  try { body = await r.json(); } catch { if (r.ok) throw new Error(`HTTP ${r.status}`); }
   if (!r.ok) {
     const error = new Error(StudioI18n.remote(body.error) || `HTTP ${r.status}`);
     error.cancelled = body.cancelled === true;
@@ -1004,14 +1006,16 @@ async function runGeneration(isVariant) {
           const link = document.createElement('a');
           link.href = href; link.download = `${result.filename_base || 'Generated Image'}${i ? ' ' + (i + 1) : ''}.png`; StudioI18n.bind(link, "textContent", () => (StudioI18n.t("image.link_save_result")), true);
           wrapper.append(meta);
-          if (job.expanded_prompt) {
-            // What the image model actually received after the upsampler; textContent keeps the model output inert.
+          // What the image model actually received after the upsampler or Gemma's preparation; textContent keeps the model output inert.
+          // The prepared prompt is in the /api/generate answer (`result`) and also stays in history; without this the person never saw it.
+          for (const [text, label] of [[job.expanded_prompt, "image.summary_expanded_prompt_upsampler"], [result.enhanced_prompt, "image.summary_prepared_prompt_gemma"]]) {
+            if (!text) continue;
             const details = document.createElement('details');
             const summary = document.createElement('summary');
-            StudioI18n.bind(summary, "textContent", () => (StudioI18n.t("image.summary_expanded_prompt_upsampler")), true);
-            const text = document.createElement('pre');
-            StudioI18n.bind(text, "textContent", () => (job.expanded_prompt), false);
-            details.append(summary, text);
+            StudioI18n.bind(summary, "textContent", () => (StudioI18n.t(label)), true);
+            const pre = document.createElement('pre');
+            StudioI18n.bind(pre, "textContent", () => text, false);
+            details.append(summary, pre);
             wrapper.append(details);
           }
           appendNegativePrompt(wrapper, result);

@@ -35,6 +35,26 @@ remain unchanged and are bound to waiting clarifications. A later change invalid
 [Edit 2511's card](models/image/image-qwen-edit-2511.md) records source research and separates CPU/UI routing from pending real-Gemma quality.
 Video's `clarification_status()` and `prepare_clarification()` are inactive placeholders: no Video route or control invokes them.
 
+### Audit of the Image manager, 2026-11-02 (CPU only; no real Gemma answer was produced)
+
+Found by reading the code and probing it on the CPU, then fixed in `image_prompt_enhancer.py` with tests in `tests/test_image_prompt_manager.py`:
+
+* **The exact-text guard could switch itself off.** "without"/"без" earlier in a sentence made every later quote count as lettering to remove
+  ("Кот без шапки с надписью «ЛЕС»" protected nothing, so Gemma could change the words unnoticed). "Without" now governs only the phrase right after
+  it. Cue words ("text", "write", "reads") also matched inside longer words ("bread LOAF", "rewrite SIGN"); they now need a word boundary.
+* **Photos over 32 MP failed the whole generation.** The upload check accepts up to 8192 px a side, but the vision preview refused above 32 MP, so an
+  ordinary 45 MP camera photo ended as "invalid source". The vision limit is now the same 8192 px side (measured: 7000x5000 and 8192x5464 were refused before).
+* **A short complete edit was refused twice.** The caption floor was 30 characters, so "Make the car red." failed although Edit 2511's rules ask for short
+  simple edits. The floor is now 12 characters and three words.
+* **Unescaped lettering quotes in the JSON decision.** The rules ask for lettering in straight double quotes, and a model often leaves them unescaped inside
+  the JSON string; `json.loads` refused it and the retry tends to repeat it. `parse_decision` recovers only a *ready* caption in that shape (the caption is still
+  validated); questions are never repaired. This is a known model slip, not something measured on the installed Gemma.
+* **The prepared prompt was never shown.** It was stored in history but the page showed only the native upsampler's text. The result card now has a
+  "Prompt prepared by Gemma" disclosure. The page's `request()` also reports a non-JSON answer as an HTTP error.
+
+Not changed: the manager still fails the generation when two answers are invalid (the original text is never sent as a silent fallback), and the guides'
+wording is as researched on 2026-11-01. Whether real Gemma answers follow the guides, and the quality of the pictures they lead to, remain unverified.
+
 ## Remaining drafts (not connected)
 
 | Section | File | Draft scope and protected data |
