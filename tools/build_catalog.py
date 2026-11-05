@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
-CATALOG_VERSION = '2026.10.30'
+CATALOG_VERSION = '2026.11.06'
 UA = {'User-Agent': 'visualforge-catalog/1'}
 HF_URL = 'https://huggingface.co/%s/resolve/%s/%s'
 
@@ -152,6 +152,7 @@ def build_core():
 
 
 def build_image(installed, skip_gated=False):
+    from build_fibo2_assets import components as fibo2_components
     comfy = github_asset('Comfy-Org/ComfyUI', 'v0.42.1', 'ComfyUI_windows_portable_nvidia.7z')
     runtime = component(
         id='image.runtime', module='image', kind='software', title='ComfyUI 0.42.1 portable (NVIDIA): the Image engine',
@@ -202,18 +203,16 @@ def build_image(installed, skip_gated=False):
         license='FLUX Kommunity License v1.0 (model); Apache-2.0 (text encoder, upsampler)',
         note='LICENSE CHECK: non-commercial use, or commercial use of outputs only as a Qualifying User (gross annualized revenue under US$5M) with content filtering or output review. '
              'Accept the terms of black-forest-labs/flux-3-image-klein-comfy on Hugging Face and give the installer a read token as HF_TOKEN. Read Models/Image/FLUX3-Klein/LICENSE.md.',
-        requires=['image.runtime'], files=[
+        requires=['image.runtime', 'image.model.qwen3vl4b-flux2'], files=[
             hf_file(*flux3, 'diffusion_models/flux3-image-klein-int8-convrot.safetensors', 'Models/diffusion_models/flux3-image-klein-int8-convrot.safetensors'),
-            hf_file(*flux3, 'text_encoders/qwen3vl_4b_int8_convrot.safetensors', 'Models/text_encoders/qwen3vl_4b_int8_convrot.safetensors'),
             hf_file(*flux3, 'text_encoders/qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors', 'Models/text_encoders/qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors'),
-            hf_file(*flux3, 'vae/flux2-vae.safetensors', 'Models/vae/flux2-vae.safetensors'),
             hf_file(*flux3, 'LICENSE.md', 'Models/Image/FLUX3-Klein/LICENSE.md')])
     upscale = component(
         id='image.model.upscale', module='image', kind='model', group='Image', title='Real-ESRGAN x2 (upscaling)',
         description='Separate 2x/4x picture upscaling.', license='BSD-3-Clause (Real-ESRGAN)', requires=['image.runtime'],
         files=[dict(path='Models/upscale_models/RealESRGAN_x2plus.pth', bytes=67061725, sha256='49fafd45f8fd7aa8d31ab2a22d14d91b536c34494a5cfe31eb5d89c2fa266abb',
                     urls=['https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.1/RealESRGAN_x2plus.pth'])])
-    return [runtime, edit, quantized, zimage_turbo] + ([flux3_klein] if flux3_klein else []) + [upscale, community] + build_zimage_addons() + build_qwen_lightning() + build_qwen21_enhancers()
+    return [runtime, edit, quantized, zimage_turbo] + ([flux3_klein] if flux3_klein else []) + [upscale, community] + build_zimage_addons() + build_qwen_lightning() + build_qwen21_enhancers() + fibo2_components()
 
 
 def build_qwen_lightning():
@@ -583,7 +582,7 @@ def build_speech():
 
 
 MODULES = [
-    dict(id='image', title='Image', summary='Image generation and editing with Qwen, Z-Image and FLUX.3 (ComfyUI).'),
+    dict(id='image', title='Image', summary='Image generation and editing with Qwen, Z-Image, FLUX.3 and FIBO 2.0 (ComfyUI).'),
     dict(id='video', title='Video', summary='FreeVideo H3, Wan 2.2 and character speech; also provides export and the sound mixer.'),
     dict(id='music', title='Music', summary='ACE-Step 1.5, MiniMax Music3 and Stable Audio 3.'),
     dict(id='text', title='Text', summary='Private chat model through a separate Ollama, plus the OpenCode, Aider and DeepSeek Harness agent modes.'),

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "reviewed": "2026-11-06",
+  "model_revision": "4742d4bec410034142c8e65559e5f00c6f29eccb",
+  "backend": {
+    "revision": "2c75dc1b379a59e0880619d029607af5169a62ef",
+    "version": "0.44.0",
+    "filename": "comfyui-0.44.0.zip",
+    "bytes": 13636861,
+    "sha256": "1fec46fc59ab42aaf06d507ce75b9c5bee8e7d17eb4c3bb35079295a6c386cda",
+    "url": "https://github.com/Comfy-Org/ComfyUI/archive/2c75dc1b379a59e0880619d029607af5169a62ef.zip"
+  },
+  "wheels": [
+    {
+      "name": "comfy-kitchen",
+      "version": "0.2.40",
+      "filename": "comfy_kitchen-0.2.40-cp312-abi3-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/f1/82/133fadabcc038d59d3220823633824ec731e7a8b2e543ab4544b09537357/comfy_kitchen-0.2.40-cp312-abi3-win_amd64.whl",
+      "bytes": 64015779,
+      "sha256": "f40547824b2a0ad3425d10946d2fe2a5ba8595cb53361991c914bda4addccfb5"
+    },
+    {
+      "name": "comfy-aimdo",
+      "version": "0.6.0",
+      "filename": "comfy_aimdo-0.6.0-cp39-abi3-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/9f/97/e97d1895618957c7fe684790cd3eaa4b9e74c8cc2237feea3b50eed1edce/comfy_aimdo-0.6.0-cp39-abi3-win_amd64.whl",
+      "bytes": 284475,
+      "sha256": "45f821b5828c4b38bcac6553f2250b56e6db87bd65334ed37eb938985d809a3c"
+    }
+  ],
+  "font": {
+    "filename": "dejavu-fonts-ttf-2.37.zip",
+    "bytes": 5522795,
+    "sha256": "7576310b219e04159d35ff61dd4a4ec4cdba4f35c00e002a136f00e96a908b0a",
+    "url": "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip"
+  },
+  "font_patch": {
+    "before_sha256": "d93cbb0499f5d0fce740ae64c03d8bf17dde95d592e9472ace650175700b763a",
+    "after_sha256": "1979278af60e43f76f424ed1c4e982abae280ff67e3bfa68c52eab72d5846363",
+    "replacements": [
+      [
+        "import math\n",
+        "import math\nfrom pathlib import Path\n"
+      ],
+      [
+        "    line = \" \".join(text.split())",
+        "    # The bundled Aileron lacks Cyrillic. Keep ASCII conditioning unchanged and use a real glyph font\n    # for unsupported scripts instead of showing Qwen3-VL repeated missing-glyph rectangles.\n    if any(ord(c) > 127 and not has_glyph(font, font.getmask(chr(0xFFFE)), c) for c in set(text)):\n        font = ImageFont.truetype(str(Path(__file__).parent / \"fibo2-fonts/ttf/DejaVuSans.ttf\"), 20)\n    line = \" \".join(text.split())"
+      ]
+    ]
+  },
+  "files": [
+    {
+      "path": "Models/diffusion_models/fibo2_dev_int8_convrot.safetensors",
+      "bytes": 8408562474,
+      "sha256": "063dd397395809fd22234c6bd32932cfcb22619f4d2282bdbf1dc58c406fe325",
+      "source": "diffusion_models/fibo2_dev_int8_convrot.safetensors"
+    },
+    {
+      "path": "Models/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+      "bytes": 4858559240,
+      "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+      "source": "text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+    },
+    {
+      "path": "Models/vae/flux2-vae.safetensors",
+      "bytes": 336211292,
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+      "source": "vae/flux2-vae.safetensors"
+    }
+  ]
+}

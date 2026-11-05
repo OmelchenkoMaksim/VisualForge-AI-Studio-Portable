@@ -1,4 +1,4 @@
-/* Encoder-limited image references and FLUX layout; the shared request lifecycle stays in app.js. */
+/* Encoder-limited image references and FLUX layout; the shared request lifecycle stays in image-studio.js. */
 (() => {
   'use strict';
   const el = id => document.getElementById(id);
@@ -48,7 +48,7 @@
       const three = maxExtras === 1;
       extras.multiple = !three;
       StudioI18n.bind(el('extraImagesLabel'), 'textContent', () => StudioI18n.t(three ? 'image.qwen_third_image_label' : 'image.flux_extra_images_label'), false);
-      StudioI18n.bind(el('extraImagesHint'), 'textContent', () => StudioI18n.t(three ? 'image.qwen_third_image_hint' : info?.id === 'qwen-image-21-uc-fp8' ? 'image.qwen21_extra_images_hint' : 'image.flux_extra_images_hint'), false);
+      StudioI18n.bind(el('extraImagesHint'), 'textContent', () => StudioI18n.t(three ? 'image.qwen_third_image_hint' : info?.id === 'fibo2-dev-int8' ? 'image.fibo2_extra_images_hint' : info?.id === 'qwen-image-21-uc-fp8' ? 'image.qwen21_extra_images_hint' : 'image.flux_extra_images_hint'), false);
       el('fluxLayoutGroup').hidden = mode !== 'layout';
       el('fluxExtraGroup').hidden = mode !== 'multi';
       extras.required = mode === 'multi'; extras.disabled = busy || mode !== 'multi';

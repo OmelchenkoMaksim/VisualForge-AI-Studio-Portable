@@ -21,7 +21,9 @@ RU_TERMS = [
     (r'кинематографич\w*', 'cinematic'), (r'тепл\w*|тёпл\w*', 'warm'),
     (r'снеж\w*', 'snowy'), (r'горн\w*|гор(?:ы|ами|ах|у)\b', 'mountain'),
     (r'пейзаж\w*|ландшафт\w*', 'landscape'), (r'футуристич\w*', 'futuristic'),
-    (r'город\w*', 'city'), (r'лет\w*', 'flying'), (r'машин\w*|автомобил\w*', 'vehicles'),
+    # Summer cottages appeared as "Flying" in real result names; Russian flight and summer stems differ.
+    (r'город\w*', 'city'), (r'лет(?:ящ|ающ)\w*|летит\b|летят\b', 'flying'), (r'летн\w*', 'summer'),
+    (r'машин\w*|автомобил\w*', 'vehicles'),
     (r'ноч\w*', 'night'), (r'красн\w*', 'red'), (r'син\w*|голуб\w*', 'blue'),
     (r'зелен\w*|зелён\w*', 'green'), (r'черн\w*|чёрн\w*', 'black'), (r'бел\w*', 'white'),
     (r'кот(?:[ауые]|ом|ов|ам|ами|ах|ик\w*|ён\w*|ен\w*)?\b|кошк\w*', 'cat'),
@@ -62,15 +64,18 @@ def infer_title(prompt, mode='single'):
         tail=replacement[-1] if len(replacement)>1 else text
         attrs=[w for w in re.findall(r'[a-z]+',tail) if w in {'snowy','mountain','forest','beach','city','white','black','blue','red','green','plain','studio','sunset','ocean'}]
         return ' '.join(dict.fromkeys(attrs+['background'])).title() if attrs else 'Background Replaced'
-    if editing and 'lighting' in wordset:
+    # Real multi-source scene captions were named "Natural Lighting" merely because they mentioned light.
+    # Reserve the operation title for a direct lighting instruction, including short English/Russian requests.
+    lighting_edit = re.match(r'^(?:(?:please|пожалуйста)[,\s]+)?(?:adjust|change|enhance|improve|make|set|warm|cool|измени|настрой|улучши|сделай)\s+(?:the\s+)?(?:lighting|light|освещение|свет)\b', raw)
+    if editing and 'lighting' in wordset and lighting_edit:
         attrs=[w for w in ['warm','cool','soft','dramatic','cinematic','natural'] if w in wordset or (w=='warm' and 'warmer' in wordset)]
         return (' '.join(attrs+['lighting'])).title() if attrs else 'Lighting Adjusted'
     excluded={'please','make','create','generate','draw','edit','change','add','insert','put','remove','delete','erase','replace','swap','improve','enhance','sharpen','transform','turn','convert','upscale','enlarge','recolor','the','a','an','to','of','and','at','in','on','from','into','this','image','picture','photo','more','looking','natural','s','it','is','as','by','for'}
-    kept=[w for w in words if w not in excluded]
+    kept=list(dict.fromkeys(w for w in words if w not in excluded))
     if 'city' in kept and 'flying' in kept and ('vehicles' in kept or 'cars' in kept):kept=[w for w in kept if w!='night']
     while kept and kept[-1] in {'with','without'}:kept.pop()
     kept=kept[:9]
-    suffix={'add':'Added','remove':'Removed','replace':'Changed','recolor':'Recolored','enhance':'Enhanced','transform':'Transformed','upscale':'Upscaled'}.get(operation)
+    suffix={'add':'Added','remove':'Removed','replace':'Changed','recolor':'Recolored','enhance':'Enhanced','transform':'Transformed','upscale':'Upscaled'}.get(operation) if editing else None
     if kept:
         title=' '.join(kept).title()
         return clean_title(title+(' '+suffix if suffix else ''))

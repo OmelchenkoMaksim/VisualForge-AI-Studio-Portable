@@ -130,6 +130,8 @@ def engine_readiness(engine, obj, upscale_enabled=True, disabled_components=()):
         capabilities = ui_text('image.qwen_model_capabilities') if 'multi' in available_modes else ui_text('image.qwen_model_capabilities_two')
     elif engine.id == 'qwen-image-21-uc-fp8':
         capabilities = ui_text('image.qwen21_model_capabilities') if 'multi' in available_modes else ui_text('image.qwen21_model_capabilities_two')
+    elif engine.id == 'fibo2-dev-int8':
+        capabilities = ui_text('image.fibo2_capabilities_text')
     elif engine.native_prompt:
         capabilities = ui_text('image.engine_readiness_text_image_editing_two_images')
     else:

@@ -1,6 +1,6 @@
 {
  "schema_version": 1,
- "catalog_version": "2026.10.30",
+ "catalog_version": "2026.11.06",
  "modules": [
   {
    "id": "core",
@@ -13,9 +13,12 @@
   {
    "id": "image",
    "title": "Image",
-   "summary": "Image generation and editing with Qwen, Z-Image and FLUX.3 (ComfyUI).",
+   "summary": "Image generation and editing with Qwen, Z-Image, FLUX.3 and FIBO 2.0 (ComfyUI).",
    "components": [
     "image.runtime",
+    "image.backend.fibo2",
+    "image.model.qwen3vl4b-flux2",
+    "image.model.fibo2-dev",
     "image.heic",
     "image.model.qwen-edit-2511",
     "image.model.qwen-image-21-uc",
@@ -129,6 +132,174 @@
   }
  },
  "components": [
+  {
+   "id": "image.backend.fibo2",
+   "module": "image",
+   "kind": "software",
+   "title": "ComfyUI 0.44.0 backend (FIBO 2)",
+   "description": "Official pinned backend source and matching comfy-kitchen/aimdo. Reuses portable Python, Torch and the bundled frontend.",
+   "license": "GPL-3.0 (ComfyUI); MIT (kernel packages); Bitstream Vera (DejaVu Sans)",
+   "requires": [
+    "image.runtime"
+   ],
+   "present": [
+    "Runtime/ComfyUI_windows_portable/ComfyUI/comfy_extras/nodes_fibo2.py",
+    "Runtime/ComfyUI_windows_portable/ComfyUI/visualforge-fibo2-backend.json"
+   ],
+   "disk_bytes": 280000000,
+   "downloads": [
+    {
+     "id": "source",
+     "urls": [
+      "https://github.com/Comfy-Org/ComfyUI/archive/2c75dc1b379a59e0880619d029607af5169a62ef.zip"
+     ],
+     "filename": "comfyui-0.44.0.zip",
+     "bytes": 13636861,
+     "sha256": "1fec46fc59ab42aaf06d507ce75b9c5bee8e7d17eb4c3bb35079295a6c386cda"
+    },
+    {
+     "id": "comfy-kitchen",
+     "urls": [
+      "https://files.pythonhosted.org/packages/f1/82/133fadabcc038d59d3220823633824ec731e7a8b2e543ab4544b09537357/comfy_kitchen-0.2.40-cp312-abi3-win_amd64.whl"
+     ],
+     "filename": "comfy_kitchen-0.2.40-cp312-abi3-win_amd64.whl",
+     "bytes": 64015779,
+     "sha256": "f40547824b2a0ad3425d10946d2fe2a5ba8595cb53361991c914bda4addccfb5"
+    },
+    {
+     "id": "comfy-aimdo",
+     "urls": [
+      "https://files.pythonhosted.org/packages/9f/97/e97d1895618957c7fe684790cd3eaa4b9e74c8cc2237feea3b50eed1edce/comfy_aimdo-0.6.0-cp39-abi3-win_amd64.whl"
+     ],
+     "filename": "comfy_aimdo-0.6.0-cp39-abi3-win_amd64.whl",
+     "bytes": 284475,
+     "sha256": "45f821b5828c4b38bcac6553f2250b56e6db87bd65334ed37eb938985d809a3c"
+    },
+    {
+     "id": "fonts",
+     "urls": [
+      "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip"
+     ],
+     "filename": "dejavu-fonts-ttf-2.37.zip",
+     "bytes": 5522795,
+     "sha256": "7576310b219e04159d35ff61dd4a4ec4cdba4f35c00e002a136f00e96a908b0a"
+    }
+   ],
+   "steps": [
+    {
+     "op": "extract",
+     "download": "source",
+     "to": "Runtime/ComfyUI_windows_portable/ComfyUI",
+     "kind": "zip",
+     "strip": 1,
+     "skip": [
+      ".git/*",
+      "models/*",
+      "user/*",
+      "custom_nodes/*",
+      "input/*",
+      "output/*"
+     ]
+    },
+    {
+     "op": "extract",
+     "download": "fonts",
+     "to": "Runtime/ComfyUI_windows_portable/ComfyUI/comfy/text_encoders/fibo2-fonts",
+     "kind": "zip",
+     "strip": 1,
+     "keep": [
+      "ttf/DejaVuSans.ttf",
+      "LICENSE"
+     ]
+    },
+    {
+     "op": "patch_text",
+     "path": "Runtime/ComfyUI_windows_portable/ComfyUI/comfy/text_encoders/fibo2.py",
+     "before_sha256": "d93cbb0499f5d0fce740ae64c03d8bf17dde95d592e9472ace650175700b763a",
+     "after_sha256": "1979278af60e43f76f424ed1c4e982abae280ff67e3bfa68c52eab72d5846363",
+     "replacements": [
+      [
+       "import math\n",
+       "import math\nfrom pathlib import Path\n"
+      ],
+      [
+       "    line = \" \".join(text.split())",
+       "    # The bundled Aileron lacks Cyrillic. Keep ASCII conditioning unchanged and use a real glyph font\n    # for unsupported scripts instead of showing Qwen3-VL repeated missing-glyph rectangles.\n    if any(ord(c) > 127 and not has_glyph(font, font.getmask(chr(0xFFFE)), c) for c in set(text)):\n        font = ImageFont.truetype(str(Path(__file__).parent / \"fibo2-fonts/ttf/DejaVuSans.ttf\"), 20)\n    line = \" \".join(text.split())"
+      ]
+     ]
+    },
+    {
+     "op": "pip_install",
+     "python": "Runtime/ComfyUI_windows_portable/python_embeded/python.exe",
+     "downloads": [
+      "comfy-kitchen",
+      "comfy-aimdo"
+     ]
+    },
+    {
+     "op": "write_json",
+     "path": "Runtime/ComfyUI_windows_portable/ComfyUI/visualforge-fibo2-backend.json",
+     "value": {
+      "version": "0.44.0",
+      "revision": "2c75dc1b379a59e0880619d029607af5169a62ef"
+     }
+    }
+   ]
+  },
+  {
+   "id": "image.model.qwen3vl4b-flux2",
+   "module": "image",
+   "kind": "model",
+   "group": "Image",
+   "title": "Shared Qwen3-VL 4B INT8 + FLUX.2 VAE",
+   "description": "Byte-identical encoder and VAE shared by FIBO 2.0 Dev and FLUX.3 Klein.",
+   "license": "Apache-2.0 (Qwen encoder and FLUX.2 autoencoder)",
+   "requires": [
+    "image.runtime"
+   ],
+   "files": [
+    {
+     "path": "Models/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
+     "bytes": 4858559240,
+     "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
+     "urls": [
+      "https://huggingface.co/Comfy-Org/Fibo-2.0/resolve/4742d4bec410034142c8e65559e5f00c6f29eccb/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
+     ]
+    },
+    {
+     "path": "Models/vae/flux2-vae.safetensors",
+     "bytes": 336211292,
+     "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+     "urls": [
+      "https://huggingface.co/Comfy-Org/Fibo-2.0/resolve/4742d4bec410034142c8e65559e5f00c6f29eccb/vae/flux2-vae.safetensors"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "image.model.fibo2-dev",
+   "module": "image",
+   "kind": "model",
+   "group": "Image",
+   "title": "FIBO 2.0 Dev (INT8)",
+   "description": "Non-distilled 8B, 50 steps CFG 5. Native RGB generation and editing with up to four pictures; local Gemma prepares VGL.",
+   "license": "CC-BY-NC-4.0 (BRIA weights); Apache-2.0 (Qwen encoder)",
+   "note": "Non-commercial model weights; commercial use requires a separate BRIA agreement. About 1 MP native output, no alpha.",
+   "requires": [
+    "image.backend.fibo2",
+    "image.model.qwen3vl4b-flux2"
+   ],
+   "files": [
+    {
+     "path": "Models/diffusion_models/fibo2_dev_int8_convrot.safetensors",
+     "bytes": 8408562474,
+     "sha256": "063dd397395809fd22234c6bd32932cfcb22619f4d2282bdbf1dc58c406fe325",
+     "urls": [
+      "https://huggingface.co/Comfy-Org/Fibo-2.0/resolve/4742d4bec410034142c8e65559e5f00c6f29eccb/diffusion_models/fibo2_dev_int8_convrot.safetensors"
+     ]
+    }
+   ]
+  },
   {
    "id": "core.tools",
    "module": "core",
@@ -378,7 +549,8 @@
    "license": "FLUX Kommunity License v1.0 (model); Apache-2.0 (text encoder, upsampler)",
    "note": "LICENSE CHECK: non-commercial use, or commercial use of outputs only as a Qualifying User (gross annualized revenue under US$5M) with content filtering or output review. Accept the terms of black-forest-labs/flux-3-image-klein-comfy on Hugging Face and give the installer a read token as HF_TOKEN. Read Models/Image/FLUX3-Klein/LICENSE.md.",
    "requires": [
-    "image.runtime"
+    "image.runtime",
+    "image.model.qwen3vl4b-flux2"
    ],
    "files": [
     {
@@ -391,30 +563,12 @@
      ]
     },
     {
-     "path": "Models/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
-     "bytes": 4858559240,
-     "sha256": "32de113cbf8282b02cbff0794b637b9d6676da09314a1db5a30bcea9bf4ee01c",
-     "urls": [
-      "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/text_encoders/qwen3vl_4b_int8_convrot.safetensors",
-      "https://hf.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/text_encoders/qwen3vl_4b_int8_convrot.safetensors"
-     ]
-    },
-    {
      "path": "Models/text_encoders/qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors",
      "bytes": 9748113996,
      "sha256": "cb8cb9b9dcd2569509de755dca54d96fd93a16a7aabfd2f4051f0a144230620f",
      "urls": [
       "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/text_encoders/qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors",
       "https://hf.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/text_encoders/qwen3.5_9b_flux3_prompt_upsampler_int8_convrot.safetensors"
-     ]
-    },
-    {
-     "path": "Models/vae/flux2-vae.safetensors",
-     "bytes": 336211292,
-     "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
-     "urls": [
-      "https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/vae/flux2-vae.safetensors",
-      "https://hf.co/black-forest-labs/flux-3-image-klein-comfy/resolve/feef60b0aaf63a4773ace96636ebbcf43b881312/vae/flux2-vae.safetensors"
      ]
     },
     {

@@ -36,7 +36,7 @@ function renderExpansion(info) {
 }
 function isTextMode(value = mode) { return (engineCatalog[selectedEngine]?.text_modes || ['prompt']).includes(value); }
 function nativeFourK() { return selectedEngine === 'flux3-klein-int8' && isTextMode() && byId('fluxResolution').value === '16'; }
-function multiModeLabel() { return StudioI18n.t(selectedEngine === 'qwen-edit-2511' ? 'image.qwen_multi_mode_label' : 'image.flux_multi_mode_label'); }
+function multiModeLabel() { return StudioI18n.t(selectedEngine === 'qwen-edit-2511' ? 'image.qwen_multi_mode_label' : selectedEngine === 'fibo2-dev-int8' ? 'image.fibo2_multi_mode_label' : 'image.flux_multi_mode_label'); }
 function imageQualityLabel(engine, quality, steps) {
   if (engine !== 'qwen-edit-2511') return StudioI18n.t('image.next_element_sibling_steps', [steps ?? engineCatalog[engine]?.quality_steps[quality] ?? '?']);
   // Historical 50/60-step receipts must retain their actual budget after the UI presets change.
@@ -125,6 +125,11 @@ function rememberSelection() {
 const MODE_NAMES = {single:'Single', reference:'Reference', prompt:'Prompt', detail:'Detail', control:'ControlNet', inpaint:'Inpaint', tile:'Tile', multi:'Multi-reference', layout:'Layout'};
 // Wording that differs per engine; Qwen engines use the generic native_prompt branches in renderEngine().
 const ENGINE_TEXT = {
+  'fibo2-dev-int8': {
+    header: StudioI18n.t('image.fibo2_header_text'),
+    promptHint: StudioI18n.t('image.fibo2_prompt_hint'),
+    transparency: StudioI18n.t('image.fibo2_limits_text')
+  },
   'flux3-klein-int8': {
     header: StudioI18n.t("image.app_engine_header_text_image_generation_flux_3_klein"),
     promptHint: StudioI18n.t("image.app_engine_prompt_hint_native_text_image_generation_single_editing"),
@@ -214,7 +219,7 @@ function renderEngine() {
     }
     StudioI18n.bind(modeSelect.querySelector('option[value="multi"]'), 'textContent', multiModeLabel, false);
     const text = ENGINE_TEXT[selectedEngine] || {};
-    const assessment = {'z-image-turbo-int8':'zimage', 'flux3-klein-int8':'flux', 'qwen-edit-2511':'qwen2511', 'qwen-image-21-uc-fp8':'qwen21'}[selectedEngine];
+    const assessment = {'fibo2-dev-int8':'fibo2', 'z-image-turbo-int8':'zimage', 'flux3-klein-int8':'flux', 'qwen-edit-2511':'qwen2511', 'qwen-image-21-uc-fp8':'qwen21'}[selectedEngine];
     byId('modelAssessment').hidden = !assessment;
     if (assessment) {
       for (const [id, field] of Object.entries({assessmentStrong:'strong', assessmentVariable:'variable', assessmentLimits:'limits', assessmentEvidence:'evidence'})) {
@@ -290,7 +295,7 @@ function refreshSettings() {
   renderQwenControls();
   StudioI18n.bind(byId('qualityExplainer'), 'textContent', () => StudioI18n.t(mode === 'detail'
     ? 'image.detail_mode_effect_explanation' : ['control', 'inpaint', 'tile'].includes(mode) ? 'image.control_mode_effect_explanation' : selectedEngine === 'z-image-turbo-int8'
-    ? 'image.zimage_prompt_quality_explanation' : selectedEngine === 'flux3-klein-int8'
+    ? 'image.zimage_prompt_quality_explanation' : selectedEngine === 'fibo2-dev-int8' ? 'image.fibo2_quality_text' : selectedEngine === 'flux3-klein-int8'
       ? 'image.flux_quality_explanation' : selectedEngine === 'qwen-edit-2511' ? 'image.qwen_quality_explanation' : selectedEngine === 'qwen-image-21-uc-fp8' ? 'image.qwen21_quality_explanation' : 'image.form_quality_low_baseline_good_enhanced_high'), true);
   StudioI18n.bind(byId('settingsSummary'), "textContent", () => (`${info ? info.name : 'Qwen 2511'} · ${selectedEngine === 'qwen-edit-2511' ? imageQualityLabel(selectedEngine, q) : QUALITY_STEPS[q] + ' steps'} · CFG ${QUALITY_CFG[q] ?? info?.cfg ?? 4} · Upscale ${u===1?'Off':u+'×'}`), true);
 }
@@ -305,6 +310,11 @@ byId('qwen21RemoveBackground').addEventListener('click', () => {
   renderMode(); renderEngine(); rememberSelection(); rememberDraft();
 });
 function lockPresets(locked) {
+  // The Composition switch already refuses an active ordinary job; show that state instead of an inert enabled button.
+  for (const id of ['compositionMode', 'compositionNormal']) {
+    const compositionSwitch = byId(id);
+    if (compositionSwitch) compositionSwitch.disabled = locked;
+  }
   byId('fluxResolution').disabled = locked;
   byId('qwen21RemoveBackground').disabled = locked;
   FluxImageControls.render(mode, locked, engineCatalog[selectedEngine]);
@@ -920,8 +930,8 @@ async function runGeneration(isVariant) {
     const image2 = ['reference', 'inpaint', 'multi'].includes(requestMode) ? await encodeFile(referenceFile) : null;
     const extraImages = [];
     for (const file of fluxInputs.files) extraImages.push(await encodeFile(file));
-    updateLiveStatus({phase:'preparing', detail:StudioI18n.t(requestEngine === 'z-image-turbo-int8'
-      ? "image.run_generation_preparing_generation" : "image.run_generation_uploading_images_local_comfy_ui")});
+    // This request also runs Gemma before submission; a text-only job uploads no source images.
+    updateLiveStatus({phase:'preparing', detail:StudioI18n.t('image.qwen_stage_name_preparing_request')});
     const payload = {
         engine:requestEngine,
         mode:requestMode,
@@ -995,7 +1005,7 @@ async function runGeneration(isVariant) {
           const wrapper = document.createElement('div');
           const meta = document.createElement('p');
           meta.className='result-meta';
-          StudioI18n.bind(meta, "textContent", () => (`${engineCatalog[result.engine]?.name || result.engine} · ${imageQualityLabel(result.engine, quality, result.steps)}${['qwen-edit-2511','qwen-image-21-uc-fp8'].includes(result.engine) ? ' · CFG ' + result.sampler_parameters.cfg : ' · ' + result.steps + ' steps'} · Upscale ${upscale===1?'Off':upscale+'×'} · Seed ${result.seed}` + (result.detail_strength != null ? ' · ' + StudioI18n.t('image.detail_result_strength_label', [result.detail_strength]) : '')), true);
+          StudioI18n.bind(meta, "textContent", () => (`${engineCatalog[result.engine]?.name || result.engine} · ${imageQualityLabel(result.engine, quality, result.steps)}${Number.isFinite(result.sampler_parameters?.cfg) ? ' · CFG ' + result.sampler_parameters.cfg : ''} · Upscale ${upscale===1?'Off':upscale+'×'} · Seed ${result.seed}` + (result.detail_strength != null ? ' · ' + StudioI18n.t('image.detail_result_strength_label', [result.detail_strength]) : '')), true);
           StudioI18n.append(meta, 'textContent', () => imageResultSettings(result), true);
           const image = document.createElement('img');
           image.loading = 'lazy'; image.decoding = 'async';

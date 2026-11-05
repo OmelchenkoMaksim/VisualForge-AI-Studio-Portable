@@ -1,6 +1,6 @@
 # Qwen Image Edit 2511 (`qwen-edit-2511`, Image default)
 
-Status: **researched; Gemma routing CPU/UI checked, new image quality unverified**. Publisher/community review: **2026-11-01**. Earlier GPU results predate this manager. [Evidence rules](../README.md).
+Status: **researched; real Gemma and all four modes exercised, 2026-11-05**. Publisher/community review: **2026-11-01**. Current samples and remaining gaps are scoped below. [Evidence rules](../README.md).
 
 ## Our version [code]
 
@@ -28,7 +28,7 @@ The person writes normally. Automatic Gemma guide **`qwen2511-edit-2026-11-01-v1
 
 Standard and Lightning have separate hidden instructions. Negative text remains verbatim in its own Standard branch; Lightning rejects a nonempty negative before Gemma because CFG 1 would ignore it. The manager cannot enable an adapter, change a profile or generate another negative field. **[code/CPU]**
 
-A clear request proceeds immediately. An unclear source target/donor role can produce numbered, request-specific choices. A group conflict allows one final question; code forbids a third. Waiting choices are bound to sources, original request, profile, negative and adapter controls. CPU checks do not prove Gemma's questions are relevant. **[code/CPU/unknown]**
+A clear request proceeds immediately. An unclear source target/donor role can produce numbered, request-specific choices. A group conflict allows one final question; code forbids a third. Waiting choices are bound to sources, original request, profile, negative and adapter controls. Shared clarification v2 separates English decisions from UI localization, requires conflict groups and preserves chosen instructions at the start of the final caption. One real Russian combined-colour choice below was relevant and executed; this is not a universal question-quality guarantee. **[code/CPU/GPU]**
 
 ## Sources and adaptation [2026-11-01]
 
@@ -41,12 +41,16 @@ Use these site/repository/title handles as the foundation; refresh changed facts
 
 ## Evidence / next checks
 
+**[GPU/UI, 2026-11-05]** Installed weights, real Gemma, all four modes, community adapter off. Standard Single changed the left apple to green and the jacket to blue after one Russian clarification; face/hands, two other red apples and "УТРО" remained recognizable. Lightning carried out both colours too, but recoloured zipper trim more broadly. Standard's negative field was retained exactly; Lightning sent none. Reference + Lightning/x2 replaced a mushroom with the donor mug. Standard three-input Multi composed the fox, mug and third-source fabric into a new summer terrace, excluding winter scenery. Prompt through the neutral canvas fulfilled the winter fox scene but looked more rendered than the native text generators. Timings, settings and failure limits: [real audit](../../VisualForge-Image-UI-Audit-2026-11-05.md). These samples do not establish exact identity or pixel preservation.
+
+A separate Standard portrait kept the full head, three apples and readable "УТРО" with plausible visible fingers, but added a small duplicate word to the jacket. Lightning/x2 watercolor kept the robot, red scarf, one cactus/blue pot, paper and readable "РАСТИ"; its outlines were cleaner/harder than loose watercolor. Seven reviewed outputs underpin the installed profile's 8.0/10 subjective score; this is not a universal edit/identity guarantee.
+
 **[CPU, 2026-11-01]** `tests/test_qwen2511_prompt_manager.py`: real route/graphs with fake Gemma/GPU/ComfyUI; all modes/profiles, three-source order, exact negatives, Russian final writing, reference retry, canvas isolation, stale controls, two-question cap, variations and history. Related regression: **210 tests passed**, plus Ruff, JS syntax, clarification, selection and i18n JS checks. No inference.
 
 **[UI, 2026-11-01, fake backend]** Actual page/route with fake Gemma/GPU/ComfyUI: Standard retains exact negative and adapter state; Lightning sends an empty negative, keeps the draft for return to Standard; numbered conflict resolves without a third question; cancellation unlocks inputs without queuing. Four mode guides and RU/EN switching preserve Russian input. Two fake queues/three fake Gemma calls before a separate cancellation check. Screenshot: C user Temp `vfr-tests/qwen2511-clarification-ui.png`. This is routing evidence, not a real generation.
 
 **[recorded, 2026-10-29]** Standard recolour 453 s; Lightning recolour 200 s (sampling about 11 s, preparation dominated); Standard text edit 392 s; Reference + 2x 192 s; three inputs + 4x 197 s; Prompt landscape 117 s. Mixed warm/cold HDD loading with `--cache-none`; not general speed predictions.
 
-**[unknown]** Real Gemma instruction/question quality; new-path boundary spill, lettering, identity, multi-person composition and Standard/Lightning tradeoffs. Next: approve a timed sequential fixed-seed GPU comparison, inspect real outputs and then exercise real UI completion/cancellation. Never mark these PASS from CPU or fake UI.
+**[unknown]** General instruction/question reliability beyond the samples, exact edit boundaries, complex lettering, exact identity and multi-person composition. Standard/Lightning examples differ slightly in their prepared captions, so they do not isolate the effect of step count. Repeated seeds and controlled raw/enhanced comparisons remain useful; never mark them PASS from CPU or fake UI.
 
 Code: `image_prompt_enhancer.py`, `qwen2511_prompts.py`, `qwen_inputs.py`, `reference_inputs.py`, `workflow_builder.py`; templates `App/workflows/qwen2511-*.api.json`.

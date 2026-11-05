@@ -185,7 +185,8 @@ class KleinBridgeTests(unittest.TestCase):
         self.assertEqual(self.fixture.text.calls[0]['options']['temperature'], 0.0)
 
     def test_conflicting_choices_have_two_question_cap_and_persist_klein_provenance(self):
-        self.fixture.text.answers = iter((json.dumps(fixture.PROPOSAL), fixture.FOX))
+        final_caption = fixture.choice_caption(2, 1)
+        self.fixture.text.answers = iter((json.dumps(fixture.PROPOSAL), final_caption))
         _, first = self.generate(clarify=True)
         status, second = self.generate(clarify=True, clarification_token=first['clarification_token'], clarification_answer='123')
         self.assertEqual((status, second['round']), (200, 2))
@@ -197,7 +198,7 @@ class KleinBridgeTests(unittest.TestCase):
         store = JobHistory(self.fixture.root / 'history.json')
         store.record(self.fixture.ident, 'done', server.JOB_META[self.fixture.ident])
         receipt = store.get(self.fixture.ident)
-        self.assertEqual(receipt['enhanced_prompt'], fixture.FOX)
+        self.assertEqual(receipt['enhanced_prompt'], final_caption)
         self.assertEqual(receipt['prompt_enhancement'], result['prompt_enhancement'])
 
     def test_changed_reference_or_box_cannot_reuse_waiting_choices(self):

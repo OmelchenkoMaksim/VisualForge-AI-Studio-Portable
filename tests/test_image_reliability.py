@@ -21,6 +21,13 @@ class FilenameIntentTests(unittest.TestCase):
         self.assertNotIn('Cat', infer_title('Лиса, которая нашла гриб', 'prompt'))
         self.assertNotIn('Adjusted', infer_title('Лиса в лесу, мягкий зимний свет', 'prompt'))
         self.assertEqual(infer_title('Удали усы у мужчины, сохрани бороду', 'single'), 'Man With Mustache Removed')
+        self.assertNotIn('Flying', infer_title('Лиса на террасе летнего домика', 'prompt'))
+        self.assertIn('Flying', infer_title('Летающая машина в городе', 'prompt'))
+        self.assertNotIn('Added', infer_title('Нарисуй лису в лесу', 'prompt'))
+        self.assertNotEqual(infer_title('Замени гриб синей кружкой, освещение зимнего леса', 'reference'), 'Lighting Adjusted')
+        self.assertNotEqual(infer_title('A realistic photograph of a woman by a table with natural lighting.', 'multi'), 'Natural Lighting')
+        self.assertEqual(infer_title('Make the lighting warmer, preserve the woman.', 'single'), 'Warm Lighting')
+        self.assertEqual(infer_title('Сделай свет теплее, сохрани лицо.', 'single'), 'Warm Lighting')
 
 
 class HistoryTests(unittest.TestCase):

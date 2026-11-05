@@ -15,7 +15,7 @@ import uuid
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'App/server'))
-from engines.image_prompt_enhancer import PromptEnhancer, caption, parse_decision, protected_words, vision_image  # noqa: E402
+from engines.image_prompt_enhancer import ImagePreparationCancelled, PromptEnhancer, caption, parse_decision, protected_words, vision_image  # noqa: E402
 from engines import zimage_prompts as zimage  # noqa: E402
 from engines.image_registry import ENGINES  # noqa: E402
 from event_history import TECHNICAL_TYPES  # noqa: E402
@@ -30,6 +30,10 @@ PROPOSAL = dict(state='clarification', question='Как показать ваш�
     dict(label='Естественная фотография', value='Use a natural wildlife photograph.', group='medium'),
     dict(label='Сумеречный свет между деревьями', value='Use soft dusk light between the trees.', group='light'),
 ])
+
+
+def choice_caption(*indices):
+    return ' '.join(PROPOSAL['options'][index]['value'] for index in indices) + ' A fox finds a mushroom under snow in a conifer forest.'
 
 
 def png(size=(96, 64), color='green', mask=False):
@@ -88,6 +92,31 @@ class ManagerTests(unittest.TestCase):
         text, gpu = Text(answers), Mock()
         return PromptEnhancer(text, gpu), text, gpu
 
+    def test_final_composition_context_keeps_root_lettering_even_if_the_step_omitted_it(self):
+        final = FOX + ' A small wooden sign reads "ЛЕС".'
+        reviewed = final + ' The entire fox is visible, with space around its feet and head.'
+        manager, text, _ = self.manager((FOX, final, reviewed))
+        intent = 'Лиса целиком в кадре; табличка с надписью "ЛЕС".'
+        result = manager.enhance('Photograph a fox in a snowy forest with a wooden sign.', zimage.ENGINE, 'prompt',
+                                 context=dict(composition_intent=intent, composition_lettering=intent))
+        self.assertEqual(result['prompt'], reviewed)
+        self.assertEqual(len(text.calls), 3)
+        self.assertEqual(json.loads(text.calls[-1]['messages'][1]['content'])['context']['composition_intent'], intent)
+        self.assertEqual(json.loads(text.calls[-1]['messages'][1]['content'])['candidate'], final)
+        self.assertFalse(text.calls[-1]['messages'][1].get('images'))
+        self.assertGreater(text.calls[-1]['options']['num_ctx'], 6144)
+
+    def test_stop_during_text_only_fidelity_review_cannot_return_a_caption(self):
+        for context in (dict(composition_intent='Лиса целиком в кадре'), dict(clarification_choices=['silver fox'])):
+            with self.subTest(context=context):
+                manager, text, _ = self.manager((FOX, FOX))
+                def stop_review(text=text):
+                    if len(text.calls) == 2:
+                        text.cancel.set()
+                text.on_answer = stop_review
+                with self.assertRaises(ImagePreparationCancelled):
+                    manager.enhance('Photograph a fox in the forest.', zimage.ENGINE, 'prompt', context=context)
+
     def test_only_researched_models_and_modes_are_active(self):
         manager, text, gpu = self.manager()
         self.assertEqual(set(zimage.MODE_RULES), set(ENGINES[zimage.ENGINE].modes))
@@ -100,6 +129,83 @@ class ManagerTests(unittest.TestCase):
             self.assertEqual(ENGINES[engine].prompt_manager, engine in manager.ACTIVE_GUIDES)
         self.assertFalse(text.calls)
         gpu.assert_not_called()
+
+    def test_clarification_retries_wrong_ui_language_without_rejecting_quoted_lettering(self):
+        good = dict(state='clarification', question='Какое яблоко сделать зелёным?', options=[
+            dict(label='Левое яблоко', value='Make only the left apple green.', group='apple'),
+            dict(label='Правое яблоко', value='Make only the right apple green.', group='apple')])
+        bad = {**good, 'question':'Яке яблуко ви хочете змінити?'}
+        localized = dict(question=good['question'], labels=[row['label'] for row in good['options']])
+        manager, text, _ = self.manager((json.dumps(bad), json.dumps(localized)))
+        result = manager.prepare('Измени яблоко', zimage.ENGINE, 'prompt', language='Russian')
+        self.assertEqual(result['question'], good['question'])
+        self.assertEqual(len(text.calls), 2)
+        self.assertNotIn('images', text.calls[1]['messages'][1])
+        self.assertEqual(manager.clarifications.pending[result['clarification_token']]['options'][0]['value'], good['options'][0]['value'])
+        english = {**good, 'question':'Keep the lettering "КИЇВ"?', 'options':[
+            dict(label='Keep "КИЇВ"', value='Keep "КИЇВ".', group='text'),
+            dict(label='Remove the lettering', value='Remove all lettering.', group='text')]}
+        manager, text, _ = self.manager((json.dumps(english),))
+        self.assertEqual(manager.prepare('Вывеска', zimage.ENGINE, 'prompt', language='English')['question'], english['question'])
+        self.assertEqual(len(text.calls), 1)
+
+    def test_stop_during_localization_on_last_attempt_remains_typed_cancellation(self):
+        bad = {**PROPOSAL, 'question':'Який колір обрати?'}
+        localized = dict(question='Какой цвет выбрать?', labels=[row['label'] for row in PROPOSAL['options']])
+        manager, text, gpu = self.manager(('invalid JSON', json.dumps(bad), json.dumps(localized)))
+        text.on_answer = lambda: text.cancel.set() if len(text.calls) == 3 else None
+        with self.assertRaises(ImagePreparationCancelled):
+            manager.prepare('Измени цвет', zimage.ENGINE, 'prompt')
+        self.assertEqual(manager.clarifications.pending, {})
+        gpu.claim.assert_called_once_with('text')
+        self.assertEqual(text.owners, [])
+
+    def test_english_decision_localizes_all_ui_prose_without_changing_choice_groups(self):
+        proposal = dict(state='clarification', question='Which colour should the apple be?', options=[
+            dict(label='Green', value='Make the apple green.', group='color'),
+            dict(label='Red (keep as is)', value='Keep the apple red.', group='color')])
+        partial = dict(question='Какого цвета должно быть яблоко?', labels=['Зелёный', 'Красный (залишити як є)'])
+        good = dict(question=partial['question'], labels=['Зелёный', 'Красный (оставить как есть)'])
+        manager, text, _ = self.manager(tuple(map(json.dumps, (proposal, partial, good))))
+        result = manager.prepare('Измени цвет яблока', zimage.ENGINE, 'prompt', language='Russian')
+        self.assertEqual([row['label'] for row in result['options']], good['labels'])
+        saved = manager.clarifications.pending[result['clarification_token']]['options']
+        self.assertEqual([(row['value'], row['group']) for row in saved], [(row['value'], row['group']) for row in proposal['options']])
+        self.assertEqual(len(text.calls), 3)
+        self.assertIn('UI language for this decision: English', text.calls[0]['messages'][0]['content'])
+        self.assertEqual(json.loads(text.calls[1]['messages'][1]['content'])['instructions'], [row['value'] for row in proposal['options']])
+
+    def test_selected_compatible_instructions_cannot_be_silently_dropped(self):
+        choices = ['change the leftmost apple to green', 'change the rightmost apple to green']
+        bad = 'Change the leftmost apple to green, preserving the woman and the other two red apples.'
+        good = 'Change the leftmost apple to green. Change the rightmost apple to green. Keep the center apple red and preserve the woman.'
+        manager, text, _ = self.manager((bad, good))
+        result = manager.enhance('Измени цвет яблока', 'qwen-image-21-uc-fp8', 'single', [png()], {'clarification_choices':choices})
+        self.assertEqual(result['prompt'], good)
+        self.assertEqual(len(text.calls), 2)
+
+    def test_fragment_choices_accept_fluent_paraphrases_and_keep_every_outcome_in_code(self):
+        body = 'Change the jacket to blue and all three apples to green, preserving the woman and the card reading "УТРО".'
+        choices = ['blue jacket', 'green apples']
+        manager, text, _ = self.manager((body, body))
+        result = manager.enhance('Перекрась куртку и яблоки, сохрани "УТРО".', 'qwen-image-21-uc-fp8', 'single', [png()],
+                                 {'clarification_choices':choices})
+        self.assertTrue(result['prompt'].startswith('blue jacket. green apples. '))
+        self.assertIn(body, result['prompt'])
+        self.assertEqual(len(text.calls), 2)
+        self.assertFalse(text.calls[-1]['messages'][1].get('images'))
+        self.assertEqual(json.loads(text.calls[-1]['messages'][1]['content'])['context']['clarification_choices'], choices)
+
+    def test_missing_choice_groups_retry_before_conflicting_colours_can_be_accepted(self):
+        good = dict(state='clarification', question='Какого цвета сделать яблоко?', options=[
+            dict(label='Зелёное', value='Make the apple green.', group='color'),
+            dict(label='Жёлтое', value='Make the apple yellow.', group='color')])
+        bad = {**good, 'options':[{key:value for key,value in row.items() if key != 'group'} for row in good['options']]}
+        manager, text, _ = self.manager(tuple(map(json.dumps, (bad, good))))
+        first = manager.prepare('Измени яблоко', zimage.ENGINE, 'prompt')
+        self.assertEqual(len(text.calls), 2)
+        with manager.clarifications.answer(first['clarification_token'], next(iter(manager.clarifications.pending.values()))['identity'], '12') as result:
+            self.assertEqual(result['round'], 2)
 
     def test_one_automatic_rewrite_with_distinct_guides_and_ordered_vision(self):
         systems = set()
@@ -353,13 +459,19 @@ class BridgeTests(unittest.TestCase):
     def test_every_current_image_engine_prepares_its_prompt_automatically(self):
         for engine in ENGINES.values():
             with self.subTest(engine=engine.id):
-                self.text.answers = iter((FOX,))
+                if engine.id == 'fibo2-dev-int8':
+                    from test_fibo2_prompt_manager import scene
+                    structured = scene()
+                    structured['short_description'] = FOX
+                    self.text.answers = iter((FOX, json.dumps(structured)))
+                else:
+                    self.text.answers = iter((FOX,))
                 before = len(self.text.calls)
                 status, result = self.generate(engine=engine.id)
                 self.assertEqual(status, 200, result)
                 node, key = (engine.encode_node, 'text') if engine.expand_nodes else (engine.prompt_node, engine.prompt_key)
                 self.assertIn(FOX, self.graphs[-1][node]['inputs'][key])
-                self.assertEqual(len(self.text.calls), before + 1)
+                self.assertEqual(len(self.text.calls), before + (2 if engine.id == 'fibo2-dev-int8' else 1))
                 self.assertEqual(result['prompt_enhancement']['engine'], engine.id)
 
     def test_interactive_sufficient_request_submits_without_a_question_or_second_rewrite(self):
@@ -371,7 +483,7 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(self.graphs[0]['40']['inputs']['text'], FOX)
 
     def test_numbered_choices_suspend_generation_and_then_survive_history(self):
-        self.text.answers = iter((json.dumps(PROPOSAL), FOX))
+        self.text.answers = iter((json.dumps(PROPOSAL), choice_caption(0, 2)))
         status, first = self.generate(clarify=True)
         self.assertEqual((status, first['state'], first['round']), (200, 'clarification', 1))
         self.assertEqual(self.graphs, [])
@@ -390,7 +502,7 @@ class BridgeTests(unittest.TestCase):
         self.assertNotIn(first['clarification_token'], store.path.read_text(encoding='utf-8'))
 
     def test_explicit_conflict_allows_one_last_question_then_always_submits(self):
-        self.text.answers = iter((json.dumps(PROPOSAL), FOX))
+        self.text.answers = iter((json.dumps(PROPOSAL), choice_caption(2, 1)))
         _, first = self.generate(clarify=True)
         status, second = self.generate(clarify=True, clarification_token=first['clarification_token'], clarification_answer='123')
         self.assertEqual((status, second['round']), (200, 2))

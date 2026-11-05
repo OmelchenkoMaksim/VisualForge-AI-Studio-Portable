@@ -5,6 +5,7 @@ from provision import component_catalog as catalog_module
 from provision.install_engine import Engine as Installer, SPACE_MARGIN
 
 COMPONENTS = {
+    'image:fibo2-dev-int8': 'image.model.fibo2-dev',
     'image:qwen-edit-2511': 'image.model.qwen-edit-2511',
     'image:qwen-image-21-uc-fp8': 'image.model.qwen-image-21-uc',
     'image:z-image-turbo-int8': 'image.model.z-image-turbo',
@@ -32,6 +33,7 @@ def facts(module, ident, model=None):
         from engines.image_registry import ENGINES, CANVASES
         engine = ENGINES[ident]
         weights = {'qwen-image-21-uc-fp8': ui_text('hardware.model_requirements_characteristics_fp8_int8_text_encoder'),
+                   'fibo2-dev-int8': ui_text('image.fibo2_weights_text'),
                    'qwen-edit-2511': ui_text('hardware.qwen_2511_weights'),
                    'z-image-turbo-int8': ui_text('hardware.model_requirements_characteristics_int8_transformer_fp8_qwen3_4_b'),
                    'flux3-klein-int8': ui_text('hardware.model_requirements_characteristics_distilled_int8_qwen3_vl_4_b')}.get(ident, ui_text('hardware.model_requirements_characteristics_fp8_text_encoder'))
@@ -46,6 +48,8 @@ def facts(module, ident, model=None):
             rows.append((ui_text('hardware.model_license_row_label'), ui_text('hardware.model_requirements_characteristics_flux_kommunity_license_noncommercial_use_commercial')))
         if ident == 'qwen-edit-2511':
             rows.append((ui_text('hardware.qwen_2511_profiles_label'), ui_text('image.qwen_quality_explanation')))
+        if ident == 'fibo2-dev-int8':
+            rows.append((ui_text('hardware.model_license_row_label'), ui_text('image.fibo2_license_text')))
         return rows
     if module == 'video':
         from video.video_registry import ENGINES

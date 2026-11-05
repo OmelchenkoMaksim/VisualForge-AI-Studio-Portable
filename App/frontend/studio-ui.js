@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   const releases = {
+    'fibo2-dev-int8': ['20.10.2026', StudioI18n.t('settings.studio_ui_releases_model_release'), 'https://huggingface.co/briaai/Fibo-2.0-dev'],
     'qwen-edit-2511': ['23.12.2025', StudioI18n.t("settings.studio_ui_releases_model_release"), 'https://huggingface.co/Qwen/Qwen-Image-Edit-2511'],
     'qwen-image-21-uc-fp8': ['23.09.2026', StudioI18n.t("settings.studio_ui_releases_fp8_publication"), 'https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-Quantized/commits/main'],
     'flux3-klein-int8': ['17.10.2026', StudioI18n.t("settings.studio_ui_releases_comfy_package_update"), 'https://huggingface.co/black-forest-labs/flux-3-image-klein-comfy/commits/main'],
@@ -103,7 +104,11 @@
       host = document.createElement('section'); host.id = 'studioNotifications';
       StudioI18n.bind(host, "@aria-label", () => (StudioI18n.t("settings.host_studio_notifications")), true); document.body.append(host);
     }
+    // Sequential Image jobs used to leave a permanent stack covering the result. Keep the latest notice per section;
+    // failures remain until replaced/dismissed, while a success expires after the person has time to use its actions.
+    for (const previous of [...host.children]) if (previous.dataset.module === module) previous.remove();
     const card = document.createElement('div'); card.className = 'studio-notice' + (error ? ' studio-notice-error' : '');
+    card.dataset.module = module;
     if (id) card.dataset.jobKey = module + ':' + id;
     card.setAttribute('role', error ? 'alert' : 'status');
     const title = document.createElement('strong');
@@ -122,6 +127,19 @@
     if (onLogs) action(StudioI18n.t("settings.notify_show_log"), onLogs);
     action(StudioI18n.t("settings.dialog_close_button_label"), () => card.remove());
     host.append(card);
+    if (!error) {
+      let dismissal;
+      const pause = () => clearTimeout(dismissal);
+      const resume = () => {
+        pause();
+        if (!card.matches(':hover, :focus-within')) dismissal = setTimeout(() => card.remove(), 10000);
+      };
+      card.addEventListener('pointerenter', pause);
+      card.addEventListener('focusin', pause);
+      card.addEventListener('pointerleave', resume);
+      card.addEventListener('focusout', resume);
+      resume();
+    }
     sound(error);
   }
   function generationInfo(record) {

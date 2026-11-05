@@ -1,6 +1,6 @@
 # FLUX.3 Klein INT8 (`flux3-klein-int8`, Image)
 
-Status: **researched; Gemma path CPU/UI checked, new image quality unverified**. Source review and publisher/community research: **2026-11-01**. Earlier real-job evidence predates this manager. [Evidence rules](../README.md).
+Status: **researched; all five modes exercised with real Gemma through the UI on 2026-11-05**. Publisher/community research: **2026-11-01**, external-VLM instructions refreshed **2026-11-05**. Small local sample; no claim that Gemma matches native PUP. [Evidence rules](../README.md).
 
 ## Our version [code]
 
@@ -50,11 +50,17 @@ GPU claim: 12,000 MB (15,000 for 4K); the card must be free of other apps.
 
 ## Verification and gaps
 
+**2026-11-05 [GPU/UI]:** all five modes completed with the installed INT8 profile and real Gemma. Prompt produced convincing winter fur/snow but two mushrooms for one. Single removal and a two-source mug replacement retained the mushrooms despite faithful prepared text; submitted graph/inputs/text were checked, and the cause is unresolved. Three-source Multi successfully composed a summer terrace, the fox, a blue mug and a scarf with the third source's stripes. Native 2048-square Layout placed a red teapot left and blue mug right on one table; boxes were soft size anchors. A separate portrait kept the full head, three apples and readable Russian "УТРО", with plausible visible fingers and skin. This qualifies those samples, not arbitrary faces, exact identity or all edits. Timings/settings and further tests: [ongoing real audit](../../VisualForge-Image-UI-Audit-2026-11-05.md).
+
+**2026-11-05 [GPU/UI, Composition]:** two hero/place variants kept the full figure after passing the original intent through the final enhancer, with approximate facial likeness. Harder four-source receiving-scene tests kept the woman, lake, mug and teapot but sometimes cropped feet/legs, copied a seated pose or lost veranda geometry. A real blurred-band defect came from prepared aspect padding and disappeared after choosing an already fitting first input. A text-only fidelity pass restored the standing instruction and the next image stood; legs were still cropped. Five style-only donor variants then kept watercolor paper/washes, a whole fox, one mushroom and readable "ЛЕС" without the donor's robot/cactus/old lettering. Composition/framing differed, though planned top-down was only moderately elevated. Keep caption/adapter defects separate from the network ignoring faithful instructions. These are additional Composition samples, outside the seven-image ordinary-mode rating sample.
+
+**2026-11-05 [sources]:** BFL GitHub `src/flux3/pup_prompts_external_vlm.json` confirms external-VLM preparation, task-specific edit/generation voice and reference ordinals. It also recommends plain photograph openings instead of synthetic-realism praise. These are publisher recommendations, not an established cause or cure for the failed small edits above.
+
 **2026-11-01 [CPU]:** `tests/test_klein_prompt_manager.py` covers five modes, ten ordered thumbnails/latent inputs, context budget, lettering, missing/duplicate/invented IDs, immutable boxes, no second native rewrite, provenance and clarification conflicts/stale bindings. Shared Image/clarification regressions also ran. Fake-model checks establish routing/safeguards, not semantic adherence or improved pictures.
 
 **2026-11-01 [UI, fake backend]:** actual Image page and bridge/manager with fake Gemma/GPU/ComfyUI: Klein selection, hidden expansion switch, locked original request, conflict-only second question, Enter submission and ready-without-question path. Refreshed request guidance was checked in RU/EN. No real inference. Disposable fixture/screenshot: C user Temp `vfr-tests/klein-browser-preview.py`, `klein-clarification-ui.png`.
 
-**[unknown]:** real Gemma vs native-Qwen3.5 quality and clarification decisions; faces/multi-person identity, Chinese text, complex layouts, ten-reference quality, padded outpainting on other subjects. Next approved comparisons: fixed seeds/settings on Prompt plus illustration, bounded edit/removal with Cyrillic writing, Reference, three-source Multi and swapped Layout boxes. Inspect adherence, spill, style, identity/counts/text; repeat seeds before generalising. Recheck RU/EN, Stop and retained inputs through the UI. No new GPU run for this guide.
+**[unknown]:** Gemma versus native-Qwen3.5 quality, general clarification reliability, exact faces/multi-person identity, Chinese text, complex layouts, ten-reference quality and padded outpainting on other subjects. Investigate the two failed local edits with controlled prompts/settings; compare swapped Layout boxes and repeated seeds before generalising. The 2026-11-05 real samples qualify the listed scenarios only.
 
 ## Code and sources
 

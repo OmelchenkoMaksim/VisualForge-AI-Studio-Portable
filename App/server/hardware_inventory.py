@@ -96,10 +96,13 @@ def profiles(text_models=()):
     from video.video_registry import ENGINES as video
     from music.music_registry import ENGINES as music
     rows = {}
-    def add(module, ident, name, vram, ram, minimum=0, minimum_ram=0, note=ui_text('hardware.hardware_add_studio_startup_profile_memory_reduction_has')):
+    def add(module, ident, name, vram, ram, minimum=0, minimum_ram=0, note=None):
+        if note is None:
+            note = ui_text('hardware.hardware_add_studio_startup_profile_memory_reduction_has')
         rows[module + ':' + ident] = dict(module=module, id=ident, name=name, recommended_vram_gb=vram,
             recommended_ram_gb=ram, minimum_free_vram_gb=minimum / 1024, minimum_ram_gb=minimum_ram, cuda=True, note=note)
     add('image', 'qwen-edit-2511', 'Qwen Image Edit 2511', 16, 64, note=ui_text('hardware.qwen_2511_verified_note'))
+    add('image', 'fibo2-dev-int8', 'FIBO 2.0 Dev INT8', 16, 64, note=ui_text('image.fibo2_hardware_profile_note'))
     add('image', 'qwen-image-21-uc-fp8', 'Qwen Image 2.1 Uncensored FP8', 16, 64,
         note=ui_text('hardware.qwen21_verified_note'))
     add('image', 'flux3-klein-int8', 'FLUX.3 Klein INT8', 16, 64,

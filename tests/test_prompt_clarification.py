@@ -123,13 +123,13 @@ class ManagerTests(unittest.TestCase):
             self.assertEqual(result['prompt'], fixtures.FOX)
             self.assertEqual(len(text.calls), 1)
             self.assertIn(zimage.CLARIFICATION_RULES[mode], text.calls[0]['messages'][0]['content'])
-            self.assertIn('UI language: English', text.calls[0]['messages'][0]['content'])
+            self.assertIn('UI language for this decision: English', text.calls[0]['messages'][0]['content'])
             self.assertEqual(text.owners, [])
 
     def test_final_caption_receives_only_agreed_preferences_and_keeps_russian_choice_text(self):
         proposal = copy.deepcopy(fixtures.PROPOSAL)
         proposal['options'][0]['value'] = 'The postcard heading reads "ЛЕС".'
-        caption = 'A watercolor winter postcard with the heading "ЛЕС" in large handwritten Cyrillic letters.'
+        caption = 'The postcard heading reads "ЛЕС". A watercolor winter postcard with large handwritten Cyrillic letters.'
         manager, text, gpu = self.manager((json.dumps(proposal), caption))
         first = manager.prepare('Открытка с названием', zimage.ENGINE, 'prompt')
         self.assertEqual(text.owners, [])

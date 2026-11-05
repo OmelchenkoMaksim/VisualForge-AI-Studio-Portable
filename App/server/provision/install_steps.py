@@ -9,9 +9,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import sys
-import tempfile
-import zipfile
 
 from . import install_archives as archives
 from .component_catalog import CatalogError, safe_relative
@@ -91,7 +88,8 @@ def op_unpack_wheels(context, step):
         path = context.downloads[ident]
         if str(path).endswith(('.tar.gz', '.tgz')):
             # sdist of a pure-Python package: take only the named package folder
-            archives.extract(path, target, 'tar', 1, lambda relative, keep=step.get('sdist_keep', 'sox/'): not relative.startswith(keep))
+            keep = step.get('sdist_keep', 'sox/')
+            archives.extract(path, target, 'tar', 1, lambda relative, keep=keep: not relative.startswith(keep))
         else:
             archives.extract(path, target, 'zip')
 
@@ -162,6 +160,26 @@ def op_write_json(context, step):
     target = context.path(step['path'])
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(step['value'], ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+
+
+def op_patch_text(context, step):
+    """Apply a pinned source fix only to its known input, with an idempotent verified result."""
+    target = context.path(step['path'])
+    original = target.read_bytes()
+    digest = hashlib.sha256(original).hexdigest()
+    if digest == step['after_sha256']:
+        return
+    if digest != step['before_sha256']:
+        raise StepError('Unexpected source for patch: ' + step['path'])
+    text = original.decode('utf-8')
+    for before, after in step['replacements']:
+        if text.count(before) != 1:
+            raise StepError('Ambiguous source replacement: ' + step['path'])
+        text = text.replace(before, after, 1)
+    result = text.encode('utf-8')
+    if hashlib.sha256(result).hexdigest() != step['after_sha256']:
+        raise StepError('Unexpected patched content: ' + step['path'])
+    target.write_bytes(result)
 
 
 def op_mkdir(context, step):

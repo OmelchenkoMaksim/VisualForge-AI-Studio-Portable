@@ -3,7 +3,7 @@ import re
 
 ENGINE = 'qwen-image-21-uc-fp8'
 VERSION = 'qwen21-regular-2026-11-01-v1'
-CLARIFICATION_VERSION = 'qwen21-clarification-v1'
+CLARIFICATION_VERSION = 'qwen21-clarification-v2'
 TEMPERATURE = 0.2
 DECISION_TEMPERATURE = 0.0
 
@@ -90,8 +90,8 @@ def source_alpha(images):
     return result
 
 
-def rgba_prompt(prompt, request):
-    """Keep the publisher's explicit alpha cue outside a rewriter that could silently omit it."""
+def transparent_output(request):
+    """Recognize an explicit output requirement, excluding lettering and negated alpha requests."""
     from .qwen21_expansion import requires_transparency
     # The old native-PE guard also matches a quoted RGBA title and "without transparency".
     # A positive output cue must not invert these requests; quoted lettering is content, not a format instruction.
@@ -102,7 +102,12 @@ def rgba_prompt(prompt, request):
     intent = re.sub(r'\b(?:без|не\s+(?:нужен|нужна|нужно|используй(?:те)?|добавляй(?:те)?))\s+'
                     r'(?:rgba|альфа(?:[\s-]*канал[а-яё]*)?|прозрач[а-яё]*(?:\s+фон[а-яё]*)?)|\bнепрозрач[а-яё]*\s+фон[а-яё]*',
                     '', intent, flags=re.I)
-    if requires_transparency(intent) or re.search(r'\bальфа[\s-]*канал', intent, re.I):
+    return bool(requires_transparency(intent) or re.search(r'\bальфа[\s-]*канал', intent, re.I))
+
+
+def rgba_prompt(prompt, request):
+    """Keep the publisher's explicit alpha cue outside a rewriter that could silently omit it."""
+    if transparent_output(request):
         opening = 'This is an RGBA image with transparency. '
         closing = ' The image has alpha channel and the background is transparent.'
         return opening + prompt.removeprefix(opening).removesuffix(closing) + closing

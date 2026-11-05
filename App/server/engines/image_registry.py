@@ -13,6 +13,7 @@ WORKFLOW_PREFIXES = {
     'qwen-image-21-uc-fp8': 'qwen21',
     'flux3-klein-int8': 'flux3',
     'z-image-turbo-int8': 'zimage',
+    'fibo2-dev-int8': 'fibo2',
 }
 CANVASES = {'square': (1024, 1024), 'landscape': (1152, 768), 'portrait': (768, 1152)}
 UPSCALE_MODEL = 'RealESRGAN_x2plus.pth'
@@ -87,6 +88,17 @@ class Engine:
         return json.loads(self.workflow_path(mode).read_text(encoding='utf-8'))
 
 ENGINES = {
+    'fibo2-dev-int8': Engine(
+        'fibo2-dev-int8', 'FIBO 2.0 Dev INT8', True,
+        {'low': 50}, '60', '70', ('90',), '40', ('10', '11'), 'fibo2-dev-v1',
+        (('UNETLoader', 'unet_name', 'fibo2_dev_int8_convrot.safetensors'),
+         ('CLIPLoader', 'clip_name', 'qwen3vl_4b_int8_convrot.safetensors'),
+         ('VAELoader', 'vae_name', 'flux2-vae.safetensors')),
+        {'20':'FIBO 2.0 Dev INT8', '21':'Qwen3-VL 4B INT8', '22':'FLUX.2 VAE',
+         '40':ui_text('image.workflow_stage_prompt_processing_label'), '60':'Sampling', '70':'VAE decode', '90':ui_text('image.workflow_stage_saving_png')},
+        modes=('prompt', 'single', 'reference', 'multi'), max_reference_images=4,
+        prompt_key='prompt', size_node='40', output_prefix='FIBO2_Dev', prompt_manager=True,
+        rating=dict(overall=9.0, picture=9.0, detail=9.0, consistency=9.0, reviewed='2026-11-06', samples=6)),
     # The 2511 templates resize by area: fixed Kontext aspect buckets crop panoramic edges before conditioning.
     DEFAULT_ENGINE: Engine(
         DEFAULT_ENGINE, 'Qwen Image Edit 2511', False,
@@ -101,6 +113,7 @@ ENGINES = {
          '169':'Sampling', '158':'VAE decode', '9':ui_text('image.workflow_stage_saving')},
         output_prefix='Qwen_Edit_2511', modes=('single', 'reference', 'prompt', 'multi'), optional_modes=('multi',), max_reference_images=3,
         prompt_manager=True,
+        rating=dict(overall=8.0, picture=8.0, detail=8.0, consistency=8.0, reviewed='2026-11-05', samples=7),
         quality_assets={'fast':(('LoraLoaderModelOnly', 'lora_name', QWEN_LIGHTNING),)},
         quality_components={'fast':'image.model.qwen-edit-lightning'}),
     'qwen-image-21-uc-fp8': Engine(
@@ -115,6 +128,7 @@ ENGINES = {
          '60':'Sampling', '70':'VAE decode RGBA', '90':ui_text('image.workflow_stage_saving_png')},
         output_prefix='Qwen_Image_21_UC', modes=('single', 'reference', 'prompt', 'multi'), optional_modes=('multi',),
         max_reference_images=10, native_megapixels=(1, 4), prompt_manager=True,
+        rating=dict(overall=8.3, picture=8.5, detail=8.0, consistency=8.5, reviewed='2026-11-05', samples=10),
         expansion_assets={'prompt':QWEN21_PE_T2I, 'single':QWEN21_PE_I2I,
                           'reference':QWEN21_PE_I2I, 'multi':QWEN21_PE_I2I},
         reference_prefix='Edit <image1> as the source image; use <image2> as the reference. Follow the user instruction: '),
@@ -137,7 +151,8 @@ ENGINES = {
                          'tile': ('image.model.z-image-controlnet-tile', 'image.model.upscale')},
         # Measured on the RTX 5070 Ti (nvidia-smi, whole GPU): peak about 13.6 GB above idle at 1024x1024. ComfyUI takes what is
         # free, so the peak is not a minimum; the estimate stays below it to pass with the usual 1-2.5 GB desktop use.
-        claim_vram_mb=11000, prompt_manager=True),
+        claim_vram_mb=11000, prompt_manager=True,
+        rating=dict(overall=7.8, picture=8.0, detail=8.0, consistency=7.5, reviewed='2026-11-05', samples=8)),
     # The official workflow expands short requests to full scene captions before text encoding.
     'flux3-klein-int8': Engine(
         'flux3-klein-int8', 'FLUX.3 Klein INT8', True,
@@ -158,7 +173,8 @@ ENGINES = {
         expand_nodes=('23', '24', '25', '26', '28'), encode_node='40', expansion_preview='27',
         # Measured peaks above idle: about 13.9 GB for a prompt with the upsampler, 14.6-14.7 GB for Single/Reference. An estimate
         # below the peak, for the same reason as Z-Image; the peaks leave no room for a second GPU application.
-        claim_vram_mb=12000, prompt_manager=True)
+        claim_vram_mb=12000, prompt_manager=True,
+        rating=dict(overall=8.2, picture=8.5, detail=8.5, consistency=7.5, reviewed='2026-11-05', samples=7))
 }
 
 def get_engine(engine_id=None):

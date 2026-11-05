@@ -1478,6 +1478,8 @@ class Handler(BaseHTTPRequestHandler):
                     layout_boxes=layout_boxes if mode == 'layout' else [],
                     images_in_order=['source', 'white_edit_black_keep_mask'] if mode == 'inpaint' else
                                     ['Image ' + str(index + 1) for index in range(len(prompt_images))])
+                if COMPOSITION is not None:
+                    context.update(COMPOSITION.image_prompt_context(self.headers.get('X-VisualForge-Run')))
                 if engine.id == 'qwen-edit-2511':
                     context.update(sampling_profile='lightning' if quality == 'fast' else 'standard', negative_prompt=negative_prompt)
                 if clarify:

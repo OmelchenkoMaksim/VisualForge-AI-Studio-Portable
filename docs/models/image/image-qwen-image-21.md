@@ -1,6 +1,6 @@
 # Qwen Image 2.1 UC FP8 (`qwen-image-21-uc-fp8`, Image)
 
-Status: **researched; Gemma routing CPU/UI checked, new image quality unverified**. Publisher/community review: **2026-11-01**. Earlier GPU observations below predate this manager. [Evidence rules](../README.md).
+Status: **researched; all four modes exercised with real Gemma through the UI on 2026-11-05**. Publisher/community review: **2026-11-01**. Small local sample; scoped clarification retests completed. [Evidence rules](../README.md).
 
 ## Our version [code]
 
@@ -42,12 +42,18 @@ Use these site/repository/title handles as a foundation; refresh changed claims 
 
 ## Evidence and next checks
 
+**[GPU/UI, 2026-11-05]** Real Gemma, installed UC FP8 and all four modes completed. A winter fox Prompt kept one mushroom. Reference at native 2048² replaced it with the donor mug while retaining the fox/forest. Three-source Multi made a summer terrace with the fox, mug and the third source's striped scarf. An isolated teapot Prompt with x2 produced actual 2048² RGBA, alpha 0–255; browser compositing confirmed transparency, with a visible edge halo/soft shadow. Almost-opaque photos/art still had small alpha deviations (248–255 or 252–255). A full-head portrait kept three apples and readable "УТРО" with plausible visible hands; watercolor retained paper/medium and "РАСТИ" after x2.
+
+The ambiguous apple edit exposed manager failures: wrong UI language, incomplete labels and an omitted compatible choice. Russian labels and the two-question cap were verified by a repeat, which correctly drew the chosen left-yellow edit. A later two-property question correctly offered independent jacket/apple groups, but a verbatim-opening guard rejected a faithful paraphrase of short choices. Code now keeps agreed outcomes itself and uses bounded text-only reconciliation when needed. The real repeat accepted compatible choices 2,5 after one question: blue jacket, all three green apples, preserved face/hands/mug and readable "УТРО" (25 steps, 832×1248 RGBA, graph 80 s).
+
+A four-source Multi diagnostic (place, receiving veranda reference, woman, transparent teapot; 40 steps, 1248×832) kept the standing woman, lake, mug and red teapot on the table. Her legs were cropped and the receiving veranda/window layout was lost despite faithful framing text. This does not qualify Qwen as a universal repair for Klein's complex reference failures. Ten-source and exact-identity quality remain unknown. See the [audit](../../VisualForge-Image-UI-Audit-2026-11-05.md) for settings and regressions. No raw-versus-enhanced comparison or universal identity/alpha guarantee.
+
 **[CPU, 2026-11-01]** `tests/test_qwen21_prompt_manager.py`: real route/graph builder with fake Gemma/GPU/ComfyUI; four modes, ten ordered inputs, original RGBA bytes/matte metadata, 2K, literal text, tag retry, one final-prompt owner, two-question cap, stale source/budget rejection and history. Quoted RGBA lettering and explicit opaque requests do not force alpha. Related regression: **199 tests passed**, plus Ruff, JS syntax and clarification JS checks. These establish routing, not quality.
 
 **[UI, 2026-11-01, fake backend]** Actual Image page plus actual route, fake Gemma/GPU/ComfyUI: Prompt ready/alpha cue, numbered conflict followed by submission without a third question, cancellation/unlocking, hidden native PE, guides for all four modes, RU/EN switching retaining Russian input. Two fake queues, three fake Gemma calls before the separate cancellation check; no inference or generated-file verification. Screenshot: C user Temp `vfr-tests/qwen21-clarification-ui.png`.
 
 **[recorded, 2026-10-29]** Old path: RGBA Prompt 144 s; recolour 31 s; 2K Reference 221 s; three inputs + 4x upscale 56 s; extraction 20 s; PE poster 93 s / variant 294 s. One job peaked around 15.4 GB. Timings include mixed warm/cold conditions.
 
-**[unknown]** Real Gemma prompts and numbered-choice relevance, alpha edges/checkerboards after the new pass, typography and edit spill, ten-image semantics, faces/identity, adult-content quality. Next: approve a timed sequential GPU comparison, inspect PNG alpha extrema and visual content at fixed seeds, then test the real UI through completion, cancellation and RU/EN switching. Do not label these PASS from mocks.
+**[unknown]** General prompt/choice reliability beyond the tested cases, complex typography and edit boundaries, ten-image semantics, exact face identity, multi-person consistency and adult-content quality. Raw-versus-enhanced comparisons and repeated seeds remain useful follow-ups. The real samples above establish their particular outcomes, not a universal PASS.
 
 Code: `image_prompt_enhancer.py`, `qwen21_prompts.py`, `image_registry.py`, `workflow_builder.py`, `qwen21_expansion.py`; workflows under `App/workflows/qwen-image-21-uc-fp8/`.

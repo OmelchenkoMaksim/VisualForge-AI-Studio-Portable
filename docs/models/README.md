@@ -29,7 +29,7 @@ Historical local timings usually refer to Windows, RTX 5070 Ti 16 GB, roughly 62
 
 Use a date, scope and evidence pointer with a result, for example: `[UI, fake backend, 2026-11-01]` or `[recorded, three-reference scene, 2026-10-29]`. These marks are **not interchangeable**: unit tests cannot prove good faces, Whisper cannot prove natural speech or lip sync, and a successful job cannot prove prompt adherence. Unmarked prose in the other draft cards is a summary awaiting an evidence audit; do not promote it to a confirmed finding.
 
-**Current coverage (2026-11-01):** all four Image models (Z-Image, FLUX.3 Klein, Qwen Image 2.1 and Qwen Edit 2511) have researched per-mode prompt guides and evidence checklists; real quality comparisons of the new Gemma paths remain pending. The other sections' cards are development drafts seeded from project reports, not newly researched or requalified models. Gemma and Whisper cards cover families: record the exact variant for every comparison.
+**Current coverage (2026-11-06):** all five Image models (Z-Image, FLUX.3 Klein, Qwen Image 2.1, Qwen Edit 2511 and FIBO 2.0 Dev) have researched per-mode prompt guides and evidence checklists. The first four have scoped real-generation observations; FIBO's new integration records qualification separately in its card. The other sections' cards are development drafts seeded from project reports, not newly researched or requalified models. Gemma and Whisper cards cover families: record the exact variant for every comparison.
 
 ## Refresh and verify
 

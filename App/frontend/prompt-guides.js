@@ -39,6 +39,14 @@
     tile: ['image.tile_mode_selector_label', 'image.control_tile_usage_hint']
   };
   function get(engine,mode){
+    if (engine === 'fibo2-dev-int8') {
+      if (!['prompt', 'single', 'reference', 'multi'].includes(mode)) return null;
+      const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;
+      return {title:'FIBO 2.0 Dev · ' + mode, purpose:text('image.fibo2_guide_' + mode),
+        structure:text('image.fibo2_prompt_hint'), language:text('image.fibo2_language_hint'),
+        mistakes:text('image.fibo2_limits_text'), quality:text('image.fibo2_quality_text'),
+        example:text('image.fibo2_example_' + mode)};
+    }
     if (engine === 'qwen-image-21-uc-fp8') {
       if (!['single', 'reference', 'prompt', 'multi'].includes(mode)) return null;
       const text = key => root.StudioI18n ? root.StudioI18n.t(key) : key;

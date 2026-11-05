@@ -1,6 +1,6 @@
 # Z-Image Turbo INT8 (`z-image-turbo-int8`, Image)
 
-Status: **researched; earlier generation audit, newer manager quality unverified**. Source review and prompt research: **2026-11-01**. Earlier real/UI checks: **2026-10-29**. [Evidence marks](../README.md).
+Status: **researched; all five modes exercised with real Gemma through the UI**. Source review and prompt research: **2026-11-01**; evidence reviewed **2026-11-05**. Small local sample, no raw-versus-enhanced quality comparison. [Evidence marks](../README.md).
 
 ## Our version [code]
 
@@ -36,7 +36,7 @@ Mode rules above are **our adaptation to the installed graphs**; the publisher d
 
 **Illustrative, not a tested Gemma answer:** "нарисуй лису которая нашла грибочек под снегом в хвойном лесу" -> "A fox lowers its nose toward a small mushroom exposed in disturbed snow in a conifer forest. Both the fox and mushroom are clearly visible, surrounded by snow-covered trunks and evergreen branches, with soft winter light and detailed fur and snow textures." The full manager may add compatible detail; this example is not a mandatory style.
 
-`image_prompt_enhancer.py` is active for all five modes; instructions live in `zimage_prompts.py`, guide `zimage-turbo-2026-11-01-v1`. It sees source/mask thumbnails in the correct order, uses `GemmaTask` with `think=False`, and retains original/enhanced prompts and provenance. Literal checks cover quotes and recognisable uppercase labels; they are not a complete OCR/semantic verifier. **[code]**
+`image_prompt_enhancer.py` is active for all five modes; instructions live in `zimage_prompts.py`, guide `zimage-turbo-2026-11-01-v3`. It sees source/mask thumbnails in the correct order, uses `GemmaTask` with `think=False`, and retains original/enhanced prompts and provenance. Literal checks cover quotes and recognisable uppercase labels; they are not a complete OCR/semantic verifier. V2 tells refinement to preserve uncertain small attributes by reference after Gemma misnamed a mushroom colour; a real repeat caption named it correctly. V3 stresses exact counts and separate placement after three requested apples became four; its image effect is unverified. **[code/GPU/unknown]**
 
 The page may ask one request/mode-specific question with 2–8 numbered choices; multiple numbers or `0` are accepted. A second appears **only for explicit conflicting choices**, never a third. Missing camera jargon alone is no reason to ask; the fox idea is already sufficient. This protocol is enforced by code, while the decision that an intent needs clarification is still model-dependent. Director/API calls without `clarify: true` remain noninteractive. **[code]**
 
@@ -47,6 +47,7 @@ The page may ask one request/mode-specific question with 2–8 numbered choices;
 | 2026-10-29 | **[recorded]** real jobs and UI, before this Gemma manager | All Prompt formats; Off/2x/4x; both detail presets; Canny/gray/prepared synthetic depth map; masked edit; Tile; seed reuse, cancel, save and RU/EN UI. Scoped results and failures: [generation audit](../../Z-Image-Turbo.md). |
 | 2026-11-01 | **[recorded, CPU]** fake Gemma and graph/bridge tests | Per-mode instructions, source/mask order, malformed retry, literal checks, cancellation, provenance, clarification conflicts/cap and token handling. No inference quality established. |
 | 2026-11-01 | **[recorded, UI with fake replies]** clarification panel | Number selection, second conflict question and final acknowledgement in the browser; no real Gemma decision or image. |
+| 2026-11-01, reviewed 11-05 | **[GPU/UI]** real Gemma and all five modes | Fox photo, Detail 0.20, Canny coat change, masked mushroom replacement and Tile completed; illustration medium and Cyrillic writing also checked. Inpaint kept every outside-mask RGB pixel unchanged. Count failed (four apples for three); Control/Tile looked harder than Prompt/Detail. See the [ongoing audit](../../VisualForge-Image-UI-Audit-2026-11-05.md) for settings, timings and limits. |
 | Pending | **[unknown]** real manager comparison | Hold seeds/settings fixed, compare raw and enhanced requests in each mode; inspect adherence, style, counts, Cyrillic text, edit boundaries and source preservation. Repeat with several seeds before generalising. |
 
 Next CPU checks: `tests/test_image_prompt_manager.py`, `test_prompt_clarification.py`, `test_image_engines.py`, `test_image_reliability.py`, `tests/image_clarification_test.js`. UI: check selected mode, source/mask retention, RU/EN, ready/clarify paths, conflict and Stop. GPU: approved short jobs sequentially, inspect outputs rather than only successful status. Faces, Chinese lettering, pose/HED/MLSD/scribble maps and authentic-detail recovery remain unqualified.

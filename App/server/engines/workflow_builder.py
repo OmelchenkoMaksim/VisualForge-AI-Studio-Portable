@@ -137,6 +137,13 @@ def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed,
         if not isinstance(extra_images, list) or len(extra_images) != 1:
             raise ValueError(ui_text('image.extra_images_count_error', 1))
         graph['84']['inputs']['image'] = extra_images[0]
+    elif mode == 'multi' and engine.id == 'fibo2-dev-int8':
+        from .reference_inputs import resolve_extra_images
+        resolve_extra_images(engine, mode, {'extra_images':extra_images})
+        for index, filename in enumerate(extra_images):
+            node = str(110 + index)
+            graph[node] = {'class_type':'LoadImage', 'inputs':{'image':filename}}
+            graph['40']['inputs']['images.image_' + str(index + 3)] = [node, 0]
     elif mode == 'multi' and engine.id == 'qwen-image-21-uc-fp8':
         from .reference_inputs import resolve_extra_images
         resolve_extra_images(engine, mode, {'extra_images':extra_images})
@@ -184,6 +191,9 @@ def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed,
         add_expansion(graph, engine, mode, prompt, seed)
     if engine.native_prompt and mode in engine.text_modes:
         width, height = native_dimensions(CANVASES[canvas], native_megapixels)
+        if engine.id == 'fibo2-dev-int8':
+            # FIBO was trained near 1 MP: the shared 1152x768 preset falls below that area bucket.
+            width, height = {'square':(1024, 1024), 'landscape':(1248, 832), 'portrait':(832, 1248)}[canvas]
         graph[engine.size_node]['inputs'].update(width=width, height=height)
     if engine.id == 'qwen-image-21-uc-fp8':
         if type(native_megapixels) is not int or native_megapixels not in engine.native_megapixels:
@@ -242,6 +252,9 @@ def build_workflow(engine, mode, prompt, image1, image2, quality, upscale, seed,
         metadata.update(negative_prompt=negative_prompt, use_uncensored_lora=use_uncensored_lora,
                         reference_count=0 if mode == 'prompt' else 3 if mode == 'multi' else 2 if mode == 'reference' else 1)
         metadata['node_names'].update({'84':ui_text('image.qwen_third_image_label'), '171':'Lightning 4-step LoRA'})
+    if engine.id == 'fibo2-dev-int8':
+        metadata.update(native_megapixels=1, prompt_format='vgl',
+                        reference_count=0 if mode == 'prompt' else 2 + len(extra_images or []) if mode in ('reference', 'multi') else 1)
     if mode == 'layout':
         metadata.update(layout_boxes=layout_boxes)
         metadata['node_names'].update({'29':'Layout elements', '30':'Compose caption and layout'})

@@ -1,6 +1,8 @@
 """Image engine contract: asset closure, workflow wiring and optional Z-Image detail refinement."""
 import json
+from datetime import date
 from io import BytesIO
+import math
 from pathlib import Path
 import re
 import shutil
@@ -82,7 +84,10 @@ class CatalogParityTests(unittest.TestCase):
 
     def test_every_engine_has_a_component_that_ships_its_assets(self):
         catalog = json.loads((ROOT / 'App/config/component-catalog.json').read_text(encoding='utf-8'))
-        files = {c['id']: {Path(f['path']).name for f in c.get('files', [])} for c in catalog['components']}
+        from provision.component_catalog import closure, index
+        rows = index(catalog)
+        files = {c['id']: {Path(f['path']).name for ident in closure(catalog, [c['id']])
+                           for f in rows[ident].get('files', [])} for c in catalog['components']}
         for ident, engine in ENGINES.items():
             component = COMPONENTS['image:' + ident]
             if ident in AWAITING_CATALOG:
@@ -773,7 +778,7 @@ class GpuClaimTests(unittest.TestCase):
     def test_new_engines_wait_for_memory_below_their_measured_peak_and_qwen_does_not(self):
         # Measured peaks above idle on the 16 GB card: Z-Image about 13.6 GB, FLUX.3 about 13.9-14.7 GB.
         self.assertEqual({ident: engine.claim_vram_mb for ident, engine in ENGINES.items()},
-                         {'qwen-edit-2511': 0, 'qwen-image-21-uc-fp8': 0, 'z-image-turbo-int8': 11000, 'flux3-klein-int8': 12000})
+                         {'fibo2-dev-int8': 0, 'qwen-edit-2511': 0, 'qwen-image-21-uc-fp8': 0, 'z-image-turbo-int8': 11000, 'flux3-klein-int8': 12000})
 
     def test_the_start_route_claims_the_engines_estimate_and_counts_comfyuis_own_cache(self):
         # The generate route needs a live ComfyUI to reach its claim, so the wiring is checked in the source.
@@ -812,6 +817,22 @@ class EngineWordingTests(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which('node'), 'node is not installed')
 class EnginePolicyTests(unittest.TestCase):
+    def test_reviewed_ratings_have_valid_axes_and_a_traceable_sample_scope(self):
+        for engine in ENGINES.values():
+            with self.subTest(engine=engine.id):
+                rating = engine.rating
+                self.assertEqual(engine_readiness(engine, object_info(engine))['rating'], rating)
+                if not rating:
+                    continue  # An unexecuted new model must remain unrated instead of inheriting an invented score.
+                for axis in ('overall', 'picture', 'detail', 'consistency'):
+                    self.assertIn(type(rating[axis]), (int, float))
+                    self.assertTrue(math.isfinite(rating[axis]))
+                    self.assertTrue(0 <= rating[axis] <= 10)
+                self.assertEqual(rating['overall'], round(sum(rating[axis] for axis in ('picture', 'detail', 'consistency')) / 3, 1))
+                self.assertEqual(date.fromisoformat(rating['reviewed']).isoformat(), rating['reviewed'])
+                self.assertIs(type(rating['samples']), int)
+                self.assertGreater(rating['samples'], 0)
+
     def test_selection_policy_and_guides(self):
         done = subprocess.run([shutil.which('node'), str(ROOT / 'tests/engine_state_test.js')], capture_output=True, text=True, timeout=120)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)

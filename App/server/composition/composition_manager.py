@@ -13,7 +13,7 @@ from director.studio import DirectorCancelled
 from generation_identity import begin, finish, scope
 from ui_strings import source as ui_text
 from .composition_media import IDENT, Materials, atomic_json, prepare, prune_drafts, prune_runs
-from .composition_plan import GROUPS, estimate_minutes, request_data
+from .composition_plan import GROUPS, caption_request, estimate_minutes, request_data
 
 TERMINAL = ('done', 'error', 'cancelled', 'interrupted')
 
@@ -48,6 +48,27 @@ class CompositionManager:
 
     def cancelled_for(self, header):
         return self.acting(header) and self.cancel.is_set()
+
+    def image_prompt_context(self, header):
+        """Keep the owner's intent in the final content and texture passes, even if a variant draft omitted a constraint."""
+        with self.lock:
+            if not self.acting(header) or not self.run['steps']:
+                return {}
+            current = self.run['steps'][-1]
+            variant = self.run['plan']['variants'][current['variant'] - 1]
+            # Detail/Tile are texture refiners, so semantic requirements must also reach the last content-producing pass.
+            semantic = [index for index, step in enumerate(variant['steps'], 1) if step['mode'] not in ('detail', 'tile')]
+            if current['step'] not in (len(variant['steps']), semantic[-1] if semantic else len(variant['steps'])):
+                return {}
+            prompt = self.run['request']['prompt']
+            counts, materials = {}, {}
+            for row in self.run['materials']:
+                counts[row['group']] = counts.get(row['group'], 0) + 1
+                materials[row['id']] = dict(group=row['group'], group_index=counts[row['group']], label=row['label'])
+            pictures = [dict(picture=number, **(dict(role='previous_composition') if source == 'previous' else materials[source]))
+                        for number, source in enumerate(variant['steps'][current['step'] - 1]['sources'], 1)]
+            return dict(composition_intent=prompt, composition_lettering=caption_request(prompt), composition_sources=pictures,
+                        composition_variant=dict(number=current['variant'], total=len(self.run['plan']['variants'])))
 
     @contextmanager
     def request_scope(self):

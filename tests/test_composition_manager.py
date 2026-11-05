@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 from test_composition_plan import caps, plan, step
 import test_image_prompt_manager as fixture
 from composition.composition_manager import CompositionManager
-from composition.composition_media import Materials, PAD_NOTE, TRANSPARENT_NOTE, prepare, prepare_inputs
+from composition.composition_media import Materials, PAD_NOTE, TRANSPARENT_NOTE, atomic_json, prepare, prepare_inputs
 from composition.composition_routes import handle
 from composition.composition_studio import CompositionStudio
 from director.studio import StudioBusy
@@ -121,6 +121,23 @@ class CompositionManagerTests(unittest.TestCase):
         self.assertEqual(value['state'], 'done', value.get('error'))
         self.assertGreaterEqual(value['estimate_minutes'], 1)
 
+    def test_original_intent_reaches_the_last_semantic_pass_before_texture_finishing(self):
+        self.brain.make_plan.return_value = plan([step('flux3-klein-int8', 'prompt'),
+                                                 step('qwen-edit-2511', 'single', ['previous']),
+                                                 step('z-image-turbo-int8', 'detail', ['previous'])])
+        contexts = []
+        def image(*args, **kwargs):
+            self.assertEqual(self.manager.image_prompt_context('forged-token'), {})
+            contexts.append(self.manager.image_prompt_context('private-token'))
+            return fixture.png(), dict(job='image-%d' % len(contexts), save_dir=str(self.root))
+        self.studio.image.side_effect = image
+        self.manager.start(dict(draft=self.manager.draft()['id'], prompt='Героиня в полный рост, табличка "ЛЕС"'))
+        self.assertEqual(self.wait()['state'], 'done')
+        self.assertEqual(contexts[0], {})
+        self.assertEqual(contexts[1]['composition_intent'], 'Героиня в полный рост, табличка "ЛЕС"')
+        self.assertEqual(contexts[1]['composition_variant'], dict(number=1, total=1))
+        self.assertEqual(contexts[1], contexts[2])
+
     def test_a_broken_run_file_does_not_keep_the_workspace_from_opening(self):
         folder = self.root / 'runs' / ('c' * 32); folder.mkdir()
         (folder / 'run.json').write_text('{"id": ', encoding='utf-8')
@@ -154,6 +171,28 @@ class CompositionManagerTests(unittest.TestCase):
 
 
 class CompositionMediaTests(unittest.TestCase):
+    def test_atomic_status_retries_a_brief_reader_lock_and_bounds_a_persistent_denial(self):
+        with tempfile.TemporaryDirectory(prefix='composition-media-') as folder:
+            target = Path(folder) / 'run.json'
+            atomic_json(target, dict(state='old'))
+            original, attempts = Path.replace, []
+            def briefly_locked(pending, destination):
+                attempts.append(destination)
+                if len(attempts) < 3:
+                    self.assertEqual(json.loads(target.read_text(encoding='utf-8')), dict(state='old'))
+                    raise PermissionError('Windows reader excludes delete sharing')
+                return original(pending, destination)
+            with patch.object(Path, 'replace', briefly_locked), patch('composition.composition_media.time.sleep') as sleep:
+                atomic_json(target, dict(state='new'))
+                self.assertEqual(sleep.call_count, 2)
+            self.assertEqual(json.loads(target.read_text(encoding='utf-8')), dict(state='new'))
+            with patch.object(Path, 'replace', side_effect=PermissionError('persistent denial')) as replace, patch('composition.composition_media.time.sleep') as sleep:
+                with self.assertRaises(PermissionError):
+                    atomic_json(target, dict(state='must not replace'))
+                self.assertEqual(replace.call_count, 10)
+                self.assertEqual(sleep.call_count, 9)
+            self.assertEqual(json.loads(target.read_text(encoding='utf-8')), dict(state='new'))
+
     def test_six_heroes_incremental_limits_and_labels_preserve_originals(self):
         with tempfile.TemporaryDirectory(prefix='composition-media-') as folder:
             store = Materials(folder)

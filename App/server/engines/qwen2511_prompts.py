@@ -3,7 +3,7 @@ import re
 
 ENGINE = 'qwen-edit-2511'
 VERSION = 'qwen2511-edit-2026-11-01-v1'
-CLARIFICATION_VERSION = 'qwen2511-clarification-v1'
+CLARIFICATION_VERSION = 'qwen2511-clarification-v2'
 TEMPERATURE = 0.2
 DECISION_TEMPERATURE = 0.0
 

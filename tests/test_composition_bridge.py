@@ -62,7 +62,8 @@ class CompositionBridgeTests(unittest.TestCase):
         ids = [row['id'] for row in draft['items']]
         result = plan([step('flux3-klein-int8', 'reference', ids), step('qwen-edit-2511', 'single', ['previous'])])
         edit = 'Refine the clock material with a subtle woven texture. Preserve the scene, subjects, lettering and lighting.'
-        self.fixture.text.answers = iter(('Two actual reference pictures.', json.dumps(result), fixture.FOX, edit))
+        self.fixture.text.answers = iter(('Two actual reference pictures.', json.dumps(result), fixture.FOX, edit, edit))
+        self.fixture.text.on_answer = lambda: self.assertEqual(self.manager.image_prompt_context('forged-token'), {})
         self.manager.start(dict(draft=draft['id'], prompt='Объедини изображения и доработай материал'))
         value = self.wait()
         self.assertEqual(value['state'], 'done', value.get('error'))
@@ -74,7 +75,14 @@ class CompositionBridgeTests(unittest.TestCase):
         self.assertEqual(second['169']['inputs']['steps'], 40)
         self.assertEqual(second['169']['inputs']['cfg'], 4)
         self.assertNotIn('171', second)
-        self.assertEqual(len(self.fixture.text.calls), 4)
+        self.assertEqual(len(self.fixture.text.calls), 5)
+        self.assertFalse(self.fixture.text.calls[4]['messages'][1].get('images'))
+        first_context = json.loads(self.fixture.text.calls[2]['messages'][1]['content'])['context']
+        final_context = json.loads(self.fixture.text.calls[3]['messages'][1]['content'])['context']
+        self.assertNotIn('composition_intent', first_context)
+        self.assertEqual(final_context['composition_intent'], 'Объедини изображения и доработай материал')
+        self.assertEqual(final_context['composition_sources'], [dict(picture=1, role='previous_composition')])
+        self.assertEqual(self.manager.image_prompt_context('forged-token'), {})
 
     def test_stop_after_a_late_prompt_answer_cannot_enqueue_the_image(self):
         self.manager.brain = Mock(make_plan=Mock(return_value=plan()))

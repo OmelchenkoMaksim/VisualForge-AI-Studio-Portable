@@ -112,6 +112,16 @@ class Qwen21ManagerTests(unittest.TestCase):
         wrapped = qwen21.rgba_prompt(fixture.FOX, 'RGBA')
         self.assertEqual(qwen21.rgba_prompt(wrapped, 'RGBA'), wrapped)
 
+    def test_composition_alpha_wrapper_uses_the_human_intent_instead_of_an_invented_step_cue(self):
+        candidate = 'A studio photograph of one red teapot on a seamless white background, with soft natural lighting.'
+        step = 'Refine the teapot and output alpha transparency on a white background.'
+        context = dict(composition_intent='Один красный чайник на чистом белом фоне.')
+        result = PromptEnhancer._caption(candidate, step, qwen21.ENGINE, 'single', 1, context)
+        self.assertEqual(result, candidate)
+        context['composition_intent'] = 'Один красный чайник, настоящий прозрачный фон и альфа-канал PNG.'
+        result = PromptEnhancer._caption(candidate, step, qwen21.ENGINE, 'single', 1, context)
+        self.assertTrue(result.startswith('This is an RGBA image with transparency.'))
+
     def test_alpha_preview_hides_invisible_rgb_and_reports_the_original_channel(self):
         manager, text, _ = self.manager()
         manager.enhance('Сохрани объект', qwen21.ENGINE, 'single', [transparent_png()])
@@ -206,7 +216,7 @@ class Qwen21BridgeTests(unittest.TestCase):
         self.assertIn('prompt_id', result)
         self.assertEqual(len(self.fixture.text.calls), 1)
         self.assertIn(qwen21.CLARIFICATION_RULES['prompt'], self.fixture.text.calls[0]['messages'][0]['content'])
-        self.fixture.text.answers = iter((json.dumps(fixture.PROPOSAL), fixture.FOX))
+        self.fixture.text.answers = iter((json.dumps(fixture.PROPOSAL), fixture.choice_caption(2, 1)))
         _, first = self.generate(clarify=True)
         _, second = self.generate(clarify=True, clarification_token=first['clarification_token'], clarification_answer='123')
         self.assertEqual(second['round'], 2)

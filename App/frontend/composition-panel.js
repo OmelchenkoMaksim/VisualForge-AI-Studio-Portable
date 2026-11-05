@@ -59,7 +59,13 @@
   function remember() {
     try {localStorage.setItem(key, JSON.stringify({active, draft, prompt:prompt.value, variants:Number(variants.value), canvas:canvas.value, run:run?.id}));} catch { /* Optional persistence. */ }
   }
-  function report(error) {StudioI18n.bind(status, 'textContent', () => StudioI18n.remote(error.message || String(error)), true);}
+  function report(error) {
+    const message = error.message || String(error);
+    // Plan diagnostics contain internal IDs and English validation rules; retain them in run.json, not in the creative UI.
+    const planFailure = StudioI18n.source('composition.panel_plan_failed_text', [StudioI18n.source('composition.panel_invalid_plan_text')]);
+    StudioI18n.bind(status, 'textContent', () => message.startsWith(planFailure)
+      ? t('plan_failed', [t('invalid_plan')]) : StudioI18n.remote(message), true);
+  }
   function header() {
     if (active) StudioUI.setHeader('image', {model:t('name'), description:t('intro'), tone:'good', status:working ? t(run?.state === 'planning' ? 'planning' : 'running') : t('quality')});
   }
@@ -69,7 +75,7 @@
     stop.disabled = !working;
     stop.hidden = !working;
     start.disabled = locked || !profile?.available;
-    normal.disabled = creative.disabled = locked;
+    normal.disabled = creative.disabled = locked || !document.getElementById('cancel').hidden;
     header();
   }
   async function mutate(work) {
@@ -125,14 +131,28 @@
     if (total) say(progress, 'progress', [Math.min(finished + (working ? 1 : 0), total), total, value.estimate_minutes || 1]);
     steps.replaceChildren(...(value.steps || []).map(row => {
       const node = h('div');
-      StudioI18n.bind(node, 'textContent', () => t('step', [row.variant, row.step, row.engine]) + ' · ' + StudioI18n.remote(row.state), true);
+      // Use the existing model picker's public label instead of exposing internal registry IDs in the creative workspace.
+      const modelName = () => [...document.querySelectorAll('#engineSelect option')].find(option => option.value === row.engine)?.textContent.split(' · ')[0].trim() || row.engine;
+      StudioI18n.bind(node, 'textContent', () => t('step', [row.variant, row.step, modelName()]) + ' · ' + StudioI18n.remote(row.state), true);
       return node;
     }));
-    results.replaceChildren(...(value.results || []).map((result, index) => {
+    // Replacing completed cards on every status poll stole keyboard focus from their download links.
+    // Completed variants are immutable; keep their nodes and append only newly finished choices.
+    if (results.dataset.run !== String(value.id || '')) {
+      results.replaceChildren();
+      results.dataset.run = String(value.id || '');
+    }
+    const completed = value.results || [];
+    while (results.childElementCount > completed.length) results.lastElementChild.remove();
+    for (let index = results.childElementCount; index < completed.length; index++) {
       const url = '/api/composition/result?' + new URLSearchParams({id:value.id, index});
-      return h('figure', {class:'composition-result'}, h('img', {src:url, alt:result.title || t('variant', [index + 1])}),
-        h('figcaption', {}, result.title || t('variant', [index + 1])), say(h('a', {href:url, download:'Composition - ' + (index + 1) + '.png'}), 'download'));
-    }));
+      // Real plan titles used the wrong UI language and even said "sitting" for a standing prompt. Keep those in provenance;
+      // stable localized numbers identify the finished choices without making an unverified claim about their content.
+      const preview = h('img', {src:url});
+      StudioI18n.bind(preview, 'alt', () => t('variant', [index + 1]), true);
+      results.append(h('figure', {class:'composition-result'}, preview, say(h('figcaption'), 'variant', [index + 1]),
+        say(h('a', {href:url, download:'Composition - ' + (index + 1) + '.png'}), 'download')));
+    }
     controls(); remember();
     if (timer) clearTimeout(timer);
     if (working) timer = setTimeout(poll, 2000);

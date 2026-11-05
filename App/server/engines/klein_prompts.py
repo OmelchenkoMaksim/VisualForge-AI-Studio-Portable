@@ -2,7 +2,7 @@
 
 ENGINE = 'flux3-klein-int8'
 VERSION = 'klein-distilled-2026-11-01-v1'
-CLARIFICATION_VERSION = 'klein-clarification-v1'
+CLARIFICATION_VERSION = 'klein-clarification-v2'
 TEMPERATURE = 0.0
 DECISION_TEMPERATURE = 0.0
 

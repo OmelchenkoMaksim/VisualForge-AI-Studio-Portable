@@ -19,16 +19,20 @@ Old reports are scoped evidence of one day, not a health check of the installed 
 ## Model cards (start here for any model)
 
 [models/README.md](models/README.md): cards grouped by section, with our versions, strengths, limits, modes, prompt rules and remaining checks.
-Evidence distinguishes **code**, **recorded observations**, **CPU/UI/GPU checks**, **external sources** and **unknowns**. All four Image models are researched; the other sections' cards are drafts seeded from project reports. Start with the card, refresh only facts needed for the next decision and verify at the appropriate level: [video](models/video/README.md) · [image](models/image/README.md) ·
+Evidence distinguishes **code**, **recorded observations**, **CPU/UI/GPU checks**, **external sources** and **unknowns**. All five Image models are researched; the other sections' cards are drafts seeded from project reports. Start with the card, refresh only facts needed for the next decision and verify at the appropriate level: [video](models/video/README.md) · [image](models/image/README.md) ·
 [music](models/music/README.md) · [voiceover](models/voiceover/README.md) · [text (Gemma)](models/text/README.md) · [speech (Whisper)](models/speech/README.md). The reports below are the long evidence the cards point to.
 
 ## Image
 
 [VisualForge-Composition](VisualForge-Composition.md): automatic model selection and multi-stage compositions from optional heroes, places, objects and references; 1–5 variations, always maximum-quality profiles.
 
+[FIBO 2.0 Dev INT8](models/image/image-fibo2-dev.md): full 50-step model, four-image editing, local Gemma VGL and scoped qualification evidence.
+
 [Qwen-Image-Edit-2511](Qwen-Image-Edit-2511.md) · [Qwen-Image-2.1](Qwen-Image-2.1.md) · [Z-Image-Turbo](Z-Image-Turbo.md) · [FLUX-3-Klein](FLUX-3-Klein.md) ·
 [Z-Image-Prompting](Z-Image-Prompting.md) (publisher/community research and automatic per-mode Gemma preparation) ·
 [Image-Converter](Image-Converter.md) (pictures of any format for every network).
+
+[Image model ratings](Image-Model-Ratings.md): the 0–10 scale, three axes and evidence rules. [Image UI audit, 2026-11-05](VisualForge-Image-UI-Audit-2026-11-05.md): completed main run of all 18 ordinary modes and Composition scenarios, observed limitations, fixes and unqualified cases.
 
 ## Video
 

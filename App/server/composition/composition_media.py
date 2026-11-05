@@ -12,15 +12,15 @@ from PIL import Image, ImageFilter, ImageOps
 
 from image_convert import convert
 from ui_strings import source as ui_text
-from .composition_plan import GROUPS
+from .composition_plan import CANVAS, FILL_TOLERANCE, GROUPS
 
 IDENT = re.compile(r'[0-9a-f]{32}\Z')
 MAX_BYTES = 100 * 1024 * 1024
 TOTAL_BYTES = 200 * 1024 * 1024
-CANVAS = dict(square=(2048, 2048), landscape=(2048, 1365), portrait=(1365, 2048))
-FILL_TOLERANCE = 0.06
-PAD_NOTE = ('The first picture sits on a larger canvas with blurred margins: fill the whole frame by continuing the scene naturally into the margins, '
-            'and keep the people and objects of the picture exactly as they are.')
+# A real edit retained the temporary blur as side bands; unconditional preservation also contradicted replacing the source fox.
+PAD_NOTE = ('The first picture was fitted onto a canvas with temporary blurred padding. This padding is not scene content or a desired blur effect: '
+            'replace it with coherent scene continuation across the entire output. Apply the requested edits to the source content, '
+            'preserving only elements meant to remain. Do not leave blurred side bands, an inset image or a frame within the frame.')
 TRANSPARENT_NOTE = ('Complete any empty canvas padding coherently with the requested scene, preserving the actual source content. '
                     'Keep genuinely transparent space only when the requested output needs transparency.')
 
@@ -28,7 +28,16 @@ TRANSPARENT_NOTE = ('Complete any empty canvas padding coherently with the reque
 def atomic_json(path, value):
     pending = path.with_suffix('.pending')
     pending.write_text(json.dumps(value, ensure_ascii=False), encoding='utf-8')
-    pending.replace(path)
+    # Windows readers without FILE_SHARE_DELETE can briefly block replacement; the audit's status watcher did.
+    # Keep the old complete JSON until replacement succeeds, and surface persistent permission failures.
+    for attempt in range(10):
+        try:
+            pending.replace(path)
+            return
+        except PermissionError:
+            if attempt == 9:
+                raise
+            time.sleep(.05)
 
 
 class Materials:
@@ -117,8 +126,8 @@ def prune_runs(root, keep=30):
 def prepare(raws, canvas):
     """The pictures of one step as the Image route takes them -> (PNG bytes list, a sentence for the prompt or '').
 
-    Edit models draw on the shape of the FIRST picture and normalise it to about one megapixel, so the first picture is brought to the canvas: stretched to it when its shape is within
-    `FILL_TOLERANCE` (a sliver is cropped), else shrunk or enlarged to fit and put over a blurred copy of itself (a picture with transparency over a transparent frame, so that its alpha
+    Edit models draw on the shape of the FIRST picture and normalise it to about one megapixel, so the first picture is scaled to fill the canvas when its shape is within
+    `FILL_TOLERANCE` (with a small edge crop), else shrunk or enlarged to fit and put over a blurred copy of itself (a picture with transparency over a transparent frame, so that its alpha
     survives). The first version only ever shrank a picture onto a flat grey frame: a 1152x768 photo was left with 69 % grey around it, and the model had to invent most of the frame.
     A blurred margin is what Klein continued into a real scene in the Director's keyframe tests (2026-11-01); flat grey was never tried."""
     target = CANVAS[canvas]
@@ -126,19 +135,19 @@ def prepare(raws, canvas):
     for index, raw in enumerate(raws):
         with Image.open(BytesIO(raw)) as source:
             image = ImageOps.exif_transpose(source).convert('RGBA')
-        if index:
-            image.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
-        elif abs(image.width / image.height / (target[0] / target[1]) - 1) <= FILL_TOLERANCE:
-            image = ImageOps.fit(image, target, Image.Resampling.LANCZOS)
-        else:
-            fitted = ImageOps.contain(image, target, Image.Resampling.LANCZOS)
-            if image.getchannel('A').getextrema()[0] == 255:
-                frame, note = ImageOps.fit(image.convert('RGB'), target, Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(40)).convert('RGBA'), PAD_NOTE
+            if index:
+                image.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+            elif abs(image.width / image.height / (target[0] / target[1]) - 1) <= FILL_TOLERANCE:
+                image = ImageOps.fit(image, target, Image.Resampling.LANCZOS)
             else:
-                frame, note = Image.new('RGBA', target, (127, 127, 127, 0)), TRANSPARENT_NOTE
-            frame.alpha_composite(fitted, ((target[0] - fitted.width) // 2, (target[1] - fitted.height) // 2))
-            image = frame
-        images.append(image)
+                fitted = ImageOps.contain(image, target, Image.Resampling.LANCZOS)
+                if image.getchannel('A').getextrema()[0] == 255:
+                    frame, note = ImageOps.fit(image.convert('RGB'), target, Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(40)).convert('RGBA'), PAD_NOTE
+                else:
+                    frame, note = Image.new('RGBA', target, (127, 127, 127, 0)), TRANSPARENT_NOTE
+                frame.alpha_composite(fitted, ((target[0] - fitted.width) // 2, (target[1] - fitted.height) // 2))
+                image = frame
+            images.append(image)
     for _ in range(8):
         result = []
         for image in images:

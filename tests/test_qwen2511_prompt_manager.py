@@ -201,7 +201,7 @@ class Qwen2511BridgeTests(unittest.TestCase):
         self.assertEqual(status, 200, result)
         self.assertEqual(len(self.fixture.text.calls), 1)
         self.assertIn(qwen2511.CLARIFICATION_RULES['prompt'], self.fixture.text.calls[0]['messages'][0]['content'])
-        self.fixture.text.answers = iter((json.dumps(fixture.PROPOSAL), fixture.FOX))
+        self.fixture.text.answers = iter((json.dumps(fixture.PROPOSAL), fixture.choice_caption(2, 1)))
         _, first = self.generate(clarify=True, negative_prompt=NEGATIVE)
         _, second = self.generate(clarify=True, negative_prompt=NEGATIVE, clarification_token=first['clarification_token'], clarification_answer='123')
         self.assertEqual(second['round'], 2)

@@ -2,7 +2,7 @@
 
 ENGINE = 'z-image-turbo-int8'
 VERSION = 'zimage-turbo-2026-11-01-v3'
-CLARIFICATION_VERSION = 'zimage-clarification-v1'
+CLARIFICATION_VERSION = 'zimage-clarification-v2'
 TEMPERATURE = 0.4
 DECISION_TEMPERATURE = 0.3
 

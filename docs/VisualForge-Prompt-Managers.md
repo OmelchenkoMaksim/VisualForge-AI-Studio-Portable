@@ -8,7 +8,9 @@ The system instructions and model-facing prompts are English. The exact words of
 without a translated duplicate. `GemmaTask.ask` sends `think=False`: reasoning is disabled, as in the existing Video implementation, rather than exposing another reasoning
 stream. `GemmaTask.session` claims `text` under the submission lock, releases the lock while answering, participates in Stop, and always clears its Text owner.
 
-## Image: all four current models are connected
+## Image: all five current models are connected
+
+FIBO 2.0 Dev (`fibo2_prompts.py`, [model card](models/image/image-fibo2-dev.md)) uses the same checked prose/clarification contract, followed by a local Gemma conversion to validated VGL. Objects, lighting, composition and literal `text_render` entries are structured; code attaches the checked prose as `edit_instruction` with ordered `<image_N>` tags. The format pass is text-only: seeing the source again made a real recolour revert to its old colour. Malformed JSON or changed requested lettering is refused before inference. The converter gets one retry; a failed format pass does not restart the already valid clarification decision. Publisher cloud VGL services and the native extra enhancer are not called. The backend's Cyrillic glyph fallback and its pins are in `fibo2-assets.json`.
 
 The separate Image manager now automatically prepares Z-Image Turbo requests in Prompt, Detail, Control, Inpaint and Tile. The backend
 calls it from `/api/generate`, after input validation and before Image admission, so the page and direct API clients behave alike.
@@ -21,18 +23,17 @@ See [Z-Image-Prompting](Z-Image-Prompting.md) for the protocol, per-mode decisio
 Reference, Multi and Layout using the same lifecycle and bounded clarification protocol, with its own mode-specific decisions. All validated references reach
 Gemma in order; Layout sends the fixed boxes and a matching positional brief. Output must cite each box ID once; code appends the original table once.
 Klein's native Qwen3.5 upsampler is bypassed, its UI switch hidden and preflight checks the pruned graph, avoiding a second rewrite or a dependency on unused nodes/weights.
-The stored native workflows remain available to direct tooling. [Klein's card](models/image/image-flux3-klein.md) records publisher/community sources and CPU/UI evidence;
-real Gemma/image quality remains unverified. `ImagePromptEnhancement` records preparation separately from native `ImagePromptExpansion`.
+The stored native workflows remain available to direct tooling. [Klein's card](models/image/image-flux3-klein.md) records publisher/community sources and the small real-Gemma sample of 2026-11-05, including failed small edits. `ImagePromptEnhancement` records preparation separately from native `ImagePromptExpansion`.
 `qwen21_prompts.py` activates Qwen Image 2.1's Prompt, Single, Reference and Multi with its own rules and clarification decisions.
 Single uses no reference tags; multiple inputs require every real `<imageN>` tag. Original alpha travels to the image encoder;
 Gemma receives a neutral-matte preview plus original alpha metadata. Code retains explicit RGBA cues after rewriting.
 Its native T2I/I2I PE is bypassed and hidden, so legacy flags cannot schedule a second rewrite or block managed alpha requests.
-[Qwen 2.1's card](models/image/image-qwen-image-21.md) distinguishes upstream/community guidance, old native-PE alpha failures and new CPU checks from pending real-Gemma quality.
+[Qwen 2.1's card](models/image/image-qwen-image-21.md) distinguishes upstream/community guidance, old native-PE alpha failures, CPU checks and the scoped real-Gemma results of 2026-11-05.
 `qwen2511_prompts.py` activates Qwen Image Edit 2511's four modes, with distinct Standard/Lightning profile rules.
 It uses the Plus encoder's `Picture 1`…`Picture 3` references, not Qwen 2.1 tags. Multi accepts exactly three sources;
 Prompt sends no user pictures to Gemma and later edits one generated neutral canvas. The original negative prompt and adapter/profile choices
 remain unchanged and are bound to waiting clarifications. A later change invalidates the answer instead of reusing stale choices.
-[Edit 2511's card](models/image/image-qwen-edit-2511.md) records source research and separates CPU/UI routing from pending real-Gemma quality.
+[Edit 2511's card](models/image/image-qwen-edit-2511.md) records source research and separates CPU/UI routing from its real-Gemma generation/edit samples of 2026-11-05.
 Video's `clarification_status()` and `prepare_clarification()` are inactive placeholders: no Video route or control invokes them.
 
 ### Audit of the Image manager, 2026-11-02 (CPU only; no real Gemma answer was produced)
@@ -52,8 +53,11 @@ Found by reading the code and probing it on the CPU, then fixed in `image_prompt
 * **The prepared prompt was never shown.** It was stored in history but the page showed only the native upsampler's text. The result card now has a
   "Prompt prepared by Gemma" disclosure. The page's `request()` also reports a non-JSON answer as an HTTP error.
 
-Not changed: the manager still fails the generation when two answers are invalid (the original text is never sent as a silent fallback), and the guides'
-wording is as researched on 2026-11-01. Whether real Gemma answers follow the guides, and the quality of the pictures they lead to, remain unverified.
+The manager still fails the generation when two answers are invalid; the original request is never sent as a silent fallback. Real qualification is tracked in the [Image UI audit](VisualForge-Image-UI-Audit-2026-11-05.md) and model cards, with observed model failures kept separate from software checks.
+
+**Clarification contract v2, 2026-11-05:** real vision decisions repeatedly used Ukrainian in a Russian UI. Decisions now request English throughout; a bounded text-only pass renders the question/labels in the UI language when needed. It sees the read-only English choice instructions so labels describe the actual outcomes. Code retains their order, values and groups, validates structure and quoted lettering, and rejects recognizable script mismatches. This narrow guard is not a complete language classifier. A failed UI rendering can retry once internally; it creates no additional user-facing question. Stop remains typed cancellation during this pass.
+
+Another real response omitted a compatible apple edit. The first guard demanded a verbatim caption opening, but a later real choice used fragments (`blue jacket`, `green apples`): a faithful fluent paraphrase was rejected twice. Code now retains every selected outcome at the beginning; when a candidate paraphrases them, a bounded text-only pass reconciles the remaining caption and removes contradictory preservation clauses. Existing literal, reference and length checks still apply. This preserves prompt contents, not guaranteed image adherence. RU labels and the two-question cap were verified on Qwen 2.1; a 2511 combined choice executed both edits. The real Qwen repeat used one question with independent jacket/apple groups: choices 2,5 produced a blue jacket and all three green apples, retaining the face, hands, blue mug and readable "УТРО". No extra question followed compatible choices. Software regressions include the fragment failure and cancellation.
 
 ## Remaining drafts (not connected)
 

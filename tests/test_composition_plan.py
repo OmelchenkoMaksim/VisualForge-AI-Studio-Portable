@@ -1,6 +1,8 @@
 """Composition contracts, material limits, quality policy and Gemma's bounded planning (CPU only)."""
 from contextlib import nullcontext
+import base64
 import copy
+from io import BytesIO
 import json
 from pathlib import Path
 import sys
@@ -14,6 +16,7 @@ from composition.composition_brain import CompositionBrain  # noqa: E402
 from engines.image_registry import ENGINES  # noqa: E402
 from gpu_coordinator import Busy, GpuCoordinator  # noqa: E402
 import test_image_prompt_manager as fixture  # noqa: E402
+from PIL import Image  # noqa: E402
 
 
 def caps():
@@ -30,6 +33,17 @@ def plan(steps=None, count=1):
 
 
 class CompositionPlanTests(unittest.TestCase):
+    def test_intermediate_text_stage_allows_only_the_roots_requested_cyrillic(self):
+        request = dict(prompt='Лиса и надпись «УТРО».', variants=1, canvas='landscape')
+        final = step('fibo2-dev-int8', 'single', ['previous'], fixture.FOX + ' A sign reads "УТРО".')
+        first = step('fibo2-dev-int8', prompt=fixture.FOX + ' A sign reads "УТРО".')
+        self.assertEqual(len(normalize(plan([first, final]), request, caps(), [])['variants'][0]['steps']), 2)
+        first['prompt'] = fixture.FOX
+        normalize(plan([first, final]), request, caps(), [])
+        first['prompt'] = fixture.FOX + ' A sign reads "НОЧЬ".'
+        with self.assertRaises(ValueError):
+            normalize(plan([first, final]), request, caps(), [])
+
     def test_request_bounds_and_six_hero_limit(self):
         self.assertEqual(next(row['limit'] for row in GROUPS if row['id'] == 'hero'), 6)
         for count in range(1, 6):
@@ -73,8 +87,72 @@ class CompositionPlanTests(unittest.TestCase):
                        [step('qwen-edit-2511', 'multi', ['m0', 'm1', 'm2', 'm3'])]):
             with self.assertRaises(ValueError): normalize(plan(broken), request_data(dict(prompt='Все вместе')), caps(), items)
 
+    def test_reference_mode_follows_source_count_and_material_ids_become_picture_numbers(self):
+        items = [dict(id='hero-a'), dict(id='place-b')]
+        drafted = step('flux3-klein-int8', 'multi', ['place-b', 'hero-a'],
+                       'Place the woman from material hero-a on the pier from material place-b. Preserve her face and the lake. Keep a sign reading "hero-a".')
+        result = normalize(plan([drafted]), request_data(dict(prompt='Героиня на причале, надпись "hero-a"')), caps(), items)['variants'][0]['steps'][0]
+        self.assertEqual(result['mode'], 'reference')
+        self.assertEqual(result['sources'], ['place-b', 'hero-a'])
+        self.assertIn('woman from Picture 2', result['prompt'])
+        self.assertIn('pier from Picture 1', result['prompt'])
+        self.assertEqual(result['prompt'].count('hero-a'), 1)
+        self.assertIn('"hero-a"', result['prompt'])
+        too_many = step('qwen-edit-2511', 'reference', ['a', 'b', 'c', 'd'])
+        with self.assertRaises(ValueError):
+            normalize(plan([too_many]), request_data(dict(prompt='Все вместе')), caps(), [dict(id=ident) for ident in 'abcd'])
+
+    def test_repeated_style_donor_is_one_input_and_numbered_roles_follow_it(self):
+        drafted = step('flux3-klein-int8', 'multi', ['style-id', 'style-id'],
+                       'Use Picture 2 only for watercolor style. Draw one whole fox in a snowy forest, with a sign reading "ЛЕС".')
+        result = normalize(plan([drafted]), request_data(dict(prompt='Лиса, надпись "ЛЕС"')), caps(), [dict(id='style-id')])
+        actual = result['variants'][0]['steps'][0]
+        self.assertEqual(actual['sources'], ['style-id'])
+        self.assertEqual(actual['mode'], 'single')
+        self.assertIn('Picture 1 only for watercolor style', actual['prompt'])
+        self.assertEqual(normalize(result, request_data(dict(prompt='Лиса, надпись "ЛЕС"')), caps(), [dict(id='style-id')]), result)
+
+    def test_requested_alpha_requires_a_capable_final_stage_but_not_quoted_lettering(self):
+        request = request_data(dict(prompt='Один чайник на прозрачном фоне, настоящий альфа-канал PNG'))
+        rgb = step('flux3-klein-int8')
+        with self.assertRaisesRegex(ValueError, 'alpha'):
+            normalize(plan([rgb]), request, caps(), [])
+        rgba = step('qwen-image-21-uc-fp8', 'single', ['previous'])
+        self.assertEqual(normalize(plan([rgb, rgba]), request, caps(), [])['variants'][0]['steps'][-1]['engine'], 'qwen-image-21-uc-fp8')
+        for text in ('Лиса без прозрачного фона', 'A fox without transparency'):
+            self.assertEqual(normalize(plan([rgb]), request_data(dict(prompt=text)), caps(), [])['variants'][0]['steps'][0]['engine'], 'flux3-klein-int8')
+        quoted = step('flux3-klein-int8', prompt='A red teapot on a wooden table. A small sign reads "RGBA" in clear lettering.')
+        normalize(plan([quoted]), request_data(dict(prompt='Чайник и табличка "RGBA"')), caps(), [])
+
+    def test_quoted_source_group_labels_are_not_required_as_visible_lettering(self):
+        items = [dict(id='hero-a'), dict(id='place-b')]
+        drafted = plan([step('flux3-klein-int8', 'reference', ['hero-a', 'place-b'],
+                             'Place the woman from Picture 1 on the wooden pier from Picture 2. Preserve her face, jacket and the lake.')])
+        result = normalize(drafted, request_data(dict(prompt='Героиня из фото «Герои» на причале из фото «Места». Без текста.')), caps(), items)
+        self.assertEqual(len(result['variants']), 1)
+        with self.assertRaises(ValueError):
+            normalize(drafted, request_data(dict(prompt='Героиня на причале, табличка с надписью «Герои».')), caps(), items)
+
+    def test_matching_canvas_source_is_first_and_picture_roles_are_renumbered_once(self):
+        items = [dict(id='ref', width=1000, height=1000), dict(id='hero', width=800, height=1200),
+                 dict(id='place', width=1200, height=800)]
+        prompt = ('Place the woman from the second source on the pier from Image 3. Use Picture 1 for the veranda. '
+                  'Keep a small sign reading "Picture 1".')
+        request = request_data(dict(prompt='Героиня на веранде', canvas='landscape'))
+        result = normalize(plan([step('flux3-klein-int8', 'multi', ['ref', 'hero', 'place'], prompt)]), request, caps(), items)
+        first = result['variants'][0]['steps'][0]
+        self.assertEqual(first['sources'], ['place', 'ref', 'hero'])
+        self.assertIn('woman from Picture 3', first['prompt'])
+        self.assertIn('pier from Picture 1', first['prompt'])
+        self.assertIn('Picture 2 for the veranda', first['prompt'])
+        self.assertIn('"Picture 1"', first['prompt'])
+        self.assertEqual(normalize(result, request, caps(), items), result)
+        chained = plan([step('flux3-klein-int8', 'multi', ['ref', 'hero', 'place'], prompt),
+                        step('qwen-edit-2511', 'reference', ['previous', 'place'])])
+        self.assertEqual(normalize(chained, request, caps(), items)['variants'][0]['steps'][1]['sources'], ['previous', 'place'])
+
     def test_unsupported_inputs_controls_and_missing_components_are_rejected(self):
-        cases = [step('unknown'), step('z-image-turbo-int8', 'single', ['m1']), step('qwen-edit-2511', 'multi', ['m1'] * 3),
+        cases = [step('unknown'), step('z-image-turbo-int8', 'single', ['m1']),
                  step('qwen-image-21-uc-fp8', 'reference', ['m1', 'missing']), step('flux3-klein-int8', 'layout')]
         for value in cases:
             with self.subTest(value=value), self.assertRaises(ValueError):
@@ -87,15 +165,16 @@ class CompositionPlanTests(unittest.TestCase):
         items = [dict(id='m1'), dict(id='m2')]
         request = request_data(dict(prompt='Лиса'))
         cases = [([step('unknown')], 'engine'), ([step('z-image-turbo-int8', 'single', ['m1', 'm2'])], 'modes'),
-                 ([step('qwen-edit-2511', 'single', ['m1', 'm2'])], 'takes 1 sources, not 2'), ([step('qwen-edit-2511', 'single', ['previous'])], '"previous" does not exist in the first step'),
+                 ([step('qwen-edit-2511', 'single')], 'takes 1 sources, not 0'), ([step('qwen-edit-2511', 'single', ['previous'])], '"previous" does not exist in the first step'),
                  ([step('qwen-edit-2511', 'single', ['zzz'])], '"zzz" is not a material ID'),
                  ([step('flux3-klein-int8', 'single', ['m1']), step('qwen-edit-2511', 'single', ['m2'])], 'FIRST source'),
                  ([step('qwen-edit-2511', 'single', ['m1'], prompt='Короткий?')], 'prompt is unusable'),
                  ([step('flux3-klein-int8', 'single', ['m1'])], 'leaves out: m2')]
         for steps, reason in cases:
-            with self.subTest(reason=reason), self.assertRaises(ValueError) as caught:
-                normalize(plan(steps), request, caps(), items)
-            self.assertIn(reason, str(caught.exception))
+            with self.subTest(reason=reason):
+                with self.assertRaises(ValueError) as caught:
+                    normalize(plan(steps), request, caps(), items)
+                self.assertIn(reason, str(caught.exception))
         again = plan(count=2); again['variants'][1]['steps'] = copy.deepcopy(again['variants'][0]['steps'])
         with self.assertRaises(ValueError) as caught:
             normalize(again, request_data(dict(prompt='Лиса', variants=2)), caps(), [])
@@ -124,6 +203,9 @@ class CompositionPlanTests(unittest.TestCase):
         self.assertGreater(estimate_minutes(many), estimate_minutes(one))
         five = dict(canvas='square', variants=one['variants'] * 5)
         self.assertGreater(estimate_minutes(five), 2 * estimate_minutes(one))
+        pair = plan([step('flux3-klein-int8', 'reference', ['m0', 'm1'])])
+        four = plan([step('flux3-klein-int8', 'multi', ['m0', 'm1', 'm2', 'm3'])])
+        self.assertGreater(estimate_minutes(four), estimate_minutes(pair))
 
     def test_composition_reservation_blocks_other_modules_but_admits_its_own_steps(self):
         gpu = GpuCoordinator(probes=dict(composition=lambda:True))
@@ -166,3 +248,31 @@ class CompositionBrainTests(unittest.TestCase):
         with self.assertRaises(ValueError): brain.make_plan(request_data(dict(prompt='Лиса')), caps(), [], {}, stopped)
         self.assertEqual(text.owners, [])
         self.assertEqual(len(text.calls), 1)
+
+    def test_transparent_material_does_not_show_hidden_rgb_to_the_planner(self):
+        source = BytesIO()
+        Image.new('RGBA', (8, 8), (180, 0, 220, 0)).save(source, 'PNG')
+        raw = source.getvalue()
+        items = [dict(id='object1', group='object', label='Transparent object')]
+        text = fixture.Text(('Transparent object.', json.dumps(plan([step('flux3-klein-int8', 'single', ['object1'])]))))
+        CompositionBrain(text, Mock()).make_plan(request_data(dict(prompt='Keep the object')), caps(), items,
+                                               {'object1':raw}, threading.Event())
+        encoded = text.calls[0]['messages'][1]['images'][0]
+        with Image.open(BytesIO(base64.b64decode(encoded))) as observed:
+            self.assertEqual(observed.getpixel((0, 0)), (127, 127, 127))
+        self.assertEqual(source.getvalue(), raw)
+
+    def test_planner_receives_oriented_dimensions_without_mutating_materials(self):
+        buffer = BytesIO()
+        image = Image.new('RGB', (48, 96), 'green')
+        exif = Image.Exif(); exif[274] = 6
+        image.save(buffer, 'PNG', exif=exif)
+        items = [dict(id='m1', group='place', label='Lake')]
+        text = fixture.Text(('Landscape lake.', json.dumps(plan([step('flux3-klein-int8', 'single', ['m1'])]))))
+        CompositionBrain(text, Mock()).make_plan(request_data(dict(prompt='Lake', canvas='landscape')), caps(), items,
+                                               {'m1':buffer.getvalue()}, threading.Event())
+        observed = json.loads(text.calls[0]['messages'][1]['content'])[0]
+        planned = json.loads(text.calls[1]['messages'][1]['content'])['materials'][0]
+        self.assertEqual((observed['width'], observed['height']), (96, 48))
+        self.assertEqual(planned, observed)
+        self.assertNotIn('width', items[0])

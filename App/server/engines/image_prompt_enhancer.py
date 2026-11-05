@@ -12,6 +12,7 @@ from . import zimage_prompts as zimage
 from . import klein_prompts as klein
 from . import qwen21_prompts as qwen21
 from . import qwen2511_prompts as qwen2511
+from . import fibo2_prompts as fibo2
 from .flux_inputs import layout_brief, resolve_flux_options
 from .image_registry import ENGINES
 
@@ -52,7 +53,7 @@ def protected_words(request):
     return tuple(dict.fromkeys(words))
 
 
-def caption(answer, request, has_source):
+def caption(answer, request, has_source, *, allowed_lettering=()):
     """Reject unusable output and changed literal text instead of silently feeding it to the image model."""
     text = answer.strip()
     if text.startswith('```') and text.endswith('```'):
@@ -71,7 +72,7 @@ def caption(answer, request, has_source):
     for match in reversed(list(QUOTES.finditer(text))):
         literal = next(part for part in match.groups() if part is not None)
         # A source picture can contain lettering absent from the typed request; its spelling is a vision responsibility.
-        if CYRILLIC.search(literal) and not has_source and literal not in request:
+        if CYRILLIC.search(literal) and not has_source and literal not in request and literal not in allowed_lettering:
             return None
         prose = prose[:match.start()] + prose[match.end():]
     if '?' in prose or CYRILLIC.search(prose) or not re.search(r'[A-Za-z]{3}', prose):
@@ -137,14 +138,16 @@ class PromptEnhancer(PromptEnhancerTemplate):
     OUTPUT_FIELD = 'prompt'
     VERBATIM_FIELDS = ('lettering', 'negative_prompt')
     CONTEXT_FIELDS = ('images_in_order', 'source_alpha', 'lettering', 'negative_prompt', 'sampling_profile', 'canvas', 'layout_boxes', 'layout_plan', 'control_type', 'detail_strength')
-    ACTIVE_GUIDES = {zimage.ENGINE: zimage, klein.ENGINE: klein, qwen21.ENGINE: qwen21, qwen2511.ENGINE: qwen2511}
+    ACTIVE_GUIDES = {zimage.ENGINE: zimage, klein.ENGINE: klein, qwen21.ENGINE: qwen21, qwen2511.ENGINE: qwen2511, fibo2.ENGINE: fibo2}
     MODEL_RULES = {
+        fibo2.ENGINE: fibo2.MODEL_RULES,
         qwen2511.ENGINE: qwen2511.MODEL_RULES,
         qwen21.ENGINE: qwen21.MODEL_RULES,
         'z-image-turbo-int8': zimage.MODEL_RULES,
         klein.ENGINE: klein.MODEL_RULES,
     }
     MODE_RULES = {
+        fibo2.ENGINE: fibo2.MODE_RULES,
         qwen2511.ENGINE: qwen2511.MODE_RULES,
         qwen21.ENGINE: qwen21.MODE_RULES,
         'z-image-turbo-int8': zimage.MODE_RULES,
@@ -186,6 +189,22 @@ class PromptEnhancer(PromptEnhancerTemplate):
             context['source_alpha'] = qwen21.source_alpha(images)
             draft = self.draft(prompt, engine, mode, context)
         messages = draft['messages']
+        if context.get('composition_intent'):
+            # A real second variant lost "full body" in its plan and became a cropped portrait. Keep the human's
+            # hard constraints available at the final rewrite rather than treating a lossy step draft as the whole request.
+            messages[0]['content'] += (
+                '\nThis stage completes the content of a Composition variant or preserves it during final texture finishing. '
+                'composition_intent is the original human request: '
+                'its hard constraints on framing (including full body), actions, pose, object placement, relationships, counts, subjects, identity, style, exclusions and lettering '
+                'are authoritative even if this step draft omitted them. Preserve this variant\'s creative choices only when compatible. '
+                'composition_variant identifies ONE separately generated image: never combine the requested variants or their different '
+                'views into a collage or duplicate subjects. Keep this step draft\'s specific view while restoring shared scene requirements. '
+                'When full body is required, frame both feet with clear space below the shoes and above the head; '
+                'choose a wide enough view instead of cropping the figure for a closer portrait. '
+                'composition_sources maps actual picture numbers to upload groups, their one-based group_index and labels. '
+                'Use this map for references such as the first hero; group_index is not an attached-picture number. '
+                'Refer only to the attached pictures in their actual order; prior material may already be in the composed first picture. '
+                'Quoted upload group names identify sources, not visible lettering unless explicitly requested as writing.')
         if engine == qwen2511.ENGINE:
             profile = context.get('sampling_profile', 'standard')
             if not isinstance(profile, str) or profile not in qwen2511.PROFILE_RULES:
@@ -204,9 +223,13 @@ class PromptEnhancer(PromptEnhancerTemplate):
     def _caption(answer, prompt, engine, mode, pictures, context):
         context = context or {}
         literals = [prompt, *context.get('clarification_choices', [])]
+        if context.get('composition_lettering'):
+            literals.append(context['composition_lettering'])
         if engine == klein.ENGINE and mode == 'layout':
             literals.extend(row['desc'] for row in context['layout_boxes'])
         result = caption(answer, '\n'.join(literals), bool(pictures))
+        if result is not None and engine == fibo2.ENGINE and not fibo2.valid_references(result, pictures):
+            return None
         if result is not None and engine == qwen2511.ENGINE and not qwen2511.valid_references(QUOTES.sub('', result), pictures):
             return None
         if result is not None and engine == klein.ENGINE:
@@ -222,15 +245,134 @@ class PromptEnhancer(PromptEnhancerTemplate):
             # Multi-image edits need every real tag; a single-image edit uses no tags in the publisher contract.
             if tags != expected:
                 return None
-            result = qwen21.rgba_prompt(result, '\n'.join(literals))
+            # A real plan invented "alpha transparency on white" for an opaque white-background request.
+            # Code-owned format cues must follow the human's intent, not reinforce that conflicting step draft.
+            alpha_intent = context.get('composition_intent') or '\n'.join(literals)
+            result = qwen21.rgba_prompt(result, alpha_intent)
             if len(result) > 5000:
                 return None
         return result
 
+    def _finish_prompt(self, candidate, prompt, engine, pictures, context, cancel):
+        if engine != fibo2.ENGINE:
+            return candidate
+        # Keep the shared clarification/prose fidelity checks, then serialize once for FIBO. Feeding their
+        # prose directly to this encoder would silently omit the structured scene and typography conditioning.
+        context = context or {}
+        literals = '\n'.join([prompt, *context.get('clarification_choices', []), context.get('composition_lettering', '')])
+        required = protected_words(literals)
+        conversion = [dict(role='system', content=fibo2.VGL_RULES),
+                      dict(role='user', content=json.dumps(dict(approved_scene=candidate, context=context,
+                           operation='edit' if pictures else 'generate', reference_count=pictures,
+                           required_lettering=required), ensure_ascii=False))]
+        # A real recolour conversion saw the source again and recaptioned its yellow jacket, undoing the
+        # approved blue edit and omitting edit_instruction. Serialize the already grounded, checked intent
+        # without images; keep that instruction in code so the format pass cannot rewrite the requested edit.
+        for attempt in range(2):
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            raw = self.ask(conversion, cancel, num_ctx=max(12288, self._context_size(candidate, pictures)),
+                           num_predict=3200, temperature=.1, top_p=.9)
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            result = fibo2.vgl_caption(raw, pictures, required, instruction=candidate if pictures else None)
+            if result is not None:
+                return result
+            if not attempt:
+                conversion[0]['content'] += (' The previous JSON failed validation. Include every required top-level key '
+                    'and exact required_lettering in text_render; English descriptions only. For several inputs use '
+                    'every actual <image_N> tag; for zero or one input use no tags. Do not write edit_instruction. '
+                    'lighting and aesthetics MUST be nested objects, never plain strings. '
+                    'Return a complete, concise object without extra keys or fences.')
+        raise fibo2.InvalidVGL(ui_text('image.prompt_manager_invalid_answer'))
+
     @staticmethod
-    def _context_size(prompt, pictures):
+    def _context_size(prompt, pictures, extra=''):
         # Ten reference thumbnails need a larger context than the original one-source Z-Image path.
-        return max(10240 if len(prompt) > 2500 or pictures > 1 else 6144, 4096 + 1536 * pictures)
+        base = max(10240 if len(prompt) + len(extra) > 2500 or pictures > 1 else 6144, 4096 + 1536 * pictures)
+        # A final Composition pass also carries up to 5000 characters of original intent beside its step draft.
+        return base + (len(extra) + 1) // 2
+
+    @staticmethod
+    def _choices_opening(candidate, choices):
+        def normalize(text):
+            return re.sub(r'[^\w]+', ' ', text).casefold().strip()
+        return normalize(candidate).startswith(' '.join(normalize(choice) for choice in choices))
+
+    def _apply_choices(self, candidate, prompt, engine, mode, pictures, context, cancel, budget):
+        choices = context['clarification_choices']
+        if self._choices_opening(candidate, choices):
+            checked = self._caption(candidate, prompt, engine, mode, pictures, context)
+            if checked is not None:
+                return checked
+        # Real choices were fragments ("blue jacket", "green apples"). Requiring the VLM to reproduce them as a
+        # sentence opening rejected a faithful paraphrase twice. Keep every outcome in code and reconcile the body separately.
+        prefix = ' '.join(choice if choice.endswith(('.', '!')) else choice + '.' for choice in choices)
+        messages = [dict(role='system', content=
+                         'Reconcile this English caption with ALL clarification_choices in context. They are agreed compatible outcomes, '
+                         'possibly short attributes rather than sentences. Apply every one; remove contradictory clauses, including '
+                         'preservation wording that would undo another selected edit. Keep unrelated original requirements and grounded details. '
+                         'The supplied fixed_prefix will be prepended by code; write only a compatible, fluent body, without repeating that list. '
+                         'Keep valid model-specific reference markers and exact requested lettering in its original language. '
+                         'Do not add controls, JSON, questions or commentary. Return English caption prose of at most ' + str(5000 - len(prefix) - 1) + ' characters.'),
+                    dict(role='user', content=json.dumps(dict(request=prompt, context=context, candidate=candidate, fixed_prefix=prefix), ensure_ascii=False))]
+        for attempt in range(2):
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            body = self.ask(messages, cancel, num_ctx=budget, num_predict=1800, temperature=.1, top_p=.9)
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            combined = body if self._choices_opening(body, choices) else prefix + ' ' + body
+            result = self._caption(combined, prompt, engine, mode, pictures, context)
+            if result is not None:
+                return result
+            if not attempt:
+                messages[0]['content'] += ' The combined caption failed validation. Preserve all required literal words and reference bindings, with no conflicting or repeated layout markers.'
+        raise ValueError(ui_text('image.prompt_manager_invalid_answer'))
+
+    @staticmethod
+    def _wrong_ui_script(proposal, language):
+        labels = ' '.join(QUOTES.sub('', text) for text in [proposal['question'], *[row['label'] for row in proposal['options']]])
+        # A real Russian-UI vision call repeatedly returned Ukrainian. This narrow guard detects its distinctive letters,
+        # not every possible wrong language; quoted source lettering is allowed in either UI language.
+        return bool((re.search('[іІїЇєЄґҐ]', labels) or not CYRILLIC.search(QUOTES.sub('', proposal['question'])))
+                    if language == 'Russian' else CYRILLIC.search(labels))
+
+    def _localize_question(self, proposal, language, cancel):
+        if not self._wrong_ui_script(proposal, language):
+            return proposal
+        original = [proposal['question'], *[row['label'] for row in proposal['options']]]
+        # Repeating the vision decision reproduced the same wrong language. A text-only translation keeps the already
+        # validated choice meanings/order/groups outside the model's editable fields and adds no user-facing question.
+        messages = [dict(role='system', content='Write the question and labels in ' + language +
+                         ' (ru-RU for Russian), including explanations in parentheses. Return only JSON '
+                         '{"question":"translated question","labels":["translated label",...]}. Keep the same number and order of labels. '
+                         'The read-only English instructions define the actual choices: make each label clearly describe its outcome, '
+                         'including a chosen colour or other change. Make the question match these choices; do not ask for information '
+                         'that none of the choices can supply. Do not alter, combine or invent outcomes. '
+                         'The JSON string delimiters do not mark verbatim content. Only the supplied verbatim substrings must stay unchanged. '
+                         'Return only the UI fields; add no choices or explanation.'),
+                    dict(role='user', content=json.dumps(dict(question=original[0], labels=original[1:],
+                         instructions=[row['value'] for row in proposal['options']],
+                         verbatim=list(dict.fromkeys(word for text in original for word in protected_words(text)))), ensure_ascii=False))]
+        for attempt in range(2):
+            raw = self.ask(messages, cancel, num_ctx=4096, num_predict=900, temperature=0)
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            try:
+                value = json.loads(re.sub(r'^```[^\n]*\n|\n```$', '', raw.strip()))
+                if not isinstance(value, dict) or not isinstance(value.get('labels'), list) or len(value['labels']) != len(proposal['options']):
+                    raise ValueError('Invalid translated clarification')
+                translated = question(dict(question=value.get('question'), options=[dict(row, label=label)
+                                      for row, label in zip(proposal['options'], value['labels'])]))
+                final = [translated['question'], *[row['label'] for row in translated['options']]]
+                if self._wrong_ui_script(translated, language) or any(word not in after for before, after in zip(original, final) for word in protected_words(before)):
+                    raise ValueError('Invalid translated clarification language or lettering')
+                return translated
+            except (ValueError, TypeError):
+                if attempt:
+                    raise
+                messages[0]['content'] += ' The previous translation failed validation. Translate ALL UI prose, including parentheses, and preserve only verbatim substrings.'
 
     def prepare(self, prompt, engine, mode, images=(), context=None, *, binding=None, token=None, answer=None, language='Russian'):
         """Interactive Image path. Waiting questions retain bounded CPU state, never an active Text/GPU session."""
@@ -251,7 +393,14 @@ class PromptEnhancer(PromptEnhancerTemplate):
         if answer is not None:
             raise ValueError(ui_text('image.clarification_session_expired'))
         messages, pictures = self._messages(prompt, engine, mode, images, context)
-        messages[0]['content'] += guide.CLARIFICATION_CONTRACT + '\n' + guide.CLARIFICATION_RULES[mode] + '\nUI language: ' + language
+        messages[0]['content'] += (guide.CLARIFICATION_CONTRACT + '\n' + guide.CLARIFICATION_RULES[mode] +
+                                  '\nUI language for this decision: English. Write the question and every label in English; '
+                                  'a separate text-only step localizes these UI fields when needed. Keep original-language lettering only inside quotes. '
+                                  'The question must be fully answerable using option numbers alone. Each value must specify a concrete final '
+                                  'visual outcome. If asking both which object and what colour, offer numbered choices for BOTH properties, '
+                                  'using separate exclusive groups. Each label must state the actual change in its value, including any chosen colour. '
+                                  'Every option must explicitly include label, value and group; use an empty group only for compatible additions. '
+                                  'Do not ask for information that none of the options can supply.')
         with self.session() as cancel:
             for attempt in range(2):
                 if cancel.is_set():
@@ -260,39 +409,94 @@ class PromptEnhancer(PromptEnhancerTemplate):
                                num_predict=1800, temperature=guide.DECISION_TEMPERATURE, top_p=0.9)
                 if cancel.is_set():
                     raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+                reason = 'Invalid caption or decision structure'
                 try:
                     value = parse_decision(raw)
                     if isinstance(value, dict) and value.get('state') == 'ready':
                         result = self._caption(value.get('prompt', ''), prompt, engine, mode, pictures, context)
                         if result:
+                            result = self._finish_prompt(result, prompt, engine, pictures, context, cancel)
                             return dict(prompt=result, model=self.text.gemma_model(), guide_version=guide.VERSION)
                     elif isinstance(value, dict) and value.get('state') == 'clarification':
                         proposal = question(value)
+                        # Missing groups made alternative colours look like compatible additions, disabling the conflict-only second question.
+                        if any('group' not in row for row in value['options']):
+                            raise ValueError('Every option must explicitly include group: same nonempty ID for alternatives to one property, empty only for compatible additions')
                         if any(CYRILLIC.search(QUOTES.sub('', option['value'])) for option in proposal['options']):
                             raise ValueError('Option instructions must be English')
+                        proposal = self._localize_question(proposal, language, cancel)
                         return self.clarifications.start(identity, proposal)
-                except (ValueError, TypeError, AttributeError):
-                    pass
+                except (ImagePreparationCancelled, fibo2.InvalidVGL):
+                    raise
+                except (ValueError, TypeError, AttributeError) as error:
+                    reason = str(error)[:250]
                 if attempt == 0:
-                    messages[0]['content'] += '\nPrevious output was invalid. Return the exact JSON contract with a valid caption or 2-8 distinct choices.'
+                    messages[0]['content'] += ('\nPrevious output was invalid: ' + reason + '. Return the exact JSON contract with a valid caption or 2-8 distinct choices. '
+                                               'The question, labels and option values must be English, apart from quoted lettering.')
+        raise ValueError(ui_text('image.prompt_manager_invalid_answer'))
+
+    def _review_composition(self, candidate, prompt, engine, mode, pictures, context, cancel, budget):
+        """Text-only fidelity check: vision grounding must not override a requested action or physical relationship."""
+        # A real vision rewrite kept "full body" but dropped "standing" and inherited the donor's seated mug-holding pose.
+        # Remove the images from this check so the original request, rather than the donor pose, drives corrections.
+        messages = [dict(role='system', content=
+                         'Check this final English caption for ' + engine + ', mode ' + mode + '. '
+                         'context.composition_intent is the original human request and is authoritative. '
+                         # A real request for two separate teapot views became "two different views" in one final caption.
+                         'context.composition_variant identifies ONE separately generated image. The original request may list several '
+                         'variant views; keep only this step request\'s selected view, never a collage, split view or duplicated subject '
+                         'unless explicitly requested WITHIN each individual image. '
+                         'Restore every omitted action, pose, framing, count, object placement, relationship, style and exclusion. '
+                         'Keep grounded appearance details from candidate when compatible; no images are attached in this check, so do not invent observations. '
+                         'Heroes supply identity and appearance, not their original pose, action or held props unless requested. '
+                         'A requested standing person must be standing upright; an object assigned to the table must stay there rather than in their hands. '
+                         'For full-body framing explicitly keep both feet and the head inside the frame with some room around them. '
+                         'Use context.composition_sources for actual input numbers; previous_composition already contains earlier material. '
+                         'Keep the candidate\'s model-specific image markers and their bindings. Keep requested lettering exactly in its language. '
+                         'Quoted upload group names are source labels, not words to draw. Do not change controls, add settings, JSON, questions or commentary. '
+                         'Return only the corrected model-facing caption, in English, at most 5000 characters.'),
+                    dict(role='user', content=json.dumps(dict(request=prompt, context=context, candidate=candidate), ensure_ascii=False))]
+        for attempt in range(2):
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            answer = self.ask(messages, cancel, num_ctx=budget, num_predict=1800, temperature=.1, top_p=.9)
+            if cancel.is_set():
+                raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
+            result = self._caption(answer, prompt, engine, mode, pictures, context)
+            if result is not None:
+                return result
+            if not attempt:
+                messages[0]['content'] += ' The previous caption failed language, reference-marker, length or literal-lettering validation. Keep the existing valid marker bindings and every requested final word.'
         raise ValueError(ui_text('image.prompt_manager_invalid_answer'))
 
     def enhance(self, prompt, engine, mode, images=(), context=None):
         messages, pictures = self._messages(prompt, engine, mode, images, context)
+        intent = (context or {}).get('composition_intent', '')
+        if (context or {}).get('composition_sources'):
+            intent += json.dumps(context['composition_sources'], ensure_ascii=False)
         agreed = (context or {}).get('clarification_choices', [])
         if agreed:
+            intent += json.dumps(agreed, ensure_ascii=False)
+        budget = self._context_size(prompt, pictures, intent)
+        if agreed:
             messages[0]['content'] += ('\nThe person selected clarification_choices in the context. Apply these latest preferences, preserving '
-                                       'unrelated original requirements. Omit unselected alternatives. This is the final caption step: never ask questions.')
+                                       'unrelated original requirements. Apply EVERY outcome in a fluent caption; short attributes may be combined '
+                                       'grammatically. Omit unselected alternatives and contradictory preservation clauses. Never ask questions.')
         with self.session() as cancel:
             for attempt in range(2):
                 if cancel.is_set():
                     raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
-                answer = self.ask(messages, cancel, num_ctx=self._context_size(prompt, pictures),
+                answer = self.ask(messages, cancel, num_ctx=budget,
                                   num_predict=1800, temperature=self.ACTIVE_GUIDES[engine].TEMPERATURE, top_p=0.9)
                 if cancel.is_set():
                     raise ImagePreparationCancelled(ui_text('image.prompt_manager_cancelled'))
                 result = self._caption(answer, prompt, engine, mode, pictures, context)
                 if result is not None:
+                    if (context or {}).get('composition_intent'):
+                        result = self._review_composition(result, prompt, engine, mode, pictures, context, cancel, budget)
+                    if agreed:
+                        result = self._apply_choices(result, prompt, engine, mode, pictures, context, cancel, budget)
+                    result = self._finish_prompt(result, prompt, engine, pictures, context, cancel)
                     return dict(prompt=result, model=self.text.gemma_model(), guide_version=self.ACTIVE_GUIDES[engine].VERSION)
                 if attempt == 0:
                     # Keep the original request/images in the bounded context instead of appending another long, invalid answer.
@@ -303,5 +507,6 @@ class PromptEnhancer(PromptEnhancerTemplate):
                         'Use a full sentence of at most 5000 characters and preserve the original scene and mode constraints. '
                         'For Layout include every supplied <id> exactly once, no other bracket tokens or JSON table. '
                         'For Qwen 2.1 with multiple images cite each real <imageN>; with zero or one image use no tags. '
+                        'For FIBO with multiple images cite each real <image_N>; with zero or one image use no tags. '
                         'For Edit 2511 use Picture 1 through the actual input count, never <imageN>; no Picture numbers in Prompt mode.')
         raise ValueError(ui_text('image.prompt_manager_invalid_answer'))

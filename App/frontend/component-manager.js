@@ -286,7 +286,7 @@
     try {await api('/model-toggle', {id, enabled:true});await refresh();await recoveryPoll();}
     catch (error) {StudioI18n.bind(el('componentsError'), "textContent", () => (StudioI18n.remote(error.message)), true);}
   }
-  const componentIds = {'image:qwen-edit-2511':'image.model.qwen-edit-2511','image:qwen-image-21-uc-fp8':'image.model.qwen-image-21-uc','image:z-image-turbo-int8':'image.model.z-image-turbo','image:flux3-klein-int8':'image.model.flux3-klein',
+  const componentIds = {'image:fibo2-dev-int8':'image.model.fibo2-dev','image:qwen-edit-2511':'image.model.qwen-edit-2511','image:qwen-image-21-uc-fp8':'image.model.qwen-image-21-uc','image:z-image-turbo-int8':'image.model.z-image-turbo','image:flux3-klein-int8':'image.model.flux3-klein',
     'video:freevideo-h3-int8':'video.model.h3','video:wan22-ti2v-5b':'video.model.wan-ti2v-5b','video:wan22-s2v-14b':'video.model.wan-s2v-14b','video:ltx25-distilled':'video.model.ltx25','video:wan-animate2':'video.model.wan-animate2','video:scail2':'video.model.scail2',
     'music:ace-step-15-turbo':'music.model.ace-step','music:minimax-music3-int8':'music.model.minimax-music3','music:stable-audio-3-medium':'music.model.stable-audio-3'};
   window.repairStudioModel = (module, id) => {const component = componentIds[module + ':' + id];if (component) repairModel(component);};
