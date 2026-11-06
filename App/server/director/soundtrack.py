@@ -12,7 +12,7 @@ import math
 from pathlib import Path
 
 from ui_strings import source as ui_text
-from video.video_delivery import DeliveryError, probe as probe_film, run_tool
+from video.video_delivery import DeliveryError, filter_complex, probe as probe_film, run_tool
 from video.video_mixer import loudness
 
 SAMPLE_RATE = 48000
@@ -139,7 +139,7 @@ def measure_loudness(ffmpeg, film, total, text=None, inputs=(), cancel=None):
     meter = 'ebur128=metadata=1:peak=sample+true:framelog=quiet,ametadata=mode=print:file=-'
     command = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-nostdin', '-i', str(film), *inputs]
     if text is not None:
-        command += ['-filter_complex', text + ';[aout]' + meter + '[metered]', '-map', '[metered]']
+        command += [*filter_complex(text + ';[aout]' + meter + '[metered]', Path(film).with_name('measure-graph.txt')), '-map', '[metered]']
     else:
         command += ['-map', '0:a:0', '-vn', '-af', meter]
     command += ['-t', '%.3f' % total, '-c:a', 'pcm_f64le', '-f', 'null', '-']
@@ -176,7 +176,7 @@ def mixdown(ffmpeg, ffprobe, film, output, beds, voices, native_db=0.0, cancel=N
     gain = makeup_gain(before['lufs'])
     text, inputs = graph(total, beds, voices, native_db, makeup_db=gain)
     command = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-progress', 'pipe:1', '-nostats', '-i', str(film), *inputs,
-               '-filter_complex', text, '-map', '0:v:0', '-map', '[aout]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', str(SAMPLE_RATE), '-ac', '2',
+               *filter_complex(text, Path(output).with_name('mix-graph.txt')), '-map', '0:v:0', '-map', '[aout]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', str(SAMPLE_RATE), '-ac', '2',
                '-t', '%.3f' % total, '-movflags', '+faststart', str(output)]
     try:
         run_tool(command, int(600 + total * 6), cancel, (lambda done: progress(min(1.0, done / total))) if progress else None)
@@ -220,6 +220,34 @@ def scene_starts(scenes):
         starts.append(round(clock, 3))
         clock += scene['seconds']
     return starts
+
+
+MUSIC_CROSSFADE = 4.0             # seconds in which one generated track gives way to the next
+
+
+def music_parts(music, film_seconds):
+    """How many tracks the music of a film is made of: one, or - when the longest track of the engine is shorter than the film - as many as it takes to cover the film
+    with a crossfade at every seam. Tracks of one style made one after another differ, which a loop of one track does not; the seams are crossfades, not cuts."""
+    length = film_seconds - music.get('start', 0.0)
+    if not music.get('loop') or music['seconds'] <= MUSIC_CROSSFADE:
+        return 1
+    return max(1, math.ceil((length - MUSIC_CROSSFADE) / (music['seconds'] - MUSIC_CROSSFADE)))
+
+
+def crossfaded(ffmpeg, paths, seconds, target, cancel=None):
+    """The tracks `paths` laid end to end with a crossfade of `MUSIC_CROSSFADE` seconds at each seam, cut to `seconds`, as one 48 kHz stereo WAV `target`."""
+    command = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y']
+    parts = []
+    for index, path in enumerate(paths):
+        command += ['-i', str(path)]
+        parts.append('[%d:a]aresample=%d,aformat=sample_fmts=fltp:channel_layouts=stereo[t%d]' % (index, SAMPLE_RATE, index))
+    joined = '[t0]'
+    for index in range(1, len(paths)):
+        parts.append('%s[t%d]acrossfade=d=%.3f:c1=tri:c2=tri[x%d]' % (joined, index, MUSIC_CROSSFADE, index))
+        joined = '[x%d]' % index
+    parts.append('%satrim=duration=%.3f,asetpts=PTS-STARTPTS[out]' % (joined, seconds))
+    command += [*filter_complex(';'.join(parts), Path(target).with_name('music-graph.txt')), '-map', '[out]', '-c:a', 'pcm_s16le', str(target)]
+    run_tool(command, int(300 + seconds), cancel)
 
 
 def generated_cue(music, film_seconds):

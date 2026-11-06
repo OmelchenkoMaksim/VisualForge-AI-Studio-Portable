@@ -207,14 +207,14 @@ class RoutesTests(unittest.TestCase):
 
     def test_the_routes_the_module_describes_are_the_ones_the_bridge_hands_to_it(self):
         documented = set(re.findall(r'(?:GET|POST)\s+/api/director/(\w+)', (ROOT / 'App/server/director/routes.py').read_text(encoding='utf-8')))
-        self.assertEqual(documented, {'draft', 'status', 'media', 'attach', 'detach', 'label', 'plan', 'start', 'cancel'})
+        self.assertEqual(documented, {'draft', 'status', 'planning', 'media', 'attach', 'detach', 'label', 'plan', 'start', 'cancel', 'resume', 'discard'})
         bridge = (ROOT / 'App/server/studio_server.py').read_text(encoding='utf-8-sig')
         for fragment in ("u.path.startswith('/api/director/')", "route == '/api/director/attach'", "route.startswith('/api/director/')"):
             self.assertIn(fragment, bridge)                                            # GET goes to `handle_get`, the raw upload to `attach`, every other POST to `handle_post`
         for route in documented - {'attach'}:
             with self.subTest(route=route):
                 handler = Handler()
-                if route in ('draft', 'status', 'media'):
+                if route in ('draft', 'status', 'planning', 'media'):
                     routes.handle_get(handler, self.manager, route, '?id=' + self.draft if route == 'draft' else '')
                 else:
                     routes.handle_post(handler, self.manager, route, {})

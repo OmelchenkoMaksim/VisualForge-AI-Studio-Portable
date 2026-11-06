@@ -33,11 +33,11 @@ the [ratings](docs/Video-Model-Ratings.md), [Gemma clip review](docs/Gemma-Clip-
 
 The last entry of the video engine list is the **Director**. Materials are optional (a description alone is enough); when you have some, they go into blocks: photos of heroes, places and objects,
 reference videos (any format, up to 10 minutes and 2 GB), your own songs (up to an hour each) and voices (up to three narrators and up to ten main characters and characters; a voice is a sample that the
-Director clones). The next slot of a block appears when the one before it is filled. Say how long the film is (5 seconds to 5 minutes; the panel advises a running time for your materials) and how many scenes
+Director clones). The next slot of a block appears when the one before it is filled. Say how long the film is (5 seconds to 15 minutes; the panel advises a running time for your materials) and how many scenes
 it has (two below a minute, then up to five for every minute), describe it in your own words, and Gemma writes a plan that you can edit. Then the studio shoots the film scene by scene with the models it has
 (FLUX.3 Klein keyframes, LTX 2.5 scenes with sound, music from the music engines, voice-over with Qwen3-TTS or VoxCPM2), joins the scenes with transitions and a colour grade and builds the sound: voices on top,
-songs and music under them. The **Ultra** switch (on by default) asks for the best the models can make (the largest picture, a keyframe for every scene, the strongest music engine): a minute of film can take
-2-3 hours; switched off, the film is made two to three times faster. See [the Director](docs/VisualForge-Director.md).
+songs and music under them. The **Ultra** switch (on by default) asks for the best the models can make (the largest picture, a keyframe for every scene, the strongest music engine): a minute of film takes about half
+an hour and ten minutes about three hours; switched off, the film is made about one and a half times faster. A film that stops (an error, the Stop button, a closed studio) can be continued from its finished scenes. See [the Director](docs/VisualForge-Director.md).
 
 Everything runs on your computer and there is no cloud service behind it; the only network traffic is the download of the
 programs and models from their original publishers (the model libraries run in offline mode).
@@ -111,6 +111,8 @@ The Agent project-folder picker opens inside the studio window, above its conten
 that start or disturb a job are dimmed (tabs, engine choices and typing stay free), **Stop** works from every tab, and starting a generation releases the video memory held by the idle modules. Results are saved
 under `UserData/Results`. Features and folders are described in the [user guide](docs/VisualForge-User-Guide.md); installation details in [Setup](docs/VisualForge-Component-Setup.md). More on each part in [docs](docs): [Delivery](docs/VisualForge-Video-Export.md) (export for social networks),
 [Mixer](docs/VisualForge-Audio-Mixer.md), [Voice input](docs/VisualForge-Voice-Input.md), [Text](docs/VisualForge-Text-Chat.md), [GPU coordination](docs/VisualForge-GPU-Coordination.md), [Music](docs/VisualForge-Music-Generation.md), [Wan](docs/Wan-2.2-Video.md).
+
+Music prepares casual requests with local Gemma for the selected model. Voiceover keeps narration separate from delivery preferences and maps them to supported pacing controls, with experimental VoxCPM2 style control off by default. Original text, lyrics and selected output folders are preserved. The owner preferred the shorter gaps in both tested voices and neutral delivery in the donor-0a67 style comparison; broader naturalness remains unqualified. See [audio preparation and evidence](docs/VisualForge-Audio-Preparation.md) and [presets](docs/VisualForge-Audio-Presets.md).
 
 ## Folder layout after the setup
 

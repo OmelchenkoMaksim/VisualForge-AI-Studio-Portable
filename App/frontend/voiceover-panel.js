@@ -3,9 +3,10 @@
   'use strict';
   const el = id => document.getElementById(id);
   const draftKey = 'visualforge.voiceover.draft.v1';
-  const fields = ['Language', 'Format', 'Seed', 'Dictionary', 'Title'];
+  const fields = ['Language', 'Format', 'Seed', 'Dictionary', 'Title', 'Delivery'];
   const others = ['imageTab', 'videoTab', 'musicTab', 'textTab', 'componentsTab'];
   const workspaces = ['imageWorkspace', 'videoWorkspace', 'musicWorkspace', 'textWorkspace', 'componentsWorkspace'];
+  let submitting = false;
   let active = null, selected = '', playing = '', available = false, timer = null, polling = false, engine = null, engines = [], savedEngine = '', prepared = null, voices = [], builtin = [], defaults = {state: 'idle', ready: 0, wanted: 0, can_build: false}, defaultsTimer = null;
 
   async function api(route, data) {
@@ -35,6 +36,7 @@
     const value = {};
     for (const key of fields) value[key] = el('voiceover' + key).value;
     value.Engine = el('voiceoverEngine').value || savedEngine;
+    value.StyleControl = el('voiceoverStyleControl').checked;
     try { localStorage.setItem(draftKey, JSON.stringify(value)); } catch {}
   }
   function restore() {
@@ -42,6 +44,7 @@
       const value = JSON.parse(localStorage.getItem(draftKey) || '{}');
       for (const key of fields) if (typeof value[key] === 'string') el('voiceover' + key).value = value[key];
       savedEngine = typeof value.Engine === 'string' ? value.Engine : '';  // the engine list arrives from the server later
+      el('voiceoverStyleControl').checked = value.StyleControl === true;
     } catch {}
   }
   function chooseEngine() {
@@ -50,6 +53,7 @@
     if (!engine) return;
     StudioI18n.bind(el('voiceoverAvailability'), 'textContent', () => available ? StudioI18n.t("voiceover.engine_license_line_template", [engine.name, engine.license]) : StudioI18n.remote(engine.reason), true);
     StudioI18n.bind(el('voiceoverEngineInfo'), 'textContent', () => StudioI18n.remote(engine.requirements), true);
+    deliveryHint();
     header(); buttons();
   }
   function header() {
@@ -62,8 +66,16 @@
   const OWN = '__own__';
   const chosenVoice = () => { const id = el('voiceoverVoice').value; return id === OWN ? '' : id; };
   const savedChosen = () => voices.some(voice => voice.id === chosenVoice());
+  function deliveryHint() {
+    const vox = engine?.id === 'voxcpm2';
+    const continuation = !!voices.find(voice => voice.id === chosenVoice())?.transcript;
+    el('voiceoverStyleBlock').hidden = !vox;
+    el('voiceoverStyleControl').disabled = !vox || continuation;
+    StudioI18n.bind(el('voiceoverDeliveryHint'), 'textContent', () => StudioI18n.t(
+      vox && continuation ? 'voiceover.style_continuation_hint' : vox && el('voiceoverStyleControl').checked ? 'voiceover.style_active_hint' : 'voiceover.delivery_limit_hint'), true);
+  }
   function buttons() {
-    el('voiceoverGenerate').disabled = !available || !!active || !prepared || !chosenVoice();
+    el('voiceoverGenerate').disabled = !available || !!active || submitting || !prepared || !chosenVoice();
     el('voiceoverCancel').disabled = !active;
     el('voiceoverVoiceDelete').hidden = !savedChosen();
     el('voiceoverVoiceDelete').disabled = !savedChosen();
@@ -108,6 +120,7 @@
     const ids = [...builtin, ...voices].map(voice => voice.id);
     select.value = ids.includes(keep) || keep === OWN ? keep : (ids[0] || OWN);
     voicePreview();
+    deliveryHint();
     buttons();
   }
   function voicePreview() {
@@ -210,14 +223,32 @@
   }
   async function history() {
     const value = await api('history');
+    // Empty-state text owns the parent only while there are no cards; release it before rendering results.
+    StudioI18n.value(el('voiceoverHistory'), 'textContent', '', false);
     el('voiceoverHistory').replaceChildren();
     if (!value.entries.length) StudioI18n.bind(el('voiceoverHistory'), 'textContent', () => StudioI18n.t("voiceover.history_empty_label"), true);
     const states = () => ({done: StudioI18n.t("voiceover.history_state_done_label"), error: StudioI18n.t("voiceover.history_state_failed_label"), cancelled: StudioI18n.t("voiceover.history_state_cancelled_label")});
     for (const row of value.entries.slice(0, 30)) {
       const card = document.createElement('div'); card.className = 'voiceover-history-card';
       const title = document.createElement('p');
-      StudioI18n.bind(title, 'textContent', () => StudioI18n.t("voiceover.history_row_template", [row.title, row.voice_name, row.seed, states()[row.state] || row.state]), true);
+      const engineName = engines.find(item => item.id === row.engine)?.name || row.engine || '';
+      StudioI18n.bind(title, 'textContent', () => [engineName, StudioI18n.t("voiceover.history_row_template", [row.title, row.voice_name, row.seed, states()[row.state] || row.state])].filter(Boolean).join(' · '), true);
       card.append(title);
+      if (row.preparation) {
+        const detail = document.createElement('details'), label = document.createElement('summary'), text = document.createElement('p'), limit = document.createElement('p');
+        StudioI18n.bind(label, 'textContent', () => StudioI18n.t(row.preparation.gemma_model ? 'voiceover.delivery_result_label' : 'voiceover.delivery_neutral_label'), true);
+        text.textContent = row.preparation.gemma_model ? (row.delivery || '') + ' — ' + row.preparation.direction : '';
+        StudioI18n.bind(limit, 'textContent', () => StudioI18n.remote(row.preparation.limitations), true);
+        detail.append(label, text, limit); card.append(detail);
+        if (row.preparation.style && row.preparation.style !== 'none') {
+          const style = document.createElement('p');
+          const keys = {storytelling:'voiceover.preset_story_label', calm:'voiceover.preset_calm_label', clear:'voiceover.preset_clear_label',
+            lively:'voiceover.style_lively_label', brisk:'voiceover.style_brisk_label'};
+          StudioI18n.bind(style, 'textContent', () => StudioI18n.t('voiceover.style_result_template',
+            [StudioI18n.t(keys[row.preparation.style])]), true);
+          detail.append(style);
+        }
+      }
       if (row.state === 'done') {
         const play = document.createElement('button'); play.type = 'button'; play.className = 'secondary';
         StudioI18n.bind(play, 'textContent', () => StudioI18n.t("voiceover.history_listen_button_label"), true);
@@ -319,7 +350,14 @@
   for (const key of fields) el('voiceover' + key).addEventListener('input', draft);
   restore();
   el('voiceoverEngine').addEventListener('change', () => { chooseEngine(); draft(); if (!active) say(() => available ? StudioI18n.t("voiceover.status_ready_label") : StudioI18n.remote(engine.reason)); });
-  el('voiceoverVoice').addEventListener('change', () => { voicePreview(); buttons(); });
+  el('voiceoverVoice').addEventListener('change', () => { voicePreview(); deliveryHint(); buttons(); });
+  el('voiceoverStyleControl').addEventListener('change', () => { deliveryHint(); draft(); });
+  for (const [id, key] of [['Story', 'voiceover.preset_story_request'], ['Calm', 'voiceover.preset_calm_request'], ['Clear', 'voiceover.preset_clear_request']]) {
+    el('voiceover' + id + 'Preset').onclick = () => {
+      el('voiceoverDelivery').value = StudioI18n.t(key);
+      draft();
+    };
+  }
   el('voiceoverText').addEventListener('input', () => { prepared = null; renderSummary(); buttons(); });
   el('voiceoverFile').addEventListener('change', () => { prepared = null; renderSummary(); buttons(); });
   el('voiceoverPrepare').onclick = async () => {
@@ -371,18 +409,21 @@
     try { defaults = await api('voices-build-cancel', {}); renderDefaults(); } catch (error) { say(() => StudioI18n.remote(error.message)); }
   };
   el('voiceoverForm').onsubmit = async event => {
-    event.preventDefault(); if (active || !prepared) return;
+    event.preventDefault(); if (active || submitting || !prepared) return;
+    submitting = true;
     el('voiceoverGenerate').disabled = true;
     say(() => StudioI18n.t("voiceover.status_starting_label"));
     try {
       active = await api('generate', {engine: el('voiceoverEngine').value, book_id: prepared.book_id, voice_id: el('voiceoverVoice').value, language: el('voiceoverLanguage').value,
         format: el('voiceoverFormat').value, seed: el('voiceoverSeed').value, replacements: replacements(), verify: el('voiceoverVerify').checked,
-        normalize: el('voiceoverNormalize').checked, dictionary: el('voiceoverBuiltin').checked});
+        normalize: el('voiceoverNormalize').checked, dictionary: el('voiceoverBuiltin').checked, delivery: el('voiceoverDelivery').value,
+        style_control: !el('voiceoverStyleControl').disabled && el('voiceoverStyleControl').checked});
       selected = active.id; buttons(); timer = setInterval(poll, 2000); poll();
     } catch (error) {
       say(() => StudioI18n.remote(error.message)); buttons();
       StudioUI.notify({module: 'Voiceover', error: true, message: StudioI18n.remote(error.message), onLogs: () => StudioUI.showLogs('Voiceover', '', logs)});
     }
+    finally { submitting = false; buttons(); }
   };
   el('voiceoverCancel').onclick = async () => {
     if (!active) return;

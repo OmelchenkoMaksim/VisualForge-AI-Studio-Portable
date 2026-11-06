@@ -232,6 +232,12 @@ if SPEECH is not None and TEXT is not None:
     SPEECH.polisher = Polisher(TEXT, GPU, GPU_SUBMISSION_LOCK)
 SCENE_PLANNER = PROMPT_ENHANCER = DIRECTOR_REVIEW = None
 IMAGE_PROMPT_ENHANCER = ImagePromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
+if MUSIC is not None:
+    from music.music_prompt_enhancer import PromptEnhancer as MusicPromptEnhancer
+    MUSIC.prompt_enhancer = MusicPromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
+if VOICEOVER is not None:
+    from voiceover.voiceover_prompt_enhancer import PromptEnhancer as VoiceoverPromptEnhancer
+    VOICEOVER.prompt_enhancer = VoiceoverPromptEnhancer(TEXT, GPU, GPU_SUBMISSION_LOCK)
 
 
 def composition_manager():

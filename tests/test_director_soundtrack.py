@@ -20,6 +20,46 @@ RUNTIME = Path(os.environ.get('VISUALFORGE_VIDEO_RUNTIME') or ROOT / 'Runtime/Vi
 FFMPEG, FFPROBE = ffmpeg_paths(RUNTIME)
 
 
+class MusicPartsTests(unittest.TestCase):
+    """A film longer than the music engine's longest track gets several tracks, crossfaded (no loop of one track with a cut at the seam)."""
+
+    def test_the_number_of_tracks_covers_the_film_with_a_crossfade_at_each_seam(self):
+        track = dict(seconds=180, start=0.0, loop=True)
+        self.assertEqual(soundtrack.music_parts(dict(track, loop=False), 120), 1)
+        self.assertEqual(soundtrack.music_parts(track, 181), 2)
+        self.assertEqual(soundtrack.music_parts(track, 600), 4)                     # 4 x 180 - 3 x 4 = 708 s
+        self.assertEqual(soundtrack.music_parts(dict(track, seconds=60), 600), 11)
+        self.assertEqual(soundtrack.music_parts(dict(track, start=300.0), 600), 2)  # a track that begins later in the film covers only the rest
+        for film in range(181, 901, 7):
+            for seconds in (60, 120, 180):
+                with self.subTest(film=film, seconds=seconds):
+                    count = soundtrack.music_parts(dict(track, seconds=seconds), film)
+                    self.assertGreaterEqual(count * seconds - (count - 1) * soundtrack.MUSIC_CROSSFADE, film)
+                    self.assertLess((count - 1) * seconds - (count - 2) * soundtrack.MUSIC_CROSSFADE, film if count > 1 else 1e9)
+
+    @unittest.skipUnless(FFMPEG.is_file(), 'bundled FFmpeg not found')
+    def test_tracks_are_joined_with_a_crossfade_into_one_file_of_the_asked_length(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            paths = []
+            for index, frequency in enumerate((300, 600, 900)):
+                path = work / ('t%d.wav' % index)
+                subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'sine=frequency=%d:duration=10:sample_rate=44100' % frequency,
+                                '-ac', '2', str(path)], check=True)
+                paths.append(path)
+            target = work / 'long.wav'
+            soundtrack.crossfaded(FFMPEG, paths, 22.0, target)                       # 3 x 10 - 2 x 4 = 22 s
+            info = subprocess.run([str(FFPROBE), '-v', 'error', '-show_entries', 'stream=sample_rate,channels:format=duration', '-of', 'default=nw=1', str(target)], capture_output=True, text=True, check=True).stdout
+            self.assertIn('sample_rate=48000', info)
+            self.assertIn('channels=2', info)
+            self.assertAlmostEqual(float(re.search(r'duration=([0-9.]+)', info).group(1)), 22.0, delta=0.05)
+            # the seam at 6 s is a crossfade: both tones are heard there, and the sound never drops out
+            for second in (5.0, 6.0, 7.0):
+                level = subprocess.run([str(FFMPEG), '-hide_banner', '-nostdin', '-ss', str(second), '-t', '0.5', '-i', str(target), '-af', 'volumedetect', '-f', 'null', '-'],
+                                       capture_output=True, text=True).stderr
+                self.assertGreater(float(re.search(r'mean_volume: (-?[0-9.]+) dB', level).group(1)), -30.0)            # a plain sine of this size is -21 dB; a dip to silence would be below -60
+
+
 class PlacementTests(unittest.TestCase):
     def test_a_line_starts_with_its_scene_and_never_over_the_line_before(self):
         placed = soundtrack.place_lines([(0.3, 3.0), (2.0, 4.0), (8.0, 1.0)], 12.0)
@@ -151,6 +191,16 @@ class MixdownTests(unittest.TestCase):
     def mix(self, name, beds, voices, **options):
         output = self.work / name
         return output, soundtrack.mixdown(FFMPEG, FFPROBE, self.film, output, beds, voices, **options)
+
+    def test_a_long_mix_graph_is_read_from_a_file_and_sounds_the_same(self):
+        """A hundred lines of speech make a graph that cannot be a Windows command line: it is read from a file, the two measuring passes and the mix alike."""
+        plain, plain_result = self.mix('inline.mp4', [self.bed], [self.line])
+        with mock.patch('video.video_delivery.GRAPH_INLINE_LIMIT', 100):
+            filed, filed_result = self.mix('filed.mp4', [self.bed], [self.line])
+        self.assertTrue((self.work / 'mix-graph.txt').is_file() and (self.work / 'measure-graph.txt').is_file())
+        self.assertAlmostEqual(filed_result['loudness']['makeup_gain_db'], plain_result['loudness']['makeup_gain_db'], delta=0.05)
+        self.assertAlmostEqual(band(filed, 1000, 4.2, 1.5), band(plain, 1000, 4.2, 1.5), delta=0.3)
+        self.assertAlmostEqual(band(filed, 440, 1.0, 2.0), band(plain, 440, 1.0, 2.0), delta=0.3)
 
     def test_the_music_gives_way_to_a_voice_and_comes_back(self):
         output, result = self.mix('both.mp4', [self.bed], [self.line])

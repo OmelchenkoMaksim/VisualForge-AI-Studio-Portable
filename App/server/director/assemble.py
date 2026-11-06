@@ -8,7 +8,7 @@ from pathlib import Path
 from director import media
 from director import plan_rules as rules
 from video.ltx_continuation import LEVELING
-from video.video_delivery import run_tool
+from video.video_delivery import filter_complex, run_tool
 
 SAMPLE_RATE = 48000
 
@@ -50,7 +50,9 @@ def graph(plan, durations, has_audio, size):
     for index in range(1, len(scenes)):
         length, tau = min(lengths[index], durations[index]), taus[index - 1]
         if tau == 0:
-            filters.append('[%s][v%d]concat=n=2:v=1:a=0[xv%d]' % (video, index, index))
+            # `concat` writes its picture in the timebase 1/1000000 and `xfade` refuses two inputs of different timebases: without `settb` a hard cut followed by any other hand over failed the
+            # whole assembly (it did, after forty scenes of a film of ten minutes had been shot).
+            filters.append('[%s][v%d]concat=n=2:v=1:a=0,settb=1/%d[xv%d]' % (video, index, rules.FPS, index))
             filters.append('[%s][a%d]concat=n=2:v=0:a=1[xa%d]' % (audio, index, index))
             running += length
         else:
@@ -78,7 +80,7 @@ def assemble(ffmpeg, ffprobe, clips, plan, size, output, cancel=None, progress=N
     command = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-progress', 'pipe:1', '-nostats']
     for clip in clips:
         command += ['-i', str(Path(clip))]
-    command += ['-filter_complex', text, '-map', '[video]', '-map', '[audio]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
+    command += [*filter_complex(text, Path(output).with_name('assemble-graph.txt')), '-map', '[video]', '-map', '[audio]', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
                 '-r', str(rules.FPS), '-c:a', 'aac', '-b:a', '192k', '-ar', str(SAMPLE_RATE), '-ac', '2', '-t', '%.4f' % seconds, '-movflags', '+faststart', str(output)]
     run_tool(command, int(600 + seconds * 12), cancel, (lambda done: progress(min(1.0, done / seconds))) if progress else None)
     return dict(frames=frames, seconds=seconds, command=command)

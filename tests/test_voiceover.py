@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from types import SimpleNamespace
 import unittest
@@ -173,6 +174,17 @@ class Normalization(unittest.TestCase):
                               (2000000, 'два миллиона'), (1000001, 'один миллион один'), (5000, 'пять тысяч')):
             self.assertEqual(cardinal(number), words)
         self.assertEqual((cardinal(2, 'f'), cardinal(1, 'n'), cardinal(21, 'fa')), ('две', 'одно', 'двадцать одну'))
+
+    def test_named_dates_keep_names_and_distinguish_days_from_counts(self):
+        for source, expected in (
+            ('Анна вернулась 5 мая 2025 года.', 'Анна вернулась пятого мая две тысячи двадцать пятого года.'),
+            ('Сегодня 3 июня.', 'Сегодня третье июня.'),
+            ('К 21 сентября.', 'К двадцать первому сентября.'),
+            ('На 1 января.', 'На первое января.'),
+            ('Ёлкин купил 23 книги.', 'Ёлкин купил двадцать три книги.'),
+        ):
+            with self.subTest(source=source):
+                self.assertEqual(self.say(source), expected)
 
     def test_ordinals_in_every_case(self):
         from voiceover.speech_normalization import ordinal
@@ -580,6 +592,56 @@ class Manager(unittest.TestCase):
     def request(self, **extra):
         return dict(book_id=self.book['book_id'], voice_id=self.voice['id'], language='Russian', format='mp3', seed=7, **extra)
 
+    def test_delivery_preparation_changes_assembly_and_reuses_fragments_without_coaching_text(self):
+        from test_scene_planner import FakeText
+        from gpu_coordinator import GpuCoordinator
+        from voiceover.voiceover_prompt_enhancer import PromptEnhancer
+        before = self.finish(self.manager.submit(self.request())['id'])
+        text = FakeText(['{"direction":"Conversational flow, shorter boundary pauses.","pacing":"conversational","unsupported":true}'])
+        gpu = GpuCoordinator(dict(voiceover=self.manager.busy, text=lambda: False))
+        self.manager.prompt_enhancer = PromptEnhancer(text, gpu)
+        after = self.finish(self.manager.submit(self.request(delivery='Как интересную историю, без долгих пауз'))['id'])
+        self.assertEqual(after['state'], 'done', after.get('error'))
+        self.assertGreater(after['reused'], 0)
+        self.assertLess(after['duration_sec'], before['duration_sec'])
+        self.assertEqual(after['preparation']['pacing'], 'conversational')
+        manifest = json.loads((self.manager.state / after['id'] / 'fragments.json').read_text(encoding='utf-8'))
+        self.assertTrue(all('Conversational' not in item['speak'] for item in manifest))
+        repeat = self.finish(self.manager.submit(self.request(delivery='Как интересную историю, без долгих пауз'))['id'])
+        self.assertTrue(repeat['preparation']['reused'])
+        self.assertEqual(len(text.calls), 1)
+
+    def test_reference_originals_are_kept_and_long_transcript_samples_cannot_be_silently_truncated(self):
+        original = self.temp / 'sample.wav'
+        meta = json.loads((self.manager.voices_dir / (self.voice['id'] + '.json')).read_text(encoding='utf-8'))
+        self.assertEqual((self.manager.voices_dir / meta['originals'][0]).read_bytes(), original.read_bytes())
+        long_sample = self.temp / 'long-reference.wav'
+        tone(long_sample, 31, 24000)
+        with self.assertRaises(ValueError):
+            self.manager.add_voice(dict(name='Слишком длинный с расшифровкой', consent=True, transcript='Полная расшифровка образца.',
+                                       audio='data:audio/wav;base64,' + base64.b64encode(long_sample.read_bytes()).decode()))
+        self.assertTrue(long_sample.is_file())
+
+    def test_vox_style_changes_worker_conditioning_and_cache_without_changing_narration(self):
+        from test_scene_planner import FakeText
+        from gpu_coordinator import GpuCoordinator
+        from voiceover.voiceover_prompt_enhancer import PromptEnhancer
+        self.install_voxcpm()
+        text = FakeText([json.dumps(dict(direction='Calm intimate delivery.', pacing='neutral', unsupported=False, style='calm'))])
+        self.manager.prompt_enhancer = PromptEnhancer(text, GpuCoordinator(dict(voiceover=self.manager.busy, text=lambda: False)))
+        before = self.finish(self.manager.submit(self.request(engine='voxcpm2'))['id'])
+        after = self.finish(self.manager.submit(self.request(engine='voxcpm2', delivery='Спокойно и близко', style_control=True))['id'])
+        self.assertEqual((before['state'], after['state']), ('done', 'done'))
+        self.assertEqual(after['reused'], 0)
+        directory = self.manager.state / after['id']
+        request = json.loads((directory / 'request.json').read_text(encoding='utf-8'))
+        self.assertEqual(request['delivery_style'], 'calm')
+        source_items = json.loads((self.manager.state / before['id'] / 'fragments.json').read_text(encoding='utf-8'))
+        items = json.loads((directory / 'fragments.json').read_text(encoding='utf-8'))
+        self.assertEqual([item['speak'] for item in source_items], [item['speak'] for item in items])
+        self.assertNotEqual([item['key'] for item in source_items], [item['key'] for item in items])
+        self.assertEqual(after['reference_mode'], 'reference')
+
     def finish(self, ident, timeout=90):
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -613,12 +675,12 @@ class Manager(unittest.TestCase):
         tone(sample, 5.0, 44100)
         voice = self.manager.add_voice(dict(name='С расшифровкой', consent=True, transcript='  Это   образец голоса.  ',
                                             audio='data:audio/wav;base64,' + base64.b64encode(sample.read_bytes()).decode()))
-        self.assertEqual([item['transcript'] for item in self.manager.voices()['voices'] if item['id'] == voice['id']], ['Это образец голоса.'])
+        self.assertEqual([item['transcript'] for item in self.manager.voices()['voices'] if item['id'] == voice['id']], ['  Это   образец голоса.  '])
         row = self.finish(self.manager.submit(dict(self.request(engine='voxcpm2'), voice_id=voice['id']))['id'])
         self.assertEqual((row['state'], row['engine']), ('done', 'voxcpm2'), row.get('error'))
         request = json.loads((self.manager.state / row['id'] / 'request.json').read_text(encoding='utf-8'))
         self.assertEqual([Path(item).name for item in request['packages']], ['voxcpm-packages', 'voice-packages'])
-        self.assertEqual((Path(request['model']).name, request['transcript']), ('voxmodel', 'Это образец голоса.'))
+        self.assertEqual((Path(request['model']).name, request['transcript']), ('voxmodel', '  Это   образец голоса.  '))
 
     def test_fragment_keys_depend_on_the_engine(self):
         self.install_voxcpm()
@@ -885,6 +947,31 @@ class Manager(unittest.TestCase):
             row = self.finish(started['id'])
         self.assertEqual(row['state'], 'cancelled')
         self.assertLess(time.time() - began, 10)
+
+    def test_stop_during_assembly_publishes_nothing_and_resumes_cached_fragments(self):
+        reached = threading.Event()
+        prepare, spawn = assemble.prepare, self.manager._spawn
+        blocked = [sys.executable, '-u', '-c', 'import time; time.sleep(30)']
+        def blocking_assembly(*args, **kwargs):
+            _, output, chapters, seconds = prepare(*args, **kwargs)
+            return blocked, output, chapters, seconds
+        def observed_spawn(row, command, env, cwd):
+            process = spawn(row, command, env, cwd)
+            if command == blocked:
+                reached.set()
+            return process
+        # A controlled owned child makes Stop deterministic; this does not qualify real FFmpeg/GPU cancellation.
+        with mock.patch.object(assemble, 'prepare', side_effect=blocking_assembly), mock.patch.object(self.manager, '_spawn', side_effect=observed_spawn):
+            started = self.manager.submit(self.request(verify=False))
+            self.assertTrue(reached.wait(10), 'assembly was never reached')
+            self.manager.cancel(dict(id=started['id'], token=started['token']))
+            row = self.finish(started['id'])
+        self.assertEqual(row['state'], 'cancelled')
+        self.assertFalse(row.get('saved_path'))
+        self.assertTrue(any(self.manager.cache.glob('*.wav')))
+        resumed = self.finish(self.manager.submit(self.request(verify=False))['id'])
+        self.assertEqual(resumed['state'], 'done', resumed.get('error'))
+        self.assertEqual(resumed['reused'], resumed['total'])
 
     def test_batch_size_reaches_the_worker_request(self):
         self.assertEqual(self.manager.batch, 8)

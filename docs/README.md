@@ -19,7 +19,7 @@ Old reports are scoped evidence of one day, not a health check of the installed 
 ## Model cards (start here for any model)
 
 [models/README.md](models/README.md): cards grouped by section, with our versions, strengths, limits, modes, prompt rules and remaining checks.
-Evidence distinguishes **code**, **recorded observations**, **CPU/UI/GPU checks**, **external sources** and **unknowns**. All five Image models are researched; the other sections' cards are drafts seeded from project reports. Start with the card, refresh only facts needed for the next decision and verify at the appropriate level: [video](models/video/README.md) · [image](models/image/README.md) ·
+Evidence distinguishes **code**, **recorded observations**, **CPU/UI/GPU checks**, **external sources** and **unknowns**. All five Image models and the current Music/Voiceover engines have scoped research; other cards retain their recorded evidence and open limits. Start with the card, refresh only facts needed for the next decision and verify at the appropriate level: [video](models/video/README.md) · [image](models/image/README.md) ·
 [music](models/music/README.md) · [voiceover](models/voiceover/README.md) · [text (Gemma)](models/text/README.md) · [speech (Whisper)](models/speech/README.md). The reports below are the long evidence the cards point to.
 
 ## Image
@@ -54,13 +54,17 @@ Start with **[VisualForge-Video-Architecture.md](VisualForge-Video-Architecture.
 
 ## Music, voice and text
 
+[VisualForge-Audio-Preparation](VisualForge-Audio-Preparation.md): automatic Gemma captions, separate speech delivery controls and scoped research/verification.
+
+[VisualForge-Audio-Presets](VisualForge-Audio-Presets.md): exact-model publisher/community research, optional VoxCPM2 style conditioning, song recipes and open voice-reference sources.
+
 [VisualForge-Music-Generation](VisualForge-Music-Generation.md) · [MiniMax-Music3](MiniMax-Music3.md) · [VisualForge-Voiceover-Guide](VisualForge-Voiceover-Guide.md) ·
 [VisualForge-Voice-Input](VisualForge-Voice-Input.md) · [VisualForge-Text-Chat](VisualForge-Text-Chat.md) · [Gemma-Screenshot-OCR](Gemma-Screenshot-OCR.md) ·
 [OvisOCR3-Local-Evaluation](OvisOCR3-Local-Evaluation.md) · [VisualForge-Agent-Mode](VisualForge-Agent-Mode.md) (OpenCode, Aider, DeepSeek Harness in the Text tab).
 
 ## Platform
 
-[VisualForge-Prompt-Managers](VisualForge-Prompt-Managers.md) (Video, automatic preparation for all four Image models, remaining audio drafts) ·
+[VisualForge-Prompt-Managers](VisualForge-Prompt-Managers.md) (Video, automatic preparation for Image, Music and Voiceover) ·
 [VisualForge-GPU-Coordination](VisualForge-GPU-Coordination.md) (one card, one holder, the global lock and Stop) ·
 [VisualForge-Event-History](VisualForge-Event-History.md) (operation types) · [VisualForge-Generation-Identity](VisualForge-Generation-Identity.md) (the four-field identity) ·
 [VisualForge-Source-Layout](VisualForge-Source-Layout.md) (file naming, entry points, what a rename must update).

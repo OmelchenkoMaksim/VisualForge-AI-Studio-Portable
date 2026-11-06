@@ -545,7 +545,9 @@ class Jobs:
         if not source.is_absolute() or source.suffix.lower() != '.mp4' or not source.is_file() or not source.resolve().is_relative_to(allowed):
             raise ValueError('Файл фильма должен лежать в папке Режиссёра')
         prompt = str(data.get('prompt') or '').strip()[:5000]
-        scenes = [str(text)[:1500] for text in (data.get('scenes') if isinstance(data.get('scenes'), list) else [])][:60]
+        # The scene prompts are kept in the history only as an overview (the page uses them to tell a film from a single clip; the full text is in the Director's run.json). The history file is
+        # refused at load when it grows past 5 MB, and a film of 75 scenes with whole prompts is 100 KB: a hundred such films would have made the whole history unreadable.
+        scenes = [str(text)[:300] for text in (data.get('scenes') if isinstance(data.get('scenes'), list) else [])][:100]
         if not prompt or len(scenes) < 2:
             raise ValueError('У фильма нет описания или сцен')
         probe = subprocess.run([str(self.root / 'ffmpeg/bin/ffprobe.exe'), '-v', 'error', '-count_frames', '-show_streams', '-show_format', '-of', 'json', str(source)],

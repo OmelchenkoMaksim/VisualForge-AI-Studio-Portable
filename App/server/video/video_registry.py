@@ -2,6 +2,7 @@
 from ui_strings import source as ui_text
 import secrets
 from .character_support import CHARACTER_FIELDS, CHARACTER_IDS, validate_fields as validate_character_fields
+from .ltx_continuation import PUBLIC_CHAIN_FRAMES, windows as ltx_windows
 
 ENGINES = {'freevideo-h3-int8': {
     'id': 'freevideo-h3-int8', 'name': 'FreeVideo · MiniMax H3 int8', 'file_label': 'FreeVideo MiniMax H3',
@@ -53,6 +54,8 @@ ENGINES['ltx25-distilled'] = {
     'model_repository':'Lightricks/LTX-2.5','license':'ltx-2.x-community-license-agreement',
     'modes':['t2v','i2v','first_last','a2v'],'fps':24,'prompt_enhancer':['t2v','i2v','first_last','a2v'],'resolutions':[[768,512],[1024,576],[1280,704],[512,768],[576,1024],[704,1280]],
     'frames':[49,97,121,240,360,720,1440,2880],'duration_labels':{360:ui_text('video.registry_15_s_continuation'),720:ui_text('video.registry_30_s_continuation'),1440:ui_text('video.registry_60_s_continuation')},'qualities':['preview','standard'],
+    # The panel offers 15, 30 and 60 seconds; the Director asks for the exact length of a scene (any other chain the windows can make, 6 s to 60 s), which costs fewer windows.
+    'chain_frames':PUBLIC_CHAIN_FRAMES,
     'qualities_by_mode':{'t2v':['preview','standard'],'i2v':['preview','standard'],'first_last':['preview','standard'],'a2v':['preview','standard']},
     'steps':{'preview':8,'standard':11},'quality_labels':{'preview':ui_text('video.registry_preview_fast_8_steps'),'standard':ui_text('video.registry_standard_two_passes_8_3_steps')},
     'minimum_free_vram_mb':8000,'verification':{'summary_ru':ui_text('video.registry_summary_ru_experimental_profiles_require_gpu_verification')},
@@ -133,7 +136,8 @@ SCENE_FRAMES = (33, 121)
 
 
 # LTX 2.5 has a coarser time grid (8n+1 frames) and a longer shortest clip; its chain of continuation windows
-# (ltx_continuation.windows) has 4 / 8 / 15 windows for 15 / 30 / 60 seconds.
+# (ltx_continuation.windows) has 4 / 8 / 15 windows for 15 / 30 / 60 seconds: the lengths the panel offers (`LTX_WINDOWS`, which the page repeats).
+# The validator accepts every other length the windows can make as well (`chain_frames` of the engine); only the Director asks for those.
 LTX_SCENE_FRAMES = (49, 121)
 LTX_WINDOWS = {360: 4, 720: 8, 1440: 15}
 
@@ -197,7 +201,7 @@ def _size(data, engine, mode, quality):
     width, height, frames = data.get('width', engine['resolutions'][0][0]), data.get('height', engine['resolutions'][0][1]), data.get('frames', engine['frames'][0])
     fps = data.get('fps', engine['fps'])
     if (type(width) is not int or type(height) is not int or [width, height] not in engine['resolutions'] or type(frames) is not int
-            or frames not in engine['frames'] or type(fps) is not int or fps != engine['fps']):
+            or frames not in engine['frames'] and frames not in engine.get('chain_frames', ()) or type(fps) is not int or fps != engine['fps']):
         raise ValueError(ui_text('video.validation_select_resolution_duration_fps_engine_s'))
     if engine['adapter'] == 'freevideo_cli' and frames != 39 and (mode not in ('t2v', 'characters') or quality != 'preview'):
         raise ValueError(ui_text('video.validation_long_clips_support_text_characters_preview'))
@@ -264,9 +268,9 @@ def _scene_layout(data, engine, mode, frames, result):
         return scenes, scenes, False
     if is_wan5 and frames in WAN_SEGMENTS:
         return scenes, WAN_SEGMENTS[frames], False
-    if is_ltx and frames in LTX_WINDOWS:
+    if is_ltx and frames in PUBLIC_CHAIN_FRAMES:
         # One scene continued window by window: a scenario (one prompt per window) is welcome but optional.
-        return scenes, LTX_WINDOWS[frames], True
+        return scenes, len(ltx_windows(frames)), True
     if frames in (240, 2880):
         raise ValueError(ui_text('video.validation_two_minutes_scenes_only'))
     return scenes, 0, False

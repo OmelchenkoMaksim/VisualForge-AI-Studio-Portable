@@ -42,7 +42,12 @@ def handle(handler, manager, gpu, route, data, query):
                 return handler.response_json(503, {'error': available['reason']})
             try:
                 # Refuses while Image/Video/Text work; frees idle Image models and the chat model. Stable Audio states its own estimate.
-                gpu.claim('music', claim_vram_mb(available.get('engine', {}), data))
+                enhancer = getattr(manager, 'prompt_enhancer', None)
+                if enhancer:
+                    readiness = enhancer.status()
+                    if not readiness['available']:
+                        return handler.response_json(503, {'error': readiness['reason']})
+                gpu.claim('music', 0 if enhancer else claim_vram_mb(available.get('engine', {}), data))
             except Busy as error:
                 return handler.response_json(409, {'error': str(error)})
             except GpuUnavailable as error:

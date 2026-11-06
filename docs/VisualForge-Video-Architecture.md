@@ -174,3 +174,54 @@ Second pass (same day, after the review of the service, the workers and the pane
 * Automatic review-and-regenerate loop: the person decides whether a correction is worth another run; Gemma's verdict on a good clip is sometimes a false alarm (measured).
 * Best-of-N seeds for single shots: costs N runs; the per-scene speech retry already covers the case where a check exists.
 * A second Whisper pass for lip-sync: no local measure exists; mouth accuracy stays a documented limit.
+
+## Findings of the 2026-11-06 audit (long films through the Director)
+
+The goal of the audit: a film of one to ten minutes and more, from a bare request. What was read, measured and changed in the Video service (the Director's own part is in [VisualForge-Director.md](VisualForge-Director.md)).
+
+### Fixed
+
+* **LTX continued takes are as long as the clip needs.** `ltx_continuation.chain_frames` knows every length the windows can make (whole strides of 96 frames plus a last window of 8n+1 frames, 49 to 121; 144 to 1440 frames,
+  137 lengths, 240 left out because the panel uses it as a total of its scenes mode). The registry accepts them as the engine's `chain_frames` (the panel still offers 15, 30 and 60 s and repeats `LTX_WINDOWS`, which
+  `test_video_engines.py` pins), `ltx_command` routes every request above one window to `ltx_long.py`. The Director used to ask for the next of 15, 30 or 60 s and trim: a scene of 6.6 s cost four windows
+  instead of two, one of 16.6 s eight instead of four. Measured on the GPU the same day, every exact length came out with exactly the frames asked for (144, 248, 360...): see the table below.
+* **`video_delivery.filter_complex`**: a filter graph above 6000 characters goes to a file read with `-/filter_complex` (the bundled FFmpeg 9.0.2 has dropped `-filter_complex_script`). Windows refuses a command line over
+  32,767 characters; the Director's picture graph is about 430 characters per scene and its sound graph about 140 per line of speech, so a film of 60 scenes or 150 lines could not even be started
+  (measured by building the graphs: 75 scenes 39,000 characters with the clip paths, 150 lines 40,000).
+* **The Video history is refused at load past 5 MB** (`Jobs.__init__`): `register_film` stored the whole 1500-character prompt of every scene (100 KB for a film of 75 scenes); it keeps the first 300 characters now.
+* **`Studio.register` starts the Video service first** (it starts on demand with the first Video job): the Director's continuation of a film whose scenes were all shot before a restart of the studio had no service to register
+  its film with.
+* **The Director keeps the computer awake** while a film is shot (`SetThreadExecutionState` from the production thread): nothing in the studio did, and a computer that sleeps in the middle of a window stops the worker.
+
+### Measured (CPU, no model)
+
+| What | Result |
+|---|---|
+| Assembly of 40 clips of 15 s at 1280x704 into 576 s (inline graph, 26,000 characters) | 61 s, FFmpeg peaked at 4.2 GB |
+| Assembly of 75 clips into 855 s through the graph file | 92 s, peak 5.5 GB; video 855.000 s and audio 855.000 s, 20,520 frames, 48 kHz stereo AAC |
+| Mixdown (two measuring passes, ducking, the final loudness stage) of 150 lines of speech and a looped bed into that film | 25 s, peak 124 MB, -18.002 LUFS, graph file 21 KB |
+
+No hierarchical assembly is needed up to the 75 scenes the Director allows; memory grows with the number of inputs (about 70 MB for each clip).
+
+### Measured (GPU, 2026-11-06, RTX 5070 Ti, through the Video API of a test studio, one job after another, warm file cache except where noted)
+
+Exact chains (the length of every file counted with ffprobe: the frames asked for, and a sound of the same length, AAC 48 kHz):
+
+| Quality | 49 | 97 | 144 (2 windows) | 248 (3) | 360 (4) |
+|---|---|---|---|---|---|
+| draft 768x512, one pass | 31 s | 374 s cold (first job of the session) | 77 s | 132 s | 166 s |
+| standard 1024x576, two passes | | 55 s | 148 s (first use: 98 s for its first window) | 157 s | 203 s |
+| maximum 1280x704, two passes | | 57 s | 104 s | 169 s | 235 s |
+
+A window of 121 frames: 35 s at draft, 50 s at standard, 57 s at maximum; least squares over 31 windows: draft 18.5 s + 0.133 s per frame, standard 26.3 + 0.196, maximum 22.2 + 0.291, plus 7 to 35 s of a job beside its
+windows (the prompt encoder takes 8 s warm, 127 s from a cold disk). **The biggest picture costs about as much as the standard one** (the earlier 2.3 times came from cold loads and from scenes rounded up to long chains).
+Per window the model's own start (the process, the weights from the file cache) is 3 to 5 s of 35 to 57: a worker that stays loaded between windows would save about a tenth, which is why `ltx_worker.py` was not rebuilt.
+The model of the Director's plan screen (`plan_rules.scene_seconds`) reproduces these 13 jobs within 10 % (except the two cold ones).
+
+### Left as it is
+
+| Item | Why not now | Do it when |
+|---|---|---|
+| One LTX process for all the windows of a film (models stay loaded) | the measured start of a window is 3 to 5 s of 35 to 57 (see the table): a refactor of `ltx_worker.py` for about a tenth | the windows get faster or the file cache cannot hold the weights |
+| Encoding all scene prompts in one encoder process | a warm encoder costs 8 s per prompt; 100 s was the first read from a cold disk | the encoder file is not kept in the file cache |
+| The last frame of a scene as the first frame of the next (identity across scenes) | changes how scenes look; needs the owner's eye, not a measurement | the owner wants the same person in scenes without a picture |

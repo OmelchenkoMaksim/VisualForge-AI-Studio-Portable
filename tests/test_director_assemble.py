@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'App/server'))
@@ -85,6 +86,29 @@ class AssembleTests(unittest.TestCase):
                 self.assertAlmostEqual(float(audio['duration']), 12.0, delta=0.06)
                 self.assertAlmostEqual(duration, 12.0, delta=0.06)
 
+    def test_a_hard_cut_followed_by_a_transition_assembles(self):
+        """FFmpeg's `concat` writes its picture in the timebase 1/1000000 and `xfade` refuses two inputs of different timebases: a cut followed by any other hand over failed the whole assembly.
+        It happened after a film of ten minutes in forty scenes (29 cuts, the rest dissolves and fades) had been shot for 107 minutes; the tests had only cuts after the last transition."""
+        for transitions in (('cut', 'fade'), ('cut', 'wipeleft'), ('fade', 'cut')):
+            with self.subTest(transitions=transitions):
+                scenes = [dict(seconds=4.0, transition=name) for name in transitions] + [dict(seconds=4.0, transition='cut')]
+                output = self.work / ('film-%s.mp4' % '-'.join(transitions))
+                result = assemble.assemble(FFMPEG, FFPROBE, self.clips, dict(scenes=scenes, seconds=12.0, style=STYLE), (320, 180), output)
+                video, audio, duration = probe(output)
+                self.assertEqual((int(video['nb_read_frames']), result['frames']), (288, 288))
+                self.assertAlmostEqual(float(audio['duration']), 12.0, delta=0.06)
+
+    def test_a_long_film_of_mixed_hand_overs_assembles_with_exact_length(self):
+        clips = [self.clips[index % 3] for index in range(12)]
+        names = ['cut', 'fade', 'cut', 'cut', 'dissolve', 'cut', 'wipeleft', 'fade', 'cut', 'fadeblack', 'cut']
+        scenes = [dict(seconds=2.0, transition=name) for name in names] + [dict(seconds=2.0, transition='cut')]
+        output = self.work / 'film-mixed.mp4'
+        assemble.assemble(FFMPEG, FFPROBE, clips, dict(scenes=scenes, seconds=24.0, style=STYLE), (320, 180), output)
+        video, audio, duration = probe(output)
+        self.assertEqual(int(video['nb_read_frames']), 576)
+        self.assertAlmostEqual(float(audio['duration']), 24.0, delta=0.06)
+        self.assertAlmostEqual(duration, 24.0, delta=0.06)
+
     def test_a_portrait_film_crops_instead_of_stretching_and_reports_progress(self):
         seen = []
         output, _ = self.film(('fade', 'fade'), size=(180, 320), progress=seen.append)
@@ -102,6 +126,32 @@ class AssembleTests(unittest.TestCase):
         self.assertGreater(average[1.0], 20)
         self.assertLess(average[0.5], average[1.0] * 0.7)
         self.assertLess(average[0.0], 2)
+
+    def test_a_long_graph_travels_in_a_file_and_gives_the_same_film(self):
+        """Windows refuses a command line over 32,767 characters and a film of sixty scenes needs a longer graph: such a graph is read from a file (`-/filter_complex`)."""
+        plain, _ = self.film(('fade', 'cut'))
+        with mock.patch('video.video_delivery.GRAPH_INLINE_LIMIT', 100):
+            output = self.work / 'film-from-file.mp4'
+            scenes = [dict(seconds=4.0, transition='fade'), dict(seconds=4.0, transition='cut'), dict(seconds=4.0, transition='cut')]
+            result = assemble.assemble(FFMPEG, FFPROBE, self.clips, dict(scenes=scenes, seconds=12.0, style=STYLE), (320, 180), output)
+        self.assertEqual(result['frames'], 288)
+        self.assertIn('-/filter_complex', result['command'])
+        self.assertNotIn('-filter_complex', result['command'])
+        self.assertTrue((self.work / 'assemble-graph.txt').is_file())
+        video, audio, duration = probe(output)
+        self.assertEqual((video['width'], video['height'], int(video['nb_read_frames'])), (320, 180, 288))
+        self.assertAlmostEqual(float(audio['duration']), 12.0, delta=0.06)
+        self.assertAlmostEqual(duration, probe(plain)[2], delta=0.06)
+
+    def test_a_film_of_seventy_scenes_has_a_graph_that_could_not_be_a_command_line_and_is_a_file(self):
+        scenes = [dict(seconds=8.0, transition='fade') for _ in range(70)]
+        text, frames = assemble.graph(dict(scenes=scenes, seconds=560, style=STYLE), [9.0] * 70, [True] * 70, (1280, 704))
+        self.assertGreater(len(text) + 70 * 120, 32767)                                              # on the command line with seventy clip paths (120 characters each) this is over the 32,767 characters of Windows
+        self.assertEqual(frames, 560 * 24)                                                           # every clip is its scene plus the 0.6 s its transition eats: the film keeps its length
+        from video.video_delivery import GRAPH_INLINE_LIMIT, filter_complex
+        self.assertEqual(filter_complex('short', self.work / 'unused.txt'), ['-filter_complex', 'short'])
+        self.assertEqual(filter_complex('x' * (GRAPH_INLINE_LIMIT + 1), self.work / 'long.txt'), ['-/filter_complex', str(self.work / 'long.txt')])
+        self.assertEqual((self.work / 'long.txt').read_text(encoding='utf-8'), 'x' * (GRAPH_INLINE_LIMIT + 1))
 
     def test_a_wrong_number_of_clips_is_refused(self):
         with self.assertRaises(ValueError):

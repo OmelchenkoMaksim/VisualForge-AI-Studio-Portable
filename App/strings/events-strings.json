@@ -1,6 +1,12 @@
 {
-  "events.operation_type_image_composition_label":{"ru":"Композиция изображения","en":"Image composition"},
-  "events.operation_type_composition_plan_label":{"ru":"Планирование композиции","en":"Composition planning"},
+  "events.operation_type_image_composition_label": {
+    "ru": "Композиция изображения",
+    "en": "Image composition"
+  },
+  "events.operation_type_composition_plan_label": {
+    "ru": "Планирование композиции",
+    "en": "Composition planning"
+  },
   "events.operation_type_image_prompt_enhancement_label": {
     "ru": "Подготовка промпта изображения",
     "en": "Image prompt preparation"
@@ -340,5 +346,17 @@
   "events.operation_type_director_run_label": {
     "ru": "Режиссёр: съёмка фильма",
     "en": "Director: shooting a film"
+  },
+  "events.operation_type_music_prompt_enhancement_label": {
+    "ru": "Подготовка запроса Music",
+    "en": "Music prompt preparation"
+  },
+  "events.operation_type_voiceover_prompt_enhancement_label": {
+    "ru": "Подготовка подачи Voiceover",
+    "en": "Voiceover delivery preparation"
+  },
+  "events.operation_type_music_lyric_creation_label": {
+    "ru": "Создание слов песни",
+    "en": "Song lyric creation"
   }
 }

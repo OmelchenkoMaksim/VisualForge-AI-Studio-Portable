@@ -81,6 +81,39 @@ else:raise AssertionError('Mismatched stage context must be rejected')
             self.assertEqual(len(plan),{360:4,720:8,1440:15}[count])
         with self.assertRaises(ValueError):windows(1439)
 
+    def test_every_length_the_windows_can_make_is_a_valid_chain_and_the_others_are_refused(self):
+        from video.ltx_continuation import CHAIN_FRAMES, PUBLIC_CHAIN_FRAMES, SCENES_ONLY_FRAMES, chain_frames
+        self.assertTrue(set(LONG_FRAMES) <= set(PUBLIC_CHAIN_FRAMES))                                    # what the panel offers is always among them
+        self.assertEqual(set(CHAIN_FRAMES) - set(PUBLIC_CHAIN_FRAMES), {SCENES_ONLY_FRAMES})
+        for frames in range(1, 1500):
+            if frames in CHAIN_FRAMES:
+                plan = windows(frames)
+                self.assertEqual(plan[-1]['start'] + plan[-1]['frames'], frames + 1, frames)             # the windows cover the take exactly
+                self.assertTrue(all(49 <= w['frames'] <= 121 and w['frames'] % 8 == 1 for w in plan), frames)
+            else:
+                with self.assertRaises(ValueError):
+                    windows(frames)
+        self.assertEqual([chain_frames(n) for n in (122, 144, 145, 217, 1440)], [144, 144, 152, 248, 1440])
+        self.assertIsNone(chain_frames(1441))
+        for frames in (144, 152, 248, 1392):
+            row = validate(dict(engine='ltx25-distilled', prompt='A bell swings', frames=frames))
+            self.assertEqual((row['frames'], 'segment_prompts' in row), (frames, False))                 # a single prompt serves every window
+            self.assertEqual(len(validate(dict(engine='ltx25-distilled', prompt='x', frames=frames, segment_prompts=['p'] * len(windows(frames))))['segment_prompts']), len(windows(frames)))
+        for frames in (122, 143, 240, 1441, 2880):                                                       # 240 is the panel's total of its scenes mode and stays refused as one take
+            with self.assertRaises(ValueError):
+                validate(dict(engine='ltx25-distilled', prompt='A bell swings', frames=frames))
+        for extra in (dict(mode='first_last'), dict(mode='a2v')):
+            with self.assertRaises(ValueError):
+                validate(dict(engine='ltx25-distilled', prompt='x', frames=144, **extra))
+
+    def test_every_chain_request_runs_the_continuation_worker(self):
+        from video.ltx_continuation import PUBLIC_CHAIN_FRAMES
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp)
+            for frames in PUBLIC_CHAIN_FRAMES:
+                row = validate(dict(engine='ltx25-distilled', prompt='A bell swings', frames=frames))
+                self.assertIn('ltx_long.py', ' '.join(build_command(folder, folder / 'Models/Video/H3', folder, row)), frames)
+
     def test_long_requests_are_routed_only_to_owned_continuation_adapter(self):
         with tempfile.TemporaryDirectory() as temp:
             folder=Path(temp)

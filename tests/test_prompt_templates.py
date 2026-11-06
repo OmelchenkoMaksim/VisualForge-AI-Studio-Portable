@@ -1,4 +1,4 @@
-"""Per-section prompt drafts: coverage, language rules and no accidental inference (CPU only)."""
+"""Per-section guide coverage, language rules, pure drafting and active-manager readiness (CPU only)."""
 import copy
 import json
 from pathlib import Path
@@ -46,7 +46,9 @@ class TemplateTests(unittest.TestCase):
                         self.assertIn('mode ' + mode, system)
                         self.assertIn(cls.MODEL_RULES[engine], system)
                         self.assertIn(cls.MODE_RULES[engine][mode], system)
-                        self.assertEqual(system.count(LANGUAGE_RULE), 1)
+                        # Speech classifies delivery only; the generic image/music rewrite contract caused real Gemma
+                        # to invent narration fields, so it deliberately uses its own protected-content instruction.
+                        self.assertEqual(system.count(LANGUAGE_RULE), 0 if cls is VoiceoverEnhancer else 1)
                         self.assertIn('English', system)
                         self.assertIn('Russian', system)
                         self.assertIn('without translating', system)
@@ -77,28 +79,24 @@ class TemplateTests(unittest.TestCase):
             self.assertEqual(context, original)
             self.assertIn('КОФЕ У ПЕТРА', result['messages'][1]['content'])
 
-    def test_templates_cannot_claim_the_gpu_call_gemma_or_advertise_readiness(self):
+    def test_active_audio_managers_report_missing_text_without_claiming_gpu(self):
         owners, operations = set(), set()
         for cls in (MusicEnhancer, VoiceoverEnhancer):
-            text, gpu = Mock(), Mock()
+            text, gpu = None, Mock()
             manager = cls(text, gpu)
             self.assertIsInstance(manager, GemmaTask)
             self.assertFalse(manager.status()['available'])
-            self.assertEqual(manager.status()['state'], 'template')
-            self.assertEqual(manager.OPERATION, '')
+            self.assertEqual(manager.OPERATION, manager.PLANNED_OPERATION)
             self.assertNotIn(manager.OWNER, owners)
             self.assertNotIn(manager.PLANNED_OPERATION, operations)
             owners.add(manager.OWNER)
             operations.add(manager.PLANNED_OPERATION)
             for engine, modes in cls.MODE_RULES.items():
                 for mode in modes:
-                    self.assertFalse(manager.supported(engine, mode))
+                    self.assertTrue(manager.supported(engine, mode))
                     manager.draft('Тестовый запрос', engine, mode)
-                    with self.assertRaises(NotImplementedError):
-                        manager.enhance('Тестовый запрос', engine, mode)
             with self.assertRaises(ValueError), manager.session():
                 self.fail('An inactive template entered a model session')
-            self.assertEqual(text.mock_calls, [])
             self.assertEqual(gpu.mock_calls, [])
 
     def test_current_image_models_are_active_but_unknown_pairs_have_no_fallback(self):

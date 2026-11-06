@@ -1,4 +1,8 @@
 {
+  "director.brain_context_too_large": {
+    "ru": "Контекст плана слишком большой для Gemma. Сократите описание или число сцен и повторите подготовку.",
+    "en": "The plan context is too large for Gemma. Shorten the description or reduce the scene count and prepare again."
+  },
   "director.sound_loudness_measurement_failed": {
     "ru": "Не удалось измерить громкость звуковой дорожки фильма",
     "en": "Could not measure the film soundtrack loudness"
@@ -148,8 +152,8 @@
     "en": "Needs Gemma (the plan and the look at the materials) and LTX 2.5 (the scenes); takes music and keyframes from the installed music and picture models."
   },
   "director.engine_list_limitations": {
-    "ru": "Фильм от 5 секунд до 5 минут. До минуты — 2 сцены (уровень 0), дальше до 5 сцен на каждую минуту. Видео-референсы до 10 минут и 2 ГБ. Съёмка идёт подряд, долго: от минут до часов.",
-    "en": "A film of 5 seconds to 5 minutes. Below a minute: 2 scenes (level 0), then up to 5 scenes for every minute. Reference videos up to 10 minutes and 2 GB. The shooting goes scene after scene and takes long: minutes to hours."
+    "ru": "Фильм от 5 секунд до 15 минут. До минуты — 2 сцены (уровень 0), дальше до 5 сцен на каждую минуту. Видео-референсы до 10 минут и 2 ГБ. Съёмка идёт подряд, долго: от минут до часов.",
+    "en": "A film of 5 seconds to 15 minutes. Below a minute: 2 scenes (level 0), then up to 5 scenes for every minute. Reference videos up to 10 minutes and 2 GB. The shooting goes scene after scene and takes long: minutes to hours."
   },
   "director.engine_needs_gemma": {
     "ru": "Для Режиссёра нужна установленная Gemma",
@@ -388,8 +392,8 @@
     "en": "Ultra"
   },
   "director.panel_ultra_hint": {
-    "ru": "Лучшее, что умеют нейросети: максимальное качество картинки, ключевой кадр для каждой сцены, самый сильный музыкальный движок и подробные описания. Минута фильма может сниматься 2–3 часа. Выключите, и съёмка пойдёт в 2–3 раза быстрее (около часа на минуту).",
-    "en": "The best the models can do: the highest picture quality, a keyframe for every scene, the strongest music engine and detailed prompts. A minute of film can take 2-3 hours. Switch it off to shoot 2-3 times faster (about an hour for a minute)."
+    "ru": "Лучшее, что умеют нейросети: максимальное качество картинки, ключевой кадр для каждой сцены, самый сильный музыкальный движок и подробные описания. Минута фильма снимается около получаса, десять минут — около трёх часов. Выключите, и съёмка пойдёт примерно в полтора раза быстрее.",
+    "en": "The best the models can do: the highest picture quality, a keyframe for every scene, the strongest music engine and detailed prompts. A minute of film takes about half an hour, ten minutes about three hours. Switch it off to shoot about one and a half times faster."
   },
   "director.panel_plan_mode_ultra": {
     "ru": "Режим: Ультра (лучшее качество, долго)",
@@ -850,5 +854,65 @@
   "director.slot_character_other": {
     "ru": "Персонаж {0}",
     "en": "Character {0}"
+  },
+  "director.manager_cannot_resume": {
+    "ru": "Эту съёмку нельзя продолжить: она уже завершена, отброшена или ещё идёт",
+    "en": "This shooting cannot be continued: it is finished, given up or still running"
+  },
+  "director.manager_resume_materials_gone": {
+    "ru": "Съёмку нельзя продолжить: файлы её материалов уже убраны. Составьте план заново",
+    "en": "The shooting cannot be continued: the files of its materials have been removed. Write the plan again"
+  },
+  "director.run_note_resumed": {
+    "ru": "Съёмка продолжена: уже готовые шаги заново не снимались",
+    "en": "The shooting was continued: the steps that were already done were not shot again"
+  },
+  "director.run_note_film_is_shorter": {
+    "ru": "Фильм получился короче плана: {0} с вместо {1} с (клип одной из сцен вышел короче, чем нужно)",
+    "en": "The film came out shorter than planned: {0} s instead of {1} s (the clip of one scene was shorter than needed)"
+  },
+  "director.panel_resume_button": {
+    "ru": "Продолжить съёмку",
+    "en": "Continue the shooting"
+  },
+  "director.panel_discard_button": {
+    "ru": "Отказаться от съёмки",
+    "en": "Give up this shooting"
+  },
+  "director.panel_planning_look": {
+    "ru": "Gemma смотрит материалы: {0}–{1} из {2}",
+    "en": "Gemma is looking at the materials: {0}–{1} of {2}"
+  },
+  "director.panel_planning_plan": {
+    "ru": "Gemma пишет план: сцены {0}–{1} из {2}",
+    "en": "Gemma is writing the plan: scenes {0}–{1} of {2}"
+  },
+  "director.panel_planning_outline": {
+    "ru": "Gemma продумывает историю фильма: сцены {0}–{1} из {2}",
+    "en": "Gemma is working out the story of the film: scenes {0}–{1} of {2}"
+  },
+  "director.panel_planning_scenes": {
+    "ru": "Gemma описывает сцены {0}–{1} из {2}",
+    "en": "Gemma is describing scenes {0}–{1} of {2}"
+  },
+  "director.manager_disk_space_low": {
+    "ru": "На диске {0} мало места: свободно {1} ГБ, фильму нужно около {2} ГБ. Освободите место и начните съёмку снова",
+    "en": "Drive {0} is short of room: {1} GB free, the film needs about {2} GB. Free some space and start the shooting again"
+  },
+  "director.run_steps_done": {
+    "ru": "Готово шагов: {0} из {1}",
+    "en": "Steps done: {0} of {1}"
+  },
+  "director.run_steps_later": {
+    "ru": "и ещё шагов впереди: {0}",
+    "en": "and {0} more steps ahead"
+  },
+  "director.run_time_left": {
+    "ru": "Осталось примерно {0}",
+    "en": "About {0} left"
+  },
+  "director.run_resumable_hint": {
+    "ru": "Готовое сохранено: съёмку можно продолжить с того места, где она остановилась",
+    "en": "What is done is kept: the shooting can be continued from where it stopped"
   }
 }

@@ -2,8 +2,10 @@
 
 The **Озвучка / Voiceover** tab turns a long text into one audio file with a cloned voice: a pasted text or an EPUB, FB2, DOCX or
 TXT file becomes WAV, MP3 or an M4B audiobook with chapters. It is not limited to books: any text works, a text without headings is
-one part. Everything runs locally. Status of this phase: **TESTED ON OUR GPU with one short probe** (see "Measured"); the tab itself was
-driven only against a fake worker, and no long job has been run.
+one part. Everything runs locally. The dated measurements below include approximately one-hour objective runs from
+2026-10-28 using a synthetic Windows reference. They establish pipeline evidence, not natural human cloning or listening quality.
+Current preparation checks and short model comparisons are scoped separately in [Audio Preparation](VisualForge-Audio-Preparation.md).
+Publisher/community research, open donor references and opt-in VoxCPM2 delivery comparisons are in [Audio Presets](VisualForge-Audio-Presets.md).
 
 ## Flow
 
@@ -14,12 +16,18 @@ driven only against a fake worker, and no long job has been run.
    each, 24 MB together) that `voice-add` converts with ffmpeg to 24 kHz mono WAV and joins with 0.4 s of silence into one sample of at most 45 s (a
    single recording is cut at 30 s); it is stored with a JSON card (name, length, parts, SHA-256) in `UserData/Voiceover/Voices`. The user's name and a
    confirmation that they may use the voice are required. A transcript can only be given with a single recording. The sample never leaves the machine.
-   The card records the confirmation, the studio does not verify it.
-3. **Job.** `POST /api/voiceover/generate` validates the request, claims the GPU (`GPU.claim('voiceover', 4000)`), and starts one
-   owned worker process (`qwen_tts_worker.py`, in `Runtime/Video/python` with `voice-packages`, as the Video voice cloning does).
-4. **Assembly.** The manager joins the fragments with pauses (0.25 s between sentences, 0.6 s between paragraphs, 1.5 s between
-   chapters), normalizes loudness with `loudnorm` (I=-18, TP=-1.5) and encodes WAV (PCM 16), MP3 (96 kbit/s) or M4B (AAC 64 kbit/s with
-   chapter marks from the real fragment lengths). The result is published to the output folder with a JSON sidecar.
+   The card records the confirmation, the studio does not verify it. New samples retain original uploaded bytes alongside the
+   derived sample. A single recording with a transcript must fit 30 seconds; it is refused before trimming can misalign that transcript.
+3. **Job.** `POST /api/voiceover/generate` validates and admits a background job. A separate delivery request is classified by
+   Gemma, then Text is released before the engine's GPU admission (4,000 MB Qwen; 9,000 MB VoxCPM2). Empty delivery preserves
+   neutral pacing without loading Gemma. The selected engine runs in its owned worker; narration never passes through Gemma.
+   Optional `style_control` (off by default) enables a bounded style enum only for VoxCPM2 reference-only cloning; the worker serializes
+   the publisher's trained conditioning prefix separately from stored narration. Qwen and transcript continuation cannot use it.
+   The checkbox is disabled for transcribed references; changing engine/reference preserves the user's delivery field.
+4. **Assembly.** Default gaps are 0.25 s between sentences, 0.6 s between paragraphs and 1.5 s between chapters; validated
+   delivery plans can choose the conservative alternatives in Audio Preparation. The manager applies `loudnorm` (I=-18, TP=-1.5)
+   and the final limiter, then encodes WAV (PCM 16), MP3 (96/128 kbit/s) or M4B (AAC 64/96 kbit/s, depending on sample rate).
+   Chapter marks use actual fragment lengths and selected gaps. The result and provenance sidecar go to the selected output folder.
 
 ## Engines
 
@@ -190,7 +198,7 @@ The banner's Stop button cancels it; Stop keeps the finished fragments. Event hi
 - Two engines (see "Engines"). Qwen3-TTS 0.6B Base is used in speaker-embedding mode (no transcript of the sample). A Qwen3-TTS 1.7B model and other engines
   (MOSS-TTS v1.5, Chatterbox V3) are candidates, not integrated.
 - Languages offered are those of the Qwen3-TTS API; only Russian is the target of this work.
-- Timbre and pace stability over an hour, stress marks and numbers are **not measured**.
+- Historical hour-long objective measurements are recorded below; perceptual continuity, stress marks and general numeric accuracy remain unqualified.
 
 ## Tests
 
@@ -218,8 +226,8 @@ sample was synthesized with the Windows «Irina» voice, so **cloning a real hum
 
 Findings: «в т.ч.» was read as «в течеич», so abbreviations need a rule or the dictionary; Whisper's own 30-second chunking
 dropped a sentence when the whole file was transcribed at once (19 % apparent errors), so verification must work per fragment, as planned.
-The probe file is `UserData/Results/Voiceover/Probe - 0893d2bb….m4b` (a Windows voice, kept for listening). Listening quality was judged only
-by measurement, not by ear.
+The probe file is `UserData/Results/Voiceover/Probe - 0893d2bb….m4b` (a Windows voice, kept for listening). Only objective
+measurements were made; this historical probe has no listening-based quality assessment.
 
 ## Speed: batched synthesis (2026-10-28)
 
@@ -374,11 +382,29 @@ how often the guessed endings are wrong in a real book, are not measured.
   Repairs by re-synthesis do not fix a *systematic* mispronunciation (abbreviations, numbers); the dictionary or the text must change.
 - Ordinary prose had 0-9 % wrong words per fragment and was not flagged. Recognition itself errs («помарок» heard as «поморок»), which is why the page asks to listen first.
 
+## Current preparation and evidence scope
+
+[VisualForge-Audio-Preparation](VisualForge-Audio-Preparation.md) describes the automatic, separate Gemma delivery classifier,
+its real pacing controls, preserved narration/reference originals, cache/resume behavior and model-specific limits (2026-11-06).
+English direction never reaches synthesis. Default pacing is unchanged; alternate gaps are not qualified as more natural.
+Named-month dates now use a bounded ordinal rule; numeric dates and general numeral case agreement remain incomplete.
+
+[recorded] The section above documents a 58–59 minute synthetic-Windows-reference run for **each** engine on 2026-10-28,
+including fragment checks, M4B chapters and Qwen resume. Earlier statements that only 28 minutes or one minute had been
+measured were stale. This is historical objective evidence; it was not rerun by the preparation work. Embedding stability
+and ASR accuracy do not establish perceptual timbre continuity or naturalness.
+
 ## Not verified
 
-A text of an hour or more (28 minutes were measured for each engine), listening quality (only measurements so far), VoxCPM2 with a cloned human voice or with a transcript of a real
-sample, a cold first compilation of VoxCPM2 on another machine, a clean install of the VoxCPM2 components through the installer (the catalog entry and its hashes are checked by tests, the
-download was done by hand), repair rounds that actually fixed a random glitch (none was observed in the real runs),
-a human voice, the tab driven by a real worker, a voice cloned from a human recording, any text longer than one minute (timbre and pace stability over
-an hour), numbers beyond one example, stress marks, M4B playback in an external player, and that the installed EXE shows the tab
-(the throw-away bridge and the in-app browser were used).
+[unknown] Natural cloning from a clean human recording, listening-based A/B quality, new pacing profiles across real joins,
+texts longer than the recorded approximately one-hour runs, general dates/numeral agreement, stress-sensitive names,
+external M4B-player behavior, cold compilation on another machine and a clean installer execution. Historical synthetic
+references and objective metrics cannot answer those questions. Preparation unit tests and the UI stand use fake inference;
+the separately approved short real-model results are recorded in [Audio Preparation](VisualForge-Audio-Preparation.md).
+
+[GPU/recorded, 2026-11-06] New short A/B used the existing designed warm-woman voice, three Russian fragments and two chapters.
+Both models reused exactly the same synthesized fragments/ASR verdicts for the prepared version; only inserted gaps changed,
+shortening each file by .45 s. The owner listened to level-matched comparisons and preferred the new gaps on both engines.
+This is scoped evidence for conversational boundary timing, not a new assessment of timbre, emotion or human-reference cloning.
+The agent measured, but did not listen. Real histories/players were also checked through a read-only test bridge; histories
+now identify the engine and the ASR summary says “flagged for review” rather than asserting the remaining audio is wrong.

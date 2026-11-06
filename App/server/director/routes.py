@@ -2,6 +2,7 @@
 
     GET  /api/director/draft?id=<draft>     the attachments of a film draft and the running time that suits them
     GET  /api/director/status?id=<run>      the state of a shooting (without an id: the latest one)
+    GET  /api/director/planning             where the plan being written has come to (stage, first and last scene, scenes in all)
     GET  /api/director/media?draft=<id>&number=<n>   an attachment as it is kept (the page plays songs and voice samples, shows pictures), with byte ranges
     POST /api/director/attach?draft=<id>&group=<group>&name=<file name>[&consent=1]   raw file bytes (a video or a song streams to disk); a voice needs consent=1
     POST /api/director/detach  {draft, number}
@@ -9,6 +10,8 @@
     POST /api/director/plan    {draft, prompt, seconds, scenes, orientation?, quality?, language?}
     POST /api/director/start   {draft, plan, prompt, seconds, scenes}
     POST /api/director/cancel  {id}
+    POST /api/director/resume  {id}    continue a film that failed, was stopped or was interrupted, from the steps that are done
+    POST /api/director/discard {id}    give such a film up: its scene clips leave the Video history and its files are removed
 """
 from ui_strings import source as ui_text
 from urllib.parse import parse_qs, unquote
@@ -43,6 +46,8 @@ def handle_get(handler, manager, route, query):
         return _answer(handler, lambda: manager.draft(ident))
     if route == 'status':
         return _answer(handler, lambda: manager.status(ident or None))
+    if route == 'planning':
+        return _answer(handler, manager.planning_state)
     if route == 'media':
         try:
             path, kind = manager.media_file(params.get('draft', [''])[0], int(params.get('number', ['0'])[0]))
@@ -64,6 +69,10 @@ def handle_post(handler, manager, route, data):
         return _answer(handler, lambda: manager.start(data.get('draft'), data.get('plan'), request))
     if route == 'cancel':
         return _answer(handler, lambda: manager.cancel_run(data.get('id')))
+    if route == 'resume':
+        return _answer(handler, lambda: manager.resume(data.get('id')))
+    if route == 'discard':
+        return _answer(handler, lambda: manager.discard(data.get('id')))
     if route == 'detach':
         return _answer(handler, lambda: manager.detach(data.get('draft'), data.get('number')))
     if route == 'label':

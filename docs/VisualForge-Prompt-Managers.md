@@ -1,4 +1,4 @@
-# Prompt managers: Video, Image and remaining audio drafts
+# Prompt managers: Video, Image, Music and Voiceover
 
 Video already has the working example: `App/server/video/video_prompt_enhancer.py`. `GUIDES[engine][mode][variant]` holds a separate instruction for each supported pair;
 `DEFAULT_VARIANT` chooses the version justified by the recorded comparisons. A single universal caption is not a substitute for these instructions. The manager passes
@@ -59,41 +59,32 @@ The manager still fails the generation when two answers are invalid; the origina
 
 Another real response omitted a compatible apple edit. The first guard demanded a verbatim caption opening, but a later real choice used fragments (`blue jacket`, `green apples`): a faithful fluent paraphrase was rejected twice. Code now retains every selected outcome at the beginning; when a candidate paraphrases them, a bounded text-only pass reconciles the remaining caption and removes contradictory preservation clauses. Existing literal, reference and length checks still apply. This preserves prompt contents, not guaranteed image adherence. RU labels and the two-question cap were verified on Qwen 2.1; a 2511 combined choice executed both edits. The real Qwen repeat used one question with independent jacket/apple groups: choices 2,5 produced a blue jacket and all three green apples, retaining the face, hands, blue mug and readable "УТРО". No extra question followed compatible choices. Software regressions include the fragment failure and cancellation.
 
-## Remaining drafts (not connected)
+## Music and Voiceover: active audio preparation
 
-| Section | File | Draft scope and protected data |
-|---|---|---|
-| Music | `App/server/music/music_prompt_enhancer.py` | ACE-Step and MiniMax instrumental/song modes; Stable Audio's audio mode. The English output is a musical caption; lyrics and vocal language remain separate and verbatim. |
-| Voiceover | `App/server/voiceover/voiceover_prompt_enhancer.py` | One `speech` draft per current engine. The proposed English output is separate delivery guidance; source text, sample transcript, language and pronunciation dictionary remain verbatim. |
+`music/music_prompt_enhancer.py` and `voiceover/voiceover_prompt_enhancer.py` now subclass the active bounded
+`audio_preparation.AudioPromptManager`, using GemmaTask and distinct model/mode guides. Music owns the final caption
+consumed by all three backends. Lyrics stay separate and unchanged; explicitly authorized lyric writing has separate
+content-creation provenance. Voiceover maps a delivery request to validated segmentation and assembly pauses; it never
+sends narration through Gemma or inserts English guidance into TTS. Unsupported performance controls are explained.
 
-The common scaffold is `App/server/prompt_template.py`. Each section has its own `PromptEnhancer`, Text `OWNER`, planned event name, model rules, mode rules, output field
-and context contract. `GUIDE_TEMPLATE` and the language policy build reviewable system instructions; `draft()` prepares messages without inference or persistence.
+Preparation belongs to the cancellable background Music/Voiceover job. Text and audio inference are sequential, the
+submission lock does not span an answer, and Director admission context survives the thread hop. The two technical
+operations are registered with RU/EN labels. Both histories and sidecars retain model/guide/control provenance.
+Voiceover reuses accepted delivery decisions for resume, separately from synthesized-fragment caching.
 
-Music and Voiceover report `available=False`, `state="template"`; `supported()` is false and `enhance()` raises `NotImplementedError` before any GPU claim or model call.
-Their planned event names remain unregistered. All current Image pairs are active; unknown model/mode pairs are rejected before inference. Text and Agent have no new manager.
-The remaining drafts are an implementation starting point, not verified prompt-quality improvements.
+[VisualForge-Audio-Preparation](VisualForge-Audio-Preparation.md) records the exact schema, pacing table, source research,
+explicit-control precedence, protection rules, scoped real GPU results, owner pacing A/B feedback and remaining qualification. The inactive
+`prompt_template.py` remains a draft utility; audio managers explicitly override readiness and inference.
 
-Example for inspecting prepared instructions without loading a model (this is not a Gemma answer):
-
-```python
-from engines.image_prompt_enhancer import PromptEnhancer
-
-manager = PromptEnhancer(None, None)
-draft = manager.draft(
-    'Нарисуй кафе с надписью «КОФЕ У ПЕТРА»',
-    'qwen-edit-2511', 'prompt',
-    context={'lettering': 'КОФЕ У ПЕТРА', 'canvas': 'landscape'},
-)
-# draft['messages'] contains the English system instruction and the unchanged request/context.
-```
-
-## Existing features that the drafts do not replace
+## Related features
 
 * Qwen Image 2.1's optional native T2I/I2I expansion and Klein's native upsampler remain available to direct tooling, recorded as `ImagePromptExpansion`.
   The studio's active Gemma paths bypass them. Each route must have exactly one final-prompt owner.
 * ACE-Step's optional 0.6B planner is a music-specific generation stage, not Gemma rewriting the user's caption.
-* Voiceover's normalization, pronunciation dictionaries and Whisper verification prepare/check speech. They are not prompt expansion. The installed Qwen Base and VoxCPM2
-  cloning workers have no general style-prompt field: English guidance must never be concatenated with the spoken text. VoxCPM2 Voice Design is a separate built-in-voice workflow.
+* Voiceover's normalization, pronunciation dictionaries and Whisper verification prepare/check speech. They are not prompt expansion. Qwen Base and VoxCPM2 transcript
+  continuation have no arbitrary style instruction. VoxCPM2 reference-only cloning has an opt-in trained prefix adapter with a validated style enum;
+  it is serialized only at the worker boundary, separately from saved narration. Voice Design remains a separate built-in-voice workflow.
+  See [Audio Presets](VisualForge-Audio-Presets.md) for publisher confirmation, community scope, open sample sources and current tests.
 
 ## Activation checklist
 
@@ -106,5 +97,6 @@ draft = manager.draft(
    preview, if used, must reject stale results after a model/mode/reference change. Add RU/EN strings. For Voiceover, first define
    a supported adapter contract for the separate guidance; no unsupported engine controls or automatic rewriting of the narration.
 
-CPU checks in `tests/test_prompt_templates.py` cover the guide matrix against current registries, distinct guides, shared language rules, exact preparation of Russian data,
-unknown-pair rejection and the guarantee that inactive managers never call Text/GPU. They do not establish the quality of a future Gemma rewrite.
+CPU checks in `tests/test_prompt_templates.py` cover the guide matrix, language rules and pure drafting.
+`tests/test_audio_preparation.py` and Voiceover integration tests cover active audio preparation, actual backend consumption,
+text protection, bounded failures, cancellation and cache reuse. Fake Text/audio does not establish real model quality.

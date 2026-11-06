@@ -2,8 +2,9 @@
 (() => {
   'use strict';
   const el = id => document.getElementById(id);
-  const fields = ['Engine','Caption','Lyrics','Mode','Duration','Bpm','Language','Seed','Planner'];
+  const fields = ['Engine','Caption','Lyrics','Mode','Duration','Bpm','Language','Seed','Planner','WriteLyrics'];
   const draftKey = 'visualforge.music.draft.v1';
+  let submitting = false;
   let active = null, selected = '', playing = '', available = false, timer = null, polling = false, profiles=[];
   const defaultGuide=StudioI18n.t("music.default_guide_start_genre_mood_add_2_3");
   function capabilities() {
@@ -29,7 +30,8 @@
     el('musicPlannerBlock').hidden=!caps.planner;el('musicPlannerHint').hidden=!caps.planner;
     el('musicPlanner').disabled=!profile.planner;
     StudioI18n.bind(el('musicPlannerHint'), "textContent", () => (profile.planner?StudioI18n.t("music.planner_hint_ace_step_helps_structure_track_takes"):StudioI18n.t("music.planner_hint_mini_max_music3_uses_own_musical")), true);
-    buttons();header();
+    // Restored drafts are read before async capabilities arrive; re-evaluate song fields with the actual engine.
+    buttons();modes();
   }
   async function api(route, data) {
     const response = await fetch('/api/music/' + route, data === undefined ? {} : {
@@ -41,7 +43,7 @@
   }
   function draft() {
     const value = {};
-    for (const key of fields) value[key] = key === 'Planner' ? el('music'+key).checked : el('music'+key).value;
+    for (const key of fields) value[key] = ['Planner','WriteLyrics'].includes(key) ? el('music'+key).checked : el('music'+key).value;
     try { localStorage.setItem(draftKey, JSON.stringify(value)); } catch {}
   }
   function header() {
@@ -55,18 +57,20 @@
     header();
     const song = capabilities().lyrics && el('musicMode').value === 'song';
     el('musicLyricsBlock').hidden = !song;
-    el('musicLyrics').required = song;
+    el('musicSongPresets').hidden = !song;
+    el('musicWriteLyricsBlock').hidden = !song;
+    el('musicLyrics').required = song && !el('musicWriteLyrics').checked;
     el('musicLanguage').disabled = !song;
   }
   function restore(value) {
     for (const key of fields) if (Object.hasOwn(value, key)) {
-      if (key === 'Planner') el('music'+key).checked = value[key];
+      if (['Planner','WriteLyrics'].includes(key)) el('music'+key).checked = value[key];
       else el('music'+key).value = value[key];
     }
     modes();configureEngine();
   }
   function buttons() {
-    el('musicGenerate').disabled = !available || !!active;
+    el('musicGenerate').disabled = !available || !!active || submitting;
     el('musicCancel').disabled = !active;
   }
   function show(row) {
@@ -87,16 +91,30 @@
   }
   async function history() {
     const value = await api('history');
+    // Discard the old empty-state binding before adding cards: a later locale refresh must not erase them.
+    StudioI18n.value(el('musicHistory'), 'textContent', '', false);
     el('musicHistory').replaceChildren();
     if (!value.entries.length) StudioI18n.bind(el('musicHistory'), "textContent", () => (StudioI18n.t("music.history_generated_tracks_appear_here")), true);
     for (const row of value.entries.slice(0, 30)) {
       const card = document.createElement('div'); card.className = 'music-history-card';
       const title = document.createElement('p');
       StudioI18n.bind(title, "textContent", () => (StudioI18n.t("music.history_s_seed", [profiles.find(p=>p.id===row.engine)?.name || row.engine || 'ACE-Step 1.5 Turbo', {song:StudioI18n.t("music.generation_song_mode_label"),audio:StudioI18n.t("music.history_sound_music")}[row.mode] || StudioI18n.t("music.generation_instrumental_mode_label"), row.duration, row.seed, {done:StudioI18n.t("music.generation_completed_status_label"),error:StudioI18n.t("music.generation_failed_status_label"),cancelled:StudioI18n.t("music.generation_cancelled_status_label")}[row.state] || row.state])), true);
-      const caption = document.createElement('p'); StudioI18n.bind(caption, "textContent", () => (row.caption), true);
+      const caption = document.createElement('p'); StudioI18n.bind(caption, "textContent", () => (row.original_caption || row.caption), false);
+      if (row.preparation) {
+        const detail = document.createElement('details'), label = document.createElement('summary'), text = document.createElement('p');
+        StudioI18n.bind(label, 'textContent', () => StudioI18n.t('music.preparation_result_label'), true);
+        text.textContent = row.preparation.caption;
+        detail.append(label, text); card.append(detail);
+        if (row.preparation.lyric_creation) {
+          const lyrics = document.createElement('pre'); lyrics.textContent = row.preparation.lyric_creation.lyrics; detail.append(lyrics);
+        }
+        for (const warning of row.preparation.warnings || []) {
+          const note = document.createElement('p'); StudioI18n.bind(note, 'textContent', () => StudioI18n.remote(warning), true); card.append(note);
+        }
+      }
       const reuse = document.createElement('button'); reuse.type='button'; reuse.className='secondary'; StudioI18n.bind(reuse, "textContent", () => (StudioI18n.t("music.reuse_restore_settings")), true);
       reuse.onclick = () => {
-        restore({Engine:row.engine || 'ace-step-15-turbo',Caption:row.caption,Lyrics:row.lyrics,Mode:row.mode === 'audio' ? 'instrumental' : row.mode,Duration:row.duration,Bpm:row.bpm ?? '',Language:row.language,Seed:row.seed,Planner:row.planner}); draft();
+        restore({Engine:row.engine || 'ace-step-15-turbo',Caption:row.original_caption || row.caption,Lyrics:row.lyrics,Mode:row.mode === 'audio' ? 'instrumental' : row.mode,Duration:row.duration,Bpm:row.bpm ?? '',Language:row.language,Seed:row.seed,Planner:row.planner}); draft();
       };
       const journal = document.createElement('button'); journal.type='button'; journal.className='secondary'; StudioI18n.bind(journal, "textContent", () => (StudioI18n.t("music.journal_task_log")), true);
       journal.onclick = () => { selected=row.id; logs(); };
@@ -127,7 +145,8 @@
     polling = true;
     try {
       const row = await api('status?id='+encodeURIComponent(active.id));
-      StudioI18n.bind(el('musicStatus'), "textContent", () => (StudioI18n.t("music.poll_elapsed_s", [StudioI18n.remote(row.phase), row.elapsed_sec])), true);
+      StudioI18n.bind(el('musicStatus'), "textContent", () => (StudioI18n.t("music.poll_elapsed_s", [StudioI18n.remote(row.phase), row.elapsed_sec]) +
+        (row.preparation?.warnings?.length ? ' ' + row.preparation.warnings.map(value => StudioI18n.remote(value)).join(' ') : '')), true);
       if (['done','error','cancelled'].includes(row.state)) {
         active = null; clearInterval(timer); timer = null; buttons();
         if (row.state === 'done') show(row);
@@ -174,15 +193,17 @@
   for (const key of fields) el('music'+key).addEventListener('input', () => { modes(); if(key==='Engine'){configureEngine();if(!active)StudioI18n.bind(el('musicStatus'), "textContent", () => (available?StudioI18n.t("music.refresh_ready_generate"):StudioI18n.t("music.header_selected_model_unavailable")), true);} draft(); });
   try { restore(JSON.parse(localStorage.getItem(draftKey) || '{}')); } catch { modes(); }
   el('musicForm').onsubmit = async event => {
-    event.preventDefault(); if (active) return;
+    event.preventDefault(); if (active || submitting) return;
+    submitting = true;
     el('musicGenerate').disabled = true;
     StudioI18n.bind(el('musicStatus'), "textContent", () => (StudioI18n.t("music.generation_preparing_gpu_memory_status")), true);
     try {
       active = await api('generate', {engine:el('musicEngine').value, caption:el('musicCaption').value,
         lyrics:el('musicLyrics').value,mode:el('musicMode').value,duration:Number(el('musicDuration').value),
-        bpm:el('musicBpm').value,language:el('musicLanguage').value,seed:el('musicSeed').value,planner:el('musicPlanner').disabled?false:el('musicPlanner').checked});
+        bpm:el('musicBpm').value,language:el('musicLanguage').value,seed:el('musicSeed').value,write_lyrics:el('musicWriteLyrics').checked,planner:el('musicPlanner').disabled?false:el('musicPlanner').checked});
       selected=active.id; buttons(); timer=setInterval(poll,2000); poll();
-    } catch (error) { StudioI18n.bind(el('musicStatus'), "textContent", () => (StudioI18n.remote(error.message)), true); buttons(); StudioUI.notify({module:'Music',error:true,message:StudioI18n.remote(error.message),onLogs:()=>StudioUI.showLogs('Music','',logs)}); }
+    } catch (error) { StudioI18n.bind(el('musicStatus'), "textContent", () => (StudioI18n.remote(error.message)), true); StudioUI.notify({module:'Music',error:true,message:StudioI18n.remote(error.message),onLogs:()=>StudioUI.showLogs('Music','',logs)}); }
+    finally { submitting = false; buttons(); }
   };
   el('musicCancel').onclick = async () => {
     if (!active) return;
@@ -197,6 +218,15 @@
   el('musicChooseSaveDir').onclick=()=>window.chooseStudioFolder(el('musicSaveDir').value,saveFolder,el('musicChooseSaveDir'));
   el('musicOpenSaveDir').onclick=async()=>{try{await StudioUI.openFolder(el('musicSaveDir').value);}catch(e){StudioI18n.bind(el('musicOutputLocation'), "textContent", () => (StudioI18n.remote(e.message)), true);}};
   el('musicExample').onclick = () => {el('musicCaption').value='Warm cinematic ambient, gentle piano, soft strings, slow evolving melody, peaceful atmosphere, spacious stereo production.';draft();};
+  for (const [id, key] of [['CloseVocal', 'music.close_vocal_preset_request'], ['VerseChorus', 'music.verse_chorus_preset_request']]) {
+    el('music' + id + 'Preset').onclick = () => {
+      const input = el('musicCaption'), addition = StudioI18n.t(key);
+      if (input.value.includes(addition)) return;
+      const value = input.value.trim() + (input.value.trim() ? '\n' : '') + addition;
+      if (value.length > 2000) { StudioI18n.bind(el('musicStatus'), 'textContent', () => StudioI18n.t('music.validation_describe_music_1_2000_characters'), true); return; }
+      input.value = value; draft();
+    };
+  }
   el('musicRefreshLogs').onclick=logs;
   el('musicCopyLogs').onclick=async()=>{try{await navigator.clipboard.writeText(el('musicLogs').textContent);}catch{StudioI18n.bind(el('musicStatus'), "textContent", () => (StudioI18n.t("music.task_log_clipboard_copy_failed_hint")), true);}};
 })();

@@ -6,8 +6,12 @@
 (() => {
   const root = document.getElementById('directorPanel');
   if (!root) return;
-  const MIN_SECONDS = 5, MAX_SECONDS = 300, MIN_SCENES = 2, SCENES_PER_MINUTE = 5;
+  const MIN_SECONDS = 5, MAX_SECONDS = 900, MIN_SCENES = 2, SCENES_PER_MINUTE = 5;
   // The same rule as `scene_range` in App/server/director/plan_rules.py: two scenes below a minute (level 0), then from one for every minute (a scene lasts a minute at most) up to five.
+  // How long a scene is when nobody chose the number of scenes: a scene of about this many seconds (the advice on running time counts the same). The least number of scenes (a minute each)
+  // would make a film of ten minutes ten long takes.
+  const SCENE_PACE = 15;
+  let scenesTouched = false;
   const sceneRange = seconds => seconds < 60 ? [MIN_SCENES, MIN_SCENES] : [Math.max(MIN_SCENES, Math.ceil(seconds / 60)), Math.max(MIN_SCENES, Math.floor(seconds * SCENES_PER_MINUTE / 60))];
   const DRAFT_KEY = 'visualforge.director.draft.v1', CONSENT_KEY = 'visualforge.director.consent.v1', ULTRA_KEY = 'visualforge.director.ultra.v1';
   const TRANSITIONS = ['cut', 'fade', 'dissolve', 'fadeblack', 'wipeleft', 'slideright', 'circleopen', 'smoothleft'];
@@ -220,6 +224,7 @@
     const [fewest, most] = sceneRange(known ? seconds : MIN_SECONDS);
     scenesInput.min = fewest; scenesInput.max = most; scenesInput.readOnly = fewest === most;
     if (fewest === most) scenesInput.value = fewest;
+    else if (!scenesTouched) scenesInput.value = Math.min(most, Math.max(fewest, Math.round(seconds / SCENE_PACE)));          // the person has not chosen: a scene of about fifteen seconds
     else if (settle || Number(scenesInput.value) > most) scenesInput.value = Math.min(most, Math.max(fewest, Math.round(Number(scenesInput.value) || fewest)));
     secondsText.textContent = known ? '= ' + clock(seconds) : '';
     if (!known) {say(sceneHint, 'director.panel_seconds_range', [MIN_SECONDS, MAX_SECONDS]); renderAdvice(); return;}
@@ -235,7 +240,7 @@
     const seconds = Number(secondsInput.value), valid = Number.isFinite(seconds) && seconds >= MIN_SECONDS;
     const inside = valid && seconds >= advice.low && seconds <= advice.high;
     const apply = say(h('button', {type: 'button', class: 'secondary', id: 'directorAdviceApply'}), 'director.panel_advice_apply', [clock(advice.ideal)]);
-    apply.onclick = () => {secondsInput.value = advice.ideal; syncFields(true); scenesInput.value = advice.scenes; syncFields(true);};      // the second pass keeps the scenes inside what the length allows
+    apply.onclick = () => {scenesTouched = true; secondsInput.value = advice.ideal; syncFields(true); scenesInput.value = advice.scenes; syncFields(true);};      // the second pass keeps the scenes inside what the length allows
     const reasons = h('ul', {class: 'director-reasons'}, ...advice.reasons.filter(reason => ADVICE.includes(reason.code)).map(reason => say(h('li'), 'director.panel_advice_' + reason.code, adviceValues(reason))));
     adviceBox.replaceChildren(advice.low === advice.high ? say(h('strong'), 'director.panel_advice_exact', [clock(advice.low)]) : say(h('strong'), 'director.panel_advice_range', [clock(advice.low), clock(advice.high)]), ' ',
                               valid ? say(h('span', {class: inside ? 'ok' : 'warn'}), inside ? 'director.panel_advice_inside' : 'director.panel_advice_outside', [clock(seconds)]) : h('span'),
@@ -244,10 +249,19 @@
   }
   secondsInput.addEventListener('input', () => syncFields(false));
   secondsInput.addEventListener('change', () => syncFields(true));
-  scenesInput.addEventListener('change', () => syncFields(true));
+  scenesInput.addEventListener('input', () => {scenesTouched = true;});
+  scenesInput.addEventListener('change', () => {scenesTouched = true; syncFields(true);});
   syncFields(true);
 
   // ---------- the plan ----------
+  // Where a plan of many scenes has come to (it takes minutes): the server says which part Gemma is writing, the page tells the person.
+  const PLANNING = {look: 'director.panel_planning_look', plan: 'director.panel_planning_plan', outline: 'director.panel_planning_outline', scenes: 'director.panel_planning_scenes'};
+  async function watchPlanning() {
+    try {
+      const state = await api('planning');
+      if (working && PLANNING[state.stage]) say(planStatus, PLANNING[state.stage], [state.first, state.last, state.total]);
+    } catch {/* the next look will do */}
+  }
   async function makePlan() {
     syncFields(true);
     const body = {draft, prompt: promptBox.value.trim(), seconds: Number(secondsInput.value), scenes: Number(scenesInput.value), language: language(),
@@ -255,9 +269,10 @@
     if (!body.prompt) {say(planStatus, 'director.panel_enter_idea'); return;}
     working = true; planButton.disabled = true; planBox.hidden = true;
     say(planStatus, 'director.panel_planning_status');
+    const watching = setInterval(watchPlanning, 2000);
     try {plan = await api('plan', body); renderPlan(body); say(planStatus, 'director.panel_plan_ready');}
     catch (error) {report(planStatus, error);}
-    finally {working = false; planButton.disabled = false;}
+    finally {clearInterval(watching); working = false; planButton.disabled = false;}
   }
   planButton.onclick = makePlan;
 
@@ -372,6 +387,7 @@
   const STEP_KEYS = {speech: 'director.step_speak_voice', keyframe: 'director.step_scene_keyframe', scene: 'director.step_shoot_scene', music: 'director.step_compose_music',
                      assemble: 'director.step_edit_assemble', mix: 'director.step_mix_music'};
   const MARKS = {pending: '○', running: '◐', done: '✓', failed: '✗', skipped: '–'};
+  const COMPACT_STEPS = 14, NEXT_STEPS = 4;
   function stepLabel(step) {
     if (step.kind !== 'speech') return say(h('span'), STEP_KEYS[step.kind], [step.index]);
     const item = items.find(row => row.number === step.index), own = run.materials?.[step.index], node = h('span');
@@ -379,19 +395,36 @@
     StudioI18n.bind(node, 'textContent', () => StudioI18n.t(STEP_KEYS.speech, [item ? titleOf(item) : own ? own.label || own.name : '#' + step.index]), true);
     return node;
   }
-  let shown = '', bar = null;
+  let shown = '', bar = null, etaNode = null;
+  // The time left is told under the bar and moves in place (the box itself is rebuilt only when a step changes).
+  function showEta() {
+    if (!etaNode) return;
+    const left = run && run.state === 'running' && Number.isFinite(run.eta_seconds) ? run.eta_seconds : null;
+    etaNode.hidden = left === null;
+    if (left !== null) say(etaNode, 'director.run_time_left', [clock(left)]);
+  }
   function renderRun() {
     if (!run || !run.steps) {runBox.hidden = true; shown = ''; return;}
     // The poll repeats every two seconds. A box rebuilt each time takes the keyboard focus away from the Stop button and drops a click that begins before and ends after the rebuild,
     // so it is rebuilt only when something it shows has changed; the bar moves in place.
-    const signature = JSON.stringify([run.id, run.state, run.phase, run.error, run.notes, run.steps.map(step => step.state), items.map(row => [row.number, row.label, row.name])]);
-    if (signature === shown && bar) {bar.value = run.progress || 0; return;}
+    const signature = JSON.stringify([run.id, run.state, run.phase, run.error, run.notes, run.resumable, run.steps.map(step => step.state), items.map(row => [row.number, row.label, row.name])]);
+    if (signature === shown && bar) {bar.value = run.progress || 0; showEta(); return;}
     shown = signature;
     const running = !FINISHED.includes(run.state);
     const stop = say(h('button', {type: 'button', class: 'secondary', disabled: !running}), 'director.panel_stop_button');
     stop.dataset.allowBusy = '1';
     stop.onclick = async () => {stop.disabled = true; try {await api('cancel', {id: run.id});} catch (error) {stop.disabled = false; report(planStatus, error);}};
-    const list = h('ol', {class: 'director-steps'}, ...run.steps.map(step => h('li', {class: step.state}, h('span', {class: 'director-mark', textContent: MARKS[step.state] || '○'}), stepLabel(step))));
+    const line = step => h('li', {class: step.state}, h('span', {class: 'director-mark', textContent: MARKS[step.state] || '○'}), stepLabel(step));
+    // A film of fifty scenes has sixty steps: past `COMPACT_STEPS` the finished ones are counted in one line, the step in progress and the next ones are listed and the rest is counted again.
+    let rows = run.steps.map(line);
+    if (run.steps.length > COMPACT_STEPS) {
+      const finished = run.steps.filter(step => step.state === 'done' || step.state === 'skipped').length;
+      const open = run.steps.filter(step => step.state !== 'done' && step.state !== 'skipped');
+      const shown = open.slice(0, NEXT_STEPS), later = open.length - shown.length;
+      rows = [...(finished ? [h('li', {class: 'done'}, h('span', {class: 'director-mark', textContent: MARKS.done}), say(h('span'), 'director.run_steps_done', [finished, run.steps.length]))] : []),
+              ...shown.map(line), ...(later > 0 ? [h('li', {class: 'pending'}, h('span', {class: 'director-mark', textContent: '…'}), say(h('span'), 'director.run_steps_later', [later]))] : [])];
+    }
+    const list = h('ol', {class: 'director-steps'}, ...rows);
     const phase = h('p', {class: 'muted'});
     StudioI18n.bind(phase, 'textContent', () => StudioI18n.remote(run.phase || ''), true);
     const outcome = h('p', {class: 'status'});
@@ -402,7 +435,23 @@
     bar = h('progress', {max: 1, value: run.progress || 0});
     const open = say(h('button', {type: 'button', hidden: run.state !== 'done'}), 'director.run_open_film');
     open.onclick = () => window.dispatchEvent(new CustomEvent('visualforge:director-done', {detail: {id: run.result.id}}));
-    runBox.replaceChildren(say(h('h3'), 'director.run_section_title'), bar, list, phase, outcome, notes, h('div', {class: 'actions'}, stop, open));
+    // A film that failed, was stopped or was interrupted by a closed studio keeps what its finished steps made (voices, keyframes, scene clips, the track): it is continued from there.
+    const again = say(h('button', {type: 'button', id: 'directorResume', hidden: !run.resumable}), 'director.panel_resume_button');
+    again.onclick = async () => {
+      again.disabled = true;
+      try {run = await api('resume', {id: run.id}); announced = ''; shown = ''; planBox.hidden = true; renderRun(); keepPolling();}
+      catch (error) {again.disabled = false; report(planStatus, error);}
+    };
+    const giveUp = say(h('button', {type: 'button', class: 'secondary', hidden: !run.resumable}), 'director.panel_discard_button');
+    giveUp.onclick = async () => {
+      giveUp.disabled = true;
+      try {await api('discard', {id: run.id}); run = null; shown = ''; renderRun(); if (plan && planBox.children.length) planBox.hidden = false;}
+      catch (error) {giveUp.disabled = false; report(planStatus, error);}
+    };
+    const hint = run.resumable ? say(h('p', {class: 'muted'}), 'director.run_resumable_hint') : h('span');
+    etaNode = h('p', {class: 'muted', hidden: true});
+    runBox.replaceChildren(say(h('h3'), 'director.run_section_title'), bar, etaNode, list, phase, outcome, hint, notes, h('div', {class: 'actions'}, stop, again, giveUp, open));
+    showEta();
     runBox.hidden = false;
   }
   async function pollOnce() {
@@ -423,6 +472,7 @@
     try {
       const latest = await api('status');
       if (latest.state === 'running') {run = latest; announced = ''; renderRun(); keepPolling();}
+      else if (latest.resumable) {run = latest; announced = latest.id; renderRun();}           // a film that stopped (also across a restart of the studio) is offered for continuation
     } catch {/* the panel works without a film in progress */}
   }
 

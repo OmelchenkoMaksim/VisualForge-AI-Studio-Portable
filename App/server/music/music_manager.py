@@ -2,7 +2,6 @@
 from ui_strings import source as ui_text
 import atexit
 from collections import deque
-import json
 import hashlib
 import os
 from pathlib import Path
@@ -17,6 +16,7 @@ from .comfy_backend import Cancelled, ComfyBackend, ComfyError
 from .music_registry import ENGINE, ENGINES, get_engine, validate
 from .music_storage import publish, read_json, resolve_path, stored_path, write_json
 from video.owned_processes import OwnedJob
+from audio_preparation import AudioPreparationCancelled, job_thread, stop_preparation
 
 TERMINAL = ('done', 'error', 'cancelled')
 
@@ -32,6 +32,7 @@ class MusicManager:
         self.history_file = paths.settings / 'music-history.json'
         self.lock = threading.RLock()
         self.active = None
+        self.prompt_enhancer = None
         self.process = None
         self.owned = None
         self.comfy = ComfyBackend(paths)  # Stable Audio runs in the Image ComfyUI; the bridge attaches the connection
@@ -146,7 +147,7 @@ class MusicManager:
                 root,models,_=self.engine_paths(request['engine'])
                 write_json(directory / 'request.json', {'runtime': str(root), 'models': str(models), 'request': request})
             self.active = row
-            threading.Thread(target=self._run, args=(row, directory), daemon=True).start()
+            job_thread(self, row, directory).start()
             return self.public(row, include_token=True)
 
     def public(self, row, include_token=False):
@@ -242,6 +243,7 @@ class MusicManager:
                 raise ValueError(ui_text('music.cancel_invalid_music_task_cancellation_key'))
             if row['state'] not in TERMINAL:
                 row['cancel_requested'] = True
+                stop_preparation(self)
                 row['phase'] = ui_text('music.wait_cancelling_music')
                 if self.owned:
                     self.owned.close()
@@ -288,8 +290,27 @@ class MusicManager:
         return env
 
     def _run(self, row, directory):
-        engine_record = generation_begin('MusicModelGeneration', parent_id=(row.get('generation') or {}).get('id'))
+        engine_record = None
         try:
+            if self.prompt_enhancer:
+                enhancer = self.prompt_enhancer
+                row.update(preparing_prompt=True, phase=ui_text('music.preparation_phase_label'))
+                try:
+                    result = enhancer.prepare(row, cancelled=lambda: bool(row.get('cancel_requested')))
+                finally:
+                    row['preparing_prompt'] = False
+                row.update(original_caption=row['caption'], caption=result['caption'], preparation=result)
+                if result.get('lyric_creation'):
+                    row.update(original_lyrics=row['lyrics'], lyrics=result['lyric_creation']['lyrics'])
+                with enhancer.lock:
+                    if row.get('cancel_requested'):
+                        raise AudioPreparationCancelled()
+                    from .music_registry import claim_vram_mb
+                    enhancer.gpu.claim('music', claim_vram_mb(get_engine(row['engine']), row))
+                if row['backend'] == 'worker':
+                    root, models, _ = self.engine_paths(row['engine'])
+                    write_json(directory / 'request.json', dict(runtime=str(root), models=str(models), request=validate(row)))
+            engine_record = generation_begin('MusicModelGeneration', parent_id=(row.get('generation') or {}).get('id'))
             if row.get('backend') == 'comfy':
                 self._run_comfy(row, directory)
                 return
@@ -343,6 +364,8 @@ class MusicManager:
                     generation_finish(row.get('generation'))
                     target = publish(source, resolve_path(row['save_dir'], self.paths.root), self.public(row), self.paths.root)
                     row.update(filename=target.name, output=stored_path(target, self.paths.root))
+        except AudioPreparationCancelled:
+            row.update(state='cancelled', phase=ui_text('music.generation_cancelled_status_label'))
         except Exception as exc:
             with self.lock:
                 row.update(state='error', phase=ui_text('music.run_music_error'), error=str(exc)[:2000])
@@ -424,6 +447,7 @@ class MusicManager:
             self.closing = True
             if self.active and self.active['state'] not in TERMINAL:
                 self.active['cancel_requested'] = True
+                stop_preparation(self)
             if self.owned:
                 self.owned.close()
             elif self.process and self.process.poll() is None:

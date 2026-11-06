@@ -85,7 +85,7 @@ class PanelTests(unittest.TestCase):
         formula = re.search(r'const sceneRange = [^\n]+', SCRIPT)
         self.assertTrue(constants and formula, 'the page formula moved: update this test together with director-panel.js')
         self.assertEqual(tuple(map(int, constants.groups())), (rules.MIN_SECONDS, rules.MAX_SECONDS, rules.MIN_SCENES, rules.SCENES_PER_MINUTE))
-        program = constants.group(0) + formula.group(0) + '; console.log(JSON.stringify(Array.from({length: 300}, (_, i) => sceneRange(i + 1))));'
+        program = constants.group(0) + formula.group(0) + '; console.log(JSON.stringify(Array.from({length: %d}, (_, i) => sceneRange(i + 1))));' % rules.MAX_SECONDS
         answer = subprocess.run([shutil.which('node'), '-e', program], capture_output=True, text=True, check=True, timeout=30)
         page = json.loads(answer.stdout)
         for seconds in range(rules.MIN_SECONDS, rules.MAX_SECONDS + 1):

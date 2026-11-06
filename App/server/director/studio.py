@@ -174,9 +174,20 @@ class Studio:
             raise DirectorError(row.get('error') or ui_text('director.studio_music_failed'))
         return ident
 
+    def _video_service(self):
+        """Make sure the Video service is running. It starts with the first Video job; a film that is continued after a restart of the studio with nothing but its assembly left has had no
+        job, and its registration found nobody to talk to (seen on 2026-11-06 after forty scenes of a film of ten minutes were shot)."""
+        start = getattr(self.video, 'start', None)
+        if start is not None:
+            try:
+                start()
+            except ValueError as error:
+                raise DirectorError(str(error)) from None
+
     def register(self, film):
         """The assembled film becomes an entry of the Video history (a call into the Video service, not a page route)."""
         try:
+            self._video_service()
             return self.video.call('/register', film, timeout=600)
         except (urllib.error.URLError, OSError, ValueError) as error:
             raise DirectorError(ui_text('director.studio_register_failed', error)) from None
@@ -233,8 +244,9 @@ class Studio:
     def forget_clip(self, ident):
         """Remove a finished clip from the Video history with its file (the scene clips are only material of the film)."""
         try:
+            self._video_service()
             self.video.call('/delete', dict(id=ident), timeout=120)
-        except (urllib.error.URLError, OSError, ValueError):
+        except (urllib.error.URLError, OSError, ValueError, DirectorError):
             pass            # a leftover scene clip is harmless; it never fails a finished film
 
 

@@ -80,7 +80,12 @@ def handle(handler, manager, gpu, route, data, query):
                 return handler.response_json(503, {'error': state['reason']})
             try:
                 # Refuses while Image/Video/Music/Text work; frees idle Image models and the chat model.
-                gpu.claim('voiceover', ENGINES[request['engine']]['claim_vram_mb'])
+                enhancer = getattr(manager, 'prompt_enhancer', None)
+                if enhancer and request['delivery'].strip():
+                    readiness = enhancer.status()
+                    if not readiness['available']:
+                        return handler.response_json(503, {'error': readiness['reason']})
+                gpu.claim('voiceover', 0 if enhancer else ENGINES[request['engine']]['claim_vram_mb'])
             except Busy as error:
                 return handler.response_json(409, {'error': str(error)})
             except GpuUnavailable as error:

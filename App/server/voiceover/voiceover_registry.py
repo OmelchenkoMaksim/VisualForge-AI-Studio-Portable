@@ -77,7 +77,11 @@ def validate(data):
         if row[0]:
             pairs.append([row[0], row[1]])
     verify, normalize, dictionary = data.get('verify', True), data.get('normalize', True), data.get('dictionary', True)
-    if not all(isinstance(flag, bool) for flag in (verify, normalize, dictionary)):
+    style_control = data.get('style_control', False)
+    if not all(isinstance(flag, bool) for flag in (verify, normalize, dictionary, style_control)):
         raise ValueError(ui_text('voiceover.registry_request_must_be_object_error'))
-    return dict(engine=engine, book_id=data['book_id'], voice_id=data['voice_id'], language=language, format=fmt, seed=seed,
-                replacements=pairs, verify=verify, normalize=normalize, dictionary=dictionary)
+    delivery = data.get('delivery', '')
+    if not isinstance(delivery, str) or len(delivery) > 2000:
+        raise ValueError(ui_text('voiceover.delivery_invalid_error'))
+    return dict(engine=engine, book_id=data['book_id'], voice_id=data['voice_id'], language=language, format=fmt, seed=seed, delivery=delivery,
+                replacements=pairs, verify=verify, normalize=normalize, dictionary=dictionary, style_control=style_control)

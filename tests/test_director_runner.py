@@ -33,6 +33,11 @@ REQUEST = dict(prompt='Road trip', seconds=10, scenes=2, orientation='landscape'
 PHOTO = dict(number=1, kind='photo', group='hero')
 
 
+def plan_needed(seconds):
+    from director import plan_rules
+    return plan_rules.disk_needed_bytes(seconds)
+
+
 def png():
     buffer = io.BytesIO()
     Image.new('RGB', (300, 200), (180, 60, 30)).save(buffer, 'PNG')
@@ -58,6 +63,7 @@ class FakeStudio:
         self.hold_speech = None     # the same for the next speech job
         self.on_speak = None        # something to do at the first speech job (the person removes a material while the film is shot)
         self.fail_speech = False
+        self.fail_music = False
         self.fail_engines = set()   # engines whose speech jobs fail (the first engine may break while the second works)
         self.line_seconds = None    # a fixed length for every spoken line; else 0.05 s a character, at least a second
         self.flagged = []
@@ -90,6 +96,8 @@ class FakeStudio:
 
     def compose(self, music, cancel, progress=None):
         self.calls.append(('compose', music['engine'], music['seconds']))
+        if self.fail_music:
+            raise DirectorError('the music engine is broken')
         return 'music-1'
 
     def track(self, ident):
@@ -210,17 +218,17 @@ class RunnerTests(unittest.TestCase):
         status = self.film()
         self.assertEqual((status['state'], status['result']), ('done', dict(id='film-1')), status.get('error'))
         kinds = [call[0] for call in self.studio.calls]
-        self.assertEqual(kinds, ['keyframe', 'shoot', 'shoot', 'compose', 'track', 'register', 'forget', 'forget'])
-        self.assertEqual(self.studio.calls[0][2:], (1, 'landscape'))                      # the keyframe is composed from the scene's picture
-        first, second = self.studio.calls[1], self.studio.calls[2]
+        self.assertEqual(kinds, ['compose', 'track', 'keyframe', 'shoot', 'shoot', 'register', 'forget', 'forget'])
+        self.assertEqual(self.studio.calls[2][2:], (1, 'landscape'))                      # the keyframe is composed from the scene's picture
+        first, second = self.studio.calls[3], self.studio.calls[4]
         self.assertEqual((first[2], second[2]), ('i2v', 'i2v'))                            # the keyframe, and the first attached picture, are start frames
         self.assertEqual((first[3], first[4]), ('preview', (768, 512)))
-        self.assertEqual(self.studio.calls[3][1:], ('ace-step-15-turbo', 10))
+        self.assertEqual(self.studio.calls[0][1:], ('ace-step-15-turbo', 10))             # the track is composed before the shooting begins
         self.assertEqual(self.studio.calls[5][1], 'film-mix.mp4')                        # the film that is registered is the one with the music under it
         self.assertEqual(self.studio.calls[6:], [('forget', 'clip-1'), ('forget', 'clip-2')])
         self.assertEqual(self.gpu.claims, ['director'])
         self.assertTrue(all(step['state'] == 'done' for step in status['steps']))
-        self.assertEqual([step['id'] for step in status['steps']], ['keyframe-1', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        self.assertEqual([step['id'] for step in status['steps']], ['music', 'keyframe-1', 'scene-1', 'scene-2', 'assemble', 'mix'])
         self.assertEqual((status['progress'], status['notes']), (1.0, []))
         self.assertTrue(self.studio.film['scenes'][0].startswith('35mm film'))             # the style phrase opens every scene prompt
 
@@ -378,8 +386,8 @@ class RunnerTests(unittest.TestCase):
         cue = dict(song=2, offset=3.0, start=0.0, seconds=5.0, gain_db=-6.0, fade_in=0.2, fade_out=0.5)
         status = self.film(items=[PHOTO] + song, songs=[cue], music=dict(engine='ace-step-15-turbo', mode='instrumental', caption='western guitar, slow', start=5, gain_db=-12))
         self.assertEqual(status['state'], 'done', status.get('error'))
-        self.assertEqual([call[0] for call in self.studio.calls], ['keyframe', 'shoot', 'shoot', 'compose', 'track', 'register', 'forget', 'forget'])
-        self.assertEqual(self.studio.calls[3][1:], ('ace-step-15-turbo', 10))             # the generated track is asked for the whole film; the plan says where it begins
+        self.assertEqual([call[0] for call in self.studio.calls], ['compose', 'track', 'keyframe', 'shoot', 'shoot', 'register', 'forget', 'forget'])
+        self.assertEqual(self.studio.calls[0][1:], ('ace-step-15-turbo', 10))             # the generated track is asked for the whole film; the plan says where it begins
         from test_director_soundtrack import band
         registered = self.work / 'registered.mp4'
         self.assertGreater(band(registered, 1000, 1.0, 3.0), -40)                         # the song fills the first five seconds
@@ -470,7 +478,312 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(self.manager.status('a' * 32)['state'], 'interrupted')
         self.assertEqual(self.manager.status('b' * 32)['state'], 'none')
 
+    # --- continuing a film that stopped ---------------------------------------------------------------------------------------------------
+    FOUR = dict(seconds=60, scenes=4)             # below a minute a film has exactly two scenes
+
+    def four_scenes(self, caps=None, items=(PHOTO,), **changes):
+        """A plan of four scenes (a minute) with a keyframe for the first, so that every kind of step exists."""
+        request = dict(REQUEST, **self.FOUR)
+        raw = dict(scenes=[scene(15, keyframe='A woman by a red car'), scene(15), scene(15), scene(15)], **changes)
+        return plan_for(request, caps or self.studio.caps, items, **raw), request
+
+    def run_film(self, **changes):
+        plan_, request = self.four_scenes(**changes)
+        self.manager.start(self.draft_id, plan_, request)
+        self.manager.thread.join(90)
+        return self.manager.status()
+
+    def test_a_film_that_failed_in_the_third_scene_is_continued_without_shooting_the_first_two_again(self):
+        self.studio.fail = {3: 1, 4: 1}                        # the third scene and its second try
+        failed = self.run_film()
+        self.assertEqual(failed['state'], 'error')
+        self.assertTrue(failed['resumable'])
+        self.assertEqual([step['state'] for step in failed['steps'] if step['kind'] == 'scene'], ['done', 'done', 'failed', 'pending'])
+        self.assertEqual(sorted(failed['artifacts']['scenes']), ['0', '1'])                  # the clips of the two finished scenes are recorded
+        folder = Path(self.manager.root, 'runs', failed['id'])
+        self.assertTrue((folder / 'keyframe-1.png').is_file() and list(folder.glob('material-*')))            # what hours of work made stays in the run folder
+        mark = len(self.studio.calls)
+        resumed = self.manager.resume(failed['id'])
+        self.assertEqual(resumed['state'], 'running')
+        self.manager.thread.join(90)
+        status = self.manager.status()
+        self.assertEqual((status['state'], status['result']), ('done', dict(id='film-1')), status.get('error'))
+        again = [call[0] for call in self.studio.calls[mark:]]
+        self.assertEqual(again, ['shoot', 'shoot', 'register', 'forget', 'forget', 'forget', 'forget'])        # scenes 3 and 4 only: the keyframe and the track were made before the failure
+        self.assertEqual({call[1] for call in self.studio.calls[mark:] if call[0] == 'forget'}, {'clip-1', 'clip-2', 'clip-5', 'clip-6'})      # the clips of both tries leave the history
+        self.assertEqual(status['resumed'], 1)
+        self.assertIn('не снимались', ' '.join(status['notes']))
+        self.assertTrue(all(step['state'] == 'done' for step in status['steps']))
+        self.assertEqual(sorted(child.name for child in folder.iterdir()), ['keyframe-1.png', 'run.json'])                    # the links are given back once the film is done
+        self.assertEqual(self.gpu.claims, ['director', 'director'])
+
+    def test_a_film_stopped_by_the_person_is_continued_from_the_step_it_stopped_in(self):
+        self.studio.hold = threading.Event()
+        plan_, request = self.four_scenes()
+        self.manager.start(self.draft_id, plan_, request)
+        self.assertTrue(self.studio.hold.wait(30))
+        self.assertTrue(self.manager.stop())
+        self.manager.thread.join(30)
+        stopped = self.manager.status()
+        self.assertEqual((stopped['state'], stopped['resumable']), ('cancelled', True))
+        self.assertEqual([step['state'] for step in stopped['steps'] if step['kind'] == 'keyframe'], ['done'])
+        self.studio.hold = None
+        mark = len(self.studio.calls)
+        self.manager.resume(stopped['id'])
+        self.manager.thread.join(90)
+        self.assertEqual(self.manager.status()['state'], 'done', self.manager.status().get('error'))
+        again = [call[0] for call in self.studio.calls[mark:]]
+        self.assertEqual((again.count('shoot'), again.count('keyframe')), (4, 0))                      # nothing had been shot: all four scenes now, and the keyframe is kept
+
+    def test_a_film_interrupted_by_a_closed_studio_is_continued_by_a_new_manager(self):
+        self.studio.fail = {2: 1, 3: 1}
+        failed = self.run_film()
+        self.assertEqual(failed['state'], 'error')
+        path = Path(self.manager.root, 'runs', failed['id'], 'run.json')
+        saved = json.loads(path.read_text(encoding='utf-8'))
+        saved.update(state='running', error='')                                                       # the studio was closed in the middle of the work
+        path.write_text(json.dumps(saved), encoding='utf-8')
+        mark = len(self.studio.calls)
+        fresh = runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, FakeBrain(), self.studio, self.gpu)
+        latest = fresh.status()                                                                        # the page asks for "the latest film" after the restart
+        self.assertEqual((latest['id'], latest['state'], latest['resumable']), (failed['id'], 'interrupted', True))
+        fresh.resume(failed['id'])
+        fresh.thread.join(90)
+        self.assertEqual(fresh.status()['state'], 'done', fresh.status().get('error'))
+        self.assertEqual([call[0] for call in self.studio.calls[mark:]].count('shoot'), 3)             # scene 1 was kept; 2, 3 and 4 are shot
+
+    def test_a_clip_that_is_gone_or_too_short_is_shot_again(self):
+        self.studio.fail = {3: 1, 4: 1}
+        failed = self.run_film()
+        clips = failed['artifacts']['scenes']
+        Path(clips['0']['path']).unlink()                                                              # the person deleted the first clip from the Video history
+        cut = Path(clips['1']['path'])
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=768x512:rate=24:duration=0.5', '-pix_fmt', 'yuv420p',
+                        str(cut.with_name('cut.mp4'))], check=True)
+        os.replace(cut.with_name('cut.mp4'), cut)                                                      # and the second one is cut off
+        mark = len(self.studio.calls)
+        self.manager.resume(failed['id'])
+        self.manager.thread.join(90)
+        status = self.manager.status()
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        again = self.studio.calls[mark:]
+        self.assertEqual([call[0] for call in again].count('shoot'), 4)                                # all four scenes were shot again
+        self.assertEqual({call[1] for call in again if call[0] == 'forget'} >= {'clip-1', 'clip-2'}, True)      # the two unusable clips leave the history with the rest
+        self.assertEqual(len([call for call in again if call[0] == 'forget']), 6)
+
+    def test_voices_the_keyframe_and_the_track_are_not_made_again(self):
+        self.studio.caps = SPEECH_CAPS
+        items = self.add_voices()
+        speech = [dict(voice=2, scene=1, text='Это начало пути.'), dict(voice=3, scene=2, text='Поехали!')]
+        music = dict(engine='ace-step-15-turbo', mode='instrumental', caption='slow guitar', gain_db=-16)
+        with mock.patch.object(soundtrack, 'mixdown', side_effect=DeliveryError('the mix broke')):         # everything is made, the last step breaks
+            failed = self.run_film(caps=SPEECH_CAPS, items=items, speech=speech, music=music)
+        self.assertEqual((failed['state'], failed['error']), ('error', 'the mix broke'))
+        self.assertEqual(sorted(failed['artifacts']['speech']), ['0', '1'])
+        self.assertEqual(sorted(failed['artifacts']['scenes']), ['0', '1', '2', '3'])
+        self.assertIsNotNone(failed['artifacts']['music'])
+        mark = len(self.studio.calls)
+        self.manager.resume(failed['id'])
+        self.manager.thread.join(90)
+        status = self.manager.status()
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertEqual([call[0] for call in self.studio.calls[mark:]], ['register', 'forget', 'forget', 'forget', 'forget'])         # only the assembly and the mix were done again
+        self.assertTrue(all(step['state'] == 'done' for step in status['steps']))
+
+    SHORT_TRACKS = dict(keyframes=True, music=[dict(id='ace-step-15-turbo', modes=['instrumental', 'song'], max_duration=30, about='Songs.')], speech=None)
+
+    def test_a_film_longer_than_the_longest_track_gets_several_tracks_crossfaded_not_a_loop(self):
+        self.studio.caps = self.SHORT_TRACKS
+        status = self.run_film(caps=self.SHORT_TRACKS)
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        kinds = [call[0] for call in self.studio.calls]
+        self.assertEqual((kinds.count('compose'), kinds.count('track')), (3, 3))                       # 3 x 30 - 2 x 4 = 82 s cover the film of 60 s
+        self.assertEqual(next(call for call in self.studio.calls if call[0] == 'compose')[2], 30)
+        self.assertEqual(sorted(child.name for child in Path(self.manager.root, 'runs', status['id']).iterdir()), ['keyframe-1.png', 'run.json'])      # the part files are gone
+        self.assertEqual([row['loop'] for row in status['sound']['beds']], [False])                  # one bed, not looped: the seams are crossfades
+
+    def test_a_film_that_stopped_in_the_second_track_keeps_the_first_one(self):
+        self.studio.caps = self.SHORT_TRACKS
+        original = self.studio.track
+        broken = []
+
+        def flaky(ident):
+            studio = self.studio
+            if len([call for call in studio.calls if call[0] == 'track']) == 1 and not broken:
+                broken.append(1)
+                studio.calls.append(('track', ident))
+                raise DirectorError('the music engine fell over')
+            return original(ident)
+        with mock.patch.object(self.studio, 'track', flaky):
+            failed = self.run_film(caps=self.SHORT_TRACKS)
+        self.assertEqual(failed['state'], 'error')
+        self.assertIn('music engine', failed['error'])
+        folder = Path(self.manager.root, 'runs', failed['id'])
+        self.assertEqual(sorted(child.name for child in folder.glob('music*')), ['music-1.wav'])      # the first track is kept
+        mark = len(self.studio.calls)
+        self.manager.resume(failed['id'])
+        self.manager.thread.join(90)
+        self.assertEqual(self.manager.status()['state'], 'done', self.manager.status().get('error'))
+        self.assertEqual([call[0] for call in self.studio.calls[mark:]].count('compose'), 2)           # tracks 2 and 3 only: track 1 was downloaded before the failure
+
+    def test_a_music_engine_that_is_broken_stops_the_film_in_the_first_seconds_not_after_the_shooting(self):
+        self.studio.fail_music = True
+        status = self.run_film()
+        self.assertEqual(status['state'], 'error')
+        self.assertIn('the music engine is broken', status['error'])
+        self.assertEqual([call[0] for call in self.studio.calls], ['compose'])                          # no keyframe, no scene was shot
+        self.assertTrue(status['resumable'])
+        self.studio.fail_music = False
+        self.manager.resume(status['id'])
+        self.manager.thread.join(90)
+        self.assertEqual(self.manager.status()['state'], 'done', self.manager.status().get('error'))      # the engine is repaired: the same film goes on
+
+    def test_a_finished_film_or_an_unknown_one_cannot_be_continued(self):
+        done = self.film()
+        self.assertEqual(done['state'], 'done')
+        self.assertFalse(done['resumable'])
+        with self.assertRaises(ValueError):
+            self.manager.resume(done['id'])
+        with self.assertRaises(ValueError):
+            self.manager.discard(done['id'])
+        with self.assertRaises(ValueError):
+            self.manager.resume('f' * 32)
+        with self.assertRaises(ValueError):
+            self.manager.resume('../x')
+
+    def test_a_film_that_is_given_up_leaves_the_history_and_is_no_longer_offered(self):
+        self.studio.fail = {2: 1, 3: 1}
+        failed = self.film()
+        self.assertEqual(failed['state'], 'error')
+        mark = len(self.studio.calls)
+        gone = self.manager.discard(failed['id'])
+        self.assertTrue(gone['discarded'] and not gone['resumable'])
+        self.assertEqual([call[0] for call in self.studio.calls[mark:]], ['forget'])                  # the one finished scene clip leaves the Video history
+        folder = Path(self.manager.root, 'runs', failed['id'])
+        self.assertEqual(sorted(child.name for child in folder.iterdir()), ['run.json'])
+        with self.assertRaises(ValueError):
+            self.manager.resume(failed['id'])
+        self.assertEqual(self.manager.status()['state'], 'error')                                      # the record stays; it is no longer offered
+        self.assertIsNone(runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, FakeBrain(), self.studio, self.gpu)._latest_unfinished())
+
+    def test_materials_that_were_cleaned_make_a_message_and_old_unfinished_films_give_their_files_back(self):
+        self.studio.fail = {2: 1, 3: 1}
+        failed = self.film()
+        folder = Path(self.manager.root, 'runs', failed['id'])
+        links = list(folder.glob('material-*'))
+        for link in links:
+            link.unlink()
+        with self.assertRaises(ValueError) as caught:
+            self.manager.resume(failed['id'])
+        self.assertIn('материал', str(caught.exception))
+        self.assertFalse(self.manager.busy())
+        stamp = time.time() - 15 * 86400
+        (folder / 'line-0.wav').write_bytes(b'x')
+        os.utime(folder / 'run.json', (stamp, stamp))
+        runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, FakeBrain(), self.studio, self.gpu)
+        self.assertEqual(sorted(child.name for child in folder.iterdir()), ['run.json'])               # the keyframe and the line are gone after the fortnight
+        self.assertTrue(json.loads((folder / 'run.json').read_text(encoding='utf-8'))['discarded'])
+
+    def test_a_film_with_a_shortened_clip_says_so(self):
+        original = FakeStudio.shoot
+
+        def short_shoot(studio, job, prompt, start_png, cancel, progress=None):
+            return original(studio, dict(job, frames=job['frames'] // 2), prompt, start_png, cancel, progress)
+        with mock.patch.object(FakeStudio, 'shoot', short_shoot):
+            status = self.film()
+        self.assertEqual(status['state'], 'done', status.get('error'))
+        self.assertTrue(any('короче плана' in note for note in status['notes']), status['notes'])
+
     # --- the page's questions -------------------------------------------------------------------------------------------------------------
+    def test_the_steps_carry_their_estimated_work_and_the_time_left_follows_what_the_finished_ones_took(self):
+        steps = runner.build_steps(plan_for(dict(REQUEST, seconds=60, scenes=4), CAPS, scenes=[scene(15, keyframe='A woman'), scene(15), scene(15), scene(15)]), True)
+        self.assertTrue(all(step['weight'] > 0 for step in steps))
+        scenes = [step for step in steps if step['kind'] == 'scene']
+        self.assertEqual(len({step['weight'] for step in scenes[:3]}), 1)                              # the same length, the same windows, the same work
+        self.assertGreater(scenes[0]['weight'], 110)                                                  # a scene pays its setup and every window it is made of
+        now = time.time()
+        for step in steps:
+            step['state'] = 'pending'
+        run = dict(state='running', steps=steps)
+        self.assertEqual(runner.DirectorManager._eta(run), round(sum(step['weight'] for step in steps)))      # nothing measured yet: the estimate
+        self.assertIsNone(runner.DirectorManager._eta(dict(run, state='done')))
+        slow = [step for step in steps if step['kind'] == 'scene'][:3]
+
+        def took(*times):                                                                             # the three scenes finished one after the other, each after `times` times its estimate
+            for index, (step, factor) in enumerate(zip(slow, times)):
+                finished = now - 100 + 30 * index
+                step.update(state='done', started=finished - factor * step['weight'], finished=finished)
+        took(2, 2, 2)                                                                                 # three scenes that took twice as long as estimated
+        left = [step for step in steps if step['state'] == 'pending']
+        scenes_left = sum(step['weight'] for step in left if step['kind'] == 'scene')
+        others_left = sum(step['weight'] for step in left if step['kind'] != 'scene')
+        self.assertAlmostEqual(runner.DirectorManager._eta(run), scenes_left * 2 + others_left, delta=(scenes_left + others_left) * 0.02)      # the scenes by what scenes took, the rest by their estimates
+        # the first scene of a film is slow because the video model is read from the disk: it is left out, so that one slow step does not stretch the rest
+        took(10, 1, 1)
+        self.assertAlmostEqual(runner.DirectorManager._eta(run), scenes_left + others_left, delta=(scenes_left + others_left) * 0.02)
+        took(2, 2, 2)
+        pending = scenes_left * 2 + others_left
+        running = next(step for step in steps if step['state'] == 'pending')
+        running.update(state='running', started=now - 30)
+        self.assertLess(runner.DirectorManager._eta(run), pending)                                    # a step in progress has done some of its work
+
+    def test_the_bar_follows_the_work_done_and_the_time_left_is_in_the_status_of_a_running_film(self):
+        self.studio.hold = threading.Event()
+        self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.assertTrue(self.studio.hold.wait(30))
+        status = self.manager.status()
+        self.assertEqual(status['state'], 'running')
+        self.assertGreaterEqual(status['eta_seconds'], 0)                                              # (a fake studio is instant, so the finished keyframe makes the measured ratio tiny)
+        self.assertGreater(status['progress'], 0)                                                     # the keyframe is done: its share of the work, not one step of six
+        self.assertLess(status['progress'], 0.5)
+        self.manager.stop()
+        self.manager.thread.join(30)
+        self.assertIsNone(self.manager.status()['eta_seconds'])
+
+    def test_a_film_is_refused_while_the_disk_is_too_full_and_the_check_scales_with_the_film(self):
+        from collections import namedtuple
+        usage = namedtuple('usage', 'total used free')
+        needed = plan_needed(REQUEST['seconds'])
+        self.assertLess(plan_needed(60), plan_needed(600))
+        with mock.patch.object(shutil, 'disk_usage', return_value=usage(10 ** 12, 10 ** 12 - needed + 1, needed - 1)):
+            with self.assertRaises(ValueError) as caught:
+                self.manager.start(self.draft_id, plan_for(REQUEST, CAPS), REQUEST)
+        self.assertIn('мало места', str(caught.exception))
+        self.assertIsNone(self.manager.thread)                                                        # nothing was started and the card was not taken
+        self.assertEqual(self.gpu.claims, [])
+        with mock.patch.object(shutil, 'disk_usage', return_value=usage(10 ** 12, 0, 10 ** 12)):
+            self.assertEqual(self.film()['state'], 'done')
+        with mock.patch.object(shutil, 'disk_usage', side_effect=OSError('unreadable')):             # a drive that cannot be asked is no reason to refuse
+            self.assertEqual(self.film()['state'], 'done')
+
+    def test_the_computer_is_kept_awake_for_the_length_of_the_film_and_not_longer(self):
+        with mock.patch.object(runner, 'keep_awake') as awake:
+            self.assertEqual(self.film()['state'], 'done')
+        self.assertEqual([call.args[0] for call in awake.call_args_list], [True, False])
+        with mock.patch.object(runner, 'keep_awake') as awake:
+            self.studio.fail = {3: 1, 4: 1}                                                              # the first film shot twice: this one's first scene and its second try
+            self.assertEqual(self.film()['state'], 'error')
+        self.assertEqual([call.args[0] for call in awake.call_args_list], [True, False])                  # a film that fails lets the computer sleep again
+        runner.keep_awake(True)                                                                           # the real call: harmless, whatever the system
+        runner.keep_awake(False)
+
+    def test_the_page_can_ask_where_the_plan_has_come_to_while_it_is_written(self):
+        seen = []
+
+        class SlowBrain(FakeBrain):
+            progress = None
+
+            def make_plan(inner, draft, request, capabilities, language):
+                inner.progress(dict(stage='outline', first=1, last=20, total=50))
+                seen.append(self.manager.planning_state())
+                return plan_for(request, capabilities)
+        self.manager.brain = SlowBrain()
+        self.assertEqual(self.manager.planning_state(), dict(stage=''))
+        self.manager.make_plan(self.draft_id, dict(REQUEST), 'Russian')
+        self.assertEqual(seen, [dict(stage='outline', first=1, last=20, total=50)])
+        self.assertEqual(self.manager.planning_state(), dict(stage=''))                                  # nothing is being written any more
+        self.assertIsNone(self.manager.brain.progress)
+
     def test_the_engine_entry_says_what_is_missing(self):
         ltx = [dict(id='ltx25-distilled', available=True)]
         self.assertTrue(self.manager.profile(ltx)['available'])
@@ -479,7 +792,7 @@ class RunnerTests(unittest.TestCase):
         manager = runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, FakeBrain(False), self.studio, self.gpu)
         self.assertEqual(manager.profile(ltx)['reason'], 'no model')
         limits = self.manager.profile(ltx)['limits']
-        self.assertEqual((limits['max_seconds'], limits['max_song_seconds'], limits['voice_sample_seconds']), (300, 3600, 30))
+        self.assertEqual((limits['max_seconds'], limits['max_song_seconds'], limits['voice_sample_seconds']), (900, 3600, 30))
         self.assertEqual([(row['id'], row['limit']) for row in limits['groups'] if row['media'] == 'voice'], [('narrator', 3), ('character', 10)])
         with self.assertRaises(ValueError):
             runner.DirectorManager(self.work / 'Director', self.work / 'cache', FFMPEG, FFPROBE, None, self.studio, self.gpu).make_plan(self.draft_id, dict(REQUEST), 'Russian')
@@ -501,7 +814,7 @@ class RunnerTests(unittest.TestCase):
         status = self.manager.status()
         self.assertEqual(status['state'], 'done', status.get('error'))
         self.assertTrue(status['plan']['ultra'] and status['request']['ultra'])
-        self.assertEqual([step['id'] for step in status['steps']], ['keyframe-1', 'keyframe-2', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        self.assertEqual([step['id'] for step in status['steps']], ['music', 'keyframe-1', 'keyframe-2', 'scene-1', 'scene-2', 'assemble', 'mix'])
         keyframes = [call for call in self.studio.calls if call[0] == 'keyframe']
         self.assertEqual([call[2] for call in keyframes], [0, 0])                                  # no photos: both were drawn from the words
         self.assertTrue(all(call[1].startswith('35mm film. ') for call in keyframes))               # and the film's look was put in front of them
@@ -589,8 +902,8 @@ class RunnerTests(unittest.TestCase):
 class StepTests(unittest.TestCase):
     def test_steps_follow_the_plan(self):
         full = plan_for(REQUEST, CAPS)
-        self.assertEqual([step['id'] for step in runner.build_steps(full, True)], ['keyframe-1', 'scene-1', 'scene-2', 'music', 'assemble', 'mix'])
-        self.assertEqual([step['id'] for step in runner.build_steps(full, False)], ['scene-1', 'scene-2', 'music', 'assemble', 'mix'])
+        self.assertEqual([step['id'] for step in runner.build_steps(full, True)], ['music', 'keyframe-1', 'scene-1', 'scene-2', 'assemble', 'mix'])
+        self.assertEqual([step['id'] for step in runner.build_steps(full, False)], ['music', 'scene-1', 'scene-2', 'assemble', 'mix'])
         silent = plan_for(REQUEST, CAPS, music=None)
         self.assertEqual([step['id'] for step in runner.build_steps(silent, False)], ['scene-1', 'scene-2', 'assemble', 'mix'])
         self.assertEqual(runner.scene_prompt(full, 0)[:12], '35mm film Ph')

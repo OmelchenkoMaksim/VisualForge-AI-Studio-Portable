@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -487,6 +488,194 @@ class MaterialsPromptTests(unittest.TestCase):
         result = director.make_plan(self.draft, dict(REQUEST), CAPS, 'Russian')
         self.assertNotIn('"speech"', text.calls[0]['messages'][0]['content'])
         self.assertEqual((result['speech'], len(result['notes'])), ([], 1))
+
+
+def outline_answer(first, last, head=False, **extra):
+    """What Gemma writes for the outline of scenes `first` to `last`: a beat each (the first answer also carries the title, the style and the cast)."""
+    body = dict(scenes=[dict(seconds=15, beat='Beat %d: Anna walks through the harbour and something changes.' % n, references=[], speakers=extra.get('speakers', {}).get(n, []), transition='fade')
+                        for n in range(first, last + 1)])
+    if head:
+        body.update(title='Harbour', summary='A story of a harbour.', orientation='landscape', quality='standard', cast=['Anna, 30, red scarf, dark coat'],
+                    style=dict(phrase='35mm film, soft light', warmth=0.1, contrast=1.0, saturation=1.0), music=None)
+    return json.dumps(body)
+
+
+def group_answer(first, last, speech=()):
+    """What Gemma writes for the full prompts of scenes `first` to `last`."""
+    return json.dumps(dict(scenes=[dict(scene=n, prompt='35mm film, soft light. Scene %d: Anna in a red scarf walks along the quay, gulls cry, rope creaks.' % n, keyframe=None) for n in range(first, last + 1)],
+                           speech=list(speech)))
+
+
+class LongFilmPlanTests(unittest.TestCase):
+    """A film of many scenes is planned in levels: the outline, then the prompts a few scenes at a time (one answer for fifty scenes did not fit into the model's room)."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.draft = media.open_draft(self.temp.name, media.new_draft_id(), FFMPEG, FFPROBE)
+
+    def brain(self, answers, log=None):
+        text = FakeText(answers)
+        return brain.DirectorBrain(text, FakeGpu(), log=log), text
+
+    def test_a_short_film_is_still_one_answer_and_a_long_one_is_planned_in_levels(self):
+        director, text = self.brain([json.dumps(dict(scenes=[scene()] * brain.OUTLINE_FROM))])
+        director.make_plan(self.draft, dict(prompt='x y', seconds=brain.OUTLINE_FROM * 15, scenes=brain.OUTLINE_FROM), CAPS, 'English')
+        self.assertEqual(len(text.calls), 1)
+        count = brain.OUTLINE_FROM + 1
+        director, text = self.brain([outline_answer(1, count, head=True)] + [group_answer(first, min(count, first + brain.CHUNK_SCENES - 1)) for first in range(1, count + 1, brain.CHUNK_SCENES)])
+        result = director.make_plan(self.draft, dict(prompt='x y', seconds=count * 15, scenes=count), CAPS, 'English')
+        self.assertEqual(len(text.calls), 1 + 2)                                                       # the outline, and nine scenes in groups of six and three
+        self.assertEqual(len(result['scenes']), count)
+
+    def test_the_plan_of_fourteen_scenes_is_made_of_the_outline_and_three_groups(self):
+        self.draft.add_voice(self.sound_file('voice.wav'), 'voice.wav', 'narrator')
+        speech = [dict(voice=1, scene=14, text='Вот и конец.', language='Russian'), dict(voice=1, scene=99, text='Сцены нет.')]            # a line for a scene outside its group is left out
+        answers = [outline_answer(1, 14, head=True, speakers={14: [1]}), group_answer(1, 6), group_answer(7, 12), group_answer(13, 14, speech)]
+        director, text = self.brain(answers)
+        result = director.make_plan(self.draft, dict(prompt='Прогулка по гавани', seconds=210, scenes=14), dict(CAPS, speech=dict(engine='voxcpm2', languages=['Russian', 'English'])), 'Russian')
+        self.assertEqual(len(text.calls), 4)
+        self.assertEqual(len(result['scenes']), 14)
+        self.assertTrue(all('Scene %d:' % number in row['prompt'] for number, row in enumerate(result['scenes'], 1)))
+        self.assertEqual(result['title'], 'Harbour')
+        self.assertEqual(result['style']['phrase'], '35mm film, soft light')
+        self.assertEqual([(line['scene'], line['voice']) for line in result['speech']], [(14, 1)])
+        self.assertAlmostEqual(sum(row['seconds'] for row in result['scenes']), 210, delta=0.2)
+        for call in text.calls:                                                                         # every question leaves the model room for its answer
+            used = sum(len(message['content']) for message in call['messages']) // brain.CHARS_PER_TOKEN
+            self.assertLessEqual(call['options']['num_predict'], 6144)
+            self.assertEqual(call['options']['num_ctx'], brain.NUM_CTX)
+            self.assertLess(used + call['options']['num_predict'], brain.NUM_CTX)
+        outline_question = text.calls[0]['messages']
+        self.assertIn('THIS CALL WRITES THE OUTLINE', outline_question[0]['content'])
+        self.assertIn('"beat"', outline_question[0]['content'])
+        self.assertIn('"speakers"', outline_question[0]['content'])
+        second = text.calls[2]['messages']
+        self.assertIn('scenes 7 to 12', second[0]['content'])
+        self.assertIn('Scene 6: Anna in a red scarf', second[1]['content'])                              # the scene written just before the group is shown
+        self.assertIn('Anna, 30, red scarf, dark coat', second[1]['content'])                            # and the cast of the outline
+        self.assertIn('35mm film, soft light', second[1]['content'])
+        self.assertIn('Beat 14:', second[1]['content'])                                                  # the whole outline is there, the far beats cut short
+        self.assertNotIn('have not spoken yet', second[1]['content'])
+        self.assertIn('The voices 1 have not spoken yet', text.calls[3]['messages'][1]['content'])         # the last group is told which voice has no line yet
+
+    def sound_file(self, name):
+        path = Path(self.temp.name) / name
+        subprocess.run([str(FFMPEG), '-hide_banner', '-loglevel', 'error', '-nostdin', '-y', '-f', 'lavfi', '-i', 'anoisesrc=color=pink:amplitude=0.3:duration=6', str(path)], check=True)
+        return path
+
+    def test_a_group_with_a_missing_scene_is_sent_back_once_and_a_second_failure_is_reported(self):
+        short = json.dumps(dict(scenes=[dict(scene=n, prompt=PROMPT, keyframe=None) for n in range(1, 6)]))        # five of six scenes
+        director, text = self.brain([outline_answer(1, 10, head=True), short, group_answer(1, 6), group_answer(7, 10)])
+        self.assertEqual(len(director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')['scenes']), 10)
+        self.assertEqual(len(text.calls), 4)
+        self.assertIn('Wrong:', text.calls[2]['messages'][-1]['content'])                              # the mistake is told to the model
+        director, text = self.brain([outline_answer(1, 10, head=True), short, short])
+        with self.assertRaises(ValueError) as caught:
+            director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')
+        self.assertIn('Gemma', str(caught.exception))
+
+    def test_an_outline_with_the_wrong_number_of_beats_is_refused(self):
+        director, text = self.brain([outline_answer(1, 9, head=True), outline_answer(1, 9, head=True)])
+        with self.assertRaises(ValueError):
+            director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')
+        self.assertEqual(len(text.calls), 2)
+
+    def test_a_model_that_writes_past_the_end_of_its_part_is_cut_at_the_part(self):
+        """The real model wrote 45 beats when 20 were asked (it saw a film of 50 scenes), and extra numbered scenes in a group of six."""
+        count, step = 50, brain.OUTLINE_GROUP
+        outlines = [outline_answer(1, 45, head=True), outline_answer(21, 40), outline_answer(41, 50)]                 # the first answer runs on past the 20 asked for
+        groups = [group_answer(first, min(count, first + 5 + (3 if first == 1 else 0))) for first in range(1, count + 1, 6)]          # and the first group has three scenes too many
+        director, text = self.brain(outlines + groups)
+        result = director.make_plan(self.draft, dict(prompt='x y', seconds=600, scenes=count), CAPS, 'English')
+        self.assertEqual(len(result['scenes']), 50)
+        self.assertIn('beats of scenes 1 to %d ONLY' % step, text.calls[0]['messages'][0]['content'])         # the first question says how much of the outline it asks for
+        self.assertIn('leave the story open at scene %d' % step, text.calls[0]['messages'][0]['content'])
+        self.assertNotIn('ONLY', brain.OUTLINE_MORE)
+        director, text = self.brain([outline_answer(1, 10, head=True), group_answer(1, 6), group_answer(7, 10)])
+        director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')
+        self.assertNotIn('ONLY', text.calls[0]['messages'][0]['content'])                                      # a film that fits one answer is not told to stop short
+
+    def test_the_page_is_told_where_the_plan_has_come_to_and_a_broken_listener_changes_nothing(self):
+        told = []
+        director, _ = self.brain([outline_answer(1, 14, head=True), group_answer(1, 6), group_answer(7, 12), group_answer(13, 14)])
+        director.progress = told.append
+        director.make_plan(self.draft, dict(prompt='x y', seconds=210, scenes=14), CAPS, 'English')
+        self.assertEqual([(row['stage'], row['first'], row['last'], row['total']) for row in told], [('outline', 1, 14, 14), ('scenes', 1, 6, 14), ('scenes', 7, 12, 14), ('scenes', 13, 14, 14)])
+        director, _ = self.brain([json.dumps(dict(scenes=[scene(), scene()]))])
+        director.progress = told.append
+        told.clear()
+        director.make_plan(self.draft, dict(REQUEST), CAPS, 'English')
+        self.assertEqual([(row['stage'], row['last']) for row in told], [('plan', 2)])                  # a short film is planned in one answer
+        director, _ = self.brain([json.dumps(dict(scenes=[scene(), scene()]))])
+        director.progress = lambda state: 1 / 0
+        self.assertEqual(len(director.make_plan(self.draft, dict(REQUEST), CAPS, 'English')['scenes']), 2)
+
+    def test_a_group_answer_without_numbers_is_taken_in_order(self):
+        plain = json.dumps(dict(scenes=[dict(prompt='35mm film. Anna in a red scarf walks along the quay %d, gulls cry.' % n) for n in range(6)], speech=[]))
+        director, _ = self.brain([outline_answer(1, 10, head=True), plain, group_answer(7, 10)])
+        result = director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')
+        self.assertIn('quay 0', result['scenes'][0]['prompt'])
+        self.assertIn('quay 5', result['scenes'][5]['prompt'])
+
+    def test_a_film_of_a_quarter_of_an_hour_is_planned_in_four_outline_answers_and_thirteen_groups(self):
+        count, step = 75, brain.OUTLINE_GROUP
+        outlines = [outline_answer(first, min(count, first + step - 1), head=first == 1) for first in range(1, count + 1, step)]
+        answers = outlines + [group_answer(first, min(count, first + 5)) for first in range(1, count + 1, 6)]
+        log = Path(self.temp.name) / 'plans.log'
+        director, text = self.brain(answers, log)
+        result = director.make_plan(self.draft, dict(prompt='A long story', seconds=900, scenes=count), CAPS, 'English')
+        self.assertEqual((len(result['scenes']), len(text.calls)), (75, len(outlines) + 13))
+        later = text.calls[1]['messages']
+        self.assertIn('scenes %d to %d' % (step + 1, 2 * step), later[0]['content'])
+        self.assertIn('Beat %d:' % step, later[1]['content'])                                              # the second part of the outline sees the first
+        for call in text.calls:
+            used = sum(len(message['content']) for message in call['messages']) // brain.CHARS_PER_TOKEN
+            self.assertLess(used + call['options']['num_predict'], brain.NUM_CTX, call['messages'][0]['content'][:80])
+        rows = [json.loads(line) for line in log.read_text(encoding='utf-8').splitlines()]
+        self.assertEqual([row['stage'] for row in rows][:len(outlines)] + [rows[-1]['stage']], ['outline %d-%d' % (first, min(count, first + step - 1)) for first in range(1, count + 1, step)] + ['merged'])
+        self.assertEqual(rows[-1]['kept']['notes'], [])
+
+    def test_an_answer_that_was_cut_off_is_asked_again_shorter_and_with_more_room(self):
+        whole = outline_answer(1, 10, head=True)
+        cut = whole[:len(whole) // 2]                                                                      # the model ran out of room in the middle of a scene
+        director, text = self.brain([cut, whole, group_answer(1, 6), group_answer(7, 10)])
+        result = director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')
+        self.assertEqual(len(result['scenes']), 10)
+        first, second = text.calls[0], text.calls[1]
+        self.assertGreater(second['options']['num_predict'], first['options']['num_predict'])             # half as much room again
+        self.assertIn('cut off', second['messages'][-1]['content'])
+        self.assertEqual([message['role'] for message in second['messages']], ['system', 'user'])         # the cut answer is not sent back: it would take the room of the shorter one
+        self.assertNotIn(cut, second['messages'][-1]['content'])
+
+    def test_oversized_context_is_refused_before_call_and_rechecked_after_correction(self):
+        director, text = self.brain(['{}'])
+        with self.assertRaises(ValueError):
+            director._ask_json([dict(role='user', content='x' * (brain.NUM_CTX * brain.CHARS_PER_TOKEN))],
+                               threading.Event(), REQUEST, 'probe', 2000, lambda value: (value, []))
+        self.assertEqual(text.calls, [])
+        answer = json.dumps(dict(padding='x' * 4500))
+        director, text = self.brain([answer, '{}'])
+        def reject(value):
+            raise ValueError('Missing scenes')
+        with self.assertRaises(ValueError):
+            director._ask_json([dict(role='user', content='x' * ((brain.NUM_CTX - 2000) * brain.CHARS_PER_TOKEN))],
+                               threading.Event(), REQUEST, 'probe', 4000, reject)
+        self.assertEqual(len(text.calls), 1)
+
+    def test_the_room_for_an_answer_is_cut_when_the_question_is_long(self):
+        def ask(extra):
+            director, text = self.brain([outline_answer(1, 10, head=True), group_answer(1, 6), group_answer(7, 10)])
+            original = director.listing
+            director.listing = lambda items, captions: original(items, captions) + ' ' + 'x' * extra
+            director.make_plan(self.draft, dict(prompt='x y', seconds=150, scenes=10), CAPS, 'English')
+            call = text.calls[0]
+            return sum(len(message['content']) for message in call['messages']) // brain.CHARS_PER_TOKEN, call['options']['num_predict']
+        base, wanted = ask(0)
+        self.assertEqual(wanted, brain.BEAT_TOKENS * 10 + brain.OUTLINE_HEADER_TOKENS)                       # a short question gets the whole room it asked for
+        used, room = ask((brain.NUM_CTX - 2500 - base) * brain.CHARS_PER_TOKEN)                                # a question that leaves 2200 tokens of the model's room
+        self.assertLess(room, wanted)
+        self.assertLessEqual(used + room, brain.NUM_CTX)                                                      # never more than the model can hold: the answer gets what is left
 
 
 if __name__ == '__main__':

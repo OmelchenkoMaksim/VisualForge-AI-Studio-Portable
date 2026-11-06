@@ -19,7 +19,9 @@ class SceneRangeTests(unittest.TestCase):
         self.assertEqual(rules.scene_range(120), (2, 10))
         self.assertEqual(rules.scene_range(300), (5, 25))                                                 # a scene lasts a minute at most: five minutes cannot be two scenes
         self.assertEqual(rules.scene_range(121), (3, 10))
-        for seconds in range(60, 301):
+        self.assertEqual(rules.scene_range(600), (10, 50))                                                # ten minutes: a scene a minute long at most, one in 12 s at the other end
+        self.assertEqual(rules.scene_range(rules.MAX_SECONDS), (15, 75))
+        for seconds in range(60, rules.MAX_SECONDS + 1):
             fewest, most = rules.scene_range(seconds)
             self.assertLessEqual(seconds / fewest, rules.MAX_SCENE_SECONDS)                              # the fewest scenes can always add up to the film
             self.assertGreaterEqual(seconds / most, rules.MIN_SCENE_SECONDS)                             # and so can the most
@@ -28,7 +30,9 @@ class SceneRangeTests(unittest.TestCase):
         rules.check_request(5, 2)
         rules.check_request(60, 5)
         rules.check_request(300, 25)
-        for seconds, scenes in ((4, 2), (301, 25), (30, 3), (30, 1), (60, 6), (300, 26), (300, 4), (121, 2), (60, True), (60, 2.5), ('60', 2), (True, 2)):
+        rules.check_request(600, 10)
+        rules.check_request(rules.MAX_SECONDS, 75)
+        for seconds, scenes in ((4, 2), (rules.MAX_SECONDS + 1, 40), (30, 3), (30, 1), (60, 6), (300, 26), (300, 4), (121, 2), (600, 9), (600, 51), (60, True), (60, 2.5), ('60', 2), (True, 2)):
             with self.subTest(seconds=seconds, scenes=scenes), self.assertRaises(ValueError):
                 rules.check_request(seconds, scenes)
 
@@ -120,9 +124,12 @@ class ProfileTests(unittest.TestCase):
         ultra, normal = rules.profile(True), rules.profile(False)
         self.assertEqual((ultra['quality'], normal['quality']), ('max', 'standard'))
         self.assertEqual((ultra['keyframes'], normal['keyframes']), ('all', 'several'))
-        # The owner's idea of the two modes: the best quality takes two to three times as long as the normal one.
+        # Measured on 2026-11-06 (calibration of the video model): a window of the biggest picture takes 56 s, one of the standard picture 52 s, so the picture alone costs a few percent more;
+        # what makes Ultra slow is the keyframe for every scene and the heavier engines, which the estimate adds. (The owner expected two to three times for the picture; the measurement says no.)
         ratio = rules.estimate_minutes(60, ultra['quality'], 0, False) / rules.estimate_minutes(60, normal['quality'], 0, False)
-        self.assertTrue(2 <= ratio <= 3, ratio)
+        self.assertTrue(1.0 < ratio < 1.5, ratio)
+        with_keyframes = rules.estimate_minutes(60, ultra['quality'], 4, False) / rules.estimate_minutes(60, normal['quality'], 0, False)
+        self.assertGreater(with_keyframes, ratio)
         self.assertTrue(all(name in rules.QUALITIES for name in (ultra['quality'], normal['quality'])))
 
     def test_music_engines_are_ordered_by_the_profile_and_by_what_covers_the_film(self):
@@ -132,6 +139,7 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(order(30, False), ['ace-step-15-turbo', 'stable-audio-3-medium', 'minimax-music3-int8'])        # the fastest first
         self.assertEqual(order(90, True), ['ace-step-15-turbo', 'stable-audio-3-medium', 'minimax-music3-int8'])         # MiniMax stops at a minute and would loop
         self.assertEqual(order(200, False), ['ace-step-15-turbo', 'stable-audio-3-medium', 'minimax-music3-int8'])       # none covers it: the profile's order again
+        self.assertEqual(order(600, True), ['ace-step-15-turbo', 'stable-audio-3-medium', 'minimax-music3-int8'])        # none covers ten minutes: the longest track first (fewest tracks and seams), whatever the profile
         unknown = self.ENGINES + [dict(id='newcomer', max_duration=300)]
         self.assertEqual(order(250, True, unknown)[0], 'newcomer')                                                      # an engine the profile does not know still counts when it alone covers the film
         self.assertEqual(order(30, True, unknown)[-1], 'newcomer')
@@ -146,11 +154,28 @@ class SceneJobTests(unittest.TestCase):
         self.assertEqual(rules.scene_job(2.0, 'draft', 'landscape', True, 7)['mode'], 'i2v')
         self.assertEqual(rules.scene_job(5.0, 'standard', 'portrait', False, 7)['frames'], 121)
         self.assertEqual((rules.scene_job(5.0, 'standard', 'portrait', False, 7)['width'], rules.scene_job(5.0, 'standard', 'portrait', False, 7)['height']), (576, 1024))
-        for seconds, frames in ((5.2, 360), (15, 360), (15.1, 720), (30, 720), (45, 1440), (60, 1440)):
+        # A long scene is asked for at its own length (rounded up to what the windows can make), not rounded up to 15, 30 or 60 seconds.
+        for seconds, frames in ((5.2, 144), (6.0, 144), (6.1, 152), (9.0, 216), (10.0, 248), (15, 360), (15.1, 368), (30, 720), (45, 1080), (60, 1440)):
             self.assertEqual(rules.scene_job(seconds, 'max', 'landscape', False, 1)['frames'], frames, seconds)
         self.assertEqual(rules.scene_job(10, 'max', 'landscape', False, 1)['quality'], 'standard')
+        self.assertEqual(rules.scene_job(60.6, 'draft', 'landscape', False, 1)['frames'], 1440)           # the longest scene (60 s) with the overlap of its transition: the longest take there is
         with self.assertRaises(ValueError):
             rules.scene_job(61, 'draft', 'landscape', False, 1)
+
+    def test_a_scene_costs_the_windows_it_needs_and_never_less_than_its_length(self):
+        from video.ltx_continuation import windows
+        for tenth in range(20, 601):                        # every length from 2.0 to 60.0 seconds
+            seconds = tenth / 10
+            frames = rules.scene_job(seconds, 'draft', 'landscape', False, 1)['frames']
+            with self.subTest(seconds=seconds):
+                self.assertGreaterEqual(frames, seconds * rules.FPS - 1e-6)
+                # The widest gap of the chain lengths is 216 to 248 (240 is a total of the panel's scenes mode): at most 1.3 s too long, never the 9 s that a round-up to 15 s cost.
+                self.assertLess(frames - seconds * rules.FPS, 32 if frames > 121 else 48)
+                if frames > 121:
+                    self.assertEqual(windows(frames)[-1]['start'] + windows(frames)[-1]['frames'], frames + 1)
+        # A 6.6 s scene was four windows (a 15 s chain) and is two now; a 16.6 s scene was eight (30 s) and is four.
+        self.assertEqual(len(windows(rules.scene_job(6.6, 'draft', 'landscape', False, 1)['frames'])), 2)
+        self.assertEqual(len(windows(rules.scene_job(16.6, 'draft', 'landscape', False, 1)['frames'])), 4)
 
     def test_every_job_is_a_request_the_video_registry_accepts(self):
         from video.video_registry import validate

@@ -116,6 +116,21 @@ def _run(command, timeout, cancel=None, progress: Optional[Callable] = None):
 
 run_tool = _run
 
+# A filter graph longer than this travels in a file. Windows refuses a command line over 32,767 characters; the Director's graphs grow with the film (about 430 characters for every
+# scene of the picture and about 140 for every line of speech, the clip paths come on top), so a film of 60 scenes or 150 lines could not even be started. A short graph stays
+# on the command line, where it can be read in the logs.
+GRAPH_INLINE_LIMIT = 6000
+
+
+def filter_complex(graph, script):
+    """The FFmpeg arguments that carry the filter graph `graph`: inline when it is short, else written to the file `script` and read with `-/filter_complex`
+    (FFmpeg 7 and newer; the bundled one is 9.0 and has dropped `-filter_complex_script`)."""
+    if len(graph) <= GRAPH_INLINE_LIMIT:
+        return ['-filter_complex', graph]
+    script = Path(script)
+    script.write_text(graph, encoding='utf-8')
+    return ['-/filter_complex', str(script)]
+
 
 def _ratio(text):
     """'30000/1001' -> Fraction; 0 or unknown -> Fraction(0)."""

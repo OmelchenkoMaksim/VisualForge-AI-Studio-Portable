@@ -216,6 +216,21 @@ class StudioTests(unittest.TestCase):
         with unittest.mock.patch.dict('os.environ', {'VISUALFORGE_DIRECTOR_SPEECH_ENGINE': 'qwen3-tts-12hz-0.6b-base'}):
             self.assertEqual(self.studio.capabilities()['speech']['engines'], ['qwen3-tts-12hz-0.6b-base'])
 
+    def test_the_video_service_is_started_when_the_film_is_registered_and_a_refusal_to_start_is_an_error_of_the_film(self):
+        started = []
+        self.video.start = lambda: started.append('start')
+        self.assertEqual(self.studio.register(dict(path='x')), dict(id='film-1', deleted=True))
+        self.studio.forget_clip('clip-1')
+        self.assertEqual(started, ['start', 'start'])                                                    # before both calls: a film continued after a restart has had no Video job
+
+        def refuse():
+            raise ValueError('The Video service does not start')
+        self.video.start = refuse
+        with self.assertRaises(DirectorError) as caught:
+            self.studio.register(dict(path='x'))
+        self.assertIn('does not start', str(caught.exception))
+        self.studio.forget_clip('clip-2')                                                                # a clip that cannot be forgotten never fails a film
+
     def test_a_film_is_registered_and_a_clip_forgotten_through_the_video_service(self):
         self.assertEqual(self.studio.register(dict(path='x')), dict(id='film-1', deleted=True))
         self.studio.forget_clip('clip-1')

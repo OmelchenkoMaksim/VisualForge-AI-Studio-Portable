@@ -7,6 +7,39 @@ import sys
 import subprocess
 import time
 import traceback
+import re
+
+
+def save_minimax_audio(waveform, rate, output, ffmpeg):
+    """Resample before quantization, retain dynamics and leave measured true-peak headroom."""
+    import numpy as np
+    from ui_strings import source as ui_text
+    output, ffmpeg = Path(output), Path(ffmpeg)
+    floating = output.with_name('Float MiniMax Music3.wav')
+    duration = len(waveform) / rate
+    last_sample = max(0, round(duration * 32000) - 1) / 32000
+    common = [str(ffmpeg), '-hide_banner', '-loglevel', 'error', '-nostdin', '-n']
+    options = dict(check=True, capture_output=True, timeout=60,
+                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    # The old PCM clamp preceded resampling: both decoder overs and resampling peaks could clip permanently.
+    # Float transport keeps those peaks intact until a constant gain is chosen; 5 ms ramps prevent nonzero edge cuts.
+    subprocess.run(common + ['-f', 'f32le', '-ar', str(rate), '-ac', '2', '-i', 'pipe:0',
+                             '-af', f'aresample=32000,afade=t=in:d=0.005,afade=t=out:st={max(0, last_sample-.005):.8f}:d=0.005',
+                             '-c:a', 'pcm_f32le', str(floating)], input=np.asarray(waveform, dtype='<f4').tobytes(), **options)
+    analysis = subprocess.run([str(ffmpeg), '-nostdin', '-hide_banner', '-i', str(floating), '-af',
+                               'loudnorm=I=-18:TP=-1:LRA=11:print_format=json', '-f', 'null', '-'], **options)
+    match = re.search(rb'\{\s*"input_i".*?\}', analysis.stderr, re.S)
+    if not match:
+        raise RuntimeError(ui_text('music.minimax_peak_measurement_error'))
+    true_peak = float(json.loads(match.group())['input_tp'])
+    if not np.isfinite(true_peak):
+        raise RuntimeError(ui_text('music.minimax_peak_invalid_error'))
+    gain = min(0., -1.0 - true_peak)
+    # loudnorm above is measurement only. A single constant attenuation preserves musical dynamics and stereo balance.
+    subprocess.run(common + ['-i', str(floating), '-af', f'volume={gain:.3f}dB', '-ar', '32000', '-ac', '2',
+                             '-c:a', 'pcm_s16le', str(output)], **options)
+    floating.unlink(missing_ok=True)
+    return dict(version='minimax-wav-v2', gain_db=round(gain, 3), input_true_peak_db=true_peak, edge_ramp_ms=5)
 
 
 def main():
@@ -38,7 +71,6 @@ def main():
         comfy.options.enable_args_parsing()
         import torch
         import numpy as np
-        import wave
         import folder_paths
         import nodes
         import comfy.utils
@@ -60,7 +92,8 @@ def main():
         if request['bpm'] is not None:
             caption += f"\nTempo: {request['bpm']} BPM."
         if request['mode'] == 'instrumental':
-            caption += '\nInstrumental music only, no vocals, no singing, no spoken words.'
+            # Keep a single mode statement beside the structural token; negative vocal keyword piles are not a guarantee.
+            caption += '\nFully instrumental.'
             lyrics = '[Instrumental]'
         else:
             lyrics = request['lyrics']
@@ -108,21 +141,11 @@ def main():
                 raise RuntimeError('MiniMax Music3 вернул неверную длительность аудио')
             output = directory / 'audio' / 'MiniMax Music3.wav'
             output.parent.mkdir(exist_ok=True)
-            pcm = (np.clip(waveform, -1, 1) * 32767).round().astype('<i2')
-            native_output = output if rate == 32000 else output.with_name('Native MiniMax Music3.wav')
-            with wave.open(str(native_output), 'wb') as stream:
-                stream.setnchannels(2); stream.setsampwidth(2); stream.setframerate(rate)
-                stream.writeframes(pcm.tobytes())
-            if rate != 32000:
-                # The native Comfy decoder uses 44.1 kHz; resample without changing pitch or duration.
-                subprocess.run([str(root/'ffmpeg/bin/ffmpeg.exe'),'-hide_banner','-loglevel','error','-nostdin','-n',
-                                '-i',str(native_output),'-ar','32000','-ac','2','-c:a','pcm_s16le',str(output)],
-                               check=True,capture_output=True,timeout=60,
-                               creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+            delivery = save_minimax_audio(waveform, rate, output, root/'ffmpeg/bin/ffmpeg.exe')
             metadata = dict(sample_rate=32000, native_sample_rate=rate, channels=2, duration=round(duration, 3),
                             requested_max_duration=request['duration'], generation_sec=round(time.monotonic()-started, 2),
                             peak_allocated_vram_mb=round(torch.cuda.max_memory_allocated()/1024**2),
-                            torch=torch.__version__, python=sys.version.split()[0], inference=config)
+                            torch=torch.__version__, python=sys.version.split()[0], inference=config, delivery=delivery)
             write_json(directory / 'result.json', {'path': str(output), 'metadata': metadata})
             phase('Аудио готово')
     except Exception as exc:

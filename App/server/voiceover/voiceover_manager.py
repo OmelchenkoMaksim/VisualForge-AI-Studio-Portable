@@ -30,6 +30,7 @@ from .speech_normalization import changes as normalization_changes, normalize as
 from .voiceover_registry import DEFAULT_ENGINE, ENGINES, ID, QWEN_ID, VOXCPM_ID, validate
 from .voiceover_storage import publish, read_json, resolve_path, stored_path, write_json
 from .text_prep import clean, fragment_key, fragments, parse_input, summary
+from audio_preparation import AudioPreparationCancelled, job_thread, stop_preparation
 
 TERMINAL = ('done', 'error', 'cancelled')
 MAX_REPAIR_ROUNDS = 2      # a wrong fragment is synthesized again at most twice; what is still wrong is reported, not hidden
@@ -92,6 +93,7 @@ def _join_wavs(parts, target, gap_seconds, limit_seconds):
 
 class VoiceoverManager:
     def __init__(self, paths):
+        self.prompt_enhancer = None
         self.paths = paths
         self.runtime = Path(os.environ.get('VISUALFORGE_VOICEOVER_RUNTIME', paths.root / 'Runtime/Video')).resolve()
         # Model folders by engine; the Qwen one keeps its original override name.
@@ -262,7 +264,7 @@ class VoiceoverManager:
         transcript = data.get('transcript', '')
         if not isinstance(transcript, str) or len(transcript) > 1000:
             raise ValueError(ui_text('voiceover.manager_voice_transcript_invalid_error'))
-        transcript = ' '.join(transcript.split())
+        transcript = transcript if transcript.strip() else ''
         if transcript and len(raws) > 1:
             raise ValueError(ui_text('voiceover.manager_voice_transcript_single_file_error'))  # the words belong to one recording
         ident = uuid.uuid4().hex
@@ -272,9 +274,22 @@ class VoiceoverManager:
         sources = [scratch / ('%s-%d.bin' % (ident, index)) for index in range(len(raws))]
         parts = [path.with_suffix('.wav') for path in sources]
         target = self.voices_dir / (ident + '.wav')
+        originals = [self.voices_dir / ('%s-original-%d.bin' % (ident, index)) for index in range(len(raws))]
         try:
             for raw, source, part in zip(raws, sources, parts):
                 source.write_bytes(raw)
+                if transcript:
+                    probe = subprocess.run([str(self.ffmpeg.with_name('ffprobe.exe')), '-v', 'error', '-show_entries', 'format=duration',
+                                            '-of', 'default=noprint_wrappers=1:nokey=1', str(source)],
+                                           capture_output=True, timeout=30, creationflags=NO_WINDOW)
+                    try:
+                        source_seconds = float(probe.stdout)
+                    except ValueError:
+                        raise ValueError(ui_text('voiceover.manager_voice_audio_invalid_error')) from None
+                    if probe.returncode or not 0 < source_seconds <= 30.05:
+                        # The conversion below caps samples at 30 s. A transcript of a longer original would condition
+                        # continuation on words absent from the saved reference, so refuse instead of silently misaligning it.
+                        raise ValueError(ui_text('voiceover.reference_transcript_duration_error'))
                 # 24 kHz mono is what the model's speaker encoder uses; thirty seconds of one recording are plenty for a timbre.
                 done = subprocess.run([str(self.ffmpeg), '-nostdin', '-v', 'error', '-y', '-i', str(source), '-t', '30', '-vn', '-ac', '1', '-ar', '24000', '-c:a', 'pcm_s16le', str(part)],
                                       capture_output=True, timeout=120, creationflags=NO_WINDOW)
@@ -283,11 +298,16 @@ class VoiceoverManager:
             seconds = _join_wavs(parts, target, VOICE_GAP_SECONDS, MAX_VOICE_SECONDS)
             if seconds < 3:
                 raise ValueError(ui_text('voiceover.manager_voice_too_short_error'))
+            # Keep source bytes: the 24 kHz speaker reference is a derived representation, not the recording's original.
+            for raw, original in zip(raws, originals):
+                original.write_bytes(raw)
             write_json(self.voices_dir / (ident + '.json'), dict(
                 id=ident, name=name.strip(), created=time.time(), duration=round(seconds, 2), consent_confirmed=True, transcript=transcript,
-                parts=len(raws), sha256=hashlib.sha256(target.read_bytes()).hexdigest()))
+                originals=[path.name for path in originals], parts=len(raws), sha256=hashlib.sha256(target.read_bytes()).hexdigest()))
         except Exception:
             target.unlink(missing_ok=True)
+            for original in originals:
+                original.unlink(missing_ok=True)
             raise
         finally:
             for path in sources + parts:
@@ -302,6 +322,8 @@ class VoiceoverManager:
             if self.active and self.active['state'] not in TERMINAL and self.active.get('voice_id') == meta['id']:
                 raise ValueError(ui_text('voiceover.manager_voice_in_use_error'))
             audio.unlink(missing_ok=True)
+            for index in range(MAX_VOICE_FILES):
+                (self.voices_dir / ('%s-original-%d.bin' % (meta['id'], index))).unlink(missing_ok=True)
             (self.voices_dir / (meta['id'] + '.json')).unlink(missing_ok=True)
         return {'deleted': True}
 
@@ -401,9 +423,17 @@ class VoiceoverManager:
         book = parse_input(name, raw, text, title.strip()[:200] if isinstance(title, str) else '')
         ident = uuid.uuid4().hex
         self.books.mkdir(parents=True, exist_ok=True)
+        if raw is None:
+            book['source_text'] = text
+            book['source_sha256'] = hashlib.sha256(text.encode('utf-8')).hexdigest()
+        else:
+            source = self.books / (ident + '.source.bin')
+            source.write_bytes(raw)
+            book.update(source_file=str(source), source_name=name, source_sha256=hashlib.sha256(raw).hexdigest())
         write_json(self.books / (ident + '.json'), book)
         for old in sorted(self.books.glob('*.json'), key=lambda path: path.stat().st_mtime, reverse=True)[KEPT_BOOKS:]:
             old.unlink(missing_ok=True)
+            old.with_suffix('.source.bin').unlink(missing_ok=True)
         places, examples = normalization_changes('\n'.join(chapter['text'] for chapter in book['chapters']), limit=6)
         return dict(book_id=ident, title=book['title'], normalization=dict(places=places, examples=examples), **summary(book['chapters']))
 
@@ -433,7 +463,7 @@ class VoiceoverManager:
                        title=book['title'], chapter_count=len(book['chapters']), voice_name=voice['name'], done=0, total=0,
                        upstream_revision=ENGINES[request['engine']]['upstream_revision'], save_dir=stored_path(Path(self.settings()['save_dir']), self.paths.root))
             self.active = row
-            threading.Thread(target=self._run, args=(row, directory), daemon=True).start()
+            job_thread(self, row, directory).start()
             return self.public(row, include_token=True)
 
     def public(self, row, include_token=False):
@@ -500,6 +530,7 @@ class VoiceoverManager:
                 raise ValueError(ui_text('voiceover.manager_cancel_invalid_key_error'))
             if row['state'] not in TERMINAL:
                 row['cancel_requested'] = True
+                stop_preparation(self)
                 row['phase'] = ui_text('voiceover.job_phase_cancelling_label')
                 if self.owned:
                     self.owned.close()
@@ -639,6 +670,7 @@ class VoiceoverManager:
         write_json(directory / 'request.json', dict(
             packages=[str(self.runtime / package) for package in ENGINES[engine]['packages']], model=str(self.models[engine]), voice=str(voice_audio),
             language=row['language'], transcript=voice.get('transcript', ''), optimize=self.voxcpm_optimize,
+            delivery_style=(row.get('preparation') or {}).get('style', 'none'),
             cache=str(self.cache), fragments=[{'key': item['key'], 'text': item.get('speak', item['text'])} for item in pending],
             attempts=3, batch=self.batch, seed_shift=shift))
         phases = dict(loading=ui_text('voiceover.job_phase_loading_model_label'), synthesis=ui_text('voiceover.job_phase_synthesis_label'))
@@ -784,13 +816,35 @@ class VoiceoverManager:
         log_path = self.logs / (row['id'] + '.log')
         try:
             self.logs.mkdir(parents=True, exist_ok=True)
+            preparation = None
+            voice, voice_audio = self._voice(row['voice_id'])
+            row['reference_mode'] = ('continuation' if voice.get('transcript') else 'reference') if row['engine'] == VOXCPM_ID else 'embedding'
+            if self.prompt_enhancer:
+                enhancer = self.prompt_enhancer
+                row.update(preparing_prompt=True, phase=ui_text('music.preparation_phase_label') if row['delivery'].strip() else ui_text('voiceover.job_phase_preparing_text_label'))
+                try:
+                    preparation = enhancer.prepare_cached(row, self.state / 'delivery-preparation.json', cancelled=lambda: bool(row.get('cancel_requested')))
+                finally:
+                    row['preparing_prompt'] = False
+                row['preparation'] = preparation
+                with enhancer.lock:
+                    if row.get('cancel_requested'):
+                        raise AudioPreparationCancelled()
+                    enhancer.gpu.claim('voiceover', ENGINES[row['engine']]['claim_vram_mb'])
             book = self._book(row['book_id'])
             voice, voice_audio = self._voice(row['voice_id'])
+            source_text = json.dumps(book['chapters'], ensure_ascii=False, sort_keys=True)
+            row['speech_provenance'] = dict(source_sha256=book.get('source_sha256'),
+                                            chapters_sha256=hashlib.sha256(source_text.encode('utf-8')).hexdigest(),
+                                            voice_sha256=voice['sha256'], sample_transcript=voice.get('transcript', ''),
+                                            replacements=row['replacements'], normalize=row['normalize'], dictionary=row['dictionary'],
+                                            representation_file=str(directory / 'fragments.json'))
             # The user's dictionary acts on the text as written; numbers and abbreviations are rewritten into words after it.
             # Language-specific: the rules are Russian, so another language keeps its digits for the model to read.
             spoken = spoken_form if row.get('normalize', True) and row['language'] == 'Russian' else (lambda text: text)
             chapters = [{'title': item['title'], 'text': spoken(clean(item['text'], row['replacements']))} for item in book['chapters']]
-            items = fragments(chapters)
+            controls = preparation['controls'] if preparation else None
+            items = fragments(chapters, limit=controls['fragment_chars']) if controls else fragments(chapters)
             rules = self._rules(row)
             for item in items:
                 # What the engine is given. The page, the report and the comparison with the recognized words keep the written text.
@@ -800,6 +854,12 @@ class VoiceoverManager:
             if row['engine'] == VOXCPM_ID:
                 # With a transcript of the sample the voice is cloned in a different mode, and the audio differs.
                 model += ':continuation' if voice.get('transcript') else ':reference'
+                if voice.get('transcript'):
+                    # The same sample with a corrected transcript changes continuation conditioning and must miss the cache.
+                    model += ':' + hashlib.sha256(voice['transcript'].encode('utf-8')).hexdigest()[:16]
+                if preparation and preparation.get('style', 'none') != 'none':
+                    # Pacing-only plans reuse speech; a trained style prefix changes synthesis and must miss its cache.
+                    model += ':' + preparation['style_version'] + ':' + preparation['style']
             for item in items:
                 item['key'] = fragment_key(item['speak'], voice['sha256'], row['language'], row['seed'], model)
             unique = list({item['key']: {'key': item['key'], 'text': item['text'], 'speak': item['speak']} for item in items}.values())
@@ -818,7 +878,8 @@ class VoiceoverManager:
             flagged, verification = checked
             with self.lock:
                 row.update(phase=ui_text('voiceover.job_phase_assembling_label'), done=row['total'])
-            command, output, chapter_rows, seconds = assemble.prepare(directory, self.cache, items, chapters, book['title'], row['format'], self.ffmpeg)
+            command, output, chapter_rows, seconds = assemble.prepare(directory, self.cache, items, chapters, book['title'], row['format'], self.ffmpeg,
+                                                                     pauses=controls['pauses'] if controls else None)
             process = self._spawn(row, command, env, directory)
             if process is None:
                 with self.lock:
@@ -840,6 +901,8 @@ class VoiceoverManager:
                 target = publish(output, resolve_path(row['save_dir'], self.paths.root), self.public(row), self.paths.root)
                 row.update(filename=target.name, output=stored_path(target, self.paths.root))
             output.unlink(missing_ok=True)  # the published copy is the result; fragments stay cached for a quick re-run
+        except AudioPreparationCancelled:
+            row.update(state='cancelled', phase=ui_text('voiceover.job_phase_cancelled_label'))
         except Exception as exc:
             with self.lock:
                 row.update(state='error', phase=ui_text('voiceover.job_phase_error_label'), error=str(exc)[:2000])
@@ -867,6 +930,7 @@ class VoiceoverManager:
             self.closing = True
             if self.active and self.active['state'] not in TERMINAL:
                 self.active['cancel_requested'] = True
+                stop_preparation(self)
             if self.building and self.building['state'] == 'running':
                 self.building['cancel_requested'] = True
             if self.owned:

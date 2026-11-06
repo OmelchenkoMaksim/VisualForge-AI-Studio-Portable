@@ -44,19 +44,23 @@ class GpuCoordinator:
     @contextmanager
     def acting_for(self, module):
         """Requests handled on this thread are made by `module` for its own work (the Director asking for a scene): its being busy is not a reason to refuse them."""
-        previous = getattr(self._acting, 'module', None)
-        self._acting.module = module
+        previous = self.current_actors()
+        self._acting.modules = (*previous, module)
         try:
             yield
         finally:
-            self._acting.module = previous
+            self._acting.modules = previous
+
+    def current_actors(self):
+        """Trusted caller context, explicitly inherited by audio job threads."""
+        return getattr(self._acting, 'modules', ())
 
     def busy_modules(self, exclude=None):
         """Modules working right now. A probe that fails (a service that is not running) counts as idle."""
         working = []
-        acting = getattr(self._acting, 'module', None)
+        acting = self.current_actors()
         for module in MODULES:
-            if module == exclude or module == acting or module not in self.probes:
+            if module == exclude or module in acting or module not in self.probes:
                 continue
             try:
                 if self.probes[module]():

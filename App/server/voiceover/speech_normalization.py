@@ -7,7 +7,8 @@ left to the model and to the user's pronunciation dictionary.
 Known limits (also in docs/VisualForge-Voiceover-Guide.md): a plain number is spoken in the nominative/accusative («пять минут», «в пять минут»), so
 «о 5 минутах» becomes «о пять минутах»; the numeral takes its gender from the next word's ending (one noun in a thousand is
 wrong); only years with «год/г.», centuries with «век/в.» and numbers with an ordinal suffix («5-й») are declined; ranges («1941-1945 гг.»),
-dates («12.05.2024») and mixed tokens («A4», «mp3») are left as they are.
+numeric dates («12.05.2024») and mixed tokens («A4», «mp3») are left as they are.
+Named-month dates use a bounded day-of-month rule; ambiguous calendar constructions still need a pronunciation replacement.
 """
 import re
 
@@ -258,6 +259,19 @@ def _spoken_decimal(whole, fraction):
 def _numbers(text):
     # A hyphen right before a number that follows a space or the start is a minus sign («-5 °C»); «1941-1945» is not touched.
     text = re.sub(r'(?<![\w.,])[-−](?=\d)', 'минус ', text)
+
+    def named_date(match):
+        day = int(match.group(1))
+        if not 1 <= day <= 31:
+            return match.group()
+        before = re.search(r'(\w+)\W*$', text[:match.start()])
+        word = before.group(1).lower() if before else ''
+        # A cardinal made «вернулась 5 мая» become «вернулась пять мая». Dates need a neuter ordinal;
+        # a few explicit contexts choose its case, while ordinary event dates use the genitive.
+        case = 'nom' if word in ('сегодня', 'завтра', 'вчера', 'дата') else 'dat' if word in ('к', 'ко') else 'acc' if word in ('на', 'по') else 'gen'
+        return ordinal(day, case, 'n') + match.group(2) + match.group(3)
+    text = re.sub(r'(?<![\w.,])(\d{1,2})(\s+)(января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?!\w)',
+                  named_date, text, flags=re.I)
 
     def time(match):
         hours, minutes = int(match.group(1)), int(match.group(2))

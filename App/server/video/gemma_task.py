@@ -70,10 +70,11 @@ class GemmaTask:
         finally:
             self.text.end(self.OWNER)
 
-    def ask(self, messages, cancel, **options):
+    def ask(self, messages, cancel, *, model=None, **options):
         """One streamed chat call without thinking: the text of the answer. `options` go to Ollama (temperature, num_ctx, num_predict...)."""
         pieces = []
         with operation(self.OPERATION, cancel=cancel):
-            for row in self.text.stream_chat(self.text.gemma_model(), messages, False, cancel, options=options):
+            # A multi-pass preparation pins its selected model so a settings change cannot falsify provenance mid-job.
+            for row in self.text.stream_chat(model or self.text.gemma_model(), messages, False, cancel, options=options):
                 pieces.append((row.get('message') or {}).get('content', ''))
         return ''.join(pieces)

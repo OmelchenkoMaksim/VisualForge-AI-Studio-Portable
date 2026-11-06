@@ -2,6 +2,10 @@
 
 Music supports local instrumental and lyrics-conditioned song creation with two
 engines: ACE-Step 1.5 Turbo and MiniMax Music3 INT8. See [MiniMax details](MiniMax-Music3.md).
+The song panel can append editable requests for intimate vocals or verse-to-chorus development without touching lyrics.
+[Audio Presets](VisualForge-Audio-Presets.md) records publisher and international community findings, their limits, and the new
+two-seed MiniMax instrumental comparison. Its positive mode statement replaces a redundant negative vocal list; absence of singing
+still requires listening. The model settings, duration bounds, output folders and licensing remain unchanged.
 
 ACE-Step 1.5 Turbo uses a separately packaged Python 3.12 embedded runtime, the official
 2B Turbo decoder, VAE, Qwen3 Embedding 0.6B and an optional 0.6B musical planning LM.
@@ -92,3 +96,18 @@ and refusal while Image/Video is busy. Syntax checks cover the changed Python an
 A final short real offline GPU job checks the assembled runtime and integration.
 No full Image suite or long music generation is required for this module iteration.
 
+
+
+## Automatic model-specific preparation (2026-11-06)
+
+[code] All normal Music submissions now prepare the casual request with local Gemma before synthesis. The chosen backend
+consumes the final caption; lyrics, explicit controls and external output directories remain separate. Optional lyric writing
+requires an explicit selection and is recorded as content creation. See [VisualForge-Audio-Preparation](VisualForge-Audio-Preparation.md)
+for per-model guides, publisher/community references, cancellation, sidecars and qualification limits. ACE's optional musical
+planner remains a separate stage and does not rewrite Gemma's caption. [CPU/UI, fake backend] Software checks do not establish
+musical coherence, lyric pronunciation or unwanted-vocal compliance; those need real samples and listening.
+
+[GPU, 2026-11-06] The approved sequential set completed every exposed model/mode with real Gemma and short 10/20 s outputs.
+MiniMax's native float is now resampled before PCM quantization, with measured constant peak headroom and 5 ms edge ramps;
+both reruns measured -1 dBTP and no full-scale samples. This is delivery integrity, not a musical-quality judgment.
+The Audio Preparation report retains failures, exact settings, finished-file measurements and remaining listening limits.

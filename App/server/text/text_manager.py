@@ -2,6 +2,7 @@
 own port, own model store (Models/Text/ollama), own home folder, killed with the application's job object."""
 from ui_strings import source as ui_text
 import atexit
+import hashlib
 import itertools
 import json
 import math
@@ -74,7 +75,8 @@ class TextManager:
             host, namespace, model, tag = path.relative_to(base).parts
             name = ('%s:%s' % (model, tag)) if (host, namespace) == (REGISTRY, 'library') else '%s/%s/%s:%s' % (host, namespace, model, tag)
             try:
-                manifest = json.loads(path.read_text(encoding='utf-8'))
+                manifest_bytes = path.read_bytes()
+                manifest = json.loads(manifest_bytes)
                 layers = [manifest['config']] + list(manifest['layers'])
                 missing = [layer['digest'] for layer in layers if not self._blob(layer['digest']).is_file() or self._blob(layer['digest']).stat().st_size != layer['size']]
                 weights = sum(layer['size'] for layer in manifest['layers'] if layer.get('mediaType', '').endswith(('.model', '.projector')))
@@ -99,6 +101,7 @@ class TextManager:
                 found.append(dict(name=name, label=model, ok=False, size=0, vision=False, missing=['manifest']))
                 continue
             found.append(dict(name=name, label=model, ok=not missing, size=weights, vision=vision, missing=missing, parameters=parameters,
+                manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
                 disk_size=disk_size, parameter_size=details.get('model_type'), quantization=details.get('file_type'), family=str(details.get('model_family') or '')))
         from model_policy import ModelPolicy
         policy = ModelPolicy(self.paths.root)

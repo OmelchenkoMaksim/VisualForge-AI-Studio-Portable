@@ -1,7 +1,11 @@
 {
+  "music.close_vocal_preset_label": {"ru": "Близкий вокал", "en": "Intimate vocal"},
+  "music.verse_chorus_preset_label": {"ru": "Развитие к припеву", "en": "Build toward the chorus"},
+  "music.close_vocal_preset_request": {"ru": "Близкий, сдержанный вокал с ясными словами и естественными фразами, без оперной манеры.", "en": "Intimate, restrained singing with clear words and natural phrasing, without operatic delivery."},
+  "music.verse_chorus_preset_request": {"ru": "Сдержанный куплет, более полный и энергичный припев, с плавным развитием в пределах заданной длительности.", "en": "A restrained verse and a fuller, more energetic chorus, developing smoothly within the selected duration."},
   "music.default_guide_start_genre_mood_add_2_3": {
-    "ru": "Начните с жанра и настроения, добавьте 2–3 главных инструмента, темп и характер звучания. Лучше использовать конкретное английское описание стиля; слова песни можно написать по-русски. Для инструментала не просите вокал в описании.",
-    "en": "Start with genre and mood, then add 2–3 main instruments, tempo and sound character. A specific English style description works best; lyrics may be in Russian. For instrumental music, do not request vocals in the description."
+    "ru": "Опишите идею своими словами на любом языке. Gemma подготовит описание для выбранной модели; слова песни и ваши настройки сохранятся.",
+    "en": "Describe your idea in any language. Gemma prepares a description for the selected model; lyrics and your controls are preserved."
   },
   "music.engine_availability_local_execution_suffix": {
     "ru": " · локально · ",
@@ -754,5 +758,45 @@
   "music.validate_audio_duration_seconds": {
     "ru": "Длительность {0}: от {1} до {2} секунд",
     "en": "Duration {0}: from {1} to {2} seconds"
+  },
+  "music.preparation_phase_label": {
+    "ru": "Gemma готовит запрос",
+    "en": "Gemma is preparing the request"
+  },
+  "music.preparation_cancelled_label": {
+    "ru": "Подготовка запроса отменена",
+    "en": "Request preparation cancelled"
+  },
+  "music.preparation_invalid_error": {
+    "ru": "Gemma дважды вернула неверную подготовку. Генерация не запущена; попробуйте уточнить запрос.",
+    "en": "Gemma returned invalid preparation twice. Generation was not started; try clarifying the request."
+  },
+  "music.preparation_result_label": {
+    "ru": "Запрос, подготовленный Gemma",
+    "en": "Prompt prepared by Gemma"
+  },
+  "music.lyrics_density_warning": {
+    "ru": "Для выбранной длительности слов много: часть песни может не поместиться. Текст и длительность сохранены.",
+    "en": "The lyrics are dense for this duration: some may not fit. Lyrics and duration were preserved."
+  },
+  "music.lyrics_tag_line_error": {
+    "ru": "MiniMax: поставьте секционные теги на отдельные строки, иначе модель пропустит слова рядом с тегом.",
+    "en": "MiniMax: put section tags on their own lines, otherwise the model drops words beside a tag."
+  },
+  "music.preparation_gemma_required": {
+    "ru": "Для подготовки нужна установленная и включённая Gemma в разделе Text.",
+    "en": "Preparation requires an installed and enabled Gemma in Text."
+  },
+  "music.lyrics_creation_consent_label": {
+    "ru": "Написать слова по описанию, если поле текста пустое",
+    "en": "Write lyrics from the description if the lyrics field is empty"
+  },
+  "music.minimax_peak_measurement_error": {
+    "ru": "MiniMax Music3: не удалось проверить пиковый уровень аудио",
+    "en": "MiniMax Music3: could not measure the audio true peak"
+  },
+  "music.minimax_peak_invalid_error": {
+    "ru": "MiniMax Music3: неверное значение пикового уровня аудио",
+    "en": "MiniMax Music3: invalid audio true peak"
   }
 }

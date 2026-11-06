@@ -70,6 +70,7 @@ class MusicTests(unittest.TestCase):
 
     def test_music_admission_preserves_busy_image(self):
         handler, manager = Mock(), Mock()
+        manager.prompt_enhancer = None
         manager.busy.return_value = False
         manager.availability.return_value = {'available':True}
         gpu, release = self.coordinator(image=True)
@@ -83,6 +84,7 @@ class MusicTests(unittest.TestCase):
         for busy in ('video', 'text'):
             with self.subTest(busy=busy):
                 handler, manager = Mock(), Mock()
+                manager.prompt_enhancer = None
                 manager.busy.return_value = False
                 manager.availability.return_value = {'available':True}
                 gpu, release = self.coordinator(**{busy: True})
@@ -93,6 +95,7 @@ class MusicTests(unittest.TestCase):
 
     def test_music_start_frees_the_idle_modules_and_submits(self):
         handler, manager = Mock(), Mock()
+        manager.prompt_enhancer = None
         manager.busy.return_value = False
         manager.availability.return_value = {'available':True}
         manager.submit.return_value = {'id':'job'}

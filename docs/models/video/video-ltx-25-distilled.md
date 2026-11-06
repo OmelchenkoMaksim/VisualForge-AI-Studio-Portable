@@ -22,7 +22,7 @@ Picture **and sound in one pass** at 24 fps: text to video, image to video, firs
 | One shot | 49 / 97 / 121 frames (2.04 / 4.04 / 5.04 s); frames are 8n+1 |
 | Quality | `preview` = one pass of 8 steps; `standard` = 8 steps at half size, latent x2 upsample, 3 refine steps. Director: draft = preview 768x512, standard 1024x576, maximum 1280x704 (both two passes) |
 | Sizes | 768x512, 1024x576, 1280x704 and the vertical ones (multiples of 32) |
-| Long | continuation 15 / 30 / 60 s = 4 / 8 / 15 windows of 121 frames advancing 96, or **edited scenes** 2-30 (10 s to 2 min) from a Gemma scenario |
+| Long | continuation: the panel offers 15 / 30 / 60 s = 4 / 8 / 15 windows of 121 frames advancing 96; the registry accepts **any length the windows can make** (144 to 1440 frames: whole strides of 96 plus a last window of 49-121 frames, 240 excepted), which the Director uses for the exact length of a scene; or **edited scenes** 2-30 (10 s to 2 min) from a Gemma scenario |
 | Start picture | resized to cover and **centre-cropped**; strength 0.7 on the first latent frame: give it the film's shape **[recorded 2026-11-01]** |
 
 ## How to ask it
@@ -40,7 +40,8 @@ Picture **and sound in one pass** at 24 fps: text to video, image to video, firs
 | 8 scenes of 30 s with speech | 275 s warm, 594 s cold; both lines word for word | 2026-10-31 |
 | Director: 10 s at **maximum** 1280x704, 2 scenes + keyframes + music | 18.5 min in all; about 67 s per second of film in continuations, about 51 in a single shot | 2026-11-01 |
 | Director: 60 s draft, 4 scenes of 15 s | scenes 10, 6, 3.5, 3.3 min (first with the cold load) | 2026-11-01 |
-| A scene a little above 5 s (a continuation of 4 windows) | about 3.5 times the cost per second of a single 5 s shot | 2026-11-01 |
+| A scene a little above 5 s (a continuation of 4 windows) | about 3.5 times the cost per second of a single 5 s shot (it was rounded up to a 15 s take; exact lengths since 2026-11-06 make it two windows) | 2026-11-01 |
+| **Calibration of the exact chains, warm file cache** (6 s, 10.3 s, 15 s takes; frames and sound lengths counted by ffprobe: exactly 144, 248, 360) | a window of 121 frames: 35 s at 768x512, 52 s at 1024x576, 56 s at 1280x704 (two passes both); window seconds = 20 + 0.121 x frames (draft), 27 + 0.199 x frames (standard); about 20 s a job besides (prompt encoder 8 s, assembly, copy). The first job of a session: 374 s against 45 s (weights from the hard disk) | 2026-11-06 |
 
 ## Not verified yet
 Vertical sizes in the long modes, two-pass quality of long clips, speech in other languages and with two speakers, lip accuracy, whether the sound is pleasant to a human ear (never listened to), films longer than a minute at maximum quality. **[unknown]**

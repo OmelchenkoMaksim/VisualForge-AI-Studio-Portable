@@ -37,22 +37,24 @@ def _escape_meta(text):
     return ''.join('\\' + char if char in '=;#\\\n' else char for char in text)
 
 
-def timeline(items, chapters, durations):
+def timeline(items, chapters, durations, pauses=None):
     """Chapter start/end times (seconds) and the total length, from fragment lengths and the pauses between them."""
+    pauses = PAUSE if pauses is None else pauses
     clock, starts, ends = 0.0, {}, {}
     for index, item in enumerate(items):
         starts.setdefault(item['chapter'], clock)
         clock += durations[index]
         ends[item['chapter']] = clock
         if index < len(items) - 1:
-            clock += PAUSE[item['pause']]
+            clock += pauses[item['pause']]
     rows = [{'title': chapters[number]['title'], 'start': round(starts[number], 3), 'end': round(ends[number], 3)}
             for number in sorted(starts)]
     return rows, clock
 
 
-def prepare(directory, cache, items, chapters, title, fmt, ffmpeg):
+def prepare(directory, cache, items, chapters, title, fmt, ffmpeg, pauses=None):
     """Writes the concat list and metadata; returns (command, output path, chapter rows, total seconds)."""
+    pauses = PAUSE if pauses is None else pauses
     directory = Path(directory)
     first = cache / (items[0]['key'] + '.wav')
     rate, channels, _ = wav_info(first)
@@ -63,7 +65,7 @@ def prepare(directory, cache, items, chapters, title, fmt, ffmpeg):
             raise ValueError('Fragments have different audio formats: ' + item['key'])
         durations.append(seconds)
     gaps = {}
-    for name, seconds in PAUSE.items():
+    for name, seconds in pauses.items():
         gaps[name] = directory / ('silence-%s.wav' % name)
         write_silence(gaps[name], rate, channels, seconds)
     lines = []
@@ -72,7 +74,7 @@ def prepare(directory, cache, items, chapters, title, fmt, ffmpeg):
         if index < len(items) - 1:
             lines.append("file '%s'" % _escape_list(gaps[item['pause']]))
     (directory / 'concat.txt').write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    rows, total = timeline(items, chapters, durations)
+    rows, total = timeline(items, chapters, durations, pauses)
     output = directory / ('voiceover.' + fmt)
     command = [str(ffmpeg), '-nostdin', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', str(directory / 'concat.txt')]
     if fmt == 'm4b':

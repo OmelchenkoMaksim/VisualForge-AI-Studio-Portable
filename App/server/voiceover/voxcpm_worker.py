@@ -14,12 +14,16 @@ import traceback
 # Run as a script by the manager, so the server folder is put on sys.path by hand before the shared helpers are imported.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from voiceover.qwen_tts_worker import event, plausible  # noqa: E402
+from voiceover.voiceover_delivery import conditioned_text  # noqa: E402
 
 
 def main():
     spec_path = Path(sys.argv[1])
     directory = spec_path.parent
     spec = json.loads(spec_path.read_text(encoding='utf-8'))
+    # Validate before loading weights. The prefix is a trained VoxCPM2 control, not literal narration.
+    style = spec.get('delivery_style', 'none')
+    conditioned_text('', style, spec.get('transcript', ''))
     for package in reversed(spec['packages']):
         sys.path.insert(0, package)
     try:
@@ -77,12 +81,13 @@ def main():
             with operation('SpeechSynthesis'):
                 for item in todo:
                     best = None
+                    synthesis_text = conditioned_text(item['text'], style, spec.get('transcript', ''))
                     for attempt in range(spec.get('attempts', 3)):
                         # The seed comes from the fragment's identity: a re-run of the same text is reproducible,
                         # a retry shifts it to get a different take.
                         torch.manual_seed(int(item['key'][:8], 16) + attempt * 7919 + int(spec.get('seed_shift', 0)) * 104729)
                         try:
-                            wav = model.generate(text=item['text'], cfg_value=float(spec.get('cfg', 2.0)), inference_timesteps=int(spec.get('steps', 10)),
+                            wav = model.generate(text=synthesis_text, cfg_value=float(spec.get('cfg', 2.0)), inference_timesteps=int(spec.get('steps', 10)),
                                                  max_len=int(len(item['text']) * 1.3) + 40, **references)
                         except Exception as error:
                             if not optimize:
@@ -92,7 +97,7 @@ def main():
                             optimize, model = False, None
                             torch.cuda.empty_cache()
                             model = load(False)
-                            wav = model.generate(text=item['text'], cfg_value=float(spec.get('cfg', 2.0)), inference_timesteps=int(spec.get('steps', 10)),
+                            wav = model.generate(text=synthesis_text, cfg_value=float(spec.get('cfg', 2.0)), inference_timesteps=int(spec.get('steps', 10)),
                                                  max_len=int(len(item['text']) * 1.3) + 40, **references)
                         wav = np.asarray(wav, dtype=np.float32)
                         samples = wav[:, None] if wav.ndim == 1 else wav

@@ -82,6 +82,9 @@ def claim_vram_mb(engine, request):
 def validate(data):
     """Normalize a bounded request before any runtime or GPU is touched."""
     import secrets
+    import re
+    if not isinstance(data, dict):
+        raise ValueError(ui_text('music.validation_unknown_music_mode'))
     engine = get_engine(data.get('engine', ENGINE['id']))
     if engine['id'] == STABLE_AUDIO['id']:
         return _validate_audio(engine, data)
@@ -94,8 +97,13 @@ def validate(data):
     mode = data.get('mode', 'instrumental')
     if mode not in ENGINE['modes']:
         raise ValueError(ui_text('music.validation_unknown_music_mode'))
-    if mode == 'song' and not lyrics.strip():
+    write_lyrics = data.get('write_lyrics', False)
+    if type(write_lyrics) is not bool:
         raise ValueError(ui_text('music.validation_add_lyrics'))
+    if mode == 'song' and not lyrics.strip() and not write_lyrics:
+        raise ValueError(ui_text('music.validation_add_lyrics'))
+    if engine['id'] == MINIMAX['id'] and mode == 'song' and re.search(r'^\s*\[[^\]\n]+\][^\S\n]*\S', lyrics, re.M):
+        raise ValueError(ui_text('music.lyrics_tag_line_error'))
     duration = int(data.get('duration', 30))
     if not engine['min_duration'] <= duration <= engine['max_duration']:
         raise ValueError(ui_text('music.validate_audio_duration_seconds', f"{engine['name']}", f"{engine['min_duration']}", f"{engine['max_duration']}"))
@@ -115,5 +123,5 @@ def validate(data):
         raise ValueError(ui_text('music.validation_invalid_music_planner_setting'))
     if engine['id'] == MINIMAX['id']:
         planner = False
-    return dict(engine=engine['id'], caption=caption.strip(), lyrics=lyrics.strip(), mode=mode,
+    return dict(engine=engine['id'], caption=caption.strip(), lyrics=lyrics, mode=mode, write_lyrics=write_lyrics,
                 duration=duration, seed=seed, bpm=bpm, language=language, planner=planner)
